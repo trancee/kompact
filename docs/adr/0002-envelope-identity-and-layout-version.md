@@ -27,9 +27,9 @@ Each namespace owns a checked-in `kompact-registry.json`. The registry is an ide
 - a lowercase SHA-256 fingerprint of a versioned canonical schema descriptor;
 - permanent tombstones for retired IDs and versions.
 
-Schema declarations own field definitions. Generation recomputes the canonical descriptor and fingerprint. A mismatch under an existing schema ID and layout version fails the build. Tooling never allocates identities implicitly and never reuses a retired numeric identity. The compatibility-tooling decision will fix the descriptor fields, JSON schema, normalization, comparison algorithm, and diagnostics.
+Schema declarations own field definitions. Generation recomputes the canonical descriptor and fingerprint. A mismatch under an existing schema ID and layout version fails the build. Tooling never allocates identities implicitly and never reuses a retired numeric identity. ADR-0010 defines descriptor fields, JSON Schemas, normalization, comparison, lifecycle, and diagnostics.
 
-Version zero is the first layout. Versions increase monotonically through 15. After version 15, a changed layout receives a new schema ID while the old ID history remains in the registry. Any wire or semantic change requires a new version, including a field addition or removal, offset, width, encoding, enum code, optionality, nested layout version, unit, range, or meaning. A Kotlin source rename may retain the version only when stable registry names and semantics remain unchanged.
+Version zero is the first layout. Versions increase monotonically through 15. After version 15, a changed layout receives a new schema ID, layout version zero, and a new stable schema name while the old identity remains in the registry; the new entry may link to the old identity through `supersedes`. Any wire or semantic change requires a new version, including a field addition or removal, offset, width, encoding, enum code, optionality, nested layout version, unit, range, or meaning. A Kotlin source rename may retain the version only when stable registry names and semantics remain unchanged.
 
 A decoder supports only versions explicitly marked supported. It rejects reserved schema ID zero, unknown schema IDs, unsupported versions, incorrect packet lengths, and nonzero transport-tail bits before reading the body. Removing a supported decoder is a breaking public and protocol change. Retirement changes registry status but never deletes history.
 
@@ -47,4 +47,4 @@ The fixed envelope spends two bytes on every packet. Four version bits limit one
 
 ## Migration
 
-No released envelope exists. Once v1 ships, the 16-bit envelope mapping and numeric identities are immutable. Layout changes create a new version or, after version 15, a new schema ID. Decoders retain explicitly supported old versions during staged application and firmware rollouts. A future envelope format begins with reserved schema ID zero and must define an explicit transition; v1 decoders fail closed when they encounter it.
+No released envelope exists. Once v1 ships, the 16-bit envelope mapping and numeric identities are immutable. Layout changes create a new version or, after version 15, a new schema ID and stable name beginning at version zero. Decoders retain explicitly supported old versions during staged application and firmware rollouts. A future envelope format begins with reserved schema ID zero and must define an explicit transition; v1 decoders fail closed when they encounter it.

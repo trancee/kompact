@@ -37,8 +37,10 @@ The typed `kompact` extension exposes:
 - required maximum packet byte size;
 - registry file, defaulting to project-root `kompact-registry.json`;
 - C-header generation and publication settings, including the default `c-headers` classifier.
+- optional `compatibilityBaseline` registry file;
+- Boolean `requireCompatibilityBaseline`, defaulting to false for local checks and enabled by CI and release.
 
-Configured namespace and packet limit must equal their registry values. Generated directories and task implementation details are not configurable public interface.
+Configured namespace and packet limit must equal their registry values. Required-baseline mode fails when the baseline file is absent. Compatibility checks consume only the supplied local file and never perform Git, network, or credential operations. Generated directories and task implementation details are not configurable public interface.
 
 ### Generation task
 
@@ -73,7 +75,7 @@ The first root contains publishable generated output. The second contains stagin
 The plugin exposes three stable tasks:
 
 - `generateKompactSchemas` creates all generated outputs from one validated descriptor pass.
-- `checkKompactSchemas` runs generation and schema, registry, descriptor, and compatibility checks and participates in project `check`.
+- `checkKompactSchemas` runs generation and schema, registry, descriptor, proposed-registry, and optional historical-baseline compatibility checks and participates in project `check`.
 - `packageKompactCHeaders` creates a deterministic ZIP from generated headers.
 
 `commonMain` receives the generated Kotlin directory through the generation task's output provider. This provider carries task dependencies into every target compile and the IDE model. Source archive tasks consume the same provider and include generated public declarations.
@@ -112,7 +114,7 @@ Target fixtures compile generated code for JVM, Android, `iosArm64`, and `iosSim
 
 Publication fixtures inspect root and target metadata, generated source archives, plugin dependency isolation, C ZIP contents, classifier and variant resolution, checksums, and reproducibility. They resolve real disposable-repository consumers for every supported target and artifact.
 
-Missing KMP or `commonMain`, version mismatch, namespace mismatch, packet-limit mismatch, missing registry, output collision, and unsupported target wiring fail closed with stable diagnostics.
+Missing KMP or `commonMain`, version mismatch, namespace mismatch, packet-limit mismatch, missing registry, missing required compatibility baseline, registry history removal, output collision, and unsupported target wiring fail closed with stable diagnostics.
 
 ## Alternatives
 
