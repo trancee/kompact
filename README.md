@@ -3,7 +3,7 @@
 Bit-packed Kotlin Multiplatform serialization for Bluetooth Low Energy, designed for allocation-free reads and interoperable C firmware.
 
 > [!IMPORTANT]
-> Kompact is in the architecture and specification phase. The runtime, generator, and published artifacts do not exist yet. Follow the [Kompact v1 implementation-ready specification](https://github.com/trancee/kompact/issues/1) map for current decisions and open questions.
+> The Kompact v1 architecture and implementation specification are complete. Production implementation has not started, so the runtime, generator, and published artifacts do not exist yet. The closed [Kompact v1 implementation-ready specification](https://github.com/trancee/kompact/issues/1) map records every decision.
 
 ## Why Kompact
 
@@ -18,7 +18,7 @@ The project has four goals:
 
 ## Current design direction
 
-Kompact v1 is being specified around these constraints:
+Kompact v1 is specified with these constraints:
 
 - Schemas have fixed, versioned layouts and an explicit envelope.
 - Bit offset zero is the least-significant bit of byte zero.
@@ -43,11 +43,11 @@ bit      14  engine malfunction   1-bit boolean
 bit      15  reserved             1 bit
 ```
 
-The same schema will drive generated Kotlin accessors and C99 extraction helpers. Exact authoring syntax and generated interfaces remain open design decisions.
+The same schema will drive generated Kotlin accessors and C99 extraction helpers. Developers author annotated schema interfaces; generated checked facades expose value-class views and writers in Kotlin and header-only typed handles in C99.
 
-## Planning and status
+## Specification status
 
-The [Kompact v1 implementation-ready specification](https://github.com/trancee/kompact/issues/1) is the canonical planning map. Its child issues hold individual decisions about:
+The closed [Kompact v1 implementation-ready specification](https://github.com/trancee/kompact/issues/1) is the canonical decision map. Its child issues record:
 
 - wire and envelope semantics;
 - KSP and Gradle integration;
