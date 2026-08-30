@@ -113,7 +113,7 @@ internal class DescriptorBuilder(private val namespace: String, private val pack
         if (bitWidth <= 0) error(1103, "bit width must be positive", property)
 
         val resolvedType = property.type.resolve()
-        val kotlinType = resolvedType.declaration.qualifiedName?.asString().orEmpty()
+        val kotlinType = qualifiedKotlinType(property, resolvedType.declaration)
         val logicalType = buildLogicalType(property, resolvedType.declaration, kotlinType)
         val semantics =
             FieldSemantics(
@@ -183,7 +183,7 @@ internal class DescriptorBuilder(private val namespace: String, private val pack
         if (declaration !is KSClassDeclaration || declaration.classKind != ClassKind.ENUM_CLASS) {
             error(
                 1101,
-                "unsupported field type '${declaration.qualifiedName?.asString()}'",
+                "unsupported field type '${declaration.qualifiedName?.asString() ?: declaration.simpleName.asString()}' from '${property.type}'",
                 property,
             )
             return LogicalType.UnsignedInteger
@@ -206,6 +206,30 @@ internal class DescriptorBuilder(private val namespace: String, private val pack
                 }
                 .toList()
         return LogicalType.EnumType(entries)
+    }
+
+    private fun qualifiedKotlinType(
+        property: KSPropertyDeclaration,
+        declaration: KSDeclaration,
+    ): String {
+        val renderedName = property.type.toString().removeSuffix("?")
+        when (renderedName) {
+            "Boolean",
+            "Byte",
+            "Short",
+            "Int",
+            "Long",
+            "UByte",
+            "UShort",
+            "UInt",
+            "ULong",
+            "Float",
+            "Double" -> return "kotlin.$renderedName"
+        }
+        declaration.qualifiedName?.asString()?.let {
+            return it
+        }
+        return "${property.packageName.asString()}.${declaration.simpleName.asString()}"
     }
 
     private fun validateIdentity(name: String, id: Int, version: Int, node: KSNode) {

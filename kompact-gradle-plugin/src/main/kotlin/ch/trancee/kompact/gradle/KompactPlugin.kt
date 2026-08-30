@@ -2,7 +2,7 @@ package ch.trancee.kompact.gradle
 
 import ch.trancee.kompact.processor.KompactSymbolProcessorProvider
 import com.google.devtools.ksp.impl.KotlinSymbolProcessing
-import com.google.devtools.ksp.processing.KSPJvmConfig
+import com.google.devtools.ksp.processing.KSPCommonConfig
 import java.io.File
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
@@ -72,7 +72,7 @@ public class KompactPlugin : Plugin<Project> {
                     classLocation(KompactPlugin::class.java),
                     classLocation(KompactSymbolProcessorProvider::class.java),
                     classLocation(KotlinSymbolProcessing::class.java),
-                    classLocation(KSPJvmConfig::class.java),
+                    classLocation(KSPCommonConfig::class.java),
                     classLocation(Unit::class.java),
                 )
                 kotlinOutputDirectory.set(generatedRoot.map { it.dir("kotlin") })

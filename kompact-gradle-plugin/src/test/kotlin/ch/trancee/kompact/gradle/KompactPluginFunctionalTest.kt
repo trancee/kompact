@@ -59,7 +59,7 @@ class KompactPluginFunctionalTest {
         val projectDirectory = createTempDirectory("kompact-registry-drift").toFile()
         createFixture(projectDirectory)
         val registry = projectDirectory.resolve("kompact-registry.json")
-        registry.writeText(registry.readText().replace("9c4c3ffd", "00000000"))
+        registry.writeText(registry.readText().replace("23d2ee1e", "00000000"))
 
         val result =
             GradleRunner.create()
@@ -138,7 +138,7 @@ class KompactPluginFunctionalTest {
                           "version": 0,
                           "status": "active",
                           "bodyBitSize": 16,
-                          "descriptorSha256": "9c4c3ffdf1eab8254a7835d09b2770b626e99b8e78fc80922aa0a9917373bb3c"
+                          "descriptorSha256": "23d2ee1e222cc72beb4dffa5d9dbf9335aea966ef6c6a1e6beb7f1a9c746bf76"
                         }
                       ]
                     }
@@ -175,6 +175,12 @@ class KompactPluginFunctionalTest {
                 @Target(AnnotationTarget.CLASS)
                 @Repeatable
                 annotation class KompactReserved(val stableName: String, val bitOffset: Int, val bitWidth: Int)
+
+                @Target(AnnotationTarget.CLASS)
+                annotation class KompactEnum(val bitWidth: Int)
+
+                @Target(AnnotationTarget.FIELD)
+                annotation class KompactCode(val stableName: String, val code: Long)
                 """
                     .trimIndent()
             )
@@ -226,15 +232,27 @@ class KompactPluginFunctionalTest {
                 """
                 package com.example
 
+                import ch.trancee.kompact.annotations.KompactCode
+                import ch.trancee.kompact.annotations.KompactEnum
                 import ch.trancee.kompact.annotations.KompactField
                 import ch.trancee.kompact.annotations.KompactReserved
                 import ch.trancee.kompact.annotations.KompactSchema
+
+                @KompactEnum(bitWidth = 4)
+                enum class BatteryStatus {
+                    @KompactCode(stableName = "normal", code = 0)
+                    NORMAL,
+                    @KompactCode(stableName = "low", code = 1)
+                    LOW,
+                    @KompactCode(stableName = "critical", code = 2)
+                    CRITICAL,
+                }
 
                 @KompactSchema(registryName = "vehicle_telemetry", id = 42, version = 0)
                 @KompactReserved(stableName = "future", bitOffset = 15, bitWidth = 1)
                 interface VehicleTelemetrySchema {
                     @KompactField(stableName = "battery_status", semanticType = "battery_status", bitOffset = 0, bitWidth = 4)
-                    val batteryStatus: UInt
+                    val batteryStatus: BatteryStatus
 
                     @KompactField(stableName = "speed", semanticType = "vehicle_speed", bitOffset = 4, bitWidth = 10, unit = "km/h", minimum = "0", maximum = "1023")
                     val speed: UInt

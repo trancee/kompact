@@ -3,8 +3,9 @@ package ch.trancee.kompact.gradle
 import ch.trancee.kompact.processor.KompactRegistryValidator
 import ch.trancee.kompact.processor.KompactSymbolProcessorProvider
 import com.google.devtools.ksp.impl.KotlinSymbolProcessing
-import com.google.devtools.ksp.processing.KSPJvmConfig
+import com.google.devtools.ksp.processing.KSPCommonConfig
 import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.processing.Target
 import com.google.devtools.ksp.symbol.KSNode
 import java.io.File
 import javax.inject.Inject
@@ -195,20 +196,18 @@ public abstract class KompactKspWorkAction : WorkAction<KompactKspWorkParameters
     override fun execute() {
         val stage = File(parameters.stageDirectory.get()).apply { mkdirs() }
         val config =
-            KSPJvmConfig.Builder()
+            KSPCommonConfig.Builder()
                 .apply {
                     moduleName = "kompact-common"
                     sourceRoots = parameters.sourcePaths.get().map(::File)
+                    commonSourceRoots = sourceRoots
                     libraries = parameters.libraryPaths.get().map(::File)
                     projectBaseDir = File(parameters.projectDirectory.get())
                     outputBaseDir = stage
                     cachesDir = File(parameters.cacheDirectory.get()).apply { mkdirs() }
                     classOutputDir = stage.resolve("classes").apply { mkdirs() }
                     kotlinOutputDir = stage.resolve("kotlin").apply { mkdirs() }
-                    javaOutputDir = stage.resolve("java").apply { mkdirs() }
                     resourceOutputDir = stage.resolve("resources").apply { mkdirs() }
-                    jdkHome = File(System.getProperty("java.home"))
-                    jvmTarget = "17"
                     languageVersion = parameters.languageVersion.get()
                     apiVersion = parameters.apiVersion.get()
                     incremental = parameters.incremental.get()
@@ -219,6 +218,7 @@ public abstract class KompactKspWorkAction : WorkAction<KompactKspWorkParameters
                             "kompact.namespace" to parameters.namespace.get(),
                             "kompact.maxPacketBytes" to parameters.maxPacketBytes.get().toString(),
                         )
+                    targets = listOf(Target("common", emptyMap()))
                 }
                 .build()
         val exitCode =

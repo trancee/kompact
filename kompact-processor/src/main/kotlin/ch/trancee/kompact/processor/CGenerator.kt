@@ -183,6 +183,7 @@ internal object CGenerator {
                 "    if (kompact_internal_read_u64(packet, ${16 + reserved.bitOffset}u, ${reserved.bitWidth}u) != 0u) return KOMPACT_STATUS_NONZERO_RESERVED_BITS;"
             )
         }
+        descriptor.fields.forEach { appendFieldValidation(it) }
         appendLine("    out_view->packet = packet;")
         appendLine("    return KOMPACT_STATUS_OK;")
         appendLine("}")
@@ -217,6 +218,31 @@ internal object CGenerator {
         appendLine()
     }
 
+    private fun StringBuilder.appendFieldValidation(field: FieldDescriptor) {
+        val absoluteOffset = 16 + field.bitOffset
+        when (val type = field.type) {
+            is LogicalType.EnumType -> {
+                val validCodes =
+                    type.entries.joinToString(" && ") { "code != UINT64_C(${it.code})" }
+                appendLine("    {")
+                appendLine(
+                    "        uint64_t code = kompact_internal_read_u64(packet, ${absoluteOffset}u, ${field.bitWidth}u);"
+                )
+                appendLine("        if ($validCodes) return KOMPACT_STATUS_UNKNOWN_ENUM_CODE;")
+                appendLine("    }")
+            }
+            is LogicalType.OptionalType -> {
+                val valueWidth = field.bitWidth - 1
+                appendLine(
+                    "    if (kompact_internal_read_u64(packet, ${absoluteOffset}u, 1u) == 0u && " +
+                        "kompact_internal_read_u64(packet, ${absoluteOffset + 1}u, ${valueWidth}u) != 0u) " +
+                        "return KOMPACT_STATUS_NONZERO_ABSENT_OPTIONAL;"
+                )
+            }
+            else -> Unit
+        }
+    }
+
     private fun StringBuilder.appendField(field: FieldDescriptor, prefix: String, macro: String) {
         val fieldMacro = "${macro}_${field.stableName.uppercase()}"
         val function = "${prefix}_${field.stableName}"
@@ -235,6 +261,8 @@ internal object CGenerator {
                         "value ? 1u : 0u); return KOMPACT_STATUS_OK; }"
                 )
             }
+            is LogicalType.EnumType ->
+                appendEnumField(field, field.type, prefix, fieldMacro, function)
             is LogicalType.FloatType -> {
                 val cType = if (field.type.bits == 32) "float" else "double"
                 val suffix = if (field.type.bits == 32) "f32" else "f64"
@@ -268,6 +296,47 @@ internal object CGenerator {
         }
         appendLine()
     }
+
+    private fun StringBuilder.appendEnumField(
+        field: FieldDescriptor,
+        type: LogicalType.EnumType,
+        prefix: String,
+        fieldMacro: String,
+        function: String,
+    ) {
+        val cType = unsignedCType(field.bitWidth)
+        val enumType = "${function}_t"
+        appendLine("typedef $cType $enumType;")
+        for (entry in type.entries) {
+            appendLine(
+                "#define ${fieldMacro}_${entry.stableName.uppercase()} (($enumType)UINT64_C(${entry.code}))"
+            )
+        }
+        appendLine(
+            "static inline $enumType $function(${prefix}_view_t view) { return ($enumType)kompact_internal_read_u64(view.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH); }"
+        )
+        appendLine(
+            "static inline kompact_status_t ${prefix}_write_${field.stableName}(${prefix}_writer_t writer, $enumType value) {"
+        )
+        val invalidCodes =
+            type.entries.joinToString(" && ") {
+                "value != ${fieldMacro}_${it.stableName.uppercase()}"
+            }
+        appendLine("    if ($invalidCodes) return KOMPACT_STATUS_UNKNOWN_ENUM_CODE;")
+        appendLine(
+            "    kompact_internal_write_u64(writer.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH, value);"
+        )
+        appendLine("    return KOMPACT_STATUS_OK;")
+        appendLine("}")
+    }
+
+    private fun unsignedCType(bitWidth: Int): String =
+        when {
+            bitWidth <= 8 -> "uint8_t"
+            bitWidth <= 16 -> "uint16_t"
+            bitWidth <= 32 -> "uint32_t"
+            else -> "uint64_t"
+        }
 
     private fun StringBuilder.appendIndexedField(
         field: FieldDescriptor,

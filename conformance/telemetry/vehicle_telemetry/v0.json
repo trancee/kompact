@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "namespace": "telemetry",
   "schema": {
-    "descriptorSha256": "9c4c3ffdf1eab8254a7835d09b2770b626e99b8e78fc80922aa0a9917373bb3c",
+    "descriptorSha256": "23d2ee1e222cc72beb4dffa5d9dbf9335aea966ef6c6a1e6beb7f1a9c746bf76",
     "id": 42,
     "packetBytes": 4,
     "stableName": "vehicle_telemetry",
