@@ -29,7 +29,7 @@ This evidence does not prove `kspCommonMainMetadata` can never work. It does sho
 
 Sources:
 
-- [First-party multiplatform example](https://github.com/google/ksp/blob/main/examples/multiplatform/workload/build.gradle.kts)
+- [First-party multiplatform example](https://github.com/google/ksp/blob/a2738285ab7835fb0738ac45645c4d3365f753f9/examples/multiplatform/workload/build.gradle.kts)
 - [Generating common code, open upstream issue](https://github.com/google/ksp/issues/567)
 - [Generating into shared iOS source sets, open upstream issue](https://github.com/google/ksp/issues/929)
 - [IDE and task dependency history](https://github.com/google/ksp/issues/963)
@@ -42,9 +42,9 @@ KSP 2.3.0 also decoupled KSP's release version from Kotlin's compiler version. T
 
 Sources:
 
-- [KSP2 architecture](https://github.com/google/ksp/blob/main/docs/ksp2.md)
-- [Calling KSP2 in programs](https://github.com/google/ksp/blob/main/docs/ksp2entrypoints.md)
-- [KSP2 command-line entry points](https://github.com/google/ksp/blob/main/docs/ksp2cmdline.md)
+- [KSP2 architecture](https://github.com/google/ksp/blob/a2738285ab7835fb0738ac45645c4d3365f753f9/docs/ksp2.md)
+- [Calling KSP2 in programs](https://github.com/google/ksp/blob/a2738285ab7835fb0738ac45645c4d3365f753f9/docs/ksp2entrypoints.md)
+- [KSP2 command-line entry points](https://github.com/google/ksp/blob/a2738285ab7835fb0738ac45645c4d3365f753f9/docs/ksp2cmdline.md)
 - [KSP 2.3.0 release](https://github.com/google/ksp/releases/tag/2.3.0)
 
 ### Kotlin and C outputs can share KSP dependency tracking
@@ -124,7 +124,7 @@ KSP's current source build uses Kotlin 2.3.20, while KSP 2.3.11 is the current p
 
 Sources:
 
-- [KSP version catalog](https://github.com/google/ksp/blob/main/gradle/libs.versions.toml)
+- [KSP version catalog](https://github.com/google/ksp/blob/a2738285ab7835fb0738ac45645c4d3365f753f9/gradle/libs.versions.toml)
 - [Kotlin, Gradle, and AGP compatibility table](https://kotlinlang.org/docs/gradle-configure-project.html#apply-the-plugin)
 - [KSP 2.3.11 release](https://github.com/google/ksp/releases/tag/2.3.11)
 
