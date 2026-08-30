@@ -91,6 +91,32 @@ class KompactPluginFunctionalTest {
         assertTrue(second.output.contains("Reusing configuration cache"), second.output)
     }
 
+    @Test
+    fun rejectsBooleanFieldWiderThanOneBit() {
+        val projectDirectory = createTempDirectory("kompact-invalid-width").toFile()
+        createFixture(projectDirectory)
+        val schema =
+            projectDirectory.resolve("src/commonMain/kotlin/com/example/VehicleTelemetrySchema.kt")
+        schema.writeText(
+            schema
+                .readText()
+                .replace(
+                    "semanticType = \"engine_malfunction\", bitOffset = 14, bitWidth = 1",
+                    "semanticType = \"engine_malfunction\", bitOffset = 14, bitWidth = 2",
+                )
+        )
+
+        val result =
+            GradleRunner.create()
+                .withProjectDir(projectDirectory)
+                .withPluginClasspath()
+                .withArguments("generateKompactSchemas", "--no-configuration-cache")
+                .buildAndFail()
+
+        assertTrue(result.output.contains("KOMPACT-KSP-1104"), result.output)
+        assertFalse(projectDirectory.resolve("build/generated/kompact/telemetry/kotlin").exists())
+    }
+
     private fun createFixture(projectDirectory: File) {
         projectDirectory
             .resolve("settings.gradle.kts")

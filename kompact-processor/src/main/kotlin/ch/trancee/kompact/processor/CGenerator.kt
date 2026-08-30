@@ -65,6 +65,25 @@ internal object CGenerator {
             }
         }
 
+        #if ((-1 & 3) != 3)
+        #error "Kompact requires two's-complement signed integers"
+        #endif
+
+        static inline int64_t kompact_internal_read_i64(
+            const uint8_t *packet,
+            uint32_t bit_offset,
+            uint8_t bit_width)
+        {
+            uint64_t bits = kompact_internal_read_u64(packet, bit_offset, bit_width);
+            if (bit_width == 64u) {
+                int64_t value;
+                memcpy(&value, &bits, sizeof value);
+                return value;
+            }
+            if ((bits & (UINT64_C(1) << (bit_width - 1u))) == 0u) return (int64_t)bits;
+            return -(int64_t)((UINT64_C(1) << bit_width) - bits);
+        }
+
         #if FLT_RADIX != 2 || FLT_MANT_DIG != 24 || FLT_MAX_EXP != 128
         #error "Kompact requires IEEE binary32 float"
         #endif
@@ -260,6 +279,26 @@ internal object CGenerator {
                         "kompact_internal_write_u64(writer.packet, ${fieldMacro}_BIT_OFFSET, 1u, " +
                         "value ? 1u : 0u); return KOMPACT_STATUS_OK; }"
                 )
+            }
+            LogicalType.SignedInteger -> {
+                val cType = cType(field)
+                appendLine(
+                    "static inline $cType $function(${prefix}_view_t view) { return ($cType)kompact_internal_read_i64(view.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH); }"
+                )
+                appendLine(
+                    "static inline kompact_status_t ${prefix}_write_${field.stableName}(${prefix}_writer_t writer, $cType value) {"
+                )
+                if (field.bitWidth < 64) {
+                    appendLine("    const int64_t limit = INT64_C(1) << ${field.bitWidth - 1}u;")
+                    appendLine(
+                        "    if ((int64_t)value < -limit || (int64_t)value >= limit) return KOMPACT_STATUS_VALUE_OUT_OF_RANGE;"
+                    )
+                }
+                appendLine(
+                    "    kompact_internal_write_u64(writer.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH, (uint64_t)value);"
+                )
+                appendLine("    return KOMPACT_STATUS_OK;")
+                appendLine("}")
             }
             is LogicalType.EnumType ->
                 appendEnumField(field, field.type, prefix, fieldMacro, function)

@@ -28,7 +28,6 @@ private class KompactSymbolProcessor(
     override fun process(resolver: Resolver): List<KSAnnotated> {
         if (generated) return emptyList()
         val symbols = resolver.getSymbolsWithAnnotation(SCHEMA_ANNOTATION).toList()
-        logger.info("Kompact discovered ${symbols.size} schema declaration(s)")
 
         if (namespace.isEmpty()) {
             symbols.firstOrNull()?.let {

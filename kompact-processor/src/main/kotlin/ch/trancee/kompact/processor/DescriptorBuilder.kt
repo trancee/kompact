@@ -115,6 +115,7 @@ internal class DescriptorBuilder(private val namespace: String, private val pack
         val resolvedType = property.type.resolve()
         val kotlinType = qualifiedKotlinType(property, resolvedType.declaration)
         val logicalType = buildLogicalType(property, resolvedType.declaration, kotlinType)
+        validateTypeWidth(logicalType, kotlinType, bitWidth, property)
         val semantics =
             FieldSemantics(
                 semanticType = field.string("semanticType"),
@@ -207,6 +208,45 @@ internal class DescriptorBuilder(private val namespace: String, private val pack
                 .toList()
         return LogicalType.EnumType(entries)
     }
+
+    private fun validateTypeWidth(
+        type: LogicalType,
+        kotlinType: String,
+        bitWidth: Int,
+        property: KSPropertyDeclaration,
+    ) {
+        val valid =
+            when (type) {
+                LogicalType.BooleanType -> bitWidth == 1
+                LogicalType.SignedInteger -> bitWidth in 2..carrierBits(kotlinType)
+                LogicalType.UnsignedInteger -> bitWidth in 1..carrierBits(kotlinType)
+                is LogicalType.FloatType -> bitWidth == type.bits
+                is LogicalType.EnumType ->
+                    bitWidth in 1..32 &&
+                        type.entries.map(EnumEntryDescriptor::code).distinct().size ==
+                            type.entries.size &&
+                        type.entries.all { it.code >= 0 && it.code.toULong() < (1uL shl bitWidth) }
+                is LogicalType.BytesType -> type.count > 0 && bitWidth == type.count * 8
+                is LogicalType.ArrayType -> type.count > 0 && bitWidth % type.count == 0
+                is LogicalType.OptionalType ->
+                    bitWidth > 1 && type.valueType !is LogicalType.OptionalType
+                is LogicalType.NestedType -> bitWidth > 0
+            }
+        if (!valid) error(1104, "bit width $bitWidth is incompatible with '$kotlinType'", property)
+    }
+
+    private fun carrierBits(kotlinType: String): Int =
+        when (kotlinType) {
+            "kotlin.Byte",
+            "kotlin.UByte" -> 8
+            "kotlin.Short",
+            "kotlin.UShort" -> 16
+            "kotlin.Int",
+            "kotlin.UInt" -> 32
+            "kotlin.Long",
+            "kotlin.ULong" -> 64
+            else -> 0
+        }
 
     private fun qualifiedKotlinType(
         property: KSPropertyDeclaration,

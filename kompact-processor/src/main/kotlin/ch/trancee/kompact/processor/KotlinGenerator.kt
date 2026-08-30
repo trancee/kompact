@@ -157,6 +157,16 @@ internal object KotlinGenerator {
                 )
                 appendLine("    }")
             }
+            is LogicalType.BytesType -> {
+                appendLine("    $visibility fun ${field.kotlinName}(index: Int): UByte {")
+                appendLine(
+                    "        if (index !in 0 until ${type.count}) throw IndexOutOfBoundsException(\"index: \$index, size: ${type.count}\")"
+                )
+                appendLine(
+                    "        return KompactRuntime.readBits(packet, $offset + index * 8, 8).toUByte()"
+                )
+                appendLine("    }")
+            }
             is LogicalType.OptionalType -> {
                 appendLine(
                     "    $visibility val has${field.kotlinName.capitalized()}: Boolean get() = KompactRuntime.readBitsBoolean(packet, $offset)"
@@ -197,6 +207,18 @@ internal object KotlinGenerator {
                 )
                 appendLine(
                     "        return ${writeExpression(field.copy(bitWidth = width, type = type.elementType), "$offset + index * $width", "value")}"
+                )
+                appendLine("    }")
+            }
+            is LogicalType.BytesType -> {
+                appendLine(
+                    "    $visibility fun write${field.kotlinName.capitalized()}(index: Int, value: UByte): KompactWriteError? {"
+                )
+                appendLine(
+                    "        if (index !in 0 until ${type.count}) return KompactWriteError.IndexOutOfRange(index)"
+                )
+                appendLine(
+                    "        return KompactRuntime.writeBits(packet, $offset + index * 8, 8, value.toULong())"
                 )
                 appendLine("    }")
             }

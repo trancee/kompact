@@ -57,6 +57,25 @@ static inline void kompact_internal_write_u64(
     }
 }
 
+#if ((-1 & 3) != 3)
+#error "Kompact requires two's-complement signed integers"
+#endif
+
+static inline int64_t kompact_internal_read_i64(
+    const uint8_t *packet,
+    uint32_t bit_offset,
+    uint8_t bit_width)
+{
+    uint64_t bits = kompact_internal_read_u64(packet, bit_offset, bit_width);
+    if (bit_width == 64u) {
+        int64_t value;
+        memcpy(&value, &bits, sizeof value);
+        return value;
+    }
+    if ((bits & (UINT64_C(1) << (bit_width - 1u))) == 0u) return (int64_t)bits;
+    return -(int64_t)((UINT64_C(1) << bit_width) - bits);
+}
+
 #if FLT_RADIX != 2 || FLT_MANT_DIG != 24 || FLT_MAX_EXP != 128
 #error "Kompact requires IEEE binary32 float"
 #endif
