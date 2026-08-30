@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kompact Kotlin interface prototype</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101114;
+      --panel: #181a20;
+      --panel-2: #22252d;
+      --text: #f2f3f5;
+      --muted: #aeb4c0;
+      --line: #353a46;
+      --accent: #7f6df2;
+      --good: #61d095;
+      --warn: #f4be61;
+      --bad: #ee6d78;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.5 system-ui, sans-serif;
+    }
+    header, main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+    header { padding: 32px 0 20px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: clamp(28px, 5vw, 48px); margin-bottom: 8px; }
+    h2 { font-size: 20px; }
+    h3 { font-size: 16px; }
+    .flag {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 9px;
+      border: 1px solid var(--warn);
+      color: var(--warn);
+      font: 700 12px/1.2 ui-monospace, monospace;
+      letter-spacing: .06em;
+    }
+    .lede { max-width: 790px; color: var(--muted); font-size: 17px; }
+    .variant-tabs, .walk-tabs, .step-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 9px 13px;
+      cursor: pointer;
+      font: inherit;
+    }
+    button:hover { border-color: var(--accent); }
+    button[aria-pressed="true"], button.active { background: var(--accent); border-color: var(--accent); }
+    .grid { display: grid; grid-template-columns: 1.45fr .75fr; gap: 16px; margin: 16px 0; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+    .summary { color: var(--muted); min-height: 48px; }
+    .code-tabs { display: flex; gap: 14px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+    .code-tabs button { border: 0; border-radius: 0; background: transparent; padding: 8px 0; color: var(--muted); }
+    .code-tabs button.active { color: var(--text); border-bottom: 2px solid var(--accent); }
+    pre {
+      margin: 0;
+      overflow: auto;
+      white-space: pre;
+      tab-size: 4;
+      font: 13px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+    #code { min-height: 470px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 7px; }
+    .good { color: var(--good); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+    .criteria { display: grid; gap: 7px; }
+    .criterion { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 7px; }
+    .walkthrough { margin: 24px 0 100px; }
+    .walk-content { min-height: 150px; margin: 14px 0; padding: 14px; background: var(--panel-2); border-radius: 8px; }
+    #state { margin-top: 14px; padding: 12px; background: #0b0c0f; color: var(--muted); border-radius: 7px; }
+    .bottom-bar {
+      position: fixed;
+      left: 50%; bottom: 16px; transform: translateX(-50%);
+      width: min(760px, calc(100% - 24px));
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 10px 12px;
+      background: rgba(24, 26, 32, .96);
+      border: 1px solid var(--line); border-radius: 10px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, .35);
+    }
+    .bottom-bar span { color: var(--muted); }
+    @media (max-width: 820px) {
+      .grid { grid-template-columns: 1fr; }
+      #code { min-height: 380px; }
+      .bottom-bar { align-items: stretch; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="flag">THROWAWAY PROTOTYPE</div>
+    <h1>What should generated Kompact code feel like?</h1>
+    <p class="lede">Three authoring shapes, one wire contract. Switch variants, inspect what developers write versus what KSP generates, then walk through decode, mutation, and boxing cases.</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Choose an authoring shape</h2>
+      <div class="variant-tabs" id="variant-tabs"></div>
+    </section>
+
+    <div class="grid">
+      <section class="panel">
+        <h2 id="variant-title"></h2>
+        <p class="summary" id="variant-summary"></p>
+        <div class="code-tabs" id="code-tabs"></div>
+        <pre><code id="code"></code></pre>
+      </section>
+
+      <aside class="panel">
+        <h2>Design pressure</h2>
+        <div class="criteria" id="criteria"></div>
+        <h3 style="margin-top: 22px">Verdict</h3>
+        <p id="verdict"></p>
+        <h3>Hard constraints</h3>
+        <ul>
+          <li><code>@JvmInline</code> is required for Android/JVM value classes.</li>
+          <li>Checked wrapping may allocate; direct scalar reads must not.</li>
+          <li>KSP generates declarations. It cannot rewrite source classes.</li>
+          <li>Writers mutate caller-owned buffers and fail before mutation.</li>
+        </ul>
+      </aside>
+    </div>
+
+    <section class="panel walkthrough">
+      <h2>Guided walkthrough</h2>
+      <div class="walk-tabs" id="walk-tabs"></div>
+      <div class="walk-content" id="walk-content"></div>
+      <div class="step-controls">
+        <button id="previous">Previous</button>
+        <button id="next">Next</button>
+        <button id="reset">Reset</button>
+      </div>
+      <h3 style="margin-top: 18px">Prototype state</h3>
+      <pre id="state"></pre>
+    </section>
+  </main>
+
+  <div class="bottom-bar">
+    <span id="selection-label">No decision recorded</span>
+    <button id="record-choice">Record this variant locally</button>
+  </div>
+
+  <script>
+    const variants = {
+      interface: {
+        tab: "A. Schema interface",
+        title: "A. Annotated schema interface",
+        summary: "The source is a declaration only. KSP owns every executable view, writer, factory, and firmware artifact.",
+        verdict: "Recommended. The declaration cannot be mistaken for runtime data, and the generated module hides the most machinery behind the smallest interface.",
+        criteria: {
+          "KSP feasibility": ["good", "Reads declarations without rewriting source"],
+          "Allocation pressure": ["good", "Only generated concrete views enter the hot path"],
+          "Wire visibility": ["good", "Offsets and widths remain explicit"],
+          "Misuse risk": ["good", "Schema declarations cannot be instantiated"],
+          "Boilerplate": ["good", "No manual bit arithmetic"]
+        },
+        authoring: `@KompactSchema(
+    registryName = "vehicle_telemetry",
+    id = 0x02A,
+    version = 0,
+)
+@KompactReserved(bitOffset = 15, bitWidth = 1)
+interface VehicleTelemetrySchema {
+    @KompactField(bitOffset = 0, bitWidth = 4)
+    val batteryStatus: BatteryStatus
+
+    @KompactField(bitOffset = 4, bitWidth = 10)
+    val speed: UInt
+
+    @KompactField(bitOffset = 14, bitWidth = 1)
+    val isMalfunctioning: Boolean
+}
+
+@KompactEnum(bitWidth = 4)
+enum class BatteryStatus(@KompactCode val code: UInt) {
+    NORMAL(0u), LOW(1u), CRITICAL(2u)
+}`,
+        generated: `public object VehicleTelemetry {
+    public const val PACKET_BYTE_SIZE: Int = 4
+
+    public fun wrap(packet: ByteArray): KompactDecodeResult<VehicleTelemetryView>
+    public fun initialize(packet: ByteArray): KompactDecodeResult<VehicleTelemetryWriter>
+    public fun edit(packet: ByteArray): KompactDecodeResult<VehicleTelemetryWriter>
+}
+
+@JvmInline
+public value class VehicleTelemetryView internal constructor(
+    @PublishedApi internal val packet: ByteArray,
+) {
+    public val batteryStatus: BatteryStatus
+        get() = /* direct generated bit read */
+    public val speed: UInt
+        get() = /* direct generated bit read */
+    public val isMalfunctioning: Boolean
+        get() = /* direct generated bit read */
+}
+
+@JvmInline
+public value class VehicleTelemetryWriter internal constructor(
+    @PublishedApi internal val packet: ByteArray,
+) {
+    public fun writeBatteryStatus(value: BatteryStatus): KompactWriteError?
+    public fun writeSpeed(value: UInt): KompactWriteError?
+    public fun writeIsMalfunctioning(value: Boolean): KompactWriteError?
+    public fun view(): VehicleTelemetryView
+}`,
+        usage: `val packet = ByteArray(VehicleTelemetry.PACKET_BYTE_SIZE)
+
+val writer = when (val result = VehicleTelemetry.initialize(packet)) {
+    is KompactDecodeResult.Success -> result.value
+    is KompactDecodeResult.Failure -> error(result.error.toString())
+}
+
+check(writer.writeBatteryStatus(BatteryStatus.NORMAL) == null)
+check(writer.writeSpeed(511u) == null)
+check(writer.writeIsMalfunctioning(true) == null)
+
+val view: VehicleTelemetryView = writer.view()
+consume(view.speed) // direct concrete hot path
+
+// Deliberate boxing controls, never hot-path claims:
+consumeGeneric(view)
+consumeNullable(view)`
+      },
+      data: {
+        tab: "B. Data class",
+        title: "B. Annotated data class",
+        summary: "A familiar immutable Kotlin value is used as the schema declaration, while KSP also generates a separate packet view and writer.",
+        verdict: "Usable, but misleading. The easy-to-instantiate data class becomes a second in-memory representation and encourages allocate-decode-copy flows.",
+        criteria: {
+          "KSP feasibility": ["good", "Constructor symbols are straightforward"],
+          "Allocation pressure": ["bad", "The source type itself allocates"],
+          "Wire visibility": ["good", "Fields remain annotated"],
+          "Misuse risk": ["warn", "Looks like the preferred decoded model"],
+          "Boilerplate": ["good", "Concise declaration"]
+        },
+        authoring: `@KompactSchema(
+    registryName = "vehicle_telemetry",
+    id = 0x02A,
+    version = 0,
+)
+data class VehicleTelemetrySchema(
+    @KompactField(bitOffset = 0, bitWidth = 4)
+    val batteryStatus: BatteryStatus,
+    @KompactField(bitOffset = 4, bitWidth = 10)
+    val speed: UInt,
+    @KompactField(bitOffset = 14, bitWidth = 1)
+    val isMalfunctioning: Boolean,
+)`,
+        generated: `// KSP still needs separate runtime types.
+@JvmInline
+public value class VehicleTelemetryView internal constructor(
+    internal val packet: ByteArray,
+) { /* direct properties */ }
+
+@JvmInline
+public value class VehicleTelemetryWriter internal constructor(
+    internal val packet: ByteArray,
+) { /* write methods */ }
+
+public fun VehicleTelemetryView.toSchema(): VehicleTelemetrySchema =
+    VehicleTelemetrySchema(
+        batteryStatus = batteryStatus,
+        speed = speed,
+        isMalfunctioning = isMalfunctioning,
+    ) // allocation by design`,
+        usage: `val decoded: VehicleTelemetrySchema =
+    VehicleTelemetry.wrap(packet).value.toSchema()
+
+// Familiar, but this is an allocated copy.
+render(decoded.copy(speed = decoded.speed + 1u))
+
+// The zero-copy interface still exists separately.
+val view: VehicleTelemetryView = VehicleTelemetry.wrap(packet).value
+consume(view.speed)`
+      },
+      manual: {
+        tab: "C. Value-class shell",
+        title: "C. User-authored value-class shell",
+        summary: "The schema looks like the intended runtime type, but KSP cannot inject property bodies or factories into it.",
+        verdict: "Reject. It recreates the original sketch but leaves manual getters, extension-heavy generation, or duplicate names. KSP cannot make this interface honest.",
+        criteria: {
+          "KSP feasibility": ["bad", "KSP cannot rewrite or add class members"],
+          "Allocation pressure": ["good", "Direct shell can remain unboxed"],
+          "Wire visibility": ["good", "Arithmetic is painfully explicit"],
+          "Misuse risk": ["bad", "Public constructor bypasses validation"],
+          "Boilerplate": ["bad", "Users write the runtime implementation"]
+        },
+        authoring: `@KompactSchema(
+    registryName = "vehicle_telemetry",
+    id = 0x02A,
+    version = 0,
+)
+@JvmInline
+value class VehicleTelemetry(val packet: ByteArray) {
+    @KompactField(bitOffset = 0, bitWidth = 4)
+    val batteryStatus: BatteryStatus
+        get() = BatteryStatus.fromCode(
+            KompactRuntime.readUInt(packet, 16, 4)
+        )
+
+    @KompactField(bitOffset = 4, bitWidth = 10)
+    val speed: UInt
+        get() = KompactRuntime.readUInt(packet, 20, 10)
+
+    // Every getter and validation rule remains manual.
+}`,
+        generated: `// KSP cannot add members to VehicleTelemetry.
+// It can only generate parallel declarations or extensions.
+public fun VehicleTelemetry.writeSpeed(
+    value: UInt,
+): KompactWriteError? = /* extension with hidden coupling */
+
+public fun wrapVehicleTelemetry(
+    packet: ByteArray,
+): KompactDecodeResult<VehicleTelemetry> = /* factory users can bypass */`,
+        usage: `// This compiles and bypasses envelope, length,
+// enum, reserved-bit, and nested-body validation.
+val unsafe = VehicleTelemetry(untrustedPacket)
+consume(unsafe.speed)
+
+// The checked path exists only by convention.
+val checked = wrapVehicleTelemetry(untrustedPacket)`
+      }
+    };
+
+    const walkthroughs = {
+      author: {
+        label: "Author a schema",
+        steps: [
+          "Declare protocol identity and fields. The registry remains the identity ledger; annotations must match it.",
+          "KSP validates coverage, widths, enum codes, reserved ranges, and the registry fingerprint.",
+          "KSP emits common Kotlin and C99 from the same canonical descriptor."
+        ]
+      },
+      decode: {
+        label: "Decode a packet",
+        steps: [
+          "VehicleTelemetry.wrap(packet) checks envelope ID, version, exact length, and transport-tail bits.",
+          "The factory validates enum codes, reserved ranges, optionals, arrays, and nested bodies once.",
+          "The returned concrete view reads scalar fields directly. Generic, interface, and nullable paths are outside the allocation-free claim."
+        ]
+      },
+      write: {
+        label: "Edit a packet",
+        steps: [
+          "initialize(packet) writes the envelope and clears the fixed body; edit(packet) validates an existing packet.",
+          "Each write method validates before mutation and returns null on success or a typed singleton error.",
+          "view() reuses the same buffer. Aliasing is explicit; concurrent mutation is not promised safe."
+        ]
+      },
+      boxing: {
+        label: "Boxing traps",
+        steps: [
+          "A local variable with concrete VehicleTelemetryView type is the claimed unboxed path.",
+          "Passing the view as a generic, interface, or nullable value can box it. The benchmark suite includes each as a positive control.",
+          "Checked result objects may allocate once before the hot path. That cost is measured separately, not hidden."
+        ]
+      }
+    };
+
+    const state = {
+      variant: new URLSearchParams(location.search).get("variant") || "interface",
+      codeTab: "authoring",
+      walkthrough: "author",
+      step: 0,
+      recordedChoice: null
+    };
+
+    if (!variants[state.variant]) state.variant = "interface";
+
+    const variantTabs = document.querySelector("#variant-tabs");
+    const codeTabs = document.querySelector("#code-tabs");
+    const walkTabs = document.querySelector("#walk-tabs");
+
+    function makeButtons(container, entries, activeKey, onClick) {
+      container.replaceChildren(...entries.map(([key, label]) => {
+        const button = document.createElement("button");
+        button.textContent = label;
+        button.setAttribute("aria-pressed", String(key === activeKey));
+        button.addEventListener("click", () => onClick(key));
+        return button;
+      }));
+    }
+
+    function render() {
+      const variant = variants[state.variant];
+      makeButtons(variantTabs, Object.entries(variants).map(([key, value]) => [key, value.tab]), state.variant, key => {
+        state.variant = key;
+        state.codeTab = "authoring";
+        history.replaceState(null, "", `?variant=${key}`);
+        render();
+      });
+      makeButtons(codeTabs, [["authoring", "Developer writes"], ["generated", "KSP generates"], ["usage", "Caller uses"]], state.codeTab, key => {
+        state.codeTab = key;
+        render();
+      });
+      makeButtons(walkTabs, Object.entries(walkthroughs).map(([key, value]) => [key, value.label]), state.walkthrough, key => {
+        state.walkthrough = key;
+        state.step = 0;
+        render();
+      });
+
+      document.querySelector("#variant-title").textContent = variant.title;
+      document.querySelector("#variant-summary").textContent = variant.summary;
+      document.querySelector("#code").textContent = variant[state.codeTab];
+      document.querySelector("#verdict").textContent = variant.verdict;
+      document.querySelector("#criteria").replaceChildren(...Object.entries(variant.criteria).map(([name, result]) => {
+        const row = document.createElement("div");
+        row.className = "criterion";
+        const label = document.createElement("span");
+        label.textContent = name;
+        const value = document.createElement("span");
+        value.className = result[0];
+        value.textContent = result[1];
+        row.append(label, value);
+        return row;
+      }));
+
+      const walk = walkthroughs[state.walkthrough];
+      document.querySelector("#walk-content").textContent = `${state.step + 1}. ${walk.steps[state.step]}`;
+      document.querySelector("#previous").disabled = state.step === 0;
+      document.querySelector("#next").disabled = state.step === walk.steps.length - 1;
+      document.querySelector("#selection-label").textContent = state.recordedChoice
+        ? `Local reaction: ${variants[state.recordedChoice].title}`
+        : "No decision recorded";
+      document.querySelector("#state").textContent = JSON.stringify({
+        selectedVariant: state.variant,
+        visibleCode: state.codeTab,
+        walkthrough: state.walkthrough,
+        step: state.step + 1,
+        totalSteps: walk.steps.length,
+        recordedChoice: state.recordedChoice,
+        persistence: "none; refresh clears the reaction"
+      }, null, 2);
+    }
+
+    document.querySelector("#previous").addEventListener("click", () => { state.step--; render(); });
+    document.querySelector("#next").addEventListener("click", () => { state.step++; render(); });
+    document.querySelector("#reset").addEventListener("click", () => { state.step = 0; render(); });
+    document.querySelector("#record-choice").addEventListener("click", () => { state.recordedChoice = state.variant; render(); });
+    render();
+  </script>
+</body>
+</html>
