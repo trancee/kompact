@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kompact C99 interface prototype</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0e1116; --panel:#171c24; --raised:#202733; --line:#344052; --text:#f4f6f8; --muted:#aab5c3; --accent:#38bda8; --good:#68d391; --warn:#f6c76f; --bad:#f27b86; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,sans-serif; }
+    header,main { width:min(1180px,calc(100% - 32px)); margin:0 auto; }
+    header { padding:32px 0 20px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { font-size:clamp(28px,5vw,48px); margin-bottom:8px; }
+    h2 { font-size:20px; } h3 { font-size:16px; }
+    .flag { display:inline-block; margin-bottom:12px; padding:4px 9px; border:1px solid var(--warn); color:var(--warn); font:700 12px/1.2 ui-monospace,monospace; letter-spacing:.06em; }
+    .lede,.summary { color:var(--muted); }
+    .lede { max-width:820px; font-size:17px; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px; }
+    .tabs,.walk-tabs,.controls { display:flex; gap:8px; flex-wrap:wrap; }
+    button { border:1px solid var(--line); border-radius:7px; background:var(--raised); color:var(--text); padding:9px 13px; cursor:pointer; font:inherit; }
+    button:hover { border-color:var(--accent); }
+    button[aria-pressed="true"] { background:var(--accent); border-color:var(--accent); color:#07120f; font-weight:700; }
+    .grid { display:grid; grid-template-columns:1.5fr .72fr; gap:16px; margin:16px 0; }
+    .code-tabs { display:flex; gap:14px; border-bottom:1px solid var(--line); margin-bottom:12px; }
+    .code-tabs button { border:0; border-radius:0; background:transparent; color:var(--muted); padding:8px 0; }
+    .code-tabs button[aria-pressed="true"] { color:var(--text); border-bottom:2px solid var(--accent); }
+    pre { margin:0; overflow:auto; white-space:pre; font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace; }
+    #code { min-height:500px; }
+    .criterion { display:flex; justify-content:space-between; gap:16px; border-bottom:1px solid var(--line); padding:8px 0; }
+    .good { color:var(--good); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+    ul { padding-left:20px; } li { margin-bottom:7px; }
+    .walkthrough { margin:24px 0 100px; }
+    .walk-content { min-height:150px; margin:14px 0; padding:14px; background:var(--raised); border-radius:8px; }
+    #state { margin-top:14px; padding:12px; background:#090c10; color:var(--muted); border-radius:7px; }
+    .bottom { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); width:min(760px,calc(100% - 24px)); display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; background:rgba(23,28,36,.96); border:1px solid var(--line); border-radius:10px; box-shadow:0 10px 35px #0008; }
+    .bottom span { color:var(--muted); }
+    @media(max-width:820px){ .grid{grid-template-columns:1fr} #code{min-height:400px} .bottom{align-items:stretch;flex-direction:column} }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="flag">THROWAWAY PROTOTYPE</div>
+    <h1>What should firmware engineers include?</h1>
+    <p class="lede">Compare three generated C99 interfaces for the same four-byte VehicleTelemetry packet. Inspect the header, call site, and failure behavior, then walk through validation and cross-byte mutation.</p>
+  </header>
+  <main>
+    <section class="panel">
+      <h2>Choose an interface shape</h2>
+      <div class="tabs" id="variant-tabs"></div>
+    </section>
+    <div class="grid">
+      <section class="panel">
+        <h2 id="variant-title"></h2>
+        <p class="summary" id="variant-summary"></p>
+        <div class="code-tabs" id="code-tabs"></div>
+        <pre><code id="code"></code></pre>
+      </section>
+      <aside class="panel">
+        <h2>Design pressure</h2>
+        <div id="criteria"></div>
+        <h3 style="margin-top:22px">Verdict</h3>
+        <p id="verdict"></p>
+        <h3>Wire invariants</h3>
+        <ul>
+          <li>Only unsigned exact-width operations touch packet bits.</li>
+          <li>No packed structs, C bitfields, unaligned loads, or host-endian casts.</li>
+          <li>Validation happens once before direct reads.</li>
+          <li>Rejected writes leave every packet bit unchanged.</li>
+          <li>Handles contain pointers only; they do not own memory.</li>
+        </ul>
+      </aside>
+    </div>
+    <section class="panel walkthrough">
+      <h2>Guided walkthrough</h2>
+      <div class="walk-tabs" id="walk-tabs"></div>
+      <div class="walk-content" id="walk-content"></div>
+      <div class="controls"><button id="previous">Previous</button><button id="next">Next</button><button id="reset">Reset</button></div>
+      <h3 style="margin-top:18px">Prototype state</h3>
+      <pre id="state"></pre>
+    </section>
+  </main>
+  <div class="bottom"><span id="selection">No decision recorded</span><button id="record">Record this variant locally</button></div>
+  <script>
+    const variants = {
+      inline: {
+        tab:"A. Header-only handles", title:"A. Header-only typed handles",
+        summary:"A shared runtime header supplies portable bit operations. Each schema header generates pointer-only View and Writer handles plus static inline validation and accessors.",
+        verdict:"Recommended. It mirrors the Kotlin facade, needs no link step, keeps field names and failures typed, and lets firmware compilers inline constant offsets.",
+        criteria:{"Portable wire access":["good","Unsigned byte operations only"],"Integration cost":["good","Include two headers"],"Validation locality":["good","Schema owns its checks"],"Code size":["warn","Inline copies across translation units"],"Misuse resistance":["good","Checked handles separate from raw bytes"]},
+        header:`#ifndef KOMPACT_VEHICLE_TELEMETRY_V0_H
+#define KOMPACT_VEHICLE_TELEMETRY_V0_H
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include "kompact_runtime.h"
+
+#define KOMPACT_VEHICLE_TELEMETRY_SCHEMA_ID UINT16_C(0x02A)
+#define KOMPACT_VEHICLE_TELEMETRY_LAYOUT_VERSION UINT8_C(0)
+#define KOMPACT_VEHICLE_TELEMETRY_PACKET_BYTES ((size_t)4)
+#define KOMPACT_VEHICLE_TELEMETRY_SPEED_BIT_OFFSET UINT32_C(20)
+#define KOMPACT_VEHICLE_TELEMETRY_SPEED_BIT_WIDTH UINT8_C(10)
+
+typedef struct { const uint8_t *packet; }
+    kompact_vehicle_telemetry_view_t;
+typedef struct { uint8_t *packet; }
+    kompact_vehicle_telemetry_writer_t;
+
+static inline kompact_status_t
+kompact_vehicle_telemetry_wrap(
+    const uint8_t *packet,
+    size_t packet_size,
+    kompact_vehicle_telemetry_view_t *out_view);
+
+static inline uint16_t
+kompact_vehicle_telemetry_speed(
+    kompact_vehicle_telemetry_view_t view)
+{
+    return (uint16_t)kompact_read_u64(
+        view.packet,
+        KOMPACT_VEHICLE_TELEMETRY_SPEED_BIT_OFFSET,
+        KOMPACT_VEHICLE_TELEMETRY_SPEED_BIT_WIDTH);
+}
+
+static inline kompact_status_t
+kompact_vehicle_telemetry_write_speed(
+    kompact_vehicle_telemetry_writer_t writer,
+    uint16_t value)
+{
+    if (value > UINT16_C(1023)) {
+        return KOMPACT_STATUS_VALUE_OUT_OF_RANGE;
+    }
+    kompact_write_u64_unchecked(writer.packet, 20u, 10u, value);
+    return KOMPACT_STATUS_OK;
+}
+
+#endif`,
+        usage:`uint8_t packet[KOMPACT_VEHICLE_TELEMETRY_PACKET_BYTES];
+kompact_vehicle_telemetry_writer_t writer;
+kompact_vehicle_telemetry_view_t view;
+
+kompact_status_t status =
+    kompact_vehicle_telemetry_initialize(
+        packet, sizeof packet, &writer);
+if (status != KOMPACT_STATUS_OK) {
+    return status;
+}
+
+status = kompact_vehicle_telemetry_write_speed(writer, 511u);
+if (status != KOMPACT_STATUS_OK) {
+    return status;
+}
+
+view = kompact_vehicle_telemetry_writer_view(writer);
+consume_speed(kompact_vehicle_telemetry_speed(view));`,
+        failure:`/* Public schema functions validate pointers and lengths.
+ * Direct getters require a successfully created View.
+ * Setters validate the complete value before touching packet bits.
+ */
+
+kompact_status_t status =
+    kompact_vehicle_telemetry_wrap(bytes, length, &view);
+
+switch (status) {
+case KOMPACT_STATUS_OK:
+    consume_speed(kompact_vehicle_telemetry_speed(view));
+    break;
+case KOMPACT_STATUS_UNKNOWN_SCHEMA:
+case KOMPACT_STATUS_UNSUPPORTED_VERSION:
+case KOMPACT_STATUS_INVALID_LENGTH:
+case KOMPACT_STATUS_NONZERO_RESERVED_BITS:
+case KOMPACT_STATUS_UNKNOWN_ENUM_CODE:
+    reject_packet(status);
+    break;
+default:
+    reject_programmer_error(status);
+    break;
+}`
+      },
+      compiled: {
+        tab:"B. Header plus C file", title:"B. Generated header and implementation",
+        summary:"The header declares opaque operations while a generated .c file owns validation and bit access.",
+        verdict:"Reasonable for larger schemas, but it adds a generated object library, link ordering, ABI versioning, and call overhead unless LTO recovers it.",
+        criteria:{"Portable wire access":["good","Implementation uses shared runtime"],"Integration cost":["warn","Compile and link generated C"],"Validation locality":["good","One implementation"],"Code size":["good","One copy of each function"],"Misuse resistance":["good","Opaque operations"]},
+        header:`#ifndef KOMPACT_VEHICLE_TELEMETRY_V0_H
+#define KOMPACT_VEHICLE_TELEMETRY_V0_H
+
+#include <stddef.h>
+#include <stdint.h>
+#include "kompact_status.h"
+
+typedef struct { const uint8_t *packet; }
+    kompact_vehicle_telemetry_view_t;
+
+kompact_status_t kompact_vehicle_telemetry_wrap(
+    const uint8_t *packet,
+    size_t packet_size,
+    kompact_vehicle_telemetry_view_t *out_view);
+
+uint16_t kompact_vehicle_telemetry_speed(
+    kompact_vehicle_telemetry_view_t view);
+
+#endif`,
+        usage:`/* Build must compile generated vehicle_telemetry_v0.c
+ * and link it into the firmware image.
+ */
+kompact_vehicle_telemetry_view_t view;
+if (kompact_vehicle_telemetry_wrap(
+        packet, packet_size, &view) != KOMPACT_STATUS_OK) {
+    return PACKET_REJECTED;
+}
+consume_speed(kompact_vehicle_telemetry_speed(view));`,
+        failure:`/* Public ABI symbols now need versioning rules.
+ * A stale header can compile against a different generated object.
+ * Link-time optimization is required to erase tiny accessor calls.
+ */
+extern uint16_t kompact_vehicle_telemetry_speed(
+    kompact_vehicle_telemetry_view_t view);`
+      },
+      macros: {
+        tab:"C. Constants and macros", title:"C. Masks and macros only",
+        summary:"The generator emits offsets, widths, masks, and expression macros. Firmware authors own validation and cross-byte mutation.",
+        verdict:"Reject. It exports layout facts but not the protocol invariants. Macro argument evaluation and ad hoc writes create divergent decoders.",
+        criteria:{"Portable wire access":["warn","Depends on each caller's expressions"],"Integration cost":["good","One small header"],"Validation locality":["bad","Repeated at every call site"],"Code size":["good","Minimal declarations"],"Misuse resistance":["bad","Unchecked macros accept malformed packets"]},
+        header:`#define VEHICLE_TELEMETRY_SPEED_OFFSET 20u
+#define VEHICLE_TELEMETRY_SPEED_WIDTH 10u
+#define VEHICLE_TELEMETRY_SPEED_MASK 0x03FFu
+
+#define VEHICLE_TELEMETRY_SPEED(packet) \\
+    ((((uint16_t)(packet)[2] >> 4u) | \\
+      ((uint16_t)(packet)[3] << 4u)) & \\
+     VEHICLE_TELEMETRY_SPEED_MASK)
+
+/* No envelope validation, no exact length check,
+ * no reserved-bit check, and no safe write operation.
+ */`,
+        usage:`if (packet_length >= 4u) {
+    /* Every caller invents the missing validation policy. */
+    uint16_t speed = VEHICLE_TELEMETRY_SPEED(packet);
+    consume_speed(speed);
+}`,
+        failure:`/* Macro arguments can be evaluated more than once.
+ * Signed promotion rules leak into hand-written expressions.
+ * Cross-byte writers can mutate the first byte before noticing
+ * an invalid value or missing second byte.
+ */
+uint16_t speed = VEHICLE_TELEMETRY_SPEED(next_packet());`
+      }
+    };
+
+    const walks = {
+      validate:{label:"Validate packet",steps:["wrap checks null pointers, exact four-byte length, 12-bit schema ID, layout version, enum codes, and reserved or tail bits.","Only success writes the pointer-only View output. Failure leaves the output handle unusable and returns one stable status code.","Direct field getters accept a validated View and perform no repeated semantic checks."]},
+      read:{label:"Read cross-byte speed",steps:["Speed begins at packet bit 20 and spans ten bits across bytes two and three.","The shared runtime reads one bit sequence with uint8_t loads, widens before shifts, and never casts packet storage to uint16_t.","The schema-specific inline getter returns uint16_t while the compiler sees constant offset and width."]},
+      write:{label:"Write atomically",steps:["write_speed first rejects values above 1023 and validates every fallible precondition.","Only after validation does the unchecked runtime helper replace the ten target bits while preserving neighbors.","Successful multi-byte mutation is not thread-safe; the no-mutation guarantee applies to rejected operations."]},
+      integrate:{label:"Integrate firmware",steps:["Firmware includes versioned kompact_runtime.h and vehicle_telemetry_v0.h generated from the same canonical descriptor as Kotlin.","CI compiles the header as C99 with strict warnings and runs shared golden vectors against a real C consumer.","Header hashes and generator version travel with release artifacts so stale Kotlin and C outputs cannot be mixed silently."]}
+    };
+
+    const state={variant:new URLSearchParams(location.search).get("variant")||"inline",codeTab:"header",walk:"validate",step:0,choice:null};
+    if(!variants[state.variant]) state.variant="inline";
+    const variantTabs=document.querySelector("#variant-tabs"),codeTabs=document.querySelector("#code-tabs"),walkTabs=document.querySelector("#walk-tabs");
+    function buttons(container,entries,active,select){container.replaceChildren(...entries.map(([key,label])=>{const button=document.createElement("button");button.textContent=label;button.setAttribute("aria-pressed",String(key===active));button.addEventListener("click",()=>select(key));return button;}));}
+    function render(){
+      const variant=variants[state.variant],walk=walks[state.walk];
+      buttons(variantTabs,Object.entries(variants).map(([key,value])=>[key,value.tab]),state.variant,key=>{state.variant=key;state.codeTab="header";history.replaceState(null,"",`?variant=${key}`);render();});
+      buttons(codeTabs,[["header","Generated files"],["usage","Firmware usage"],["failure","Failure shape"]],state.codeTab,key=>{state.codeTab=key;render();});
+      buttons(walkTabs,Object.entries(walks).map(([key,value])=>[key,value.label]),state.walk,key=>{state.walk=key;state.step=0;render();});
+      document.querySelector("#variant-title").textContent=variant.title;
+      document.querySelector("#variant-summary").textContent=variant.summary;
+      document.querySelector("#code").textContent=variant[state.codeTab];
+      document.querySelector("#verdict").textContent=variant.verdict;
+      document.querySelector("#criteria").replaceChildren(...Object.entries(variant.criteria).map(([name,result])=>{const row=document.createElement("div");row.className="criterion";const left=document.createElement("span");left.textContent=name;const right=document.createElement("span");right.className=result[0];right.textContent=result[1];row.append(left,right);return row;}));
+      document.querySelector("#walk-content").textContent=`${state.step+1}. ${walk.steps[state.step]}`;
+      document.querySelector("#previous").disabled=state.step===0;document.querySelector("#next").disabled=state.step===walk.steps.length-1;
+      document.querySelector("#selection").textContent=state.choice?`Local reaction: ${variants[state.choice].title}`:"No decision recorded";
+      document.querySelector("#state").textContent=JSON.stringify({selectedVariant:state.variant,visibleCode:state.codeTab,walkthrough:state.walk,step:state.step+1,totalSteps:walk.steps.length,recordedChoice:state.choice,persistence:"none; refresh clears the reaction"},null,2);
+    }
+    document.querySelector("#previous").addEventListener("click",()=>{state.step--;render();});
+    document.querySelector("#next").addEventListener("click",()=>{state.step++;render();});
+    document.querySelector("#reset").addEventListener("click",()=>{state.step=0;render();});
+    document.querySelector("#record").addEventListener("click",()=>{state.choice=state.variant;render();});
+    render();
+  </script>
+</body>
+</html>
