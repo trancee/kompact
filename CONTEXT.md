@@ -20,6 +20,18 @@ _Avoid_: Global registry, repository namespace
 An immutable numbered representation of one Kompact schema within a protocol namespace.
 _Avoid_: Revision, format version
 
+**Fixed aggregate**:
+A positive, fixed-count composition whose complete bit size and every element position are known from its Kompact schema.
+_Avoid_: Collection, variable array
+
+**Nested schema**:
+The body of one exact Kompact schema version embedded inside another schema without a second envelope.
+_Avoid_: Embedded packet, child message
+
+**Reserved range**:
+A named span of payload bits that must remain zero until a new layout version assigns them meaning.
+_Avoid_: Padding, unused gap
+
 **Kompact view**:
 A typed, non-owning interpretation of bytes according to one Kompact schema.
 _Avoid_: Model, wrapper
