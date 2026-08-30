@@ -33,9 +33,9 @@ A named span of payload bits that must remain zero until a new layout version as
 _Avoid_: Padding, unused gap
 
 **Kompact view**:
-A typed, non-owning interpretation of bytes according to one Kompact schema.
-_Avoid_: Model, wrapper
+A live, typed, non-owning interpretation of caller-owned bytes according to one Kompact schema.
+_Avoid_: Model, wrapper, snapshot
 
 **Kompact writer**:
-A typed interface that updates caller-owned bytes according to one Kompact schema.
-_Avoid_: Builder, serializer
+A typed interface that exclusively updates caller-owned bytes according to one Kompact schema while it is in use.
+_Avoid_: Builder, serializer, shared mutator
