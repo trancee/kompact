@@ -142,37 +142,38 @@ internal class DescriptorBuilder(private val namespace: String, private val pack
         declaration: KSDeclaration,
         kotlinType: String,
     ): LogicalType {
-        property.annotation(NESTED_ANNOTATION)?.let { nested ->
-            return LogicalType.NestedType(
-                stableName = nested.string("registryName"),
-                schemaId = nested.int("schemaId"),
-                version = nested.int("version"),
-            )
-        }
-        property.annotation(BYTES_ANNOTATION)?.let {
-            return LogicalType.BytesType(it.int("count"))
-        }
-
-        val scalar =
-            when (kotlinType) {
-                "kotlin.Boolean" -> LogicalType.BooleanType
-                "kotlin.Byte",
-                "kotlin.Short",
-                "kotlin.Int",
-                "kotlin.Long" -> LogicalType.SignedInteger
-                "kotlin.UByte",
-                "kotlin.UShort",
-                "kotlin.UInt",
-                "kotlin.ULong" -> LogicalType.UnsignedInteger
-                "kotlin.Float" -> LogicalType.FloatType(32)
-                "kotlin.Double" -> LogicalType.FloatType(64)
-                else -> buildEnumType(declaration, property)
+        val nested = property.annotation(NESTED_ANNOTATION)
+        val bytes = property.annotation(BYTES_ANNOTATION)
+        val base =
+            when {
+                nested != null ->
+                    LogicalType.NestedType(
+                        stableName = nested.string("registryName"),
+                        schemaId = nested.int("schemaId"),
+                        version = nested.int("version"),
+                    )
+                bytes != null -> LogicalType.BytesType(bytes.int("count"))
+                else ->
+                    when (kotlinType) {
+                        "kotlin.Boolean" -> LogicalType.BooleanType
+                        "kotlin.Byte",
+                        "kotlin.Short",
+                        "kotlin.Int",
+                        "kotlin.Long" -> LogicalType.SignedInteger
+                        "kotlin.UByte",
+                        "kotlin.UShort",
+                        "kotlin.UInt",
+                        "kotlin.ULong" -> LogicalType.UnsignedInteger
+                        "kotlin.Float" -> LogicalType.FloatType(32)
+                        "kotlin.Double" -> LogicalType.FloatType(64)
+                        else -> buildEnumType(declaration, property)
+                    }
             }
         val array =
             property.annotation(ARRAY_ANNOTATION)?.let {
-                LogicalType.ArrayType(it.int("count"), scalar)
+                LogicalType.ArrayType(it.int("count"), base)
             }
-        val value = array ?: scalar
+        val value = array ?: base
         return if (property.annotation(OPTIONAL_ANNOTATION) != null) LogicalType.OptionalType(value)
         else value
     }
