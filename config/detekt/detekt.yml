@@ -1,0 +1,18 @@
+complexity:
+  CyclomaticComplexMethod:
+    threshold: 25
+  LongMethod:
+    threshold: 180
+  TooManyFunctions:
+    thresholdInClasses: 20
+    thresholdInFiles: 25
+    thresholdInInterfaces: 20
+    thresholdInObjects: 20
+
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    maxLineLength: 240
+  ReturnCount:
+    max: 4

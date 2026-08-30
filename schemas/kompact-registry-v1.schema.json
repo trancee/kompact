@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trancee.github.io/kompact/schema/kompact-registry-v1.schema.json",
+  "title": "Kompact protocol registry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "formatVersion", "namespace", "maxPacketBytes", "schemas"],
+  "properties": {
+    "$schema": { "type": "string", "format": "uri" },
+    "formatVersion": { "const": 1 },
+    "namespace": { "$ref": "#/$defs/stableName" },
+    "maxPacketBytes": { "type": "integer", "minimum": 2 },
+    "schemas": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/schemaEntry" }
+    }
+  },
+  "$defs": {
+    "stableName": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "schemaEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stableName", "id", "versions"],
+      "properties": {
+        "stableName": { "$ref": "#/$defs/stableName" },
+        "id": { "type": "integer", "minimum": 1, "maximum": 4095 },
+        "supersedes": { "$ref": "#/$defs/stableName" },
+        "versions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/versionEntry" }
+        }
+      }
+    },
+    "versionEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "status", "bodyBitSize", "descriptorSha256"],
+      "properties": {
+        "version": { "type": "integer", "minimum": 0, "maximum": 15 },
+        "status": { "enum": ["active", "decode-only", "retired"] },
+        "bodyBitSize": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+        "descriptorSha256": { "$ref": "#/$defs/hash" }
+      }
+    }
+  }
+}

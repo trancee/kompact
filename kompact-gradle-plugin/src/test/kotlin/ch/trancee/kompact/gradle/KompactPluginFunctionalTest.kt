@@ -1,0 +1,249 @@
+package ch.trancee.kompact.gradle
+
+import java.io.File
+import kotlin.io.path.createTempDirectory
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import org.gradle.testkit.runner.GradleRunner
+import org.gradle.testkit.runner.TaskOutcome
+
+class KompactPluginFunctionalTest {
+    @Test
+    fun generatesKotlinCAndDescriptorFromCommonSchema() {
+        val projectDirectory = createTempDirectory("kompact-functional").toFile()
+        createFixture(projectDirectory)
+
+        val result =
+            GradleRunner.create()
+                .withProjectDir(projectDirectory)
+                .withPluginClasspath()
+                .withArguments("compileKotlinJvm", "--stacktrace", "--no-configuration-cache")
+                .build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKompactSchemas")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":compileKotlinJvm")?.outcome)
+        val generatedRoot = projectDirectory.resolve("build/generated/kompact/telemetry")
+        assertTrue(
+            generatedRoot.resolve("kotlin/com/example/VehicleTelemetry.kt").isFile,
+            result.output,
+        )
+        assertTrue(generatedRoot.resolve("c/vehicle_telemetry_v0.h").isFile, result.output)
+        assertTrue(
+            generatedRoot.resolve("descriptors/vehicle_telemetry_v0.json").isFile,
+            result.output,
+        )
+    }
+
+    @Test
+    fun failsWhenRequiredCompatibilityBaselineIsMissing() {
+        val projectDirectory = createTempDirectory("kompact-baseline").toFile()
+        createFixture(projectDirectory)
+        projectDirectory
+            .resolve("build.gradle.kts")
+            .appendText("\nkompact { requireCompatibilityBaseline.set(true) }\n")
+
+        val result =
+            GradleRunner.create()
+                .withProjectDir(projectDirectory)
+                .withPluginClasspath()
+                .withArguments("checkKompactSchemas", "--no-configuration-cache")
+                .buildAndFail()
+
+        assertTrue(result.output.contains("KOMPACT-KSP-1009"), result.output)
+    }
+
+    @Test
+    fun writesProposalAndRemovesPublishedOutputsWhenRegistryDrifts() {
+        val projectDirectory = createTempDirectory("kompact-registry-drift").toFile()
+        createFixture(projectDirectory)
+        val registry = projectDirectory.resolve("kompact-registry.json")
+        registry.writeText(registry.readText().replace("9c4c3ffd", "00000000"))
+
+        val result =
+            GradleRunner.create()
+                .withProjectDir(projectDirectory)
+                .withPluginClasspath()
+                .withArguments("generateKompactSchemas", "--no-configuration-cache")
+                .buildAndFail()
+
+        val generatedRoot = projectDirectory.resolve("build/generated/kompact/telemetry")
+        assertTrue(result.output.contains("KOMPACT-KSP-1006"), result.output)
+        assertTrue(generatedRoot.resolve("reports/kompact-registry.proposed.json").isFile)
+        assertFalse(generatedRoot.resolve("kotlin").exists())
+    }
+
+    @Test
+    fun reusesConfigurationAndTaskStateWithoutSourceChanges() {
+        val projectDirectory = createTempDirectory("kompact-cache").toFile()
+        createFixture(projectDirectory)
+        val runner =
+            GradleRunner.create()
+                .withProjectDir(projectDirectory)
+                .withPluginClasspath()
+                .withArguments("generateKompactSchemas", "--configuration-cache")
+
+        runner.build()
+        val second = runner.build()
+
+        assertEquals(TaskOutcome.UP_TO_DATE, second.task(":generateKompactSchemas")?.outcome)
+        assertTrue(second.output.contains("Reusing configuration cache"), second.output)
+    }
+
+    private fun createFixture(projectDirectory: File) {
+        projectDirectory
+            .resolve("settings.gradle.kts")
+            .writeText(
+                """
+                pluginManagement { repositories { google(); gradlePluginPortal(); mavenCentral() } }
+                dependencyResolutionManagement { repositories { google(); mavenCentral() } }
+                rootProject.name = "fixture"
+                """
+                    .trimIndent()
+            )
+        projectDirectory
+            .resolve("build.gradle.kts")
+            .writeText(
+                """
+                plugins {
+                    kotlin("multiplatform") version "2.3.20"
+                    id("ch.trancee.kompact")
+                }
+
+                kotlin { jvm() }
+
+                kompact {
+                    namespace.set("telemetry")
+                    maxPacketBytes.set(244)
+                }
+                """
+                    .trimIndent()
+            )
+        projectDirectory
+            .resolve("kompact-registry.json")
+            .writeText(
+                """
+                {
+                  "${'$'}schema": "https://example.invalid/kompact-registry.schema.json",
+                  "formatVersion": 1,
+                  "namespace": "telemetry",
+                  "maxPacketBytes": 244,
+                  "schemas": [
+                    {
+                      "stableName": "vehicle_telemetry",
+                      "id": 42,
+                      "versions": [
+                        {
+                          "version": 0,
+                          "status": "active",
+                          "bodyBitSize": 16,
+                          "descriptorSha256": "9c4c3ffdf1eab8254a7835d09b2770b626e99b8e78fc80922aa0a9917373bb3c"
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """
+                    .trimIndent() + "\n"
+            )
+        projectDirectory
+            .resolve("src/commonMain/kotlin/ch/trancee/kompact/annotations/Annotations.kt")
+            .apply { parentFile.mkdirs() }
+            .writeText(
+                """
+                package ch.trancee.kompact.annotations
+
+                @Target(AnnotationTarget.CLASS)
+                annotation class KompactSchema(val registryName: String, val id: Int, val version: Int)
+
+                @Target(AnnotationTarget.PROPERTY)
+                annotation class KompactField(
+                    val stableName: String,
+                    val semanticType: String,
+                    val bitOffset: Int,
+                    val bitWidth: Int,
+                    val unit: String = "",
+                    val scaleNumerator: String = "1",
+                    val scaleDenominator: String = "1",
+                    val offsetNumerator: String = "0",
+                    val offsetDenominator: String = "1",
+                    val minimum: String = "",
+                    val maximum: String = "",
+                )
+
+                @Target(AnnotationTarget.CLASS)
+                @Repeatable
+                annotation class KompactReserved(val stableName: String, val bitOffset: Int, val bitWidth: Int)
+                """
+                    .trimIndent()
+            )
+        projectDirectory
+            .resolve("src/commonMain/kotlin/ch/trancee/kompact/runtime/Runtime.kt")
+            .apply { parentFile.mkdirs() }
+            .writeText(
+                """
+                package ch.trancee.kompact.runtime
+
+                sealed interface KompactDecodeResult<out T> {
+                    data class Success<T>(val value: T) : KompactDecodeResult<T>
+                    data class Failure(val error: KompactDecodeError) : KompactDecodeResult<Nothing>
+                }
+
+                sealed interface KompactDecodeError {
+                    data class InvalidPacketLength(val expected: Int, val actual: Int) : KompactDecodeError
+                    data class UnknownSchemaId(val id: UShort, val version: UByte) : KompactDecodeError
+                    data class UnsupportedLayoutVersion(val id: UShort, val version: UByte) : KompactDecodeError
+                    data class NonzeroReservedBits(val id: UShort, val version: UByte, val field: String, val offset: Int) : KompactDecodeError
+                    data class UnknownEnumCode(val id: UShort, val version: UByte, val field: String, val offset: Int) : KompactDecodeError
+                    data class NonzeroAbsentOptional(val id: UShort, val version: UByte, val field: String, val offset: Int) : KompactDecodeError
+                }
+
+                sealed interface KompactWriteError {
+                    data class ValueOutOfRange(val width: Int) : KompactWriteError
+                    data class IndexOutOfRange(val index: Int) : KompactWriteError
+                }
+
+                object KompactRuntime {
+                    fun readBits(packet: ByteArray, bitOffset: Int, bitWidth: Int): ULong = 0uL
+                    fun readBitsBoolean(packet: ByteArray, bitOffset: Int): Boolean = false
+                    fun readSignedBits(packet: ByteArray, bitOffset: Int, bitWidth: Int): Long = 0L
+                    fun readFloatBits(packet: ByteArray, bitOffset: Int): Float = 0f
+                    fun readDoubleBits(packet: ByteArray, bitOffset: Int): Double = 0.0
+                    fun writeBits(packet: ByteArray, bitOffset: Int, bitWidth: Int, value: ULong): KompactWriteError? = null
+                    fun writeBitsBoolean(packet: ByteArray, bitOffset: Int, value: Boolean) {}
+                    fun writeSignedBits(packet: ByteArray, bitOffset: Int, bitWidth: Int, value: Long): KompactWriteError? = null
+                    fun writeFloatBits(packet: ByteArray, bitOffset: Int, value: Float) {}
+                    fun writeDoubleBits(packet: ByteArray, bitOffset: Int, value: Double) {}
+                }
+                """
+                    .trimIndent()
+            )
+        projectDirectory
+            .resolve("src/commonMain/kotlin/com/example/VehicleTelemetrySchema.kt")
+            .apply { parentFile.mkdirs() }
+            .writeText(
+                """
+                package com.example
+
+                import ch.trancee.kompact.annotations.KompactField
+                import ch.trancee.kompact.annotations.KompactReserved
+                import ch.trancee.kompact.annotations.KompactSchema
+
+                @KompactSchema(registryName = "vehicle_telemetry", id = 42, version = 0)
+                @KompactReserved(stableName = "future", bitOffset = 15, bitWidth = 1)
+                interface VehicleTelemetrySchema {
+                    @KompactField(stableName = "battery_status", semanticType = "battery_status", bitOffset = 0, bitWidth = 4)
+                    val batteryStatus: UInt
+
+                    @KompactField(stableName = "speed", semanticType = "vehicle_speed", bitOffset = 4, bitWidth = 10, unit = "km/h", minimum = "0", maximum = "1023")
+                    val speed: UInt
+
+                    @KompactField(stableName = "is_malfunctioning", semanticType = "engine_malfunction", bitOffset = 14, bitWidth = 1)
+                    val isMalfunctioning: Boolean
+                }
+                """
+                    .trimIndent()
+            )
+    }
+}

@@ -1,0 +1,28 @@
+{
+  "formatVersion": 1,
+  "namespace": "telemetry",
+  "schema": {
+    "descriptorSha256": "9c4c3ffdf1eab8254a7835d09b2770b626e99b8e78fc80922aa0a9917373bb3c",
+    "id": 42,
+    "packetBytes": 4,
+    "stableName": "vehicle_telemetry",
+    "version": 0
+  },
+  "cases": [
+    {
+      "name": "nominal_cross_byte_speed",
+      "status": "0x00",
+      "packetHex": "2a00f25f",
+      "values": {
+        "battery_status": "2",
+        "speed": "511",
+        "is_malfunctioning": true
+      }
+    },
+    {
+      "name": "nonzero_reserved_bit",
+      "status": "0x08",
+      "packetHex": "2a00f2df"
+    }
+  ]
+}

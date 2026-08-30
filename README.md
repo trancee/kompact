@@ -3,7 +3,7 @@
 Bit-packed Kotlin Multiplatform serialization for Bluetooth Low Energy, designed for allocation-free reads and interoperable C firmware.
 
 > [!IMPORTANT]
-> The Kompact v1 architecture and implementation specification are complete. Production implementation has not started, so the runtime, generator, and published artifacts do not exist yet. The closed [Kompact v1 implementation-ready specification](https://github.com/trancee/kompact/issues/1) map records every decision.
+> Kompact v1 is implemented as a pre-release foundation. The runtime, annotations, KSP2 generator, Gradle plugin, C99 headers, conformance fixture, and benchmark smoke profile build from source; no artifacts have been externally published. The closed [Kompact v1 implementation-ready specification](https://github.com/trancee/kompact/issues/1) map records every decision.
 
 ## Why Kompact
 
@@ -16,9 +16,9 @@ The project has four goals:
 - Generate a typed Kotlin interface for shared Android and iOS code.
 - Generate matching C99 constants and helpers for firmware.
 
-## Current design direction
+## Implemented v1 foundation
 
-Kompact v1 is specified with these constraints:
+Kompact v1 implements these constraints:
 
 - Schemas have fixed, versioned layouts and an explicit envelope.
 - Bit offset zero is the least-significant bit of byte zero.
@@ -31,6 +31,18 @@ Kompact v1 is specified with these constraints:
 - Performance claims require measurements for reads, writes, allocations, encoded size, and code size.
 
 Variable-length fields, direct Swift export, compiler-plugin generation, and non-iOS Apple targets are outside the v1 scope.
+
+## Build from source
+
+```bash
+./gradlew check
+./gradlew publishToMavenLocal
+./gradlew :kompact-benchmarks:jvmSmokeBenchmark
+```
+
+The Gradle plugin ID and Maven group are `ch.trancee.kompact`. Apply the plugin to an existing Kotlin Multiplatform module, configure one `kompact` protocol namespace and registry, and declare matching `kompact-runtime` and `kompact-annotations` dependencies.
+
+The stable build-tool entry points are `generateKompactSchemas`, `checkKompactSchemas`, and `packageKompactCHeaders`.
 
 ## Example layout
 
