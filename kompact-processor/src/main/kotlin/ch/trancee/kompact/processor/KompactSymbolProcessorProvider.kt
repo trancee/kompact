@@ -23,11 +23,24 @@ private class KompactSymbolProcessor(
 ) : SymbolProcessor {
     private val namespace = options["kompact.namespace"].orEmpty()
     private val packetLimit = options["kompact.maxPacketBytes"]?.toIntOrNull() ?: Int.MAX_VALUE
+    private val decodeOnlyIdentities =
+        options["kompact.decodeOnly"]
+            .orEmpty()
+            .split(',')
+            .mapNotNull { encoded ->
+                val parts = encoded.split(':')
+                if (parts.size == 2)
+                    parts[0].toIntOrNull()?.let { id ->
+                        parts[1].toIntOrNull()?.let { version -> id to version }
+                    }
+                else null
+            }
+            .toSet()
     private var generated = false
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         if (generated) return emptyList()
-        val symbols = resolver.getSymbolsWithAnnotation(SCHEMA_ANNOTATION).toList()
+        val symbols = resolver.getSymbolsWithAnnotation(SCHEMA_ANNOTATION, inDepth = true).toList()
 
         if (namespace.isEmpty()) {
             symbols.firstOrNull()?.let {
@@ -76,29 +89,7 @@ private class KompactSymbolProcessor(
         }
         val schemasByIdentity =
             processed.associateBy { it.descriptor.schemaId to it.descriptor.version }
-        for (schema in processed) {
-            for (field in schema.descriptor.fields) {
-                val nested =
-                    field.type as? ch.trancee.kompact.processor.model.LogicalType.NestedType
-                        ?: continue
-                val target = schemasByIdentity[nested.schemaId to nested.version]
-                if (target == null || target.descriptor.stableName != nested.stableName) {
-                    diagnostics +=
-                        SchemaDiagnostic(
-                            "KOMPACT-KSP-1203",
-                            "unknown nested schema '${nested.stableName}'",
-                            schema.declaration,
-                        )
-                } else if (field.bitWidth != target.descriptor.bodyBitSize) {
-                    diagnostics +=
-                        SchemaDiagnostic(
-                            "KOMPACT-KSP-1104",
-                            "nested field width does not match child body",
-                            schema.declaration,
-                        )
-                }
-            }
-        }
+        diagnostics += SchemaGraphValidator.validate(processed)
         if (diagnostics.isNotEmpty()) {
             diagnostics
                 .sortedWith(compareBy(SchemaDiagnostic::code, SchemaDiagnostic::message))
@@ -112,12 +103,19 @@ private class KompactSymbolProcessor(
                 .bufferedWriter()
                 .use { it.write(CRuntimeHeader.generate()) }
         }
-        for (schema in processed) generate(schema, schemasByIdentity)
+        for (schema in processed) {
+            val identity = schema.descriptor.schemaId to schema.descriptor.version
+            generate(schema, schemasByIdentity, encoderEnabled = identity !in decodeOnlyIdentities)
+        }
         generated = true
         return emptyList()
     }
 
-    private fun generate(schema: ProcessedSchema, schemas: Map<Pair<Int, Int>, ProcessedSchema>) {
+    private fun generate(
+        schema: ProcessedSchema,
+        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+        encoderEnabled: Boolean,
+    ) {
         val source = requireNotNull(schema.declaration.containingFile)
         val dependencies = Dependencies(aggregating = false, source)
         val descriptorJson = CanonicalDescriptorJson.encode(schema.descriptor)
@@ -125,7 +123,9 @@ private class KompactSymbolProcessor(
         codeGenerator
             .createNewFile(dependencies, schema.packageName, schema.generatedName, "kt")
             .bufferedWriter()
-            .use { it.write(KotlinGenerator.generate(schema, schemas)) }
+            .use {
+                it.write(KotlinGenerator.generate(schema, descriptorHash, schemas, encoderEnabled))
+            }
         codeGenerator
             .createNewFile(
                 dependencies,
@@ -143,7 +143,9 @@ private class KompactSymbolProcessor(
                 "h",
             )
             .bufferedWriter()
-            .use { it.write(CGenerator.schemaHeader(schema, descriptorHash, schemas)) }
+            .use {
+                it.write(CGenerator.schemaHeader(schema, descriptorHash, schemas, encoderEnabled))
+            }
     }
 
     private companion object {

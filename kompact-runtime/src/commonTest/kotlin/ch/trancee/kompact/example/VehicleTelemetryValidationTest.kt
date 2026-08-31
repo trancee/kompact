@@ -29,6 +29,16 @@ class VehicleTelemetryValidationTest {
     }
 
     @Test
+    fun rejectsReservedSchemaIdBeforeUnknownIdentity() {
+        val packet = byteArrayOf(0x00, 0x00)
+
+        val result = VehicleTelemetry.wrap(packet)
+
+        val failure = assertIs<KompactDecodeResult.Failure>(result)
+        assertEquals(KompactStatusCode.RESERVED_SCHEMA_ID, failure.error.status)
+    }
+
+    @Test
     fun rejectsUnsupportedVersion() {
         val packet = byteArrayOf(0x2A, 0x10)
 
@@ -61,6 +71,16 @@ class VehicleTelemetryValidationTest {
     @Test
     fun rejectsUnknownBatteryStatus() {
         val packet = byteArrayOf(0x2A, 0x00, 0x0F, 0x00)
+
+        val result = VehicleTelemetry.wrap(packet)
+
+        val failure = assertIs<KompactDecodeResult.Failure>(result)
+        assertEquals(KompactStatusCode.UNKNOWN_ENUM_CODE, failure.error.status)
+    }
+
+    @Test
+    fun reportsLowestBodyBitFailureFirst() {
+        val packet = byteArrayOf(0x2A, 0x00, 0x0F, 0x80.toByte())
 
         val result = VehicleTelemetry.wrap(packet)
 

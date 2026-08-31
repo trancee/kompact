@@ -1,0 +1,30 @@
+name: Physical Android performance
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: [self-hosted, android-reference]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - run: adb shell getprop > android-device-properties.txt
+      - run: adb shell dumpsys battery > android-battery-state.txt
+      - run: ./gradlew :kompact-android-benchmark:connectedReleaseAndroidTest --no-build-cache --no-configuration-cache
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-performance-${{ github.sha }}
+          path: |
+            android-device-properties.txt
+            android-battery-state.txt
+            kompact-android-benchmark/build/outputs/androidTest-results/**
+            kompact-android-benchmark/build/reports/androidTests/**
+          if-no-files-found: error

@@ -30,6 +30,11 @@ public object VehicleTelemetry {
         val envelope = KompactRuntime.readBits(packet, 0, 16).toInt()
         val schemaId = envelope and 0x0FFF
         val version = envelope ushr 12
+        if (schemaId == 0) {
+            return KompactDecodeResult.Failure(
+                KompactDecodeError.ReservedSchemaId(version.toUByte())
+            )
+        }
         if (schemaId != SCHEMA_ID) {
             return KompactDecodeResult.Failure(
                 KompactDecodeError.UnknownSchemaId(schemaId.toUShort(), version.toUByte())
@@ -45,16 +50,6 @@ public object VehicleTelemetry {
                 KompactDecodeError.InvalidPacketLength(PACKET_BYTE_SIZE, packet.size)
             )
         }
-        if (KompactRuntime.readBits(packet, 31, 1) != 0uL) {
-            return KompactDecodeResult.Failure(
-                KompactDecodeError.NonzeroReservedBits(
-                    SCHEMA_ID.toUShort(),
-                    LAYOUT_VERSION.toUByte(),
-                    "future",
-                    15,
-                )
-            )
-        }
         val batteryCode = KompactRuntime.readBits(packet, 16, 4).toUInt()
         if (BatteryStatus.entries.none { it.code == batteryCode }) {
             return KompactDecodeResult.Failure(
@@ -63,6 +58,16 @@ public object VehicleTelemetry {
                     LAYOUT_VERSION.toUByte(),
                     "battery_status",
                     0,
+                )
+            )
+        }
+        if (KompactRuntime.readBits(packet, 31, 1) != 0uL) {
+            return KompactDecodeResult.Failure(
+                KompactDecodeError.NonzeroReservedBits(
+                    SCHEMA_ID.toUShort(),
+                    LAYOUT_VERSION.toUByte(),
+                    "future",
+                    15,
                 )
             )
         }

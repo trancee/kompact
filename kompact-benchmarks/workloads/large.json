@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "name": "large_nested_arrays",
+  "packetBytes": 244,
+  "operation": {
+    "bitOffset": 1531,
+    "bitWidth": 13
+  },
+  "values": [0, 4095, 8191]
+}

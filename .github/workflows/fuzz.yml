@@ -1,0 +1,20 @@
+name: Sanitizer fuzz smoke
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  c-fuzz:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: >-
+          clang -std=c99 -O1 -g -Wall -Wextra -Wconversion -Wsign-conversion
+          -Werror -pedantic-errors -fsanitize=address,undefined
+          conformance/c/vehicle_telemetry_fuzz.c -o /tmp/kompact-fuzz
+      - run: /tmp/kompact-fuzz

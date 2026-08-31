@@ -28,6 +28,7 @@ internal object CNestedArrayGenerator {
                 arrayMacro = arrayMacro,
                 baseOffset = 16 + input.field.bitOffset,
                 access = access,
+                encoderEnabled = input.encoderEnabled,
             )
         appendLine(
             "#define ${context.fieldMacro}_BIT_OFFSET UINT32_C(${context.baseOffset + access.field.bitOffset})"
@@ -53,6 +54,7 @@ internal object CNestedArrayGenerator {
         appendLine("    *out_value = ${readExpression(context)};")
         appendLine("    return KOMPACT_STATUS_OK;")
         appendLine("}")
+        if (!context.encoderEnabled) return
         appendWriteAccessor(context, cType, null)
     }
 
@@ -84,6 +86,7 @@ internal object CNestedArrayGenerator {
         )
         appendLine("    return KOMPACT_STATUS_OK;")
         appendLine("}")
+        if (!context.encoderEnabled) return
         appendWriteAccessor(context, cType, presenceOffset)
 
         appendLine(
@@ -269,6 +272,7 @@ internal object CNestedArrayGenerator {
         val prefix: String,
         val macro: String,
         val schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+        val encoderEnabled: Boolean,
     )
 
     private data class FieldContext(
@@ -279,6 +283,7 @@ internal object CNestedArrayGenerator {
         val arrayMacro: String,
         val baseOffset: Int,
         val access: NestedArrayField,
+        val encoderEnabled: Boolean,
     ) {
         val indexParameters: String
             get() = access.indices.parameters()

@@ -4,7 +4,12 @@ import ch.trancee.kompact.processor.model.FieldDescriptor
 import ch.trancee.kompact.processor.model.LogicalType
 
 internal object KotlinGenerator {
-    fun generate(schema: ProcessedSchema, schemas: Map<Pair<Int, Int>, ProcessedSchema>): String {
+    fun generate(
+        schema: ProcessedSchema,
+        descriptorSha256: String,
+        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+        encoderEnabled: Boolean,
+    ): String {
         val descriptor = schema.descriptor
         val packetBytes = (16 + descriptor.bodyBitSize + 7) / 8
         return buildString {
@@ -13,7 +18,7 @@ internal object KotlinGenerator {
             appendLine("import ch.trancee.kompact.runtime.KompactDecodeError")
             appendLine("import ch.trancee.kompact.runtime.KompactDecodeResult")
             appendLine("import ch.trancee.kompact.runtime.KompactRuntime")
-            appendLine("import ch.trancee.kompact.runtime.KompactWriteError")
+            if (encoderEnabled) appendLine("import ch.trancee.kompact.runtime.KompactWriteError")
             appendLine("import kotlin.jvm.JvmInline")
             appendLine()
             appendLine("${schema.visibility} object ${schema.generatedName} {")
@@ -25,19 +30,25 @@ internal object KotlinGenerator {
                 "    ${schema.visibility} const val BODY_BIT_SIZE: Int = ${descriptor.bodyBitSize}"
             )
             appendLine("    ${schema.visibility} const val PACKET_BYTE_SIZE: Int = $packetBytes")
+            appendLine(
+                "    ${schema.visibility} const val DESCRIPTOR_SHA256: String = \"$descriptorSha256\""
+            )
             appendLine()
-            appendFactories(schema, schemas)
+            appendFactories(schema, schemas, encoderEnabled)
             appendLine("}")
             appendLine()
             appendView(schema, schemas)
-            appendLine()
-            appendWriter(schema, schemas)
+            if (encoderEnabled) {
+                appendLine()
+                appendWriter(schema, schemas)
+            }
         }
     }
 
     private fun StringBuilder.appendFactories(
         schema: ProcessedSchema,
         schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+        encoderEnabled: Boolean,
     ) {
         val name = schema.generatedName
         val descriptor = schema.descriptor
@@ -51,6 +62,9 @@ internal object KotlinGenerator {
         appendLine("        val schemaId = envelope and 0x0FFF")
         appendLine("        val version = envelope ushr 12")
         appendLine(
+            "        if (schemaId == 0) return KompactDecodeResult.Failure(KompactDecodeError.ReservedSchemaId(version.toUByte()))"
+        )
+        appendLine(
             "        if (schemaId != SCHEMA_ID) return KompactDecodeResult.Failure(KompactDecodeError.UnknownSchemaId(schemaId.toUShort(), version.toUByte()))"
         )
         appendLine(
@@ -59,27 +73,23 @@ internal object KotlinGenerator {
         appendLine(
             "        if (packet.size != PACKET_BYTE_SIZE) return KompactDecodeResult.Failure(KompactDecodeError.InvalidPacketLength(PACKET_BYTE_SIZE, packet.size))"
         )
-        for (reserved in descriptor.reservedRanges) {
+        val tailBitCount =
+            ((16 + descriptor.bodyBitSize + 7) / 8) * 8 - (16 + descriptor.bodyBitSize)
+        if (tailBitCount > 0) {
             appendLine(
-                "        if (KompactRuntime.readBits(packet, ${16 + reserved.bitOffset}, ${reserved.bitWidth}) != 0uL) " +
-                    "return KompactDecodeResult.Failure(KompactDecodeError.NonzeroReservedBits(" +
-                    "SCHEMA_ID.toUShort(), LAYOUT_VERSION.toUByte(), \"${reserved.stableName}\", ${reserved.bitOffset}))"
+                "        if (KompactRuntime.readBits(packet, ${16 + descriptor.bodyBitSize}, $tailBitCount) != 0uL) " +
+                    "return KompactDecodeResult.Failure(KompactDecodeError.NonzeroTailBits(" +
+                    "SCHEMA_ID.toUShort(), LAYOUT_VERSION.toUByte(), ${descriptor.bodyBitSize}))"
             )
         }
-        for (field in descriptor.fields) {
-            KotlinValidationGenerator.appendTo(
-                this,
-                KotlinValidationGenerator.Input(
-                    field,
-                    descriptor.schemaId,
-                    descriptor.version,
-                    schemas,
-                ),
-            )
-        }
+        KotlinValidationGenerator.appendSchemaTo(
+            this,
+            KotlinValidationGenerator.Input(descriptor, schemas),
+        )
         appendLine("        return KompactDecodeResult.Success(${name}View(packet))")
         appendLine("    }")
         appendLine()
+        if (!encoderEnabled) return
         appendLine(
             "    ${schema.visibility} fun initialize(packet: ByteArray): KompactDecodeResult<${name}Writer> {"
         )
@@ -160,15 +170,11 @@ internal object KotlinGenerator {
                 )
                 appendLine("    }")
             }
-            is LogicalType.OptionalType -> {
-                appendLine(
-                    "    $visibility val has${field.kotlinName.capitalized()}: Boolean get() = KompactRuntime.readBitsBoolean(packet, $offset)"
+            is LogicalType.OptionalType ->
+                KotlinOptionalGenerator.appendViewTo(
+                    this,
+                    KotlinOptionalGenerator.Input(field, type, visibility),
                 )
-                val valueField = field.copy(bitWidth = field.bitWidth - 1, type = type.valueType)
-                appendLine(
-                    "    $visibility fun ${field.kotlinName}Or(defaultValue: ${field.kotlinType}): ${field.kotlinType} = if (has${field.kotlinName.capitalized()}) ${readExpression(valueField, (offset + 1).toString())} else defaultValue"
-                )
-            }
             is LogicalType.NestedType -> {
                 val nested = schemas.getValue(type.schemaId to type.version)
                 for (nestedField in nested.descriptor.fields) {
@@ -243,23 +249,11 @@ internal object KotlinGenerator {
                 )
                 appendLine("    }")
             }
-            is LogicalType.OptionalType -> {
-                val valueField = field.copy(bitWidth = field.bitWidth - 1, type = type.valueType)
-                appendLine(
-                    "    $visibility fun write${field.kotlinName.capitalized()}(value: ${field.kotlinType}): KompactWriteError? {"
+            is LogicalType.OptionalType ->
+                KotlinOptionalGenerator.appendWriterTo(
+                    this,
+                    KotlinOptionalGenerator.Input(field, type, visibility),
                 )
-                appendLine(
-                    "        val error = ${writeExpression(valueField, (offset + 1).toString(), "value")}"
-                )
-                appendLine(
-                    "        if (error == null) KompactRuntime.writeBitsBoolean(packet, $offset, true)"
-                )
-                appendLine("        return error")
-                appendLine("    }")
-                appendLine(
-                    "    $visibility fun clear${field.kotlinName.capitalized()}() { KompactRuntime.writeBits(packet, $offset, ${field.bitWidth}, 0uL) }"
-                )
-            }
             is LogicalType.NestedType -> {
                 val nested = schemas.getValue(type.schemaId to type.version)
                 for (nestedField in nested.descriptor.fields) {

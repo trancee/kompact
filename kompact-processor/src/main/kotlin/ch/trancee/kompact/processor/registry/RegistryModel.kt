@@ -50,7 +50,10 @@ internal object RegistryJson {
         prettyPrintIndent = "  "
     }
 
-    fun decode(content: String): RegistryDocument = compact.decodeFromString(content)
+    fun decode(content: String): RegistryDocument {
+        JsonDuplicateKeyValidator.validate(content)
+        return compact.decodeFromString(content)
+    }
 
     fun encode(registry: RegistryDocument): String =
         pretty.encodeToString(

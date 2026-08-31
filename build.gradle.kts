@@ -1,5 +1,6 @@
 plugins {
     base
+    alias(libs.plugins.android.library) apply false
     alias(libs.plugins.android.kmp.library) apply false
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.dokka) apply false
@@ -71,9 +72,58 @@ val cConformanceTest =
         commandLine(cConformanceBinary.get().asFile.absolutePath)
     }
 
-tasks.named("check") { dependsOn(cConformanceTest) }
+val cFuzzBinary = layout.buildDirectory.file("tmp/compileCFuzz/vehicle-telemetry-fuzz")
+
+val compileCFuzz =
+    tasks.register<Exec>("compileCFuzz") {
+        group = "verification"
+        inputs.files(fileTree("conformance/c") { include("*.c", "*.h") })
+        outputs.file(cFuzzBinary)
+        commandLine(
+            "cc",
+            "-std=c99",
+            "-Wall",
+            "-Wextra",
+            "-Wconversion",
+            "-Wsign-conversion",
+            "-Werror",
+            "-pedantic-errors",
+            "conformance/c/vehicle_telemetry_fuzz.c",
+            "-o",
+            cFuzzBinary.get().asFile.absolutePath,
+        )
+    }
+
+val cFuzzSmoke =
+    tasks.register<Exec>("cFuzzSmoke") {
+        group = "verification"
+        dependsOn(compileCFuzz)
+        inputs.file(cFuzzBinary)
+        commandLine(cFuzzBinary.get().asFile.absolutePath)
+    }
+
+tasks.named("check") {
+    dependsOn(cConformanceTest)
+    dependsOn(cFuzzSmoke)
+}
 
 subprojects {
+    pluginManager.withPlugin("maven-publish") {
+        extensions.configure<org.gradle.api.publish.PublishingExtension> {
+            repositories {
+                maven {
+                    name = "verification"
+                    url =
+                        rootProject.layout.buildDirectory
+                            .dir("verification-repository")
+                            .get()
+                            .asFile
+                            .toURI()
+                }
+            }
+        }
+    }
+
     tasks
         .matching { it.name == "check" }
         .configureEach {
@@ -84,4 +134,5 @@ subprojects {
 tasks.named("check") {
     dependsOn(":kompact-runtime:koverVerify")
     dependsOn(":kompact-benchmarks:jvmSmokeBenchmark")
+    dependsOn(":kompact-android-benchmark:assembleReleaseAndroidTest")
 }

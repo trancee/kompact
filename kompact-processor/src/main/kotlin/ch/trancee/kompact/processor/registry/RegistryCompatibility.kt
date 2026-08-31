@@ -10,7 +10,7 @@ internal object RegistryCompatibility {
         current: RegistryDocument,
         baseline: RegistryDocument? = null,
         requireBaseline: Boolean = false,
-        availableDescriptors: Set<Pair<Int, Int>> = emptySet(),
+        availableDescriptors: Set<Pair<Int, Int>>? = null,
     ): List<RegistryDiagnostic> {
         val diagnostics = mutableListOf<RegistryDiagnostic>()
         validateCurrent(current, availableDescriptors, diagnostics)
@@ -28,7 +28,7 @@ internal object RegistryCompatibility {
 
     private fun validateCurrent(
         registry: RegistryDocument,
-        availableDescriptors: Set<Pair<Int, Int>>,
+        availableDescriptors: Set<Pair<Int, Int>>?,
         diagnostics: MutableList<RegistryDiagnostic>,
     ) {
         if (registry.formatVersion != 1) {
@@ -92,7 +92,7 @@ internal object RegistryCompatibility {
                 }
                 if (
                     version.status != RegistryStatus.RETIRED &&
-                        availableDescriptors.isNotEmpty() &&
+                        availableDescriptors != null &&
                         (schema.id to version.version) !in availableDescriptors
                 ) {
                     diagnostics +=
@@ -145,7 +145,10 @@ internal object RegistryCompatibility {
                             "descriptor drift for '${oldSchema.stableName}' v${oldVersion.version}",
                         )
                 }
-                if (newVersion.status.ordinal < oldVersion.status.ordinal) {
+                if (
+                    newVersion.status.ordinal < oldVersion.status.ordinal ||
+                        newVersion.status.ordinal - oldVersion.status.ordinal > 1
+                ) {
                     diagnostics +=
                         diagnostic(
                             1010,

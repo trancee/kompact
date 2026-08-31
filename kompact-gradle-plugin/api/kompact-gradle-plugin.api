@@ -1,0 +1,17 @@
+public abstract class ch/trancee/kompact/gradle/KompactExtension {
+	public fun <init> (Lorg/gradle/api/model/ObjectFactory;)V
+	public final fun getCHeadersClassifier ()Lorg/gradle/api/provider/Property;
+	public final fun getCompatibilityBaseline ()Lorg/gradle/api/file/RegularFileProperty;
+	public final fun getMaxPacketBytes ()Lorg/gradle/api/provider/Property;
+	public final fun getNamespace ()Lorg/gradle/api/provider/Property;
+	public final fun getPublishCHeaders ()Lorg/gradle/api/provider/Property;
+	public final fun getRegistryFile ()Lorg/gradle/api/file/RegularFileProperty;
+	public final fun getRequireCompatibilityBaseline ()Lorg/gradle/api/provider/Property;
+}
+
+public final class ch/trancee/kompact/gradle/KompactPlugin : org/gradle/api/Plugin {
+	public fun <init> ()V
+	public synthetic fun apply (Ljava/lang/Object;)V
+	public fun apply (Lorg/gradle/api/Project;)V
+}
+

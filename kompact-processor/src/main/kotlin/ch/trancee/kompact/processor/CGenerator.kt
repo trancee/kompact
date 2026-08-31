@@ -9,6 +9,7 @@ internal object CGenerator {
         schema: ProcessedSchema,
         descriptorSha256: String,
         schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+        encoderEnabled: Boolean,
     ): String {
         val descriptor = schema.descriptor
         val prefix = "kompact_${descriptor.stableName}_v${descriptor.version}"
@@ -31,28 +32,35 @@ internal object CGenerator {
             appendLine("#define ${macro}_PACKET_BYTES ((size_t)$packetBytes)")
             appendLine()
             appendLine("typedef struct { const uint8_t *packet; } ${prefix}_view_t;")
-            appendLine("typedef struct { uint8_t *packet; } ${prefix}_writer_t;")
+            if (encoderEnabled)
+                appendLine("typedef struct { uint8_t *packet; } ${prefix}_writer_t;")
             appendLine()
-            appendFactories(schema, prefix, macro, packetBytes, schemas)
-            for (field in descriptor.fields) appendField(field, prefix, macro, schemas)
-            appendLine(
-                "static inline ${prefix}_view_t ${prefix}_writer_view(${prefix}_writer_t writer) {"
+            appendFactories(
+                FactoryInput(schema, prefix, macro, packetBytes, schemas, encoderEnabled)
             )
-            appendLine("    ${prefix}_view_t view = { writer.packet };")
-            appendLine("    return view;")
-            appendLine("}")
-            appendLine()
+            for (field in descriptor.fields) {
+                appendField(field, prefix, macro, schemas, encoderEnabled)
+            }
+            if (encoderEnabled) {
+                appendLine(
+                    "static inline ${prefix}_view_t ${prefix}_writer_view(${prefix}_writer_t writer) {"
+                )
+                appendLine("    ${prefix}_view_t view = { writer.packet };")
+                appendLine("    return view;")
+                appendLine("}")
+                appendLine()
+            }
             appendLine("#endif")
         }
     }
 
-    private fun StringBuilder.appendFactories(
-        schema: ProcessedSchema,
-        prefix: String,
-        macro: String,
-        packetBytes: Int,
-        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
-    ) {
+    private fun StringBuilder.appendFactories(input: FactoryInput) {
+        val schema = input.schema
+        val prefix = input.prefix
+        val macro = input.macro
+        val packetBytes = input.packetBytes
+        val schemas = input.schemas
+        val encoderEnabled = input.encoderEnabled
         val descriptor = schema.descriptor
         appendLine(
             "static inline kompact_status_t ${prefix}_wrap(const uint8_t *packet, size_t packet_size, ${prefix}_view_t *out_view) {"
@@ -64,6 +72,9 @@ internal object CGenerator {
         appendLine("    if (packet_size < 2u) return KOMPACT_STATUS_INVALID_PACKET_LENGTH;")
         appendLine("    envelope = (uint16_t)kompact_internal_read_u64(packet, 0u, 16u);")
         appendLine(
+            "    if ((envelope & UINT16_C(0x0FFF)) == UINT16_C(0)) return KOMPACT_STATUS_RESERVED_SCHEMA_ID;"
+        )
+        appendLine(
             "    if ((envelope & UINT16_C(0x0FFF)) != ${macro}_SCHEMA_ID) return KOMPACT_STATUS_UNKNOWN_SCHEMA_ID;"
         )
         appendLine(
@@ -72,16 +83,18 @@ internal object CGenerator {
         appendLine(
             "    if (packet_size != (size_t)$packetBytes) return KOMPACT_STATUS_INVALID_PACKET_LENGTH;"
         )
-        for (reserved in descriptor.reservedRanges) {
+        val tailBitCount = packetBytes * 8 - (16 + descriptor.bodyBitSize)
+        if (tailBitCount > 0) {
             appendLine(
-                "    if (kompact_internal_read_u64(packet, ${16 + reserved.bitOffset}u, ${reserved.bitWidth}u) != 0u) return KOMPACT_STATUS_NONZERO_RESERVED_BITS;"
+                "    if (kompact_internal_read_u64(packet, ${16 + descriptor.bodyBitSize}u, ${tailBitCount}u) != 0u) return KOMPACT_STATUS_NONZERO_TAIL_BITS;"
             )
         }
-        descriptor.fields.forEach { appendFieldValidation(it, schemas) }
+        CValidationGenerator.appendSchemaTo(this, CValidationGenerator.Input(descriptor, schemas))
         appendLine("    out_view->packet = packet;")
         appendLine("    return KOMPACT_STATUS_OK;")
         appendLine("}")
         appendLine()
+        if (!encoderEnabled) return
         appendLine(
             "static inline kompact_status_t ${prefix}_initialize(uint8_t *packet, size_t packet_size, ${prefix}_writer_t *out_writer) {"
         )
@@ -112,72 +125,12 @@ internal object CGenerator {
         appendLine()
     }
 
-    private fun StringBuilder.appendFieldValidation(
-        field: FieldDescriptor,
-        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
-    ) {
-        val absoluteOffset = 16 + field.bitOffset
-        when (val type = field.type) {
-            is LogicalType.EnumType -> {
-                val validCodes =
-                    type.entries.joinToString(" && ") { "code != UINT64_C(${it.code})" }
-                appendLine("    {")
-                appendLine(
-                    "        uint64_t code = kompact_internal_read_u64(packet, ${absoluteOffset}u, ${field.bitWidth}u);"
-                )
-                appendLine("        if ($validCodes) return KOMPACT_STATUS_UNKNOWN_ENUM_CODE;")
-                appendLine("    }")
-            }
-            is LogicalType.ArrayType -> {
-                val elementWidth = field.bitWidth / type.count
-                repeat(type.count) { index ->
-                    appendFieldValidation(
-                        field.copy(
-                            stableName = "${field.stableName}[$index]",
-                            bitOffset = field.bitOffset + index * elementWidth,
-                            bitWidth = elementWidth,
-                            type = type.elementType,
-                        ),
-                        schemas,
-                    )
-                }
-            }
-            is LogicalType.OptionalType -> {
-                val valueWidth = field.bitWidth - 1
-                appendLine(
-                    "    if (kompact_internal_read_u64(packet, ${absoluteOffset}u, 1u) == 0u && " +
-                        "kompact_internal_read_u64(packet, ${absoluteOffset + 1}u, ${valueWidth}u) != 0u) " +
-                        "return KOMPACT_STATUS_NONZERO_ABSENT_OPTIONAL;"
-                )
-            }
-            is LogicalType.NestedType -> {
-                val nested = schemas.getValue(type.schemaId to type.version)
-                for (reserved in nested.descriptor.reservedRanges) {
-                    val nestedOffset = field.bitOffset + reserved.bitOffset
-                    appendLine(
-                        "    if (kompact_internal_read_u64(packet, ${16 + nestedOffset}u, ${reserved.bitWidth}u) != 0u) " +
-                            "return KOMPACT_STATUS_NONZERO_RESERVED_BITS;"
-                    )
-                }
-                for (nestedField in nested.descriptor.fields) {
-                    appendFieldValidation(
-                        nestedField.copy(
-                            stableName = "${field.stableName}_${nestedField.stableName}",
-                            bitOffset = field.bitOffset + nestedField.bitOffset,
-                        ),
-                        schemas,
-                    )
-                }
-            }
-            else -> Unit
-        }
-    }
-
     private fun StringBuilder.appendField(
         field: FieldDescriptor,
         prefix: String,
         macro: String,
         schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+        encoderEnabled: Boolean,
     ) {
         val fieldMacro = "${macro}_${field.stableName.uppercase()}"
         val function = "${prefix}_${field.stableName}"
@@ -189,54 +142,104 @@ internal object CGenerator {
                 appendLine(
                     "static inline bool $function(${prefix}_view_t view) { return kompact_internal_read_u64(view.packet, ${fieldMacro}_BIT_OFFSET, 1u) != 0u; }"
                 )
-                appendLine(
-                    "static inline kompact_status_t ${prefix}_write_${field.stableName}(" +
-                        "${prefix}_writer_t writer, bool value) { " +
-                        "kompact_internal_write_u64(writer.packet, ${fieldMacro}_BIT_OFFSET, 1u, " +
-                        "value ? 1u : 0u); return KOMPACT_STATUS_OK; }"
-                )
+                if (encoderEnabled) {
+                    appendLine(
+                        "static inline kompact_status_t ${prefix}_write_${field.stableName}(" +
+                            "${prefix}_writer_t writer, bool value) { " +
+                            "kompact_internal_write_u64(writer.packet, ${fieldMacro}_BIT_OFFSET, 1u, " +
+                            "value ? 1u : 0u); return KOMPACT_STATUS_OK; }"
+                    )
+                }
             }
             LogicalType.SignedInteger -> {
                 val cType = cType(field)
                 appendLine(
                     "static inline $cType $function(${prefix}_view_t view) { return ($cType)kompact_internal_read_i64(view.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH); }"
                 )
-                appendLine(
-                    "static inline kompact_status_t ${prefix}_write_${field.stableName}(${prefix}_writer_t writer, $cType value) {"
-                )
-                if (field.bitWidth < 64) {
-                    appendLine("    const int64_t limit = INT64_C(1) << ${field.bitWidth - 1}u;")
+                if (encoderEnabled) {
                     appendLine(
-                        "    if ((int64_t)value < -limit || (int64_t)value >= limit) return KOMPACT_STATUS_VALUE_OUT_OF_RANGE;"
+                        "static inline kompact_status_t ${prefix}_write_${field.stableName}(${prefix}_writer_t writer, $cType value) {"
                     )
+                    if (field.bitWidth < carrierWidth(field)) {
+                        appendLine(
+                            "    const int64_t limit = INT64_C(1) << ${field.bitWidth - 1}u;"
+                        )
+                        appendLine(
+                            "    if ((int64_t)value < -limit || (int64_t)value >= limit) return KOMPACT_STATUS_VALUE_OUT_OF_RANGE;"
+                        )
+                    }
+                    appendLine(
+                        "    kompact_internal_write_u64(writer.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH, (uint64_t)value);"
+                    )
+                    appendLine("    return KOMPACT_STATUS_OK;")
+                    appendLine("}")
                 }
-                appendLine(
-                    "    kompact_internal_write_u64(writer.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH, (uint64_t)value);"
-                )
-                appendLine("    return KOMPACT_STATUS_OK;")
-                appendLine("}")
             }
             is LogicalType.EnumType ->
-                appendEnumField(field, field.type, prefix, fieldMacro, function)
+                appendEnumField(
+                    EnumInput(field, field.type, prefix, fieldMacro, function, encoderEnabled)
+                )
             is LogicalType.FloatType -> {
                 val cType = if (field.type.bits == 32) "float" else "double"
                 val suffix = if (field.type.bits == 32) "f32" else "f64"
                 appendLine(
                     "static inline $cType $function(${prefix}_view_t view) { return kompact_internal_read_$suffix(view.packet, ${fieldMacro}_BIT_OFFSET); }"
                 )
-                appendLine(
-                    "static inline kompact_status_t ${prefix}_write_${field.stableName}(${prefix}_writer_t writer, $cType value) { kompact_internal_write_$suffix(writer.packet, ${fieldMacro}_BIT_OFFSET, value); return KOMPACT_STATUS_OK; }"
-                )
+                if (encoderEnabled) {
+                    appendLine(
+                        "static inline kompact_status_t ${prefix}_write_${field.stableName}(" +
+                            "${prefix}_writer_t writer, $cType value) { kompact_internal_write_$suffix(" +
+                            "writer.packet, ${fieldMacro}_BIT_OFFSET, value); return KOMPACT_STATUS_OK; }"
+                    )
+                }
             }
             is LogicalType.ArrayType -> {
                 if (field.type.elementType is LogicalType.NestedType)
                     CNestedArrayGenerator.appendTo(
                         this,
-                        CNestedArrayGenerator.Input(field, field.type, prefix, macro, schemas),
+                        CNestedArrayGenerator.Input(
+                            field,
+                            field.type,
+                            prefix,
+                            macro,
+                            schemas,
+                            encoderEnabled,
+                        ),
                     )
-                else appendIndexedField(field, prefix, fieldMacro, function)
+                else
+                    CCompositeFieldGenerator.appendIndexedTo(
+                        this,
+                        CCompositeFieldGenerator.Input(
+                            field,
+                            prefix,
+                            fieldMacro,
+                            function,
+                            encoderEnabled,
+                        ),
+                    )
             }
-            is LogicalType.BytesType -> appendIndexedField(field, prefix, fieldMacro, function)
+            is LogicalType.BytesType ->
+                CCompositeFieldGenerator.appendIndexedTo(
+                    this,
+                    CCompositeFieldGenerator.Input(
+                        field,
+                        prefix,
+                        fieldMacro,
+                        function,
+                        encoderEnabled,
+                    ),
+                )
+            is LogicalType.OptionalType ->
+                CCompositeFieldGenerator.appendOptionalTo(
+                    this,
+                    CCompositeFieldGenerator.Input(
+                        field,
+                        prefix,
+                        fieldMacro,
+                        function,
+                        encoderEnabled,
+                    ),
+                )
             is LogicalType.NestedType -> {
                 val nested = schemas.getValue(field.type.schemaId to field.type.version)
                 for (nestedField in nested.descriptor.fields) {
@@ -248,6 +251,7 @@ internal object CGenerator {
                         prefix,
                         macro,
                         schemas,
+                        encoderEnabled,
                     )
                 }
             }
@@ -256,30 +260,32 @@ internal object CGenerator {
                 appendLine(
                     "static inline $cType $function(${prefix}_view_t view) { return ($cType)kompact_internal_read_u64(view.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH); }"
                 )
-                appendLine(
-                    "static inline kompact_status_t ${prefix}_write_${field.stableName}(${prefix}_writer_t writer, $cType value) {"
-                )
-                if (field.bitWidth < 64)
+                if (encoderEnabled) {
                     appendLine(
-                        "    if ((uint64_t)value >= (UINT64_C(1) << ${field.bitWidth}u)) return KOMPACT_STATUS_VALUE_OUT_OF_RANGE;"
+                        "static inline kompact_status_t ${prefix}_write_${field.stableName}(${prefix}_writer_t writer, $cType value) {"
                     )
-                appendLine(
-                    "    kompact_internal_write_u64(writer.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH, (uint64_t)value);"
-                )
-                appendLine("    return KOMPACT_STATUS_OK;")
-                appendLine("}")
+                    if (field.bitWidth < carrierWidth(field))
+                        appendLine(
+                            "    if ((uint64_t)value >= (UINT64_C(1) << ${field.bitWidth}u)) return KOMPACT_STATUS_VALUE_OUT_OF_RANGE;"
+                        )
+                    appendLine(
+                        "    kompact_internal_write_u64(writer.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH, (uint64_t)value);"
+                    )
+                    appendLine("    return KOMPACT_STATUS_OK;")
+                    appendLine("}")
+                }
             }
         }
         appendLine()
     }
 
-    private fun StringBuilder.appendEnumField(
-        field: FieldDescriptor,
-        type: LogicalType.EnumType,
-        prefix: String,
-        fieldMacro: String,
-        function: String,
-    ) {
+    private fun StringBuilder.appendEnumField(input: EnumInput) {
+        val field = input.field
+        val type = input.type
+        val prefix = input.prefix
+        val fieldMacro = input.fieldMacro
+        val function = input.function
+        val encoderEnabled = input.encoderEnabled
         val cType = unsignedCType(field.bitWidth)
         val enumType = "${function}_t"
         appendLine("typedef $cType $enumType;")
@@ -291,19 +297,21 @@ internal object CGenerator {
         appendLine(
             "static inline $enumType $function(${prefix}_view_t view) { return ($enumType)kompact_internal_read_u64(view.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH); }"
         )
-        appendLine(
-            "static inline kompact_status_t ${prefix}_write_${field.stableName}(${prefix}_writer_t writer, $enumType value) {"
-        )
-        val invalidCodes =
-            type.entries.joinToString(" && ") {
-                "value != ${fieldMacro}_${it.stableName.uppercase()}"
-            }
-        appendLine("    if ($invalidCodes) return KOMPACT_STATUS_UNKNOWN_ENUM_CODE;")
-        appendLine(
-            "    kompact_internal_write_u64(writer.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH, value);"
-        )
-        appendLine("    return KOMPACT_STATUS_OK;")
-        appendLine("}")
+        if (encoderEnabled) {
+            appendLine(
+                "static inline kompact_status_t ${prefix}_write_${field.stableName}(${prefix}_writer_t writer, $enumType value) {"
+            )
+            val invalidCodes =
+                type.entries.joinToString(" && ") {
+                    "value != ${fieldMacro}_${it.stableName.uppercase()}"
+                }
+            appendLine("    if ($invalidCodes) return KOMPACT_STATUS_UNKNOWN_ENUM_CODE;")
+            appendLine(
+                "    kompact_internal_write_u64(writer.packet, ${fieldMacro}_BIT_OFFSET, ${fieldMacro}_BIT_WIDTH, value);"
+            )
+            appendLine("    return KOMPACT_STATUS_OK;")
+            appendLine("}")
+        }
     }
 
     private fun unsignedCType(bitWidth: Int): String =
@@ -314,34 +322,36 @@ internal object CGenerator {
             else -> "uint64_t"
         }
 
-    private fun StringBuilder.appendIndexedField(
-        field: FieldDescriptor,
-        prefix: String,
-        fieldMacro: String,
-        function: String,
-    ) {
-        val count =
-            when (val type = field.type) {
-                is LogicalType.ArrayType -> type.count
-                is LogicalType.BytesType -> type.count
-                else -> 1
-            }
-        val width = field.bitWidth / count
-        val cType = if (field.type is LogicalType.BytesType) "uint8_t" else cType(field)
-        appendLine("#define ${fieldMacro}_COUNT ((size_t)$count)")
-        appendLine(
-            "static inline kompact_status_t $function(${prefix}_view_t view, size_t index, $cType *out_value) {"
-        )
-        appendLine("    if (out_value == NULL) return KOMPACT_STATUS_NULL_ARGUMENT;")
-        appendLine(
-            "    if (index >= ${fieldMacro}_COUNT) return KOMPACT_STATUS_INDEX_OUT_OF_RANGE;"
-        )
-        appendLine(
-            "    *out_value = ($cType)kompact_internal_read_u64(view.packet, ${fieldMacro}_BIT_OFFSET + (uint32_t)index * ${width}u, ${width}u);"
-        )
-        appendLine("    return KOMPACT_STATUS_OK;")
-        appendLine("}")
-    }
+    private data class FactoryInput(
+        val schema: ProcessedSchema,
+        val prefix: String,
+        val macro: String,
+        val packetBytes: Int,
+        val schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+        val encoderEnabled: Boolean,
+    )
+
+    private data class EnumInput(
+        val field: FieldDescriptor,
+        val type: LogicalType.EnumType,
+        val prefix: String,
+        val fieldMacro: String,
+        val function: String,
+        val encoderEnabled: Boolean,
+    )
+
+    private fun carrierWidth(field: FieldDescriptor): Int =
+        when (field.kotlinType) {
+            "kotlin.Byte",
+            "kotlin.UByte" -> 8
+            "kotlin.Short",
+            "kotlin.UShort" -> 16
+            "kotlin.Int",
+            "kotlin.UInt" -> 32
+            "kotlin.Long",
+            "kotlin.ULong" -> 64
+            else -> error("unsupported integer carrier: ${field.kotlinType}")
+        }
 
     private fun cType(field: FieldDescriptor): String =
         when (field.kotlinType) {

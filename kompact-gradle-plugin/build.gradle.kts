@@ -8,7 +8,8 @@ plugins {
 
 kotlin {
     explicitApi()
-    @OptIn(org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class) abiValidation {}
+    @OptIn(org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class)
+    abiValidation { enabled.set(true) }
     jvmToolchain(17)
 }
 
@@ -40,5 +41,17 @@ gradlePlugin {
         }
     }
 }
+
+tasks.processResources {
+    from(
+        project(":kompact-annotations")
+            .file("src/commonMain/kotlin/ch/trancee/kompact/annotations/KompactAnnotations.kt")
+    ) {
+        into("kompact-ksp-stubs")
+    }
+    from(rootProject.file("schemas")) { into("schemas") }
+}
+
+tasks.jar { manifest.attributes["Implementation-Version"] = project.version }
 
 tasks.test { useJUnitPlatform() }

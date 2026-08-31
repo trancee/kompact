@@ -1,0 +1,101 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <ch.trancee.kompact:kompact-annotations>
+open annotation class ch.trancee.kompact.annotations/KompactArray : kotlin/Annotation { // ch.trancee.kompact.annotations/KompactArray|null[0]
+    constructor <init>(kotlin/Int) // ch.trancee.kompact.annotations/KompactArray.<init>|<init>(kotlin.Int){}[0]
+
+    final val count // ch.trancee.kompact.annotations/KompactArray.count|{}count[0]
+        final fun <get-count>(): kotlin/Int // ch.trancee.kompact.annotations/KompactArray.count.<get-count>|<get-count>(){}[0]
+}
+
+open annotation class ch.trancee.kompact.annotations/KompactBytes : kotlin/Annotation { // ch.trancee.kompact.annotations/KompactBytes|null[0]
+    constructor <init>(kotlin/Int) // ch.trancee.kompact.annotations/KompactBytes.<init>|<init>(kotlin.Int){}[0]
+
+    final val count // ch.trancee.kompact.annotations/KompactBytes.count|{}count[0]
+        final fun <get-count>(): kotlin/Int // ch.trancee.kompact.annotations/KompactBytes.count.<get-count>|<get-count>(){}[0]
+}
+
+open annotation class ch.trancee.kompact.annotations/KompactCode : kotlin/Annotation { // ch.trancee.kompact.annotations/KompactCode|null[0]
+    constructor <init>(kotlin/String, kotlin/Long) // ch.trancee.kompact.annotations/KompactCode.<init>|<init>(kotlin.String;kotlin.Long){}[0]
+
+    final val code // ch.trancee.kompact.annotations/KompactCode.code|{}code[0]
+        final fun <get-code>(): kotlin/Long // ch.trancee.kompact.annotations/KompactCode.code.<get-code>|<get-code>(){}[0]
+    final val stableName // ch.trancee.kompact.annotations/KompactCode.stableName|{}stableName[0]
+        final fun <get-stableName>(): kotlin/String // ch.trancee.kompact.annotations/KompactCode.stableName.<get-stableName>|<get-stableName>(){}[0]
+}
+
+open annotation class ch.trancee.kompact.annotations/KompactEnum : kotlin/Annotation { // ch.trancee.kompact.annotations/KompactEnum|null[0]
+    constructor <init>(kotlin/Int) // ch.trancee.kompact.annotations/KompactEnum.<init>|<init>(kotlin.Int){}[0]
+
+    final val bitWidth // ch.trancee.kompact.annotations/KompactEnum.bitWidth|{}bitWidth[0]
+        final fun <get-bitWidth>(): kotlin/Int // ch.trancee.kompact.annotations/KompactEnum.bitWidth.<get-bitWidth>|<get-bitWidth>(){}[0]
+}
+
+open annotation class ch.trancee.kompact.annotations/KompactField : kotlin/Annotation { // ch.trancee.kompact.annotations/KompactField|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/Int, kotlin/Int, kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin/String = ...) // ch.trancee.kompact.annotations/KompactField.<init>|<init>(kotlin.String;kotlin.String;kotlin.Int;kotlin.Int;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.String){}[0]
+
+    final val bitOffset // ch.trancee.kompact.annotations/KompactField.bitOffset|{}bitOffset[0]
+        final fun <get-bitOffset>(): kotlin/Int // ch.trancee.kompact.annotations/KompactField.bitOffset.<get-bitOffset>|<get-bitOffset>(){}[0]
+    final val bitWidth // ch.trancee.kompact.annotations/KompactField.bitWidth|{}bitWidth[0]
+        final fun <get-bitWidth>(): kotlin/Int // ch.trancee.kompact.annotations/KompactField.bitWidth.<get-bitWidth>|<get-bitWidth>(){}[0]
+    final val maximum // ch.trancee.kompact.annotations/KompactField.maximum|{}maximum[0]
+        final fun <get-maximum>(): kotlin/String // ch.trancee.kompact.annotations/KompactField.maximum.<get-maximum>|<get-maximum>(){}[0]
+    final val minimum // ch.trancee.kompact.annotations/KompactField.minimum|{}minimum[0]
+        final fun <get-minimum>(): kotlin/String // ch.trancee.kompact.annotations/KompactField.minimum.<get-minimum>|<get-minimum>(){}[0]
+    final val offsetDenominator // ch.trancee.kompact.annotations/KompactField.offsetDenominator|{}offsetDenominator[0]
+        final fun <get-offsetDenominator>(): kotlin/String // ch.trancee.kompact.annotations/KompactField.offsetDenominator.<get-offsetDenominator>|<get-offsetDenominator>(){}[0]
+    final val offsetNumerator // ch.trancee.kompact.annotations/KompactField.offsetNumerator|{}offsetNumerator[0]
+        final fun <get-offsetNumerator>(): kotlin/String // ch.trancee.kompact.annotations/KompactField.offsetNumerator.<get-offsetNumerator>|<get-offsetNumerator>(){}[0]
+    final val scaleDenominator // ch.trancee.kompact.annotations/KompactField.scaleDenominator|{}scaleDenominator[0]
+        final fun <get-scaleDenominator>(): kotlin/String // ch.trancee.kompact.annotations/KompactField.scaleDenominator.<get-scaleDenominator>|<get-scaleDenominator>(){}[0]
+    final val scaleNumerator // ch.trancee.kompact.annotations/KompactField.scaleNumerator|{}scaleNumerator[0]
+        final fun <get-scaleNumerator>(): kotlin/String // ch.trancee.kompact.annotations/KompactField.scaleNumerator.<get-scaleNumerator>|<get-scaleNumerator>(){}[0]
+    final val semanticType // ch.trancee.kompact.annotations/KompactField.semanticType|{}semanticType[0]
+        final fun <get-semanticType>(): kotlin/String // ch.trancee.kompact.annotations/KompactField.semanticType.<get-semanticType>|<get-semanticType>(){}[0]
+    final val stableName // ch.trancee.kompact.annotations/KompactField.stableName|{}stableName[0]
+        final fun <get-stableName>(): kotlin/String // ch.trancee.kompact.annotations/KompactField.stableName.<get-stableName>|<get-stableName>(){}[0]
+    final val unit // ch.trancee.kompact.annotations/KompactField.unit|{}unit[0]
+        final fun <get-unit>(): kotlin/String // ch.trancee.kompact.annotations/KompactField.unit.<get-unit>|<get-unit>(){}[0]
+}
+
+open annotation class ch.trancee.kompact.annotations/KompactNested : kotlin/Annotation { // ch.trancee.kompact.annotations/KompactNested|null[0]
+    constructor <init>(kotlin/String, kotlin/Int, kotlin/Int) // ch.trancee.kompact.annotations/KompactNested.<init>|<init>(kotlin.String;kotlin.Int;kotlin.Int){}[0]
+
+    final val registryName // ch.trancee.kompact.annotations/KompactNested.registryName|{}registryName[0]
+        final fun <get-registryName>(): kotlin/String // ch.trancee.kompact.annotations/KompactNested.registryName.<get-registryName>|<get-registryName>(){}[0]
+    final val schemaId // ch.trancee.kompact.annotations/KompactNested.schemaId|{}schemaId[0]
+        final fun <get-schemaId>(): kotlin/Int // ch.trancee.kompact.annotations/KompactNested.schemaId.<get-schemaId>|<get-schemaId>(){}[0]
+    final val version // ch.trancee.kompact.annotations/KompactNested.version|{}version[0]
+        final fun <get-version>(): kotlin/Int // ch.trancee.kompact.annotations/KompactNested.version.<get-version>|<get-version>(){}[0]
+}
+
+open annotation class ch.trancee.kompact.annotations/KompactOptional : kotlin/Annotation { // ch.trancee.kompact.annotations/KompactOptional|null[0]
+    constructor <init>() // ch.trancee.kompact.annotations/KompactOptional.<init>|<init>(){}[0]
+}
+
+open annotation class ch.trancee.kompact.annotations/KompactReserved : kotlin/Annotation { // ch.trancee.kompact.annotations/KompactReserved|null[0]
+    constructor <init>(kotlin/String, kotlin/Int, kotlin/Int) // ch.trancee.kompact.annotations/KompactReserved.<init>|<init>(kotlin.String;kotlin.Int;kotlin.Int){}[0]
+
+    final val bitOffset // ch.trancee.kompact.annotations/KompactReserved.bitOffset|{}bitOffset[0]
+        final fun <get-bitOffset>(): kotlin/Int // ch.trancee.kompact.annotations/KompactReserved.bitOffset.<get-bitOffset>|<get-bitOffset>(){}[0]
+    final val bitWidth // ch.trancee.kompact.annotations/KompactReserved.bitWidth|{}bitWidth[0]
+        final fun <get-bitWidth>(): kotlin/Int // ch.trancee.kompact.annotations/KompactReserved.bitWidth.<get-bitWidth>|<get-bitWidth>(){}[0]
+    final val stableName // ch.trancee.kompact.annotations/KompactReserved.stableName|{}stableName[0]
+        final fun <get-stableName>(): kotlin/String // ch.trancee.kompact.annotations/KompactReserved.stableName.<get-stableName>|<get-stableName>(){}[0]
+}
+
+open annotation class ch.trancee.kompact.annotations/KompactSchema : kotlin/Annotation { // ch.trancee.kompact.annotations/KompactSchema|null[0]
+    constructor <init>(kotlin/String, kotlin/Int, kotlin/Int) // ch.trancee.kompact.annotations/KompactSchema.<init>|<init>(kotlin.String;kotlin.Int;kotlin.Int){}[0]
+
+    final val id // ch.trancee.kompact.annotations/KompactSchema.id|{}id[0]
+        final fun <get-id>(): kotlin/Int // ch.trancee.kompact.annotations/KompactSchema.id.<get-id>|<get-id>(){}[0]
+    final val registryName // ch.trancee.kompact.annotations/KompactSchema.registryName|{}registryName[0]
+        final fun <get-registryName>(): kotlin/String // ch.trancee.kompact.annotations/KompactSchema.registryName.<get-registryName>|<get-registryName>(){}[0]
+    final val version // ch.trancee.kompact.annotations/KompactSchema.version|{}version[0]
+        final fun <get-version>(): kotlin/Int // ch.trancee.kompact.annotations/KompactSchema.version.<get-version>|<get-version>(){}[0]
+}

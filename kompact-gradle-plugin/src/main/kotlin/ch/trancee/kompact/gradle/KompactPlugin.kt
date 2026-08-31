@@ -63,9 +63,12 @@ public class KompactPlugin : Plugin<Project> {
                 maxPacketBytes.set(extension.maxPacketBytes)
                 languageVersion.convention("2.3")
                 apiVersion.convention("2.3")
+                expectedLibraryVersion.convention(
+                    KompactPlugin::class.java.`package`.implementationVersion ?: "test"
+                )
                 compileClasspath.from(
-                    project.configurations.findByName("commonMainCompileClasspath"),
-                    project.configurations.findByName("commonMainCompileDependenciesMetadata"),
+                    project.configurations.findByName("metadataCompileClasspath"),
+                    project.configurations.findByName("jvmCompileClasspath"),
                     classLocation(Unit::class.java),
                 )
                 workerClasspath.from(

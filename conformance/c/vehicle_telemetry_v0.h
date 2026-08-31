@@ -21,14 +21,15 @@ static inline kompact_status_t kompact_vehicle_telemetry_v0_wrap(const uint8_t *
     if (packet == NULL || out_view == NULL) return KOMPACT_STATUS_NULL_ARGUMENT;
     if (packet_size < 2u) return KOMPACT_STATUS_INVALID_PACKET_LENGTH;
     envelope = (uint16_t)kompact_internal_read_u64(packet, 0u, 16u);
+    if ((envelope & UINT16_C(0x0FFF)) == UINT16_C(0)) return KOMPACT_STATUS_RESERVED_SCHEMA_ID;
     if ((envelope & UINT16_C(0x0FFF)) != KOMPACT_VEHICLE_TELEMETRY_V0_SCHEMA_ID) return KOMPACT_STATUS_UNKNOWN_SCHEMA_ID;
     if ((envelope >> 12u) != KOMPACT_VEHICLE_TELEMETRY_V0_LAYOUT_VERSION) return KOMPACT_STATUS_UNSUPPORTED_LAYOUT_VERSION;
     if (packet_size != (size_t)4) return KOMPACT_STATUS_INVALID_PACKET_LENGTH;
-    if (kompact_internal_read_u64(packet, 31u, 1u) != 0u) return KOMPACT_STATUS_NONZERO_RESERVED_BITS;
     {
         uint64_t code = kompact_internal_read_u64(packet, 16u, 4u);
         if (code != UINT64_C(0) && code != UINT64_C(1) && code != UINT64_C(2)) return KOMPACT_STATUS_UNKNOWN_ENUM_CODE;
     }
+    if (kompact_internal_read_u64(packet, 31u, 1u) != 0u) return KOMPACT_STATUS_NONZERO_RESERVED_BITS;
     out_view->packet = packet;
     return KOMPACT_STATUS_OK;
 }

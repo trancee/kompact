@@ -30,6 +30,14 @@ class KompactPluginFunctionalTest {
             result.output,
         )
         assertTrue(generatedRoot.resolve("c/vehicle_telemetry_v0.h").isFile, result.output)
+        assertEquals(
+            File("../conformance/c/vehicle_telemetry_v0.h").readText(),
+            generatedRoot.resolve("c/vehicle_telemetry_v0.h").readText(),
+        )
+        assertEquals(
+            File("../conformance/c/kompact_runtime.h").readText(),
+            generatedRoot.resolve("c/kompact_runtime.h").readText(),
+        )
         assertTrue(
             generatedRoot.resolve("descriptors/vehicle_telemetry_v0.json").isFile,
             result.output,
@@ -318,8 +326,10 @@ class KompactPluginFunctionalTest {
 
                 sealed interface KompactDecodeError {
                     data class InvalidPacketLength(val expected: Int, val actual: Int) : KompactDecodeError
+                    data class ReservedSchemaId(val version: UByte) : KompactDecodeError
                     data class UnknownSchemaId(val id: UShort, val version: UByte) : KompactDecodeError
                     data class UnsupportedLayoutVersion(val id: UShort, val version: UByte) : KompactDecodeError
+                    data class NonzeroTailBits(val id: UShort, val version: UByte, val offset: Int) : KompactDecodeError
                     data class NonzeroReservedBits(val id: UShort, val version: UByte, val field: String, val offset: Int) : KompactDecodeError
                     data class UnknownEnumCode(val id: UShort, val version: UByte, val field: String, val offset: Int) : KompactDecodeError
                     data class NonzeroAbsentOptional(val id: UShort, val version: UByte, val field: String, val offset: Int) : KompactDecodeError

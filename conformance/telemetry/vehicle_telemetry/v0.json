@@ -10,6 +10,16 @@
   },
   "cases": [
     {
+      "name": "all_zero_body",
+      "status": "0x00",
+      "packetHex": "2a000000",
+      "values": {
+        "battery_status": "0",
+        "speed": "0",
+        "is_malfunctioning": false
+      }
+    },
+    {
       "name": "nominal_cross_byte_speed",
       "status": "0x00",
       "packetHex": "2a00f25f",
@@ -18,6 +28,56 @@
         "speed": "511",
         "is_malfunctioning": true
       }
+    },
+    {
+      "name": "maximum_values",
+      "status": "0x00",
+      "packetHex": "2a00f27f",
+      "values": {
+        "battery_status": "2",
+        "speed": "1023",
+        "is_malfunctioning": true
+      }
+    },
+    {
+      "name": "low_battery_enum",
+      "status": "0x00",
+      "packetHex": "2a000100",
+      "values": {
+        "battery_status": "1",
+        "speed": "0",
+        "is_malfunctioning": false
+      }
+    },
+    {
+      "name": "packet_shorter_than_envelope",
+      "status": "0x02",
+      "packetHex": "2a"
+    },
+    {
+      "name": "extra_packet_byte",
+      "status": "0x02",
+      "packetHex": "2a00000000"
+    },
+    {
+      "name": "reserved_schema_id",
+      "status": "0x03",
+      "packetHex": "0000"
+    },
+    {
+      "name": "unknown_schema_id",
+      "status": "0x04",
+      "packetHex": "2b00"
+    },
+    {
+      "name": "unsupported_layout_version",
+      "status": "0x05",
+      "packetHex": "2a10"
+    },
+    {
+      "name": "unknown_enum_code",
+      "status": "0x07",
+      "packetHex": "2a000300"
     },
     {
       "name": "nonzero_reserved_bit",

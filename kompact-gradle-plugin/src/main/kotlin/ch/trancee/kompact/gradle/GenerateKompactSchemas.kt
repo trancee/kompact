@@ -1,5 +1,6 @@
 package ch.trancee.kompact.gradle
 
+import ch.trancee.kompact.processor.KompactRegistryProblem
 import ch.trancee.kompact.processor.KompactRegistryValidator
 import ch.trancee.kompact.processor.KompactSymbolProcessorProvider
 import com.google.devtools.ksp.impl.KotlinSymbolProcessing
@@ -8,6 +9,9 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Target
 import com.google.devtools.ksp.symbol.KSNode
 import java.io.File
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import javax.inject.Inject
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -37,7 +41,7 @@ import org.gradle.workers.WorkParameters
 import org.gradle.workers.WorkerExecutor
 
 @CacheableTask
-public abstract class GenerateKompactSchemas
+internal abstract class GenerateKompactSchemas
 @Inject
 constructor(private val workerExecutor: WorkerExecutor) : DefaultTask() {
     @get:Incremental
@@ -58,6 +62,7 @@ constructor(private val workerExecutor: WorkerExecutor) : DefaultTask() {
     @get:Input public abstract val namespace: Property<String>
     @get:Input public abstract val maxPacketBytes: Property<Int>
     @get:Input public abstract val languageVersion: Property<String>
+    @get:Input public abstract val expectedLibraryVersion: Property<String>
     @get:Input public abstract val apiVersion: Property<String>
 
     @get:CompileClasspath public abstract val compileClasspath: ConfigurableFileCollection
@@ -77,12 +82,11 @@ constructor(private val workerExecutor: WorkerExecutor) : DefaultTask() {
                 currentJson = registryFile.get().asFile.readText(),
                 baselineJson = compatibilityBaseline.orNull?.asFile?.readText(),
                 requireBaseline = requireCompatibilityBaseline.get(),
+                expectedNamespace = namespace.get(),
+                expectedMaxPacketBytes = maxPacketBytes.get(),
             )
-        if (registryProblems.isNotEmpty()) {
-            throw GradleException(
-                registryProblems.joinToString(separator = "\n") { "${it.code} ${it.message}" }
-            )
-        }
+        validateLibraryVersions()
+        failOnProblems(registryProblems)
         val stage =
             temporaryDir.resolve("stage").apply {
                 deleteRecursively()
@@ -106,6 +110,9 @@ constructor(private val workerExecutor: WorkerExecutor) : DefaultTask() {
             parameters.cacheDirectory.set(cacheDirectory.get().asFile.absolutePath)
             parameters.namespace.set(namespace)
             parameters.maxPacketBytes.set(maxPacketBytes)
+            parameters.decodeOnlyIdentities.set(
+                KompactRegistryValidator.decodeOnlyIdentities(registryFile.get().asFile.readText())
+            )
             parameters.languageVersion.set(languageVersion)
             parameters.apiVersion.set(apiVersion)
             parameters.incremental.set(inputChanges.isIncremental)
@@ -140,6 +147,12 @@ constructor(private val workerExecutor: WorkerExecutor) : DefaultTask() {
                 .sortedBy { it.relativeTo(descriptorDirectory).invariantSeparatorsPath }
                 .map(File::readText)
                 .toList()
+        val sourceProblems =
+            KompactRegistryValidator.validateGeneratedDescriptors(
+                currentJson = registryFile.get().asFile.readText(),
+                canonicalDescriptors = canonicalDescriptors,
+            )
+        failOnProblems(sourceProblems)
         val proposal =
             KompactRegistryValidator.propose(
                 currentJson = registryFile.get().asFile.readText(),
@@ -160,6 +173,14 @@ constructor(private val workerExecutor: WorkerExecutor) : DefaultTask() {
         }
     }
 
+    private fun failOnProblems(problems: List<KompactRegistryProblem>) {
+        if (problems.isEmpty()) return
+        clearPublishedOutputs()
+        throw GradleException(
+            problems.joinToString(separator = "\n") { "${it.code} ${it.message}" }
+        )
+    }
+
     private fun clearPublishedOutputs() {
         listOf(
                 kotlinOutputDirectory.get().asFile,
@@ -170,14 +191,38 @@ constructor(private val workerExecutor: WorkerExecutor) : DefaultTask() {
             .forEach(File::deleteRecursively)
     }
 
+    private fun validateLibraryVersions() {
+        val expected = expectedLibraryVersion.get()
+        if (expected == "test") return
+        val mismatches =
+            compileClasspath.files.map(File::getName).filter { name ->
+                (name.startsWith("kompact-runtime-") || name.startsWith("kompact-annotations-")) &&
+                    !name.endsWith("-$expected.jar")
+            }
+        if (mismatches.isNotEmpty()) {
+            clearPublishedOutputs()
+            throw GradleException(
+                "KOMPACT-KSP-1003 Kompact runtime and annotation versions must match plugin $expected: " +
+                    mismatches.sorted().joinToString()
+            )
+        }
+    }
+
     private fun replaceDirectory(source: File, destination: File) {
+        val incoming = destination.resolveSibling(".${destination.name}.incoming")
+        incoming.deleteRecursively()
+        if (source.exists()) source.copyRecursively(incoming, overwrite = true)
+        else incoming.mkdirs()
         destination.deleteRecursively()
-        if (source.exists()) source.copyRecursively(destination, overwrite = true)
-        else destination.mkdirs()
+        try {
+            Files.move(incoming.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE)
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(incoming.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 }
 
-public interface KompactKspWorkParameters : WorkParameters {
+internal interface KompactKspWorkParameters : WorkParameters {
     public val sourcePaths: ListProperty<String>
     public val libraryPaths: ListProperty<String>
     public val projectDirectory: Property<String>
@@ -185,6 +230,7 @@ public interface KompactKspWorkParameters : WorkParameters {
     public val cacheDirectory: Property<String>
     public val namespace: Property<String>
     public val maxPacketBytes: Property<Int>
+    public val decodeOnlyIdentities: ListProperty<String>
     public val languageVersion: Property<String>
     public val apiVersion: Property<String>
     public val incremental: Property<Boolean>
@@ -192,14 +238,29 @@ public interface KompactKspWorkParameters : WorkParameters {
     public val removedSourcePaths: ListProperty<String>
 }
 
-public abstract class KompactKspWorkAction : WorkAction<KompactKspWorkParameters> {
+internal abstract class KompactKspWorkAction : WorkAction<KompactKspWorkParameters> {
     override fun execute() {
         val stage = File(parameters.stageDirectory.get()).apply { mkdirs() }
+        val sourceRoots = parameters.sourcePaths.get().map(::File).toMutableList()
+        if (!hasAnnotationSource(sourceRoots)) {
+            val stubRoot = stage.resolve("ksp-stubs").apply { mkdirs() }
+            val stubFile = stubRoot.resolve("KompactAnnotations.kt")
+            val stub =
+                requireNotNull(
+                    javaClass.classLoader.getResourceAsStream(
+                        "kompact-ksp-stubs/KompactAnnotations.kt"
+                    )
+                ) {
+                    "Kompact annotation source stub is missing from the plugin"
+                }
+            stub.use { input -> stubFile.outputStream().use(input::copyTo) }
+            sourceRoots += stubRoot
+        }
         val config =
             KSPCommonConfig.Builder()
                 .apply {
                     moduleName = "kompact-common"
-                    sourceRoots = parameters.sourcePaths.get().map(::File)
+                    this.sourceRoots = sourceRoots
                     commonSourceRoots = sourceRoots
                     libraries = parameters.libraryPaths.get().map(::File)
                     projectBaseDir = File(parameters.projectDirectory.get())
@@ -217,6 +278,8 @@ public abstract class KompactKspWorkAction : WorkAction<KompactKspWorkParameters
                         mapOf(
                             "kompact.namespace" to parameters.namespace.get(),
                             "kompact.maxPacketBytes" to parameters.maxPacketBytes.get().toString(),
+                            "kompact.decodeOnly" to
+                                parameters.decodeOnlyIdentities.get().joinToString(","),
                         )
                     targets = listOf(Target("common", emptyMap()))
                 }
@@ -232,6 +295,17 @@ public abstract class KompactKspWorkAction : WorkAction<KompactKspWorkParameters
             throw GradleException("Kompact KSP processing failed: $exitCode")
         }
     }
+
+    private fun hasAnnotationSource(sourceRoots: List<File>): Boolean =
+        sourceRoots
+            .asSequence()
+            .flatMap { root -> root.walkTopDown().asSequence() }
+            .filter { file -> file.isFile && file.extension == "kt" }
+            .any { file ->
+                val content = file.readText()
+                content.contains("package ch.trancee.kompact.annotations") &&
+                    content.contains("annotation class KompactSchema")
+            }
 }
 
 private class WorkerKspLogger : KSPLogger {

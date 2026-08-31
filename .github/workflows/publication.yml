@@ -1,0 +1,38 @@
+name: Publication consumer
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  consumer:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - run: >-
+          ./gradlew clean
+          :kompact-runtime:publishAllPublicationsToVerificationRepository
+          :kompact-annotations:publishAllPublicationsToVerificationRepository
+          :kompact-processor:publishAllPublicationsToVerificationRepository
+          :kompact-gradle-plugin:publishAllPublicationsToVerificationRepository
+          --no-build-cache --no-configuration-cache
+      - run: >-
+          ./gradlew -p publication-consumer
+          compileKotlinJvm compileAndroidMain compileKotlinIosArm64 compileKotlinIosSimulatorArm64
+          --refresh-dependencies --no-build-cache --no-configuration-cache
+      - run: >-
+          clang -std=c99 -Wall -Wextra -Wconversion -Wsign-conversion -Werror
+          -pedantic-errors
+          -I publication-consumer/build/generated/kompact/publication/c
+          publication-consumer/c/main.c publication-consumer/c/other.c
+          -o /tmp/kompact-publication-c
+      - run: /tmp/kompact-publication-c
+      - run: test "$(wc -c < publication-consumer/build/generated/kompact/publication/c/benchmark_large_v0.h)" -le 65536

@@ -8,10 +8,13 @@ public object KompactRuntime {
         var valueBit = 0
         while (valueBit < bitWidth) {
             val packetBit = bitOffset + valueBit
+            val bitInByte = packetBit and 7
+            val chunkWidth = minOf(8 - bitInByte, bitWidth - valueBit)
+            val chunkMask = (1 shl chunkWidth) - 1
             val byteValue = packet[packetBit ushr 3].toInt() and 0xFF
-            val bit = (byteValue ushr (packetBit and 7)) and 1
-            value = value or (bit.toULong() shl valueBit)
-            valueBit++
+            val chunk = (byteValue ushr bitInByte) and chunkMask
+            value = value or (chunk.toULong() shl valueBit)
+            valueBit += chunkWidth
         }
         return value
     }
@@ -70,16 +73,14 @@ public object KompactRuntime {
         while (valueBit < bitWidth) {
             val packetBit = bitOffset + valueBit
             val byteIndex = packetBit ushr 3
-            val mask = 1 shl (packetBit and 7)
+            val bitInByte = packetBit and 7
+            val chunkWidth = minOf(8 - bitInByte, bitWidth - valueBit)
+            val chunkMask = (1 shl chunkWidth) - 1
+            val packetMask = chunkMask shl bitInByte
+            val chunk = ((value shr valueBit).toInt() and chunkMask) shl bitInByte
             val oldByte = packet[byteIndex].toInt() and 0xFF
-            val newByte =
-                if (((value shr valueBit) and 1uL) == 0uL) {
-                    oldByte and mask.inv()
-                } else {
-                    oldByte or mask
-                }
-            packet[byteIndex] = newByte.toByte()
-            valueBit++
+            packet[byteIndex] = ((oldByte and packetMask.inv()) or chunk).toByte()
+            valueBit += chunkWidth
         }
         return null
     }

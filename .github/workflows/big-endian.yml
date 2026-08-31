@@ -1,0 +1,20 @@
+name: Big-endian C conformance
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  s390x:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y gcc-s390x-linux-gnu qemu-user
+      - run: >-
+          s390x-linux-gnu-gcc -static -std=c99 -Wall -Wextra -Wconversion
+          -Wsign-conversion -Werror -pedantic-errors
+          conformance/c/vehicle_telemetry_test.c -o /tmp/kompact-conformance-s390x
+      - run: qemu-s390x /tmp/kompact-conformance-s390x

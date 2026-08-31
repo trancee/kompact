@@ -15,6 +15,7 @@ import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.Modifier
+import java.math.BigInteger
 
 internal data class ProcessedSchema(
     val declaration: KSClassDeclaration,
@@ -52,11 +53,17 @@ internal class DescriptorBuilder(private val namespace: String, private val pack
                         RESERVED_ANNOTATION
                 }
                 .map { annotation ->
-                    ReservedRangeDescriptor(
-                        stableName = annotation.string("stableName"),
-                        bitOffset = annotation.int("bitOffset"),
-                        bitWidth = annotation.int("bitWidth"),
-                    )
+                    val name = annotation.string("stableName")
+                    val bitOffset = annotation.int("bitOffset")
+                    val bitWidth = annotation.int("bitWidth")
+                    if (!stableNamePattern.matches(name)) {
+                        error(1101, "invalid stable reserved range name '$name'", declaration)
+                    }
+                    if (bitOffset < 0)
+                        error(1102, "reserved bit offset must be non-negative", declaration)
+                    if (bitWidth <= 0)
+                        error(1103, "reserved bit width must be positive", declaration)
+                    ReservedRangeDescriptor(name, bitOffset, bitWidth)
                 }
                 .toList()
         val bodyBitSize =
@@ -116,15 +123,39 @@ internal class DescriptorBuilder(private val namespace: String, private val pack
         val kotlinType = qualifiedKotlinType(property, resolvedType.declaration)
         val logicalType = buildLogicalType(property, resolvedType.declaration, kotlinType)
         validateTypeWidth(logicalType, kotlinType, bitWidth, property)
+        if (logicalType is LogicalType.EnumType) {
+            val declaredWidth =
+                (resolvedType.declaration as? KSAnnotated)
+                    ?.annotation(ENUM_ANNOTATION)
+                    ?.int("bitWidth")
+            if (declaredWidth != bitWidth) {
+                error(1104, "enum annotation width must match the field width", property)
+            }
+        }
+        val semanticType = field.string("semanticType")
+        if (!stableNamePattern.matches(semanticType)) {
+            error(1101, "invalid semantic type '$semanticType'", property)
+        }
         val semantics =
             FieldSemantics(
-                semanticType = field.string("semanticType"),
+                semanticType = semanticType,
                 unit = field.string("unit").ifEmpty { null },
-                scale = Rational(field.string("scaleNumerator"), field.string("scaleDenominator")),
+                scale =
+                    normalizeRational(
+                        field.string("scaleNumerator"),
+                        field.string("scaleDenominator"),
+                        "scale",
+                        property,
+                    ),
                 offset =
-                    Rational(field.string("offsetNumerator"), field.string("offsetDenominator")),
-                minimum = field.string("minimum").ifEmpty { null },
-                maximum = field.string("maximum").ifEmpty { null },
+                    normalizeRational(
+                        field.string("offsetNumerator"),
+                        field.string("offsetDenominator"),
+                        "offset",
+                        property,
+                    ),
+                minimum = canonicalBoundary(field.string("minimum"), "minimum", property),
+                maximum = canonicalBoundary(field.string("maximum"), "maximum", property),
             )
         return FieldDescriptor(
             stableName = stableName,
@@ -200,8 +231,12 @@ internal class DescriptorBuilder(private val namespace: String, private val pack
                         error(1108, "enum entries require @KompactCode", entry)
                         return@mapNotNull null
                     }
+                    val stableName = code.string("stableName")
+                    if (!stableNamePattern.matches(stableName)) {
+                        error(1108, "invalid stable enum entry name '$stableName'", entry)
+                    }
                     EnumEntryDescriptor(
-                        stableName = code.string("stableName"),
+                        stableName = stableName,
                         kotlinName = entry.simpleName.asString(),
                         code = code.long("code"),
                     )
@@ -222,18 +257,86 @@ internal class DescriptorBuilder(private val namespace: String, private val pack
                 LogicalType.SignedInteger -> bitWidth in 2..carrierBits(kotlinType)
                 LogicalType.UnsignedInteger -> bitWidth in 1..carrierBits(kotlinType)
                 is LogicalType.FloatType -> bitWidth == type.bits
-                is LogicalType.EnumType ->
-                    bitWidth in 1..32 &&
-                        type.entries.map(EnumEntryDescriptor::code).distinct().size ==
-                            type.entries.size &&
-                        type.entries.all { it.code >= 0 && it.code.toULong() < (1uL shl bitWidth) }
-                is LogicalType.BytesType -> type.count > 0 && bitWidth == type.count * 8
-                is LogicalType.ArrayType -> type.count > 0 && bitWidth % type.count == 0
+                is LogicalType.EnumType -> {
+                    val validWidth = bitWidth in 1..32
+                    if (
+                        type.entries.map(EnumEntryDescriptor::code).distinct().size !=
+                            type.entries.size
+                    ) {
+                        error(1108, "enum codes must be unique", property)
+                    }
+                    if (
+                        validWidth &&
+                            type.entries.any {
+                                it.code < 0 || it.code.toULong() >= (1uL shl bitWidth)
+                            }
+                    ) {
+                        error(1109, "enum code does not fit the declared width", property)
+                    }
+                    validWidth
+                }
+                is LogicalType.BytesType ->
+                    if (type.count <= 0) {
+                        error(1201, "byte count must be positive", property)
+                        true
+                    } else bitWidth == type.count * 8
+                is LogicalType.ArrayType ->
+                    if (type.count <= 0) {
+                        error(1201, "array count must be positive", property)
+                        true
+                    } else bitWidth % type.count == 0
                 is LogicalType.OptionalType ->
-                    bitWidth > 1 && type.valueType !is LogicalType.OptionalType
+                    if (
+                        type.valueType is LogicalType.OptionalType ||
+                            type.valueType.containsNested()
+                    ) {
+                        error(1202, "nested and repeated optionals are not supported", property)
+                        true
+                    } else bitWidth > 1
                 is LogicalType.NestedType -> bitWidth > 0
             }
         if (!valid) error(1104, "bit width $bitWidth is incompatible with '$kotlinType'", property)
+    }
+
+    private fun LogicalType.containsNested(): Boolean =
+        when (this) {
+            is LogicalType.NestedType -> true
+            is LogicalType.ArrayType -> elementType.containsNested()
+            is LogicalType.OptionalType -> valueType.containsNested()
+            else -> false
+        }
+
+    private fun normalizeRational(
+        numeratorText: String,
+        denominatorText: String,
+        name: String,
+        node: KSNode,
+    ): Rational {
+        if (!decimalPattern.matches(numeratorText) || !decimalPattern.matches(denominatorText)) {
+            error(1101, "$name must use canonical decimal integers", node)
+            return if (name == "scale") Rational.ONE else Rational.ZERO
+        }
+        var numerator = numeratorText.toBigInteger()
+        var denominator = denominatorText.toBigInteger()
+        if (denominator <= BigInteger.ZERO) {
+            error(1101, "$name denominator must be positive", node)
+            return if (name == "scale") Rational.ONE else Rational.ZERO
+        }
+        val divisor = numerator.abs().gcd(denominator)
+        if (divisor != BigInteger.ZERO) {
+            numerator /= divisor
+            denominator /= divisor
+        }
+        return Rational(numerator.toString(), denominator.toString())
+    }
+
+    private fun canonicalBoundary(text: String, name: String, node: KSNode): String? {
+        if (text.isEmpty()) return null
+        if (!decimalPattern.matches(text)) {
+            error(1101, "$name must use a canonical decimal integer", node)
+            return null
+        }
+        return text
     }
 
     private fun carrierBits(kotlinType: String): Int =
@@ -325,10 +428,12 @@ internal class DescriptorBuilder(private val namespace: String, private val pack
     private fun KSAnnotation.long(name: String): Long = value(name) as? Long ?: 0L
 
     private companion object {
+        val decimalPattern = Regex("-?(0|[1-9][0-9]*)")
         const val SCHEMA_ANNOTATION = "ch.trancee.kompact.annotations.KompactSchema"
         const val FIELD_ANNOTATION = "ch.trancee.kompact.annotations.KompactField"
         const val RESERVED_ANNOTATION = "ch.trancee.kompact.annotations.KompactReserved"
         const val CODE_ANNOTATION = "ch.trancee.kompact.annotations.KompactCode"
+        const val ENUM_ANNOTATION = "ch.trancee.kompact.annotations.KompactEnum"
         const val BYTES_ANNOTATION = "ch.trancee.kompact.annotations.KompactBytes"
         const val ARRAY_ANNOTATION = "ch.trancee.kompact.annotations.KompactArray"
         const val OPTIONAL_ANNOTATION = "ch.trancee.kompact.annotations.KompactOptional"

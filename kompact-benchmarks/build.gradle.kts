@@ -6,18 +6,25 @@ plugins {
 
 kotlin {
     jvm()
+    iosArm64()
+    iosSimulatorArm64()
     sourceSets {
         commonMain.dependencies {
             implementation(project(":kompact-runtime"))
             implementation(libs.kotlinx.benchmark.runtime)
         }
+        commonTest.dependencies { implementation(kotlin("test")) }
     }
 }
 
 allOpen { annotation("org.openjdk.jmh.annotations.State") }
 
 benchmark {
-    targets { register("jvm") }
+    targets {
+        register("jvm")
+        register("iosArm64")
+        register("iosSimulatorArm64")
+    }
     configurations {
         named("main") {
             warmups = 10

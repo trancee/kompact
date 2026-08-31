@@ -25,16 +25,70 @@ public object KompactRegistryValidator {
         currentJson: String,
         baselineJson: String? = null,
         requireBaseline: Boolean = false,
+        expectedNamespace: String? = null,
+        expectedMaxPacketBytes: Int? = null,
     ): List<KompactRegistryProblem> =
         try {
             val current = RegistryJson.decode(currentJson)
             val baseline = baselineJson?.let(RegistryJson::decode)
-            RegistryCompatibility.validate(current, baseline, requireBaseline).map {
+            buildList {
+                addAll(
+                    RegistryCompatibility.validate(current, baseline, requireBaseline).map {
+                        KompactRegistryProblem(it.code, it.message)
+                    }
+                )
+                if (expectedNamespace != null && current.namespace != expectedNamespace) {
+                    add(
+                        KompactRegistryProblem(
+                            "KOMPACT-KSP-1003",
+                            "configured namespace '$expectedNamespace' differs from registry '${current.namespace}'",
+                        )
+                    )
+                }
+                if (
+                    expectedMaxPacketBytes != null &&
+                        current.maxPacketBytes != expectedMaxPacketBytes
+                ) {
+                    add(
+                        KompactRegistryProblem(
+                            "KOMPACT-KSP-1003",
+                            "configured packet limit $expectedMaxPacketBytes differs from registry ${current.maxPacketBytes}",
+                        )
+                    )
+                }
+            }
+        } catch (_: IllegalArgumentException) {
+            malformedRegistryProblem()
+        }
+
+    public fun validateGeneratedDescriptors(
+        currentJson: String,
+        canonicalDescriptors: List<String>,
+    ): List<KompactRegistryProblem> =
+        try {
+            val current = RegistryJson.decode(currentJson)
+            val available =
+                canonicalDescriptors.mapTo(mutableSetOf()) { descriptorJson ->
+                    val root = Json.parseToJsonElement(descriptorJson).jsonObject
+                    val schema = root.getValue("schema").jsonObject
+                    schema.getValue("id").jsonPrimitive.int to
+                        schema.getValue("version").jsonPrimitive.int
+                }
+            RegistryCompatibility.validate(current, availableDescriptors = available).map {
                 KompactRegistryProblem(it.code, it.message)
             }
         } catch (_: IllegalArgumentException) {
             malformedRegistryProblem()
         }
+
+    public fun decodeOnlyIdentities(currentJson: String): List<String> {
+        val current = RegistryJson.decode(currentJson)
+        return current.schemas.flatMap { schema ->
+            schema.versions
+                .filter { it.status == RegistryStatus.DECODE_ONLY }
+                .map { version -> "${schema.id}:${version.version}" }
+        }
+    }
 
     public fun propose(
         currentJson: String,
