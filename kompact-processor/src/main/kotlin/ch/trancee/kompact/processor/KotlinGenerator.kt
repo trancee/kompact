@@ -67,7 +67,15 @@ internal object KotlinGenerator {
             )
         }
         for (field in descriptor.fields) {
-            appendValidation(field, descriptor.schemaId, descriptor.version, schemas)
+            KotlinValidationGenerator.appendTo(
+                this,
+                KotlinValidationGenerator.Input(
+                    field,
+                    descriptor.schemaId,
+                    descriptor.version,
+                    schemas,
+                ),
+            )
         }
         appendLine("        return KompactDecodeResult.Success(${name}View(packet))")
         appendLine("    }")
@@ -95,60 +103,6 @@ internal object KotlinGenerator {
         appendLine("        }")
     }
 
-    private fun StringBuilder.appendValidation(
-        field: FieldDescriptor,
-        schemaId: Int,
-        version: Int,
-        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
-    ) {
-        val absoluteOffset = 16 + field.bitOffset
-        when (val type = field.type) {
-            is LogicalType.EnumType -> {
-                val conditions = type.entries.joinToString(" && ") { "code != ${it.code}uL" }
-                appendLine("        run {")
-                appendLine(
-                    "            val code = KompactRuntime.readBits(packet, $absoluteOffset, ${field.bitWidth})"
-                )
-                appendLine(
-                    "            if ($conditions) return KompactDecodeResult.Failure(KompactDecodeError.UnknownEnumCode(${schemaId}.toUShort(), ${version}.toUByte(), \"${field.stableName}\", ${field.bitOffset}))"
-                )
-                appendLine("        }")
-            }
-            is LogicalType.OptionalType -> {
-                val valueWidth = field.bitWidth - 1
-                appendLine(
-                    "        if (!KompactRuntime.readBitsBoolean(packet, $absoluteOffset) && " +
-                        "KompactRuntime.readBits(packet, ${absoluteOffset + 1}, $valueWidth) != 0uL) " +
-                        "return KompactDecodeResult.Failure(KompactDecodeError.NonzeroAbsentOptional(" +
-                        "${schemaId}.toUShort(), ${version}.toUByte(), \"${field.stableName}\", ${field.bitOffset}))"
-                )
-            }
-            is LogicalType.NestedType -> {
-                val nested = schemas.getValue(type.schemaId to type.version)
-                for (reserved in nested.descriptor.reservedRanges) {
-                    val nestedOffset = field.bitOffset + reserved.bitOffset
-                    appendLine(
-                        "        if (KompactRuntime.readBits(packet, ${16 + nestedOffset}, ${reserved.bitWidth}) != 0uL) " +
-                            "return KompactDecodeResult.Failure(KompactDecodeError.NonzeroReservedBits(" +
-                            "${schemaId}.toUShort(), ${version}.toUByte(), \"${field.stableName}.${reserved.stableName}\", $nestedOffset))"
-                    )
-                }
-                for (nestedField in nested.descriptor.fields) {
-                    appendValidation(
-                        nestedField.copy(
-                            stableName = "${field.stableName}.${nestedField.stableName}",
-                            bitOffset = field.bitOffset + nestedField.bitOffset,
-                        ),
-                        schemaId,
-                        version,
-                        schemas,
-                    )
-                }
-            }
-            else -> Unit
-        }
-    }
-
     private fun StringBuilder.appendView(
         schema: ProcessedSchema,
         schemas: Map<Pair<Int, Int>, ProcessedSchema>,
@@ -174,19 +128,27 @@ internal object KotlinGenerator {
         val offset = 16 + field.bitOffset
         when (val type = field.type) {
             is LogicalType.ArrayType -> {
-                appendLine(
-                    "    $visibility fun ${field.kotlinName}(index: Int): ${field.kotlinType} {"
-                )
-                appendLine(
-                    "        if (index !in 0 until ${type.count}) throw IndexOutOfBoundsException(\"index: \$index, size: ${type.count}\")"
-                )
-                appendLine(
-                    "        val bitOffset = $offset + index * ${field.bitWidth / type.count}"
-                )
-                appendLine(
-                    "        return ${readExpression(field.copy(bitWidth = field.bitWidth / type.count, type = type.elementType), "bitOffset")}"
-                )
-                appendLine("    }")
+                val nestedType = type.elementType as? LogicalType.NestedType
+                if (nestedType == null) {
+                    appendLine(
+                        "    $visibility fun ${field.kotlinName}(index: Int): ${field.kotlinType} {"
+                    )
+                    appendLine(
+                        "        if (index !in 0 until ${type.count}) throw IndexOutOfBoundsException(\"index: \$index, size: ${type.count}\")"
+                    )
+                    appendLine(
+                        "        val bitOffset = $offset + index * ${field.bitWidth / type.count}"
+                    )
+                    appendLine(
+                        "        return ${readExpression(field.copy(bitWidth = field.bitWidth / type.count, type = type.elementType), "bitOffset")}"
+                    )
+                    appendLine("    }")
+                } else {
+                    KotlinNestedArrayGenerator.appendViewTo(
+                        this,
+                        KotlinNestedArrayGenerator.Input(field, type, visibility, schemas),
+                    )
+                }
             }
             is LogicalType.BytesType -> {
                 appendLine("    $visibility fun ${field.kotlinName}(index: Int): UByte {")
@@ -249,17 +211,25 @@ internal object KotlinGenerator {
         val offset = 16 + field.bitOffset
         when (val type = field.type) {
             is LogicalType.ArrayType -> {
-                val width = field.bitWidth / type.count
-                appendLine(
-                    "    $visibility fun write${field.kotlinName.capitalized()}(index: Int, value: ${field.kotlinType}): KompactWriteError? {"
-                )
-                appendLine(
-                    "        if (index !in 0 until ${type.count}) return KompactWriteError.IndexOutOfRange(index)"
-                )
-                appendLine(
-                    "        return ${writeExpression(field.copy(bitWidth = width, type = type.elementType), "$offset + index * $width", "value")}"
-                )
-                appendLine("    }")
+                val nestedType = type.elementType as? LogicalType.NestedType
+                if (nestedType == null) {
+                    val width = field.bitWidth / type.count
+                    appendLine(
+                        "    $visibility fun write${field.kotlinName.capitalized()}(index: Int, value: ${field.kotlinType}): KompactWriteError? {"
+                    )
+                    appendLine(
+                        "        if (index !in 0 until ${type.count}) return KompactWriteError.IndexOutOfRange(index)"
+                    )
+                    appendLine(
+                        "        return ${writeExpression(field.copy(bitWidth = width, type = type.elementType), "$offset + index * $width", "value")}"
+                    )
+                    appendLine("    }")
+                } else {
+                    KotlinNestedArrayGenerator.appendWriterTo(
+                        this,
+                        KotlinNestedArrayGenerator.Input(field, type, visibility, schemas),
+                    )
+                }
             }
             is LogicalType.BytesType -> {
                 appendLine(
@@ -309,55 +279,4 @@ internal object KotlinGenerator {
                 )
         }
     }
-
-    private fun readExpression(field: FieldDescriptor, offset: String): String =
-        when (val type = field.type) {
-            LogicalType.BooleanType -> "KompactRuntime.readBitsBoolean(packet, $offset)"
-            LogicalType.SignedInteger ->
-                "KompactRuntime.readSignedBits(packet, $offset, ${field.bitWidth}).${signedConversion(field.kotlinType)}"
-            LogicalType.UnsignedInteger ->
-                "KompactRuntime.readBits(packet, $offset, ${field.bitWidth}).${unsignedConversion(field.kotlinType)}"
-            is LogicalType.FloatType ->
-                if (type.bits == 32) "KompactRuntime.readFloatBits(packet, $offset)"
-                else "KompactRuntime.readDoubleBits(packet, $offset)"
-            is LogicalType.EnumType ->
-                "when (KompactRuntime.readBits(packet, $offset, ${field.bitWidth})) { ${type.entries.joinToString(" ") { "${it.code}uL -> ${field.kotlinType}.${it.kotlinName};" }} else -> error(\"validated enum invariant\") }"
-            else ->
-                "KompactRuntime.readBits(packet, $offset, ${field.bitWidth}) as ${field.kotlinType}"
-        }
-
-    private fun writeExpression(field: FieldDescriptor, offset: String, value: String): String =
-        when (val type = field.type) {
-            LogicalType.BooleanType ->
-                "run { KompactRuntime.writeBitsBoolean(packet, $offset, $value); null }"
-            LogicalType.SignedInteger ->
-                "KompactRuntime.writeSignedBits(packet, $offset, ${field.bitWidth}, $value.toLong())"
-            LogicalType.UnsignedInteger ->
-                "KompactRuntime.writeBits(packet, $offset, ${field.bitWidth}, $value.toULong())"
-            is LogicalType.FloatType ->
-                if (type.bits == 32)
-                    "run { KompactRuntime.writeFloatBits(packet, $offset, $value); null }"
-                else "run { KompactRuntime.writeDoubleBits(packet, $offset, $value); null }"
-            is LogicalType.EnumType ->
-                "when ($value) { ${type.entries.joinToString(" ") { "${field.kotlinType}.${it.kotlinName} -> KompactRuntime.writeBits(packet, $offset, ${field.bitWidth}, ${it.code}uL);" }} }"
-            else -> "KompactRuntime.writeBits(packet, $offset, ${field.bitWidth}, $value.toULong())"
-        }
-
-    private fun signedConversion(type: String): String =
-        when (type) {
-            "kotlin.Byte" -> "toByte()"
-            "kotlin.Short" -> "toShort()"
-            "kotlin.Int" -> "toInt()"
-            else -> "toLong()"
-        }
-
-    private fun unsignedConversion(type: String): String =
-        when (type) {
-            "kotlin.UByte" -> "toUByte()"
-            "kotlin.UShort" -> "toUShort()"
-            "kotlin.UInt" -> "toUInt()"
-            else -> "toULong()"
-        }
-
-    private fun String.capitalized(): String = replaceFirstChar { it.uppercase() }
 }

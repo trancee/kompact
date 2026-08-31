@@ -110,7 +110,7 @@ private class KompactSymbolProcessor(
             codeGenerator
                 .createNewFile(Dependencies(aggregating = true), "c", "kompact_runtime", "h")
                 .bufferedWriter()
-                .use { it.write(CGenerator.runtimeHeader()) }
+                .use { it.write(CRuntimeHeader.generate()) }
         }
         for (schema in processed) generate(schema, schemasByIdentity)
         generated = true

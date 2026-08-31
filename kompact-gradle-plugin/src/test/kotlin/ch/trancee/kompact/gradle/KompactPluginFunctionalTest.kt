@@ -44,6 +44,42 @@ class KompactPluginFunctionalTest {
             result.output,
         )
         assertTrue(generatedRoot.resolve("c/location_packet_v0.h").isFile, result.output)
+        val nestedKotlin = generatedRoot.resolve("kotlin/com/example/LocationPacket.kt").readText()
+        assertTrue(nestedKotlin.contains("fun pointsX(index: Int): kotlin.Int"), nestedKotlin)
+        assertTrue(
+            nestedKotlin.contains("fun writePointsY(index: Int, value: kotlin.Int)"),
+            nestedKotlin,
+        )
+        assertTrue(nestedKotlin.contains("readBits(packet, 88, 2)"), nestedKotlin)
+        assertTrue(nestedKotlin.contains("readBits(packet, 146, 2)"), nestedKotlin)
+        assertTrue(
+            nestedKotlin.contains(
+                "fun pointsTelemetryBatteryStatus(index: Int): com.example.BatteryStatus"
+            ),
+            nestedKotlin,
+        )
+        assertTrue(
+            nestedKotlin.contains("fun pointsSamples(index: Int, index1: Int)"),
+            nestedKotlin,
+        )
+        assertTrue(
+            nestedKotlin.contains("fun pointsPayload(index: Int, index1: Int)"),
+            nestedKotlin,
+        )
+        assertTrue(nestedKotlin.contains("fun hasPointsTemperature(index: Int)"), nestedKotlin)
+        assertTrue(
+            nestedKotlin.contains("fun pointsTemperatureOr(index: Int, defaultValue:"),
+            nestedKotlin,
+        )
+        val nestedC = generatedRoot.resolve("c/location_packet_v0.h").readText()
+        assertTrue(nestedC.contains("kompact_location_packet_v0_points_x"), nestedC)
+        assertTrue(nestedC.contains("kompact_location_packet_v0_write_points_y"), nestedC)
+        assertTrue(nestedC.contains("packet, 88u, 2u"), nestedC)
+        assertTrue(nestedC.contains("packet, 146u, 2u"), nestedC)
+        assertTrue(nestedC.contains("kompact_location_packet_v0_points_telemetry_speed"), nestedC)
+        assertTrue(nestedC.contains("kompact_location_packet_v0_points_samples"), nestedC)
+        assertTrue(nestedC.contains("size_t index1"), nestedC)
+        assertTrue(nestedC.contains("kompact_location_packet_v0_has_points_temperature"), nestedC)
     }
 
     @Test
@@ -197,8 +233,8 @@ class KompactPluginFunctionalTest {
                         {
                           "version": 0,
                           "status": "active",
-                          "bodyBitSize": 16,
-                          "descriptorSha256": "9117bc9c25dfb5db874c0a9f76e7dd9d807374f9fcd95630376790e015b9a0b3"
+                          "bodyBitSize": 58,
+                          "descriptorSha256": "c0403d026d9bef4057e8d640466ad50b46ea67fd2fffd29910377d2ead4782ef"
                         }
                       ]
                     },
@@ -209,8 +245,8 @@ class KompactPluginFunctionalTest {
                         {
                           "version": 0,
                           "status": "active",
-                          "bodyBitSize": 16,
-                          "descriptorSha256": "d078e254499a751b6721f49e6bc6a9d85615d9f22fae7b1ec008bbd0457dd346"
+                          "bodyBitSize": 174,
+                          "descriptorSha256": "e8b261b5c2c7b86a715c50d02b47c49d80dab24538257ee74299d04bea9de574"
                         }
                       ]
                     }
@@ -384,24 +420,50 @@ class KompactPluginFunctionalTest {
                 """
                 package com.example
 
+                import ch.trancee.kompact.annotations.KompactArray
+                import ch.trancee.kompact.annotations.KompactBytes
                 import ch.trancee.kompact.annotations.KompactField
                 import ch.trancee.kompact.annotations.KompactNested
+                import ch.trancee.kompact.annotations.KompactOptional
+                import ch.trancee.kompact.annotations.KompactReserved
                 import ch.trancee.kompact.annotations.KompactSchema
 
                 @KompactSchema(registryName = "coordinates", id = 44, version = 0)
+                @KompactReserved(stableName = "future", bitOffset = 14, bitWidth = 2)
                 interface CoordinatesSchema {
-                    @KompactField(stableName = "x", semanticType = "coordinate_x", bitOffset = 0, bitWidth = 8)
+                    @KompactField(stableName = "x", semanticType = "coordinate_x", bitOffset = 0, bitWidth = 7)
                     val x: Int
 
-                    @KompactField(stableName = "y", semanticType = "coordinate_y", bitOffset = 8, bitWidth = 8)
+                    @KompactField(stableName = "y", semanticType = "coordinate_y", bitOffset = 7, bitWidth = 7)
                     val y: Int
+
+                    @KompactNested(registryName = "vehicle_telemetry", schemaId = 42, version = 0)
+                    @KompactField(stableName = "telemetry", semanticType = "vehicle_telemetry", bitOffset = 16, bitWidth = 16)
+                    val telemetry: VehicleTelemetrySchema
+
+                    @KompactArray(count = 2)
+                    @KompactField(stableName = "samples", semanticType = "sample", bitOffset = 32, bitWidth = 10)
+                    val samples: UInt
+
+                    @KompactBytes(count = 1)
+                    @KompactField(stableName = "payload", semanticType = "payload", bitOffset = 42, bitWidth = 8)
+                    val payload: ByteArray
+
+                    @KompactOptional
+                    @KompactField(stableName = "temperature", semanticType = "temperature", bitOffset = 50, bitWidth = 8)
+                    val temperature: Int
                 }
 
                 @KompactSchema(registryName = "location_packet", id = 45, version = 0)
                 interface LocationPacketSchema {
                     @KompactNested(registryName = "coordinates", schemaId = 44, version = 0)
-                    @KompactField(stableName = "coordinates", semanticType = "coordinates", bitOffset = 0, bitWidth = 16)
+                    @KompactField(stableName = "coordinates", semanticType = "coordinates", bitOffset = 0, bitWidth = 58)
                     val coordinates: CoordinatesSchema
+
+                    @KompactArray(count = 2)
+                    @KompactNested(registryName = "coordinates", schemaId = 44, version = 0)
+                    @KompactField(stableName = "points", semanticType = "points", bitOffset = 58, bitWidth = 116)
+                    val points: CoordinatesSchema
                 }
                 """
                     .trimIndent()
