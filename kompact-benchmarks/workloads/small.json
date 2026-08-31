@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "name": "vehicle_telemetry",
+  "packetBytes": 4,
+  "operation": {
+    "bitOffset": 20,
+    "bitWidth": 10
+  },
+  "values": [0, 511, 1023]
+}

@@ -1,0 +1,56 @@
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactArray : java/lang/annotation/Annotation {
+	public abstract fun count ()I
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactBytes : java/lang/annotation/Annotation {
+	public abstract fun count ()I
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactCode : java/lang/annotation/Annotation {
+	public abstract fun code ()J
+	public abstract fun stableName ()Ljava/lang/String;
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactEnum : java/lang/annotation/Annotation {
+	public abstract fun bitWidth ()I
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactField : java/lang/annotation/Annotation {
+	public abstract fun bitOffset ()I
+	public abstract fun bitWidth ()I
+	public abstract fun maximum ()Ljava/lang/String;
+	public abstract fun minimum ()Ljava/lang/String;
+	public abstract fun offsetDenominator ()Ljava/lang/String;
+	public abstract fun offsetNumerator ()Ljava/lang/String;
+	public abstract fun scaleDenominator ()Ljava/lang/String;
+	public abstract fun scaleNumerator ()Ljava/lang/String;
+	public abstract fun semanticType ()Ljava/lang/String;
+	public abstract fun stableName ()Ljava/lang/String;
+	public abstract fun unit ()Ljava/lang/String;
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactNested : java/lang/annotation/Annotation {
+	public abstract fun registryName ()Ljava/lang/String;
+	public abstract fun schemaId ()I
+	public abstract fun version ()I
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactOptional : java/lang/annotation/Annotation {
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactReserved : java/lang/annotation/Annotation {
+	public abstract fun bitOffset ()I
+	public abstract fun bitWidth ()I
+	public abstract fun stableName ()Ljava/lang/String;
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactReserved$Container : java/lang/annotation/Annotation {
+	public abstract fun value ()[Lch/trancee/kompact/annotations/KompactReserved;
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactSchema : java/lang/annotation/Annotation {
+	public abstract fun id ()I
+	public abstract fun registryName ()Ljava/lang/String;
+	public abstract fun version ()I
+}
+

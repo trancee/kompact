@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "name": "medium_all_types",
+  "packetBytes": 32,
+  "operation": {
+    "bitOffset": 67,
+    "bitWidth": 17
+  },
+  "values": [0, 65535, 131071]
+}

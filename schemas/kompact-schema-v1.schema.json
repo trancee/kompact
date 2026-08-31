@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trancee.github.io/kompact/schema/kompact-schema-v1.schema.json",
+  "title": "Kompact canonical schema descriptor v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "formatVersion", "namespace", "schema"],
+  "properties": {
+    "format": { "const": "kompact-schema" },
+    "formatVersion": { "const": 1 },
+    "namespace": { "$ref": "#/$defs/stableName" },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bodyBitSize", "fields", "id", "reservedRanges", "stableName", "version"],
+      "properties": {
+        "bodyBitSize": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/field" }
+        },
+        "id": { "type": "integer", "minimum": 1, "maximum": 4095 },
+        "reservedRanges": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/reservedRange" }
+        },
+        "stableName": { "$ref": "#/$defs/stableName" },
+        "version": { "type": "integer", "minimum": 0, "maximum": 15 }
+      }
+    }
+  },
+  "$defs": {
+    "stableName": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "decimal": { "type": "string", "pattern": "^-?(0|[1-9][0-9]*)$" },
+    "rational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["denominator", "numerator"],
+      "properties": {
+        "denominator": { "$ref": "#/$defs/decimal" },
+        "numerator": { "$ref": "#/$defs/decimal" }
+      }
+    },
+    "semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["semanticType"],
+      "properties": {
+        "maximum": { "$ref": "#/$defs/decimal" },
+        "minimum": { "$ref": "#/$defs/decimal" },
+        "offset": { "$ref": "#/$defs/rational" },
+        "scale": { "$ref": "#/$defs/rational" },
+        "semanticType": { "$ref": "#/$defs/stableName" },
+        "unit": { "type": "string", "minLength": 1 }
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bitOffset", "bitWidth", "semantics", "stableName", "type"],
+      "properties": {
+        "bitOffset": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+        "bitWidth": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+        "semantics": { "$ref": "#/$defs/semantics" },
+        "stableName": { "$ref": "#/$defs/stableName" },
+        "type": { "$ref": "#/$defs/logicalType" }
+      }
+    },
+    "reservedRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bitOffset", "bitWidth", "stableName"],
+      "properties": {
+        "bitOffset": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+        "bitWidth": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+        "stableName": { "$ref": "#/$defs/stableName" }
+      }
+    },
+    "logicalType": {
+      "oneOf": [
+        { "$ref": "#/$defs/simpleType" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["bits", "kind"],
+          "properties": {
+            "bits": { "enum": [32, 64] },
+            "kind": { "const": "float" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["count", "kind"],
+          "properties": {
+            "count": { "type": "integer", "minimum": 1 },
+            "kind": { "const": "bytes" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["count", "elementType", "kind"],
+          "properties": {
+            "count": { "type": "integer", "minimum": 1 },
+            "elementType": { "$ref": "#/$defs/logicalType" },
+            "kind": { "const": "array" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "valueType"],
+          "properties": {
+            "kind": { "const": "optional" },
+            "valueType": { "$ref": "#/$defs/logicalType" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "kind", "stableName", "version"],
+          "properties": {
+            "id": { "type": "integer", "minimum": 1, "maximum": 4095 },
+            "kind": { "const": "nested" },
+            "stableName": { "$ref": "#/$defs/stableName" },
+            "version": { "type": "integer", "minimum": 0, "maximum": 15 }
+          }
+        }
+      ]
+    },
+    "simpleType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["boolean", "signed_integer", "unsigned_integer"] }
+      }
+    }
+  }
+}

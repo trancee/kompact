@@ -1,59 +1,50 @@
 # Kompact
 
-Bit-packed Kotlin Multiplatform serialization for Bluetooth Low Energy, designed for allocation-free reads and interoperable C firmware.
+Kompact generates bit-packed Kotlin Multiplatform and C99 interfaces for fixed-size Bluetooth Low Energy payloads.
 
 > [!IMPORTANT]
-> The Kompact v1 architecture and implementation specification are complete. Production implementation has not started, so the runtime, generator, and published artifacts do not exist yet. The closed [Kompact v1 implementation-ready specification](https://github.com/trancee/kompact/issues/1) map records every decision.
+> Kompact `0.1.0-SNAPSHOT` is pre-release and has not been published externally. The repository builds and verifies disposable local publications. Physical iPhone performance and allocation evidence, pinned device identities, a selected production firmware compiler, and independent human review remain release blockers.
 
-## Why Kompact
+## What Kompact provides
 
-BLE payloads are small, and byte-aligned formats can spend more space on padding and metadata than the values require. Kompact defines each field at bit precision. A 5-bit value occupies 5 bits, including when it crosses a byte boundary.
+- Bit-precise fixed layouts without byte alignment padding.
+- Checked packet construction over caller-owned `ByteArray` storage.
+- Generated common Kotlin facades, value-class views, and in-place writers.
+- Direct scalar and indexed access over caller-owned buffers without copied views.
+- Header-only C99 views, writers, constants, and portable byte-array helpers.
+- Canonical schema descriptors, stable fingerprints, lifecycle registries, and compatibility checks.
 
-The project has four goals:
+Kompact packets start with a 16-bit envelope containing a 12-bit schema ID and a 4-bit layout version. The body follows at bit offset 16. Fields can cross byte boundaries; bit zero is the least-significant bit of byte zero.
 
-- Pack fixed-size payloads without byte padding.
-- Read scalar fields directly from caller-owned `ByteArray` storage without copying.
-- Generate a typed Kotlin interface for shared Android and iOS code.
-- Generate matching C99 constants and helpers for firmware.
+Variable-length fields, direct Swift export, compiler-plugin generation, Intel iOS simulator support, and non-iOS Apple targets are outside v1.
 
-## Current design direction
+## Start here
 
-Kompact v1 is specified with these constraints:
+- [Generate and use your first Kompact packet](docs/tutorials/first-schema.md) — run the checked-in Kotlin and C99 consumer journey.
+- [How to generate Kotlin and C99 interfaces from a schema](docs/how-to/generate-kotlin-and-c.md) — add a schema to an existing KMP module.
+- [Gradle plugin reference](docs/reference/gradle-plugin.md) — configuration properties, tasks, outputs, variants, and publication behavior.
+- [Schema authoring and generated API reference](docs/reference/schema-authoring.md) — annotations, supported types, and generated Kotlin/C99 declarations.
+- [Runtime API reference](docs/reference/runtime-api.md) — bit operations, results, errors, and shared status assignments.
+- [Implementation and release status](docs/reference/implementation-status.md) — verified targets, workflows, performance evidence, and remaining blockers.
 
-- Schemas have fixed, versioned layouts and an explicit envelope.
-- Bit offset zero is the least-significant bit of byte zero.
-- Kotlin runtime and generated code live in `commonMain` and target Android/JVM, `iosArm64`, and `iosSimulatorArm64`.
-- A checked factory validates the envelope, version, and payload length before creating a view.
-- Scalar properties read bits directly from the underlying buffer.
-- Writers update caller-owned buffers in place and reject invalid values before mutation.
-- KSP processes schemas and generates Kotlin code.
-- Build-time JVM tooling generates portable C99 masks and byte-array helpers. It does not generate packed structs or C bitfields.
-- Performance claims require measurements for reads, writes, allocations, encoded size, and code size.
+Design decisions and tradeoffs are recorded in [`docs/adr/`](docs/adr/). Project terminology is defined in [`CONTEXT.md`](CONTEXT.md).
 
-Variable-length fields, direct Swift export, compiler-plugin generation, and non-iOS Apple targets are outside the v1 scope.
+## Build the repository
 
-## Example layout
+Prerequisites: JDK 21 and an Android SDK containing platform 36.
 
-A 16-bit telemetry payload can assign every bit without alignment padding:
-
-```text
-bits  0..3   battery status       4-bit enum
-bits  4..13  speed               10-bit unsigned integer
-bit      14  engine malfunction   1-bit boolean
-bit      15  reserved             1 bit
+```bash
+./gradlew check
 ```
 
-The same schema will drive generated Kotlin accessors and C99 extraction helpers. Developers author annotated schema interfaces; generated checked facades expose value-class views and writers in Kotlin and header-only typed handles in C99.
+The aggregate check runs Kotlin tests and compilation, ABI validation, Kover, Spotless, detekt, Android lint and benchmark-APK assembly, C99 conformance and fuzz smoke, and the JVM benchmark smoke profile. Dedicated manifest-driven Android vector execution and physical iPhone evidence remain release work.
 
-## Specification status
+Other useful commands:
 
-The closed [Kompact v1 implementation-ready specification](https://github.com/trancee/kompact/issues/1) is the canonical decision map. Its child issues record:
+```bash
+./gradlew publishToMavenLocal
+./gradlew :kompact-benchmarks:jvmSmokeBenchmark
+./gradlew :kompact-android-benchmark:assembleReleaseAndroidTest
+```
 
-- wire and envelope semantics;
-- KSP and Gradle integration;
-- generated Kotlin and C99 interfaces;
-- validation and compatibility;
-- cross-platform conformance; and
-- performance budgets.
-
-Project-specific terminology lives in [`CONTEXT.md`](CONTEXT.md).
+The Gradle plugin ID and Maven group are `ch.trancee.kompact`. Stable build-tool entry points are `generateKompactSchemas`, `checkKompactSchemas`, and `packageKompactCHeaders`.

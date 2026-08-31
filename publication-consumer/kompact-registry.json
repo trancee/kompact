@@ -1,0 +1,56 @@
+{
+  "$schema": "https://trancee.github.io/kompact/schema/kompact-registry-v1.schema.json",
+  "formatVersion": 1,
+  "namespace": "publication",
+  "maxPacketBytes": 244,
+  "schemas": [
+    {
+      "stableName": "published_packet",
+      "id": 1,
+      "versions": [
+        {
+          "version": 0,
+          "status": "active",
+          "bodyBitSize": 1,
+          "descriptorSha256": "64acecb87dcb5a6273624f7729e45854c798f5a3a5794c50266bdc5a286f64cc"
+        }
+      ]
+    },
+    {
+      "stableName": "benchmark_child",
+      "id": 2,
+      "versions": [
+        {
+          "version": 0,
+          "status": "active",
+          "bodyBitSize": 64,
+          "descriptorSha256": "61c04870b9ac6b18a23060635ea661d46f1add2bc4cf804b981d75b9f9698e80"
+        }
+      ]
+    },
+    {
+      "stableName": "benchmark_medium",
+      "id": 3,
+      "versions": [
+        {
+          "version": 0,
+          "status": "active",
+          "bodyBitSize": 240,
+          "descriptorSha256": "ae97da5acca1d825e7cc89ff2d8df7a1ddbaa1101d17c284d6b70fde5621fc41"
+        }
+      ]
+    },
+    {
+      "stableName": "benchmark_large",
+      "id": 4,
+      "versions": [
+        {
+          "version": 0,
+          "status": "active",
+          "bodyBitSize": 1936,
+          "descriptorSha256": "0c00b2bab22734883a5c8d6774a24e2bbb7eeb1982b2cd6110a5678f9d06a271"
+        }
+      ]
+    }
+  ]
+}

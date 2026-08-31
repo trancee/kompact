@@ -1,0 +1,25 @@
+name: Performance evidence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  jvm-diagnostic:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew :kompact-benchmarks:jvmBenchmark --no-build-cache --no-configuration-cache
+      - run: python3 kompact-benchmarks/verify_ratios.py kompact-benchmarks/build/reports/benchmarks/main
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jvm-benchmark-${{ github.sha }}
+          path: kompact-benchmarks/build/reports/benchmarks/main/**/jvm.json
+          if-no-files-found: error
