@@ -4,7 +4,7 @@ import ch.trancee.kompact.processor.model.FieldDescriptor
 import ch.trancee.kompact.processor.model.LogicalType
 
 internal object KotlinGenerator {
-    fun generate(schema: ProcessedSchema): String {
+    fun generate(schema: ProcessedSchema, schemas: Map<Pair<Int, Int>, ProcessedSchema>): String {
         val descriptor = schema.descriptor
         val packetBytes = (16 + descriptor.bodyBitSize + 7) / 8
         return buildString {
@@ -26,16 +26,19 @@ internal object KotlinGenerator {
             )
             appendLine("    ${schema.visibility} const val PACKET_BYTE_SIZE: Int = $packetBytes")
             appendLine()
-            appendFactories(schema)
+            appendFactories(schema, schemas)
             appendLine("}")
             appendLine()
-            appendView(schema)
+            appendView(schema, schemas)
             appendLine()
-            appendWriter(schema)
+            appendWriter(schema, schemas)
         }
     }
 
-    private fun StringBuilder.appendFactories(schema: ProcessedSchema) {
+    private fun StringBuilder.appendFactories(
+        schema: ProcessedSchema,
+        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+    ) {
         val name = schema.generatedName
         val descriptor = schema.descriptor
         appendLine(
@@ -63,11 +66,9 @@ internal object KotlinGenerator {
                     "SCHEMA_ID.toUShort(), LAYOUT_VERSION.toUByte(), \"${reserved.stableName}\", ${reserved.bitOffset}))"
             )
         }
-        for (field in descriptor.fields) appendValidation(
-            field,
-            descriptor.schemaId,
-            descriptor.version,
-        )
+        for (field in descriptor.fields) {
+            appendValidation(field, descriptor.schemaId, descriptor.version, schemas)
+        }
         appendLine("        return KompactDecodeResult.Success(${name}View(packet))")
         appendLine("    }")
         appendLine()
@@ -98,6 +99,7 @@ internal object KotlinGenerator {
         field: FieldDescriptor,
         schemaId: Int,
         version: Int,
+        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
     ) {
         val absoluteOffset = 16 + field.bitOffset
         when (val type = field.type) {
@@ -121,17 +123,42 @@ internal object KotlinGenerator {
                         "${schemaId}.toUShort(), ${version}.toUByte(), \"${field.stableName}\", ${field.bitOffset}))"
                 )
             }
+            is LogicalType.NestedType -> {
+                val nested = schemas.getValue(type.schemaId to type.version)
+                for (reserved in nested.descriptor.reservedRanges) {
+                    val nestedOffset = field.bitOffset + reserved.bitOffset
+                    appendLine(
+                        "        if (KompactRuntime.readBits(packet, ${16 + nestedOffset}, ${reserved.bitWidth}) != 0uL) " +
+                            "return KompactDecodeResult.Failure(KompactDecodeError.NonzeroReservedBits(" +
+                            "${schemaId}.toUShort(), ${version}.toUByte(), \"${field.stableName}.${reserved.stableName}\", $nestedOffset))"
+                    )
+                }
+                for (nestedField in nested.descriptor.fields) {
+                    appendValidation(
+                        nestedField.copy(
+                            stableName = "${field.stableName}.${nestedField.stableName}",
+                            bitOffset = field.bitOffset + nestedField.bitOffset,
+                        ),
+                        schemaId,
+                        version,
+                        schemas,
+                    )
+                }
+            }
             else -> Unit
         }
     }
 
-    private fun StringBuilder.appendView(schema: ProcessedSchema) {
+    private fun StringBuilder.appendView(
+        schema: ProcessedSchema,
+        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+    ) {
         val name = schema.generatedName
         appendLine("@JvmInline")
         appendLine(
             "${schema.visibility} value class ${name}View internal constructor(internal val packet: ByteArray) {"
         )
-        for (field in schema.descriptor.fields) appendViewMember(field, schema.visibility)
+        for (field in schema.descriptor.fields) appendViewMember(field, schema.visibility, schemas)
         appendLine(
             "    ${schema.visibility} fun contentEquals(other: ${name}View): Boolean = packet.contentEquals(other.packet)"
         )
@@ -139,7 +166,11 @@ internal object KotlinGenerator {
         appendLine("}")
     }
 
-    private fun StringBuilder.appendViewMember(field: FieldDescriptor, visibility: String) {
+    private fun StringBuilder.appendViewMember(
+        field: FieldDescriptor,
+        visibility: String,
+        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+    ) {
         val offset = 16 + field.bitOffset
         when (val type = field.type) {
             is LogicalType.ArrayType -> {
@@ -176,6 +207,19 @@ internal object KotlinGenerator {
                     "    $visibility fun ${field.kotlinName}Or(defaultValue: ${field.kotlinType}): ${field.kotlinType} = if (has${field.kotlinName.capitalized()}) ${readExpression(valueField, (offset + 1).toString())} else defaultValue"
                 )
             }
+            is LogicalType.NestedType -> {
+                val nested = schemas.getValue(type.schemaId to type.version)
+                for (nestedField in nested.descriptor.fields) {
+                    appendViewMember(
+                        nestedField.copy(
+                            kotlinName = field.kotlinName + nestedField.kotlinName.capitalized(),
+                            bitOffset = field.bitOffset + nestedField.bitOffset,
+                        ),
+                        visibility,
+                        schemas,
+                    )
+                }
+            }
             else ->
                 appendLine(
                     "    $visibility val ${field.kotlinName}: ${field.kotlinType} get() = ${readExpression(field, offset.toString())}"
@@ -183,18 +227,25 @@ internal object KotlinGenerator {
         }
     }
 
-    private fun StringBuilder.appendWriter(schema: ProcessedSchema) {
+    private fun StringBuilder.appendWriter(
+        schema: ProcessedSchema,
+        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+    ) {
         val name = schema.generatedName
         appendLine("@JvmInline")
         appendLine(
             "${schema.visibility} value class ${name}Writer internal constructor(internal val packet: ByteArray) {"
         )
-        for (field in schema.descriptor.fields) appendWriteMember(field, schema.visibility)
+        for (field in schema.descriptor.fields) appendWriteMember(field, schema.visibility, schemas)
         appendLine("    ${schema.visibility} fun view(): ${name}View = ${name}View(packet)")
         appendLine("}")
     }
 
-    private fun StringBuilder.appendWriteMember(field: FieldDescriptor, visibility: String) {
+    private fun StringBuilder.appendWriteMember(
+        field: FieldDescriptor,
+        visibility: String,
+        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+    ) {
         val offset = 16 + field.bitOffset
         when (val type = field.type) {
             is LogicalType.ArrayType -> {
@@ -238,6 +289,19 @@ internal object KotlinGenerator {
                 appendLine(
                     "    $visibility fun clear${field.kotlinName.capitalized()}() { KompactRuntime.writeBits(packet, $offset, ${field.bitWidth}, 0uL) }"
                 )
+            }
+            is LogicalType.NestedType -> {
+                val nested = schemas.getValue(type.schemaId to type.version)
+                for (nestedField in nested.descriptor.fields) {
+                    appendWriteMember(
+                        nestedField.copy(
+                            kotlinName = field.kotlinName + nestedField.kotlinName.capitalized(),
+                            bitOffset = field.bitOffset + nestedField.bitOffset,
+                        ),
+                        visibility,
+                        schemas,
+                    )
+                }
             }
             else ->
                 appendLine(

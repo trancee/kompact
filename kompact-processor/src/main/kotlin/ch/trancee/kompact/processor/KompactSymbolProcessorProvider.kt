@@ -74,6 +74,31 @@ private class KompactSymbolProcessor(
                     it.declaration,
                 )
         }
+        val schemasByIdentity =
+            processed.associateBy { it.descriptor.schemaId to it.descriptor.version }
+        for (schema in processed) {
+            for (field in schema.descriptor.fields) {
+                val nested =
+                    field.type as? ch.trancee.kompact.processor.model.LogicalType.NestedType
+                        ?: continue
+                val target = schemasByIdentity[nested.schemaId to nested.version]
+                if (target == null || target.descriptor.stableName != nested.stableName) {
+                    diagnostics +=
+                        SchemaDiagnostic(
+                            "KOMPACT-KSP-1203",
+                            "unknown nested schema '${nested.stableName}'",
+                            schema.declaration,
+                        )
+                } else if (field.bitWidth != target.descriptor.bodyBitSize) {
+                    diagnostics +=
+                        SchemaDiagnostic(
+                            "KOMPACT-KSP-1104",
+                            "nested field width does not match child body",
+                            schema.declaration,
+                        )
+                }
+            }
+        }
         if (diagnostics.isNotEmpty()) {
             diagnostics
                 .sortedWith(compareBy(SchemaDiagnostic::code, SchemaDiagnostic::message))
@@ -87,12 +112,12 @@ private class KompactSymbolProcessor(
                 .bufferedWriter()
                 .use { it.write(CGenerator.runtimeHeader()) }
         }
-        for (schema in processed) generate(schema)
+        for (schema in processed) generate(schema, schemasByIdentity)
         generated = true
         return emptyList()
     }
 
-    private fun generate(schema: ProcessedSchema) {
+    private fun generate(schema: ProcessedSchema, schemas: Map<Pair<Int, Int>, ProcessedSchema>) {
         val source = requireNotNull(schema.declaration.containingFile)
         val dependencies = Dependencies(aggregating = false, source)
         val descriptorJson = CanonicalDescriptorJson.encode(schema.descriptor)
@@ -100,7 +125,7 @@ private class KompactSymbolProcessor(
         codeGenerator
             .createNewFile(dependencies, schema.packageName, schema.generatedName, "kt")
             .bufferedWriter()
-            .use { it.write(KotlinGenerator.generate(schema)) }
+            .use { it.write(KotlinGenerator.generate(schema, schemas)) }
         codeGenerator
             .createNewFile(
                 dependencies,
@@ -118,7 +143,7 @@ private class KompactSymbolProcessor(
                 "h",
             )
             .bufferedWriter()
-            .use { it.write(CGenerator.schemaHeader(schema, descriptorHash)) }
+            .use { it.write(CGenerator.schemaHeader(schema, descriptorHash, schemas)) }
     }
 
     private companion object {

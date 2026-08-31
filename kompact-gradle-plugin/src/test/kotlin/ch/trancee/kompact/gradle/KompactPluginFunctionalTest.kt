@@ -39,6 +39,11 @@ class KompactPluginFunctionalTest {
             result.output,
         )
         assertTrue(generatedRoot.resolve("c/aggregate_packet_v0.h").isFile, result.output)
+        assertTrue(
+            generatedRoot.resolve("kotlin/com/example/LocationPacket.kt").isFile,
+            result.output,
+        )
+        assertTrue(generatedRoot.resolve("c/location_packet_v0.h").isFile, result.output)
     }
 
     @Test
@@ -184,6 +189,30 @@ class KompactPluginFunctionalTest {
                           "descriptorSha256": "e4fb101e204a0ddfa37acc0fb0c1150454a26c061b82db2338f25c4f86b64140"
                         }
                       ]
+                    },
+                    {
+                      "stableName": "coordinates",
+                      "id": 44,
+                      "versions": [
+                        {
+                          "version": 0,
+                          "status": "active",
+                          "bodyBitSize": 16,
+                          "descriptorSha256": "9117bc9c25dfb5db874c0a9f76e7dd9d807374f9fcd95630376790e015b9a0b3"
+                        }
+                      ]
+                    },
+                    {
+                      "stableName": "location_packet",
+                      "id": 45,
+                      "versions": [
+                        {
+                          "version": 0,
+                          "status": "active",
+                          "bodyBitSize": 16,
+                          "descriptorSha256": "d078e254499a751b6721f49e6bc6a9d85615d9f22fae7b1ec008bbd0457dd346"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -233,6 +262,9 @@ class KompactPluginFunctionalTest {
 
                 @Target(AnnotationTarget.PROPERTY)
                 annotation class KompactOptional
+
+                @Target(AnnotationTarget.PROPERTY)
+                annotation class KompactNested(val registryName: String, val schemaId: Int, val version: Int)
                 """
                     .trimIndent()
             )
@@ -341,6 +373,35 @@ class KompactPluginFunctionalTest {
                     @KompactOptional
                     @KompactField(stableName = "temperature", semanticType = "temperature", bitOffset = 31, bitWidth = 11)
                     val temperature: Int
+                }
+                """
+                    .trimIndent()
+            )
+        projectDirectory
+            .resolve("src/commonMain/kotlin/com/example/LocationPacketSchema.kt")
+            .apply { parentFile.mkdirs() }
+            .writeText(
+                """
+                package com.example
+
+                import ch.trancee.kompact.annotations.KompactField
+                import ch.trancee.kompact.annotations.KompactNested
+                import ch.trancee.kompact.annotations.KompactSchema
+
+                @KompactSchema(registryName = "coordinates", id = 44, version = 0)
+                interface CoordinatesSchema {
+                    @KompactField(stableName = "x", semanticType = "coordinate_x", bitOffset = 0, bitWidth = 8)
+                    val x: Int
+
+                    @KompactField(stableName = "y", semanticType = "coordinate_y", bitOffset = 8, bitWidth = 8)
+                    val y: Int
+                }
+
+                @KompactSchema(registryName = "location_packet", id = 45, version = 0)
+                interface LocationPacketSchema {
+                    @KompactNested(registryName = "coordinates", schemaId = 44, version = 0)
+                    @KompactField(stableName = "coordinates", semanticType = "coordinates", bitOffset = 0, bitWidth = 16)
+                    val coordinates: CoordinatesSchema
                 }
                 """
                     .trimIndent()

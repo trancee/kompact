@@ -135,7 +135,11 @@ internal object CGenerator {
         """
             .trimIndent() + "\n"
 
-    fun schemaHeader(schema: ProcessedSchema, descriptorSha256: String): String {
+    fun schemaHeader(
+        schema: ProcessedSchema,
+        descriptorSha256: String,
+        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+    ): String {
         val descriptor = schema.descriptor
         val prefix = "kompact_${descriptor.stableName}_v${descriptor.version}"
         val macro = prefix.uppercase()
@@ -159,8 +163,8 @@ internal object CGenerator {
             appendLine("typedef struct { const uint8_t *packet; } ${prefix}_view_t;")
             appendLine("typedef struct { uint8_t *packet; } ${prefix}_writer_t;")
             appendLine()
-            appendFactories(schema, prefix, macro, packetBytes)
-            for (field in descriptor.fields) appendField(field, prefix, macro)
+            appendFactories(schema, prefix, macro, packetBytes, schemas)
+            for (field in descriptor.fields) appendField(field, prefix, macro, schemas)
             appendLine(
                 "static inline ${prefix}_view_t ${prefix}_writer_view(${prefix}_writer_t writer) {"
             )
@@ -177,6 +181,7 @@ internal object CGenerator {
         prefix: String,
         macro: String,
         packetBytes: Int,
+        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
     ) {
         val descriptor = schema.descriptor
         appendLine(
@@ -202,7 +207,7 @@ internal object CGenerator {
                 "    if (kompact_internal_read_u64(packet, ${16 + reserved.bitOffset}u, ${reserved.bitWidth}u) != 0u) return KOMPACT_STATUS_NONZERO_RESERVED_BITS;"
             )
         }
-        descriptor.fields.forEach { appendFieldValidation(it) }
+        descriptor.fields.forEach { appendFieldValidation(it, schemas) }
         appendLine("    out_view->packet = packet;")
         appendLine("    return KOMPACT_STATUS_OK;")
         appendLine("}")
@@ -237,7 +242,10 @@ internal object CGenerator {
         appendLine()
     }
 
-    private fun StringBuilder.appendFieldValidation(field: FieldDescriptor) {
+    private fun StringBuilder.appendFieldValidation(
+        field: FieldDescriptor,
+        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+    ) {
         val absoluteOffset = 16 + field.bitOffset
         when (val type = field.type) {
             is LogicalType.EnumType -> {
@@ -258,11 +266,35 @@ internal object CGenerator {
                         "return KOMPACT_STATUS_NONZERO_ABSENT_OPTIONAL;"
                 )
             }
+            is LogicalType.NestedType -> {
+                val nested = schemas.getValue(type.schemaId to type.version)
+                for (reserved in nested.descriptor.reservedRanges) {
+                    val nestedOffset = field.bitOffset + reserved.bitOffset
+                    appendLine(
+                        "    if (kompact_internal_read_u64(packet, ${16 + nestedOffset}u, ${reserved.bitWidth}u) != 0u) " +
+                            "return KOMPACT_STATUS_NONZERO_RESERVED_BITS;"
+                    )
+                }
+                for (nestedField in nested.descriptor.fields) {
+                    appendFieldValidation(
+                        nestedField.copy(
+                            stableName = "${field.stableName}_${nestedField.stableName}",
+                            bitOffset = field.bitOffset + nestedField.bitOffset,
+                        ),
+                        schemas,
+                    )
+                }
+            }
             else -> Unit
         }
     }
 
-    private fun StringBuilder.appendField(field: FieldDescriptor, prefix: String, macro: String) {
+    private fun StringBuilder.appendField(
+        field: FieldDescriptor,
+        prefix: String,
+        macro: String,
+        schemas: Map<Pair<Int, Int>, ProcessedSchema>,
+    ) {
         val fieldMacro = "${macro}_${field.stableName.uppercase()}"
         val function = "${prefix}_${field.stableName}"
         val offset = 16 + field.bitOffset
@@ -314,6 +346,20 @@ internal object CGenerator {
             }
             is LogicalType.ArrayType,
             is LogicalType.BytesType -> appendIndexedField(field, prefix, fieldMacro, function)
+            is LogicalType.NestedType -> {
+                val nested = schemas.getValue(field.type.schemaId to field.type.version)
+                for (nestedField in nested.descriptor.fields) {
+                    appendField(
+                        nestedField.copy(
+                            stableName = "${field.stableName}_${nestedField.stableName}",
+                            bitOffset = field.bitOffset + nestedField.bitOffset,
+                        ),
+                        prefix,
+                        macro,
+                        schemas,
+                    )
+                }
+            }
             else -> {
                 val cType = cType(field)
                 appendLine(
