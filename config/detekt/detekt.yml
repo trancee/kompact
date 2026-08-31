@@ -3,6 +3,7 @@ complexity:
     threshold: 25
   LongMethod:
     threshold: 180
+    excludes: ["**/test/**", "**/commonTest/**"]
   TooManyFunctions:
     thresholdInClasses: 20
     thresholdInFiles: 25

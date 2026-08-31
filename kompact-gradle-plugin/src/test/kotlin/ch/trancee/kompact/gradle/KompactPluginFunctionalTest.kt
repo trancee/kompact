@@ -34,6 +34,11 @@ class KompactPluginFunctionalTest {
             generatedRoot.resolve("descriptors/vehicle_telemetry_v0.json").isFile,
             result.output,
         )
+        assertTrue(
+            generatedRoot.resolve("kotlin/com/example/AggregatePacket.kt").isFile,
+            result.output,
+        )
+        assertTrue(generatedRoot.resolve("c/aggregate_packet_v0.h").isFile, result.output)
     }
 
     @Test
@@ -167,6 +172,18 @@ class KompactPluginFunctionalTest {
                           "descriptorSha256": "23d2ee1e222cc72beb4dffa5d9dbf9335aea966ef6c6a1e6beb7f1a9c746bf76"
                         }
                       ]
+                    },
+                    {
+                      "stableName": "aggregate_packet",
+                      "id": 43,
+                      "versions": [
+                        {
+                          "version": 0,
+                          "status": "active",
+                          "bodyBitSize": 42,
+                          "descriptorSha256": "e4fb101e204a0ddfa37acc0fb0c1150454a26c061b82db2338f25c4f86b64140"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -207,6 +224,15 @@ class KompactPluginFunctionalTest {
 
                 @Target(AnnotationTarget.FIELD)
                 annotation class KompactCode(val stableName: String, val code: Long)
+
+                @Target(AnnotationTarget.PROPERTY)
+                annotation class KompactBytes(val count: Int)
+
+                @Target(AnnotationTarget.PROPERTY)
+                annotation class KompactArray(val count: Int)
+
+                @Target(AnnotationTarget.PROPERTY)
+                annotation class KompactOptional
                 """
                     .trimIndent()
             )
@@ -285,6 +311,36 @@ class KompactPluginFunctionalTest {
 
                     @KompactField(stableName = "is_malfunctioning", semanticType = "engine_malfunction", bitOffset = 14, bitWidth = 1)
                     val isMalfunctioning: Boolean
+                }
+                """
+                    .trimIndent()
+            )
+        projectDirectory
+            .resolve("src/commonMain/kotlin/com/example/AggregatePacketSchema.kt")
+            .apply { parentFile.mkdirs() }
+            .writeText(
+                """
+                package com.example
+
+                import ch.trancee.kompact.annotations.KompactArray
+                import ch.trancee.kompact.annotations.KompactBytes
+                import ch.trancee.kompact.annotations.KompactField
+                import ch.trancee.kompact.annotations.KompactOptional
+                import ch.trancee.kompact.annotations.KompactSchema
+
+                @KompactSchema(registryName = "aggregate_packet", id = 43, version = 0)
+                interface AggregatePacketSchema {
+                    @KompactBytes(count = 2)
+                    @KompactField(stableName = "payload", semanticType = "payload", bitOffset = 0, bitWidth = 16)
+                    val payload: ByteArray
+
+                    @KompactArray(count = 3)
+                    @KompactField(stableName = "samples", semanticType = "sample", bitOffset = 16, bitWidth = 15)
+                    val samples: UInt
+
+                    @KompactOptional
+                    @KompactField(stableName = "temperature", semanticType = "temperature", bitOffset = 31, bitWidth = 11)
+                    val temperature: Int
                 }
                 """
                     .trimIndent()
