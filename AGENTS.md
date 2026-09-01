@@ -76,17 +76,3 @@ Yield only if all true:
 - Constitution compliant.
 
 Final report R `{changed files+behavior, exact commands+observed results, docs/API/compat/security/performance impact, blocker/unverified state, specialized instructions/skills used}`. X claim unobserved command/test/review/runtime behavior.
-
-## Agent skills
-
-### Issue tracker
-
-Issues are tracked in this repository's GitHub Issues. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Triage uses the canonical `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix` labels. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Domain documentation uses a single-context layout. See `docs/agents/domain.md`.

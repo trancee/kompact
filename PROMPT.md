@@ -5,7 +5,6 @@ The primary objective of Kompact is to serialize structured data for transmissio
 1. **Microscopic Payload Sizes** (like Protobuf's bit efficiency, with zero byte padding).
 2. **Zero-Copy, Zero-Allocation Reads** (like FlatBuffers, utilizing native Kotlin Multiplatform inline/value classes to wrap raw byte arrays).
 3. **Pure Kotlin Ergonomics** (designed to be generated via an annotation processor or compiler plugin).
-4. **Firmware Compatibility** (ability to export matching C-header bitmask definitions).
 
 ---
 
@@ -22,9 +21,9 @@ The primary objective of Kompact is to serialize structured data for transmissio
 The developer should be able to define a data model in the `commonMain` source set like this:
 
 ```kotlin
-package com.kompact.generated
+package ch.trancee.kompact.generated
 
-import com.kompact.runtime.*
+import ch.trancee.kompact.runtime.*
 
 @KompactModel
 value class VehicleTelemetry(val raw: ByteArray) {
@@ -65,6 +64,3 @@ Define the core common library annotations:
 Provide a complete, working example of a `Kompact` value class using the `KompactRuntime` to demonstrate how the boilerplate will eventually look when automated. Include:
 1. The manual bit-shifting implementation of a model containing an Enum (4 bits), an Integer (10 bits), and a Boolean (1 bit)—packed into a 2-byte array (`ByteArray`).
 2. A cross-platform test using `kotlin.test` showing serialization (writing values into the array) and deserialization (instantiating the value class wrapper and instantly reading values).
-
-#### Phase 4: C Header Exporter Specification
-Draft a basic Kotlin utility function that can parse a Kompact data class declaration and print out a standard C `#define` macro header. This ensures our embedded/C firmware engineers can read the exact same BLE payload by applying the same bitmasks.
