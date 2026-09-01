@@ -76,3 +76,17 @@ Yield only if all true:
 - Constitution compliant.
 
 Final report R `{changed files+behavior, exact commands+observed results, docs/API/compat/security/performance impact, blocker/unverified state, specialized instructions/skills used}`. X claim unobserved command/test/review/runtime behavior.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and spec tickets live as markdown files under `.scratch/<feature>/`; no GitHub Issues used. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical triage labels, each role mapped to its matching string (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one root `CONTEXT.md` plus `docs/adr/` for system-wide decisions. See `docs/agents/domain.md`.
