@@ -1,0 +1,35 @@
+public abstract interface annotation class ch/trancee/kompact/annotation/KompactField : java/lang/annotation/Annotation {
+	public abstract fun bitOffset ()I
+	public abstract fun bitWidth ()I
+	public abstract fun defaultValue ()I
+	public abstract fun enumWidth ()I
+	public abstract fun lengthPrefixBits ()I
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotation/KompactModel : java/lang/annotation/Annotation {
+}
+
+public final class ch/trancee/kompact/example/VehicleTelemetrySchema {
+	public fun <init> ()V
+	public final fun getBatteryStatus ()I
+	public final fun getSpeed ()I
+	public final fun isMalfunctioning ()Z
+}
+
+public final class ch/trancee/kompact/example/VehicleTelemetrySchemaView {
+	public static final synthetic fun box-impl ([B)Lch/trancee/kompact/example/VehicleTelemetrySchemaView;
+	public static fun constructor-impl ([B)[B
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl ([BLjava/lang/Object;)Z
+	public static final fun equals-impl0 ([B[B)Z
+	public static final fun getBatteryStatus-impl ([B)I
+	public final fun getRaw ()[B
+	public static final fun getSpeed-impl ([B)I
+	public fun hashCode ()I
+	public static fun hashCode-impl ([B)I
+	public static final fun isMalfunctioning-impl ([B)Z
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl ([B)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()[B
+}
+
