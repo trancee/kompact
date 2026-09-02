@@ -1,0 +1,44 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <ch.trancee.kompact:kompact>
+open annotation class ch.trancee.kompact.runtime/KompactField : kotlin/Annotation { // ch.trancee.kompact.runtime/KompactField|null[0]
+    constructor <init>(kotlin/Int, kotlin/Int) // ch.trancee.kompact.runtime/KompactField.<init>|<init>(kotlin.Int;kotlin.Int){}[0]
+
+    final val bitOffset // ch.trancee.kompact.runtime/KompactField.bitOffset|{}bitOffset[0]
+        final fun <get-bitOffset>(): kotlin/Int // ch.trancee.kompact.runtime/KompactField.bitOffset.<get-bitOffset>|<get-bitOffset>(){}[0]
+    final val bitWidth // ch.trancee.kompact.runtime/KompactField.bitWidth|{}bitWidth[0]
+        final fun <get-bitWidth>(): kotlin/Int // ch.trancee.kompact.runtime/KompactField.bitWidth.<get-bitWidth>|<get-bitWidth>(){}[0]
+}
+
+open annotation class ch.trancee.kompact.runtime/KompactModel : kotlin/Annotation { // ch.trancee.kompact.runtime/KompactModel|null[0]
+    constructor <init>() // ch.trancee.kompact.runtime/KompactModel.<init>|<init>(){}[0]
+}
+
+final value class ch.trancee.kompact.generated/VehicleTelemetry { // ch.trancee.kompact.generated/VehicleTelemetry|null[0]
+    constructor <init>(kotlin/ByteArray) // ch.trancee.kompact.generated/VehicleTelemetry.<init>|<init>(kotlin.ByteArray){}[0]
+
+    final val batteryStatus // ch.trancee.kompact.generated/VehicleTelemetry.batteryStatus|{}batteryStatus[0]
+        final fun <get-batteryStatus>(): kotlin/Int // ch.trancee.kompact.generated/VehicleTelemetry.batteryStatus.<get-batteryStatus>|<get-batteryStatus>(){}[0]
+    final val isMalfunctioning // ch.trancee.kompact.generated/VehicleTelemetry.isMalfunctioning|{}isMalfunctioning[0]
+        final fun <get-isMalfunctioning>(): kotlin/Boolean // ch.trancee.kompact.generated/VehicleTelemetry.isMalfunctioning.<get-isMalfunctioning>|<get-isMalfunctioning>(){}[0]
+    final val raw // ch.trancee.kompact.generated/VehicleTelemetry.raw|{}raw[0]
+        final fun <get-raw>(): kotlin/ByteArray // ch.trancee.kompact.generated/VehicleTelemetry.raw.<get-raw>|<get-raw>(){}[0]
+    final val speed // ch.trancee.kompact.generated/VehicleTelemetry.speed|{}speed[0]
+        final fun <get-speed>(): kotlin/Int // ch.trancee.kompact.generated/VehicleTelemetry.speed.<get-speed>|<get-speed>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // ch.trancee.kompact.generated/VehicleTelemetry.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // ch.trancee.kompact.generated/VehicleTelemetry.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // ch.trancee.kompact.generated/VehicleTelemetry.toString|toString(){}[0]
+}
+
+final object ch.trancee.kompact.runtime/KompactRuntime { // ch.trancee.kompact.runtime/KompactRuntime|null[0]
+    final fun readBits(kotlin/ByteArray, kotlin/Int, kotlin/Int): kotlin/Int // ch.trancee.kompact.runtime/KompactRuntime.readBits|readBits(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final fun readBitsBoolean(kotlin/ByteArray, kotlin/Int): kotlin/Boolean // ch.trancee.kompact.runtime/KompactRuntime.readBitsBoolean|readBitsBoolean(kotlin.ByteArray;kotlin.Int){}[0]
+    final fun writeBits(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Int) // ch.trancee.kompact.runtime/KompactRuntime.writeBits|writeBits(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+    final fun writeBitsBoolean(kotlin/ByteArray, kotlin/Int, kotlin/Boolean) // ch.trancee.kompact.runtime/KompactRuntime.writeBitsBoolean|writeBitsBoolean(kotlin.ByteArray;kotlin.Int;kotlin.Boolean){}[0]
+}

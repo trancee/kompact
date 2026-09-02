@@ -1,0 +1,33 @@
+public final class ch/trancee/kompact/generated/VehicleTelemetry {
+	public static final synthetic fun box-impl ([B)Lch/trancee/kompact/generated/VehicleTelemetry;
+	public static fun constructor-impl ([B)[B
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl ([BLjava/lang/Object;)Z
+	public static final fun equals-impl0 ([B[B)Z
+	public static final fun getBatteryStatus-impl ([B)I
+	public final fun getRaw ()[B
+	public static final fun getSpeed-impl ([B)I
+	public fun hashCode ()I
+	public static fun hashCode-impl ([B)I
+	public static final fun isMalfunctioning-impl ([B)Z
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl ([B)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()[B
+}
+
+public abstract interface annotation class ch/trancee/kompact/runtime/KompactField : java/lang/annotation/Annotation {
+	public abstract fun bitOffset ()I
+	public abstract fun bitWidth ()I
+}
+
+public abstract interface annotation class ch/trancee/kompact/runtime/KompactModel : java/lang/annotation/Annotation {
+}
+
+public final class ch/trancee/kompact/runtime/KompactRuntime {
+	public static final field INSTANCE Lch/trancee/kompact/runtime/KompactRuntime;
+	public final fun readBits ([BII)I
+	public final fun readBitsBoolean ([BI)Z
+	public final fun writeBits ([BIII)V
+	public final fun writeBitsBoolean ([BIZ)V
+}
+
