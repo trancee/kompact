@@ -81,12 +81,12 @@ Final report R `{changed files+behavior, exact commands+observed results, docs/A
 
 ### Issue tracker
 
-Issues are tracked in this repository's GitHub Issues. See `docs/agents/issue-tracker.md`.
+Issues and spec tickets live as markdown files under `.scratch/<feature>/`; no GitHub Issues used. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Triage uses the canonical `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix` labels. See `docs/agents/triage-labels.md`.
+Canonical triage labels, each role mapped to its matching string (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
-Domain documentation uses a single-context layout. See `docs/agents/domain.md`.
+Single-context: one root `CONTEXT.md` plus `docs/adr/` for system-wide decisions. See `docs/agents/domain.md`.
