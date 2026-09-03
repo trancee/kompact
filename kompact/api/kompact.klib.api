@@ -19,6 +19,13 @@ open annotation class ch.trancee.kompact.runtime/KompactModel : kotlin/Annotatio
     constructor <init>() // ch.trancee.kompact.runtime/KompactModel.<init>|<init>(){}[0]
 }
 
+final class ch.trancee.kompact.runtime/KompactDecodeException : kotlin/RuntimeException { // ch.trancee.kompact.runtime/KompactDecodeException|null[0]
+    constructor <init>(ch.trancee.kompact.runtime/KompactDecodeError) // ch.trancee.kompact.runtime/KompactDecodeException.<init>|<init>(ch.trancee.kompact.runtime.KompactDecodeError){}[0]
+
+    final val error // ch.trancee.kompact.runtime/KompactDecodeException.error|{}error[0]
+        final fun <get-error>(): ch.trancee.kompact.runtime/KompactDecodeError // ch.trancee.kompact.runtime/KompactDecodeException.error.<get-error>|<get-error>(){}[0]
+}
+
 final value class ch.trancee.kompact.generated/VehicleTelemetry { // ch.trancee.kompact.generated/VehicleTelemetry|null[0]
     constructor <init>(kotlin/ByteArray) // ch.trancee.kompact.generated/VehicleTelemetry.<init>|<init>(kotlin.ByteArray){}[0]
 
@@ -36,9 +43,204 @@ final value class ch.trancee.kompact.generated/VehicleTelemetry { // ch.trancee.
     final fun toString(): kotlin/String // ch.trancee.kompact.generated/VehicleTelemetry.toString|toString(){}[0]
 }
 
+final value class ch.trancee.kompact.runtime/BooleanResult { // ch.trancee.kompact.runtime/BooleanResult|null[0]
+    constructor <init>(kotlin/Long) // ch.trancee.kompact.runtime/BooleanResult.<init>|<init>(kotlin.Long){}[0]
+
+    final val error // ch.trancee.kompact.runtime/BooleanResult.error|{}error[0]
+        final fun <get-error>(): ch.trancee.kompact.runtime/KompactDecodeError? // ch.trancee.kompact.runtime/BooleanResult.error.<get-error>|<get-error>(){}[0]
+    final val isFailure // ch.trancee.kompact.runtime/BooleanResult.isFailure|{}isFailure[0]
+        final fun <get-isFailure>(): kotlin/Boolean // ch.trancee.kompact.runtime/BooleanResult.isFailure.<get-isFailure>|<get-isFailure>(){}[0]
+    final val isSuccess // ch.trancee.kompact.runtime/BooleanResult.isSuccess|{}isSuccess[0]
+        final fun <get-isSuccess>(): kotlin/Boolean // ch.trancee.kompact.runtime/BooleanResult.isSuccess.<get-isSuccess>|<get-isSuccess>(){}[0]
+    final val packed // ch.trancee.kompact.runtime/BooleanResult.packed|{}packed[0]
+        final fun <get-packed>(): kotlin/Long // ch.trancee.kompact.runtime/BooleanResult.packed.<get-packed>|<get-packed>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // ch.trancee.kompact.runtime/BooleanResult.equals|equals(kotlin.Any?){}[0]
+    final fun getOrThrow(): kotlin/Boolean // ch.trancee.kompact.runtime/BooleanResult.getOrThrow|getOrThrow(){}[0]
+    final fun hashCode(): kotlin/Int // ch.trancee.kompact.runtime/BooleanResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // ch.trancee.kompact.runtime/BooleanResult.toString|toString(){}[0]
+
+    final object Companion { // ch.trancee.kompact.runtime/BooleanResult.Companion|null[0]
+        final fun failure(ch.trancee.kompact.runtime/KompactDecodeError): ch.trancee.kompact.runtime/BooleanResult // ch.trancee.kompact.runtime/BooleanResult.Companion.failure|failure(ch.trancee.kompact.runtime.KompactDecodeError){}[0]
+        final fun success(kotlin/Boolean): ch.trancee.kompact.runtime/BooleanResult // ch.trancee.kompact.runtime/BooleanResult.Companion.success|success(kotlin.Boolean){}[0]
+    }
+}
+
+final value class ch.trancee.kompact.runtime/ByteResult { // ch.trancee.kompact.runtime/ByteResult|null[0]
+    constructor <init>(kotlin/Long) // ch.trancee.kompact.runtime/ByteResult.<init>|<init>(kotlin.Long){}[0]
+
+    final val error // ch.trancee.kompact.runtime/ByteResult.error|{}error[0]
+        final fun <get-error>(): ch.trancee.kompact.runtime/KompactDecodeError? // ch.trancee.kompact.runtime/ByteResult.error.<get-error>|<get-error>(){}[0]
+    final val isFailure // ch.trancee.kompact.runtime/ByteResult.isFailure|{}isFailure[0]
+        final fun <get-isFailure>(): kotlin/Boolean // ch.trancee.kompact.runtime/ByteResult.isFailure.<get-isFailure>|<get-isFailure>(){}[0]
+    final val isSuccess // ch.trancee.kompact.runtime/ByteResult.isSuccess|{}isSuccess[0]
+        final fun <get-isSuccess>(): kotlin/Boolean // ch.trancee.kompact.runtime/ByteResult.isSuccess.<get-isSuccess>|<get-isSuccess>(){}[0]
+    final val packed // ch.trancee.kompact.runtime/ByteResult.packed|{}packed[0]
+        final fun <get-packed>(): kotlin/Long // ch.trancee.kompact.runtime/ByteResult.packed.<get-packed>|<get-packed>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // ch.trancee.kompact.runtime/ByteResult.equals|equals(kotlin.Any?){}[0]
+    final fun getOrThrow(): kotlin/Byte // ch.trancee.kompact.runtime/ByteResult.getOrThrow|getOrThrow(){}[0]
+    final fun hashCode(): kotlin/Int // ch.trancee.kompact.runtime/ByteResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // ch.trancee.kompact.runtime/ByteResult.toString|toString(){}[0]
+
+    final object Companion { // ch.trancee.kompact.runtime/ByteResult.Companion|null[0]
+        final fun failure(ch.trancee.kompact.runtime/KompactDecodeError): ch.trancee.kompact.runtime/ByteResult // ch.trancee.kompact.runtime/ByteResult.Companion.failure|failure(ch.trancee.kompact.runtime.KompactDecodeError){}[0]
+        final fun success(kotlin/Byte): ch.trancee.kompact.runtime/ByteResult // ch.trancee.kompact.runtime/ByteResult.Companion.success|success(kotlin.Byte){}[0]
+    }
+}
+
+final value class ch.trancee.kompact.runtime/DoubleResult { // ch.trancee.kompact.runtime/DoubleResult|null[0]
+    constructor <init>(kotlin/Long) // ch.trancee.kompact.runtime/DoubleResult.<init>|<init>(kotlin.Long){}[0]
+
+    final val error // ch.trancee.kompact.runtime/DoubleResult.error|{}error[0]
+        final fun <get-error>(): ch.trancee.kompact.runtime/KompactDecodeError? // ch.trancee.kompact.runtime/DoubleResult.error.<get-error>|<get-error>(){}[0]
+    final val isFailure // ch.trancee.kompact.runtime/DoubleResult.isFailure|{}isFailure[0]
+        final fun <get-isFailure>(): kotlin/Boolean // ch.trancee.kompact.runtime/DoubleResult.isFailure.<get-isFailure>|<get-isFailure>(){}[0]
+    final val isSuccess // ch.trancee.kompact.runtime/DoubleResult.isSuccess|{}isSuccess[0]
+        final fun <get-isSuccess>(): kotlin/Boolean // ch.trancee.kompact.runtime/DoubleResult.isSuccess.<get-isSuccess>|<get-isSuccess>(){}[0]
+    final val packed // ch.trancee.kompact.runtime/DoubleResult.packed|{}packed[0]
+        final fun <get-packed>(): kotlin/Long // ch.trancee.kompact.runtime/DoubleResult.packed.<get-packed>|<get-packed>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // ch.trancee.kompact.runtime/DoubleResult.equals|equals(kotlin.Any?){}[0]
+    final fun getOrThrow(): kotlin/Double // ch.trancee.kompact.runtime/DoubleResult.getOrThrow|getOrThrow(){}[0]
+    final fun hashCode(): kotlin/Int // ch.trancee.kompact.runtime/DoubleResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // ch.trancee.kompact.runtime/DoubleResult.toString|toString(){}[0]
+
+    final object Companion { // ch.trancee.kompact.runtime/DoubleResult.Companion|null[0]
+        final fun failure(ch.trancee.kompact.runtime/KompactDecodeError): ch.trancee.kompact.runtime/DoubleResult // ch.trancee.kompact.runtime/DoubleResult.Companion.failure|failure(ch.trancee.kompact.runtime.KompactDecodeError){}[0]
+        final fun success(kotlin/Double): ch.trancee.kompact.runtime/DoubleResult // ch.trancee.kompact.runtime/DoubleResult.Companion.success|success(kotlin.Double){}[0]
+    }
+}
+
+final value class ch.trancee.kompact.runtime/FloatResult { // ch.trancee.kompact.runtime/FloatResult|null[0]
+    constructor <init>(kotlin/Long) // ch.trancee.kompact.runtime/FloatResult.<init>|<init>(kotlin.Long){}[0]
+
+    final val error // ch.trancee.kompact.runtime/FloatResult.error|{}error[0]
+        final fun <get-error>(): ch.trancee.kompact.runtime/KompactDecodeError? // ch.trancee.kompact.runtime/FloatResult.error.<get-error>|<get-error>(){}[0]
+    final val isFailure // ch.trancee.kompact.runtime/FloatResult.isFailure|{}isFailure[0]
+        final fun <get-isFailure>(): kotlin/Boolean // ch.trancee.kompact.runtime/FloatResult.isFailure.<get-isFailure>|<get-isFailure>(){}[0]
+    final val isSuccess // ch.trancee.kompact.runtime/FloatResult.isSuccess|{}isSuccess[0]
+        final fun <get-isSuccess>(): kotlin/Boolean // ch.trancee.kompact.runtime/FloatResult.isSuccess.<get-isSuccess>|<get-isSuccess>(){}[0]
+    final val packed // ch.trancee.kompact.runtime/FloatResult.packed|{}packed[0]
+        final fun <get-packed>(): kotlin/Long // ch.trancee.kompact.runtime/FloatResult.packed.<get-packed>|<get-packed>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // ch.trancee.kompact.runtime/FloatResult.equals|equals(kotlin.Any?){}[0]
+    final fun getOrThrow(): kotlin/Float // ch.trancee.kompact.runtime/FloatResult.getOrThrow|getOrThrow(){}[0]
+    final fun hashCode(): kotlin/Int // ch.trancee.kompact.runtime/FloatResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // ch.trancee.kompact.runtime/FloatResult.toString|toString(){}[0]
+
+    final object Companion { // ch.trancee.kompact.runtime/FloatResult.Companion|null[0]
+        final fun failure(ch.trancee.kompact.runtime/KompactDecodeError): ch.trancee.kompact.runtime/FloatResult // ch.trancee.kompact.runtime/FloatResult.Companion.failure|failure(ch.trancee.kompact.runtime.KompactDecodeError){}[0]
+        final fun success(kotlin/Float): ch.trancee.kompact.runtime/FloatResult // ch.trancee.kompact.runtime/FloatResult.Companion.success|success(kotlin.Float){}[0]
+    }
+}
+
+final value class ch.trancee.kompact.runtime/IntResult { // ch.trancee.kompact.runtime/IntResult|null[0]
+    constructor <init>(kotlin/Long) // ch.trancee.kompact.runtime/IntResult.<init>|<init>(kotlin.Long){}[0]
+
+    final val error // ch.trancee.kompact.runtime/IntResult.error|{}error[0]
+        final fun <get-error>(): ch.trancee.kompact.runtime/KompactDecodeError? // ch.trancee.kompact.runtime/IntResult.error.<get-error>|<get-error>(){}[0]
+    final val isFailure // ch.trancee.kompact.runtime/IntResult.isFailure|{}isFailure[0]
+        final fun <get-isFailure>(): kotlin/Boolean // ch.trancee.kompact.runtime/IntResult.isFailure.<get-isFailure>|<get-isFailure>(){}[0]
+    final val isSuccess // ch.trancee.kompact.runtime/IntResult.isSuccess|{}isSuccess[0]
+        final fun <get-isSuccess>(): kotlin/Boolean // ch.trancee.kompact.runtime/IntResult.isSuccess.<get-isSuccess>|<get-isSuccess>(){}[0]
+    final val packed // ch.trancee.kompact.runtime/IntResult.packed|{}packed[0]
+        final fun <get-packed>(): kotlin/Long // ch.trancee.kompact.runtime/IntResult.packed.<get-packed>|<get-packed>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // ch.trancee.kompact.runtime/IntResult.equals|equals(kotlin.Any?){}[0]
+    final fun getOrThrow(): kotlin/Int // ch.trancee.kompact.runtime/IntResult.getOrThrow|getOrThrow(){}[0]
+    final fun hashCode(): kotlin/Int // ch.trancee.kompact.runtime/IntResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // ch.trancee.kompact.runtime/IntResult.toString|toString(){}[0]
+
+    final object Companion { // ch.trancee.kompact.runtime/IntResult.Companion|null[0]
+        final fun failure(ch.trancee.kompact.runtime/KompactDecodeError): ch.trancee.kompact.runtime/IntResult // ch.trancee.kompact.runtime/IntResult.Companion.failure|failure(ch.trancee.kompact.runtime.KompactDecodeError){}[0]
+        final fun success(kotlin/Int): ch.trancee.kompact.runtime/IntResult // ch.trancee.kompact.runtime/IntResult.Companion.success|success(kotlin.Int){}[0]
+    }
+}
+
+final value class ch.trancee.kompact.runtime/LongResult { // ch.trancee.kompact.runtime/LongResult|null[0]
+    constructor <init>(kotlin/Long) // ch.trancee.kompact.runtime/LongResult.<init>|<init>(kotlin.Long){}[0]
+
+    final val error // ch.trancee.kompact.runtime/LongResult.error|{}error[0]
+        final fun <get-error>(): ch.trancee.kompact.runtime/KompactDecodeError? // ch.trancee.kompact.runtime/LongResult.error.<get-error>|<get-error>(){}[0]
+    final val isFailure // ch.trancee.kompact.runtime/LongResult.isFailure|{}isFailure[0]
+        final fun <get-isFailure>(): kotlin/Boolean // ch.trancee.kompact.runtime/LongResult.isFailure.<get-isFailure>|<get-isFailure>(){}[0]
+    final val isSuccess // ch.trancee.kompact.runtime/LongResult.isSuccess|{}isSuccess[0]
+        final fun <get-isSuccess>(): kotlin/Boolean // ch.trancee.kompact.runtime/LongResult.isSuccess.<get-isSuccess>|<get-isSuccess>(){}[0]
+    final val packed // ch.trancee.kompact.runtime/LongResult.packed|{}packed[0]
+        final fun <get-packed>(): kotlin/Long // ch.trancee.kompact.runtime/LongResult.packed.<get-packed>|<get-packed>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // ch.trancee.kompact.runtime/LongResult.equals|equals(kotlin.Any?){}[0]
+    final fun getOrThrow(): kotlin/Long // ch.trancee.kompact.runtime/LongResult.getOrThrow|getOrThrow(){}[0]
+    final fun hashCode(): kotlin/Int // ch.trancee.kompact.runtime/LongResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // ch.trancee.kompact.runtime/LongResult.toString|toString(){}[0]
+
+    final object Companion { // ch.trancee.kompact.runtime/LongResult.Companion|null[0]
+        final fun failure(ch.trancee.kompact.runtime/KompactDecodeError): ch.trancee.kompact.runtime/LongResult // ch.trancee.kompact.runtime/LongResult.Companion.failure|failure(ch.trancee.kompact.runtime.KompactDecodeError){}[0]
+        final fun success(kotlin/Long): ch.trancee.kompact.runtime/LongResult // ch.trancee.kompact.runtime/LongResult.Companion.success|success(kotlin.Long){}[0]
+    }
+}
+
+final value class ch.trancee.kompact.runtime/ShortResult { // ch.trancee.kompact.runtime/ShortResult|null[0]
+    constructor <init>(kotlin/Long) // ch.trancee.kompact.runtime/ShortResult.<init>|<init>(kotlin.Long){}[0]
+
+    final val error // ch.trancee.kompact.runtime/ShortResult.error|{}error[0]
+        final fun <get-error>(): ch.trancee.kompact.runtime/KompactDecodeError? // ch.trancee.kompact.runtime/ShortResult.error.<get-error>|<get-error>(){}[0]
+    final val isFailure // ch.trancee.kompact.runtime/ShortResult.isFailure|{}isFailure[0]
+        final fun <get-isFailure>(): kotlin/Boolean // ch.trancee.kompact.runtime/ShortResult.isFailure.<get-isFailure>|<get-isFailure>(){}[0]
+    final val isSuccess // ch.trancee.kompact.runtime/ShortResult.isSuccess|{}isSuccess[0]
+        final fun <get-isSuccess>(): kotlin/Boolean // ch.trancee.kompact.runtime/ShortResult.isSuccess.<get-isSuccess>|<get-isSuccess>(){}[0]
+    final val packed // ch.trancee.kompact.runtime/ShortResult.packed|{}packed[0]
+        final fun <get-packed>(): kotlin/Long // ch.trancee.kompact.runtime/ShortResult.packed.<get-packed>|<get-packed>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // ch.trancee.kompact.runtime/ShortResult.equals|equals(kotlin.Any?){}[0]
+    final fun getOrThrow(): kotlin/Short // ch.trancee.kompact.runtime/ShortResult.getOrThrow|getOrThrow(){}[0]
+    final fun hashCode(): kotlin/Int // ch.trancee.kompact.runtime/ShortResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // ch.trancee.kompact.runtime/ShortResult.toString|toString(){}[0]
+
+    final object Companion { // ch.trancee.kompact.runtime/ShortResult.Companion|null[0]
+        final fun failure(ch.trancee.kompact.runtime/KompactDecodeError): ch.trancee.kompact.runtime/ShortResult // ch.trancee.kompact.runtime/ShortResult.Companion.failure|failure(ch.trancee.kompact.runtime.KompactDecodeError){}[0]
+        final fun success(kotlin/Short): ch.trancee.kompact.runtime/ShortResult // ch.trancee.kompact.runtime/ShortResult.Companion.success|success(kotlin.Short){}[0]
+    }
+}
+
+sealed class ch.trancee.kompact.runtime/KompactDecodeError { // ch.trancee.kompact.runtime/KompactDecodeError|null[0]
+    final class UnknownEnumCode : ch.trancee.kompact.runtime/KompactDecodeError { // ch.trancee.kompact.runtime/KompactDecodeError.UnknownEnumCode|null[0]
+        constructor <init>(kotlin/Int) // ch.trancee.kompact.runtime/KompactDecodeError.UnknownEnumCode.<init>|<init>(kotlin.Int){}[0]
+
+        final val rawCode // ch.trancee.kompact.runtime/KompactDecodeError.UnknownEnumCode.rawCode|{}rawCode[0]
+            final fun <get-rawCode>(): kotlin/Int // ch.trancee.kompact.runtime/KompactDecodeError.UnknownEnumCode.rawCode.<get-rawCode>|<get-rawCode>(){}[0]
+
+        final fun component1(): kotlin/Int // ch.trancee.kompact.runtime/KompactDecodeError.UnknownEnumCode.component1|component1(){}[0]
+        final fun copy(kotlin/Int = ...): ch.trancee.kompact.runtime/KompactDecodeError.UnknownEnumCode // ch.trancee.kompact.runtime/KompactDecodeError.UnknownEnumCode.copy|copy(kotlin.Int){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // ch.trancee.kompact.runtime/KompactDecodeError.UnknownEnumCode.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // ch.trancee.kompact.runtime/KompactDecodeError.UnknownEnumCode.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // ch.trancee.kompact.runtime/KompactDecodeError.UnknownEnumCode.toString|toString(){}[0]
+    }
+
+    final object BadLengthPrefix : ch.trancee.kompact.runtime/KompactDecodeError // ch.trancee.kompact.runtime/KompactDecodeError.BadLengthPrefix|null[0]
+
+    final object BoundsError : ch.trancee.kompact.runtime/KompactDecodeError // ch.trancee.kompact.runtime/KompactDecodeError.BoundsError|null[0]
+
+    final object TruncatedNested : ch.trancee.kompact.runtime/KompactDecodeError // ch.trancee.kompact.runtime/KompactDecodeError.TruncatedNested|null[0]
+}
+
 final object ch.trancee.kompact.runtime/KompactRuntime { // ch.trancee.kompact.runtime/KompactRuntime|null[0]
     final fun readBits(kotlin/ByteArray, kotlin/Int, kotlin/Int): kotlin/Int // ch.trancee.kompact.runtime/KompactRuntime.readBits|readBits(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
     final fun readBitsBoolean(kotlin/ByteArray, kotlin/Int): kotlin/Boolean // ch.trancee.kompact.runtime/KompactRuntime.readBitsBoolean|readBitsBoolean(kotlin.ByteArray;kotlin.Int){}[0]
+    final fun readBitsLong(kotlin/ByteArray, kotlin/Int, kotlin/Int): kotlin/Long // ch.trancee.kompact.runtime/KompactRuntime.readBitsLong|readBitsLong(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final fun readBool(kotlin/ByteArray, kotlin/Int): ch.trancee.kompact.runtime/BooleanResult // ch.trancee.kompact.runtime/KompactRuntime.readBool|readBool(kotlin.ByteArray;kotlin.Int){}[0]
+    final fun readDouble(kotlin/ByteArray, kotlin/Int): ch.trancee.kompact.runtime/DoubleResult // ch.trancee.kompact.runtime/KompactRuntime.readDouble|readDouble(kotlin.ByteArray;kotlin.Int){}[0]
+    final fun readFloat(kotlin/ByteArray, kotlin/Int): ch.trancee.kompact.runtime/FloatResult // ch.trancee.kompact.runtime/KompactRuntime.readFloat|readFloat(kotlin.ByteArray;kotlin.Int){}[0]
+    final fun readInt16(kotlin/ByteArray, kotlin/Int, kotlin/Int): ch.trancee.kompact.runtime/ShortResult // ch.trancee.kompact.runtime/KompactRuntime.readInt16|readInt16(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final fun readInt32(kotlin/ByteArray, kotlin/Int, kotlin/Int): ch.trancee.kompact.runtime/IntResult // ch.trancee.kompact.runtime/KompactRuntime.readInt32|readInt32(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final fun readInt64(kotlin/ByteArray, kotlin/Int, kotlin/Int): ch.trancee.kompact.runtime/LongResult // ch.trancee.kompact.runtime/KompactRuntime.readInt64|readInt64(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final fun readInt8(kotlin/ByteArray, kotlin/Int, kotlin/Int): ch.trancee.kompact.runtime/ByteResult // ch.trancee.kompact.runtime/KompactRuntime.readInt8|readInt8(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final fun readUInt16(kotlin/ByteArray, kotlin/Int, kotlin/Int): ch.trancee.kompact.runtime/ShortResult // ch.trancee.kompact.runtime/KompactRuntime.readUInt16|readUInt16(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final fun readUInt32(kotlin/ByteArray, kotlin/Int, kotlin/Int): ch.trancee.kompact.runtime/IntResult // ch.trancee.kompact.runtime/KompactRuntime.readUInt32|readUInt32(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final fun readUInt64(kotlin/ByteArray, kotlin/Int, kotlin/Int): ch.trancee.kompact.runtime/LongResult // ch.trancee.kompact.runtime/KompactRuntime.readUInt64|readUInt64(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final fun readUInt8(kotlin/ByteArray, kotlin/Int, kotlin/Int): ch.trancee.kompact.runtime/ByteResult // ch.trancee.kompact.runtime/KompactRuntime.readUInt8|readUInt8(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
     final fun writeBits(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Int) // ch.trancee.kompact.runtime/KompactRuntime.writeBits|writeBits(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Int){}[0]
     final fun writeBitsBoolean(kotlin/ByteArray, kotlin/Int, kotlin/Boolean) // ch.trancee.kompact.runtime/KompactRuntime.writeBitsBoolean|writeBitsBoolean(kotlin.ByteArray;kotlin.Int;kotlin.Boolean){}[0]
+    final fun writeBitsLong(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Long) // ch.trancee.kompact.runtime/KompactRuntime.writeBitsLong|writeBitsLong(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Long){}[0]
 }
