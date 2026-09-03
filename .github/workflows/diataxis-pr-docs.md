@@ -41,11 +41,10 @@ safe-outputs:
   noop:
 engine:
   id: pi
-  model: openai/${{ env.PI_MODEL }}
+  model: ${{ vars.PI_PROVIDER_MODEL }}
   env:
-    PI_MODEL: poolside/laguna-s-2.1:free
     OPENAI_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-    OPENAI_BASE_URL: "https://openrouter.ai/api/v1"
+    OPENAI_BASE_URL: https://openrouter.ai/api/v1
 ---
 
 # Diátaxis PR Docs Auditor
