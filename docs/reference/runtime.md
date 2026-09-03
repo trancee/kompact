@@ -1,26 +1,21 @@
 # Runtime reference
 
-The runtime lives in `ch.trancee.kompact.runtime` and is the only public surface a
-hand-written consumer needs. The KSP-generated value-class views call into this
-runtime on every read.
+The runtime lives in `ch.trancee.kompact.runtime` and is the only public surface a hand-written consumer needs. The KSP-generated value-class views call into this runtime on every read.
 
-All multi-bit integers are LSB-first. Bit 0 of a field sits in bit 0 of the byte at
-`bitOffset / 8`; subsequent bits proceed toward the byte's high bit and then into the
-next byte.
+All multi-bit integers are LSB-first. Bit 0 of a field sits in bit 0 of the byte at `bitOffset / 8`; subsequent bits proceed toward the byte's high bit and then into the next byte.
 
 ## `KompactRuntime` (object, commonMain)
 
-The zero-allocation bit-level primitives. These are the hot path — every other read
-accessor delegates to one of these.
+The zero-allocation bit-level primitives. These are the hot path. Every other read accessor delegates to one of these.
 
 ### `readBits(buf: ByteArray, bitOffset: Int, bitWidth: Int): Int`
 
 Read an unsigned `bitWidth`-bit value at `bitOffset` in `buf`, LSB-first, as an `Int`.
 
 - **Parameters**:
-  - `buf` — the source buffer.
-  - `bitOffset` — bit index of the field's lowest bit; must be `>= 0`.
-  - `bitWidth` — `1..64`. For `33..64`, the high bits are sign-extended by the `Int` cast; use `readBitsLong` to keep them.
+  - `buf`: the source buffer.
+  - `bitOffset`: bit index of the field's lowest bit; must be ≥ 0.
+  - `bitWidth`: 1..64. For 33..64, the high bits are sign-extended by the `Int` cast. Use `readBitsLong` to keep them.
 - **Returns**: the assembled unsigned value, `0..(1 shl bitWidth) - 1`.
 - **Throws**: `IllegalArgumentException` if `bitWidth !in 1..64`, `bitOffset < 0`, or the read would exceed the buffer.
 - **Allocates**: nothing on the success path. The result is a primitive `Int`.
@@ -31,22 +26,15 @@ Read an unsigned `bitWidth`-bit value at `bitOffset` in `buf`, LSB-first, as an 
 
 ### `readBitsBoolean(buf: ByteArray, bitOffset: Int): Boolean`
 
-Reads the bit at `bitOffset`. Returns `false` for `0`, `true` for non-zero. Convenience
-over `readBits(buf, bitOffset, 1) != 0`.
+Reads the bit at `bitOffset`. Returns `false` for 0, `true` for non-zero. Equivalent to `readBits(buf, bitOffset, 1) != 0`.
 
 ### `writeBits(buf: ByteArray, bitOffset: Int, bitWidth: Int, value: Long): Unit`
 
-Writes the low `bitWidth` bits of `value` to `buf` at `bitOffset`, LSB-first, preserving
-bits outside the `[bitOffset, bitOffset + bitWidth)` range. Same `bitWidth` and `bitOffset`
-constraints as `readBits`.
+Writes the low `bitWidth` bits of `value` to `buf` at `bitOffset`, LSB-first, preserving bits outside the `[bitOffset, bitOffset + bitWidth)` range. Same `bitWidth` and `bitOffset` constraints as `readBits`.
 
 ## `KompactRead` (object, commonMain)
 
-Checked read accessors. Every method:
-
-1. Bounds-checks the read against the buffer.
-2. On success, calls `KompactRuntime.readBits` (or `readBitsLong`) and returns a typed result.
-3. On failure, returns a typed failure result with the matching `KompactError` code — never throws on the read path.
+Checked read accessors. Every method bounds-checks the read against the buffer, calls the zero-allocation primitive on success, and returns a typed failure with the matching `KompactError` code on failure. It never throws on the read path.
 
 ### Unsigned integers
 
@@ -79,12 +67,11 @@ Each returns `IntResult`. `IntResult.Success.value` is the read value; `IntResul
 
 ### Boolean
 
-- `readBool(buf, bitOffset): BooleanResult` — single bit at `bitOffset`.
+- `readBool(buf, bitOffset): BooleanResult`. One bit at `bitOffset`.
 
-### Read with default (Ticket 09 — forward compat for newer reader / older writer)
+### Read with default (forward compat for newer reader / older writer)
 
-When a field is missing from the buffer (the writer was older than the reader's
-schema), the read returns the declared `default` instead of `BoundsError`.
+When a field is missing from the buffer (the writer was older than the reader's schema), the read returns the declared `default` instead of `BoundsError`.
 
 | Method | Default type |
 |---|---|
@@ -92,10 +79,9 @@ schema), the read returns the declared `default` instead of `BoundsError`.
 | `readUInt16WithDefault(buf, bitOffset, default: Int): Int` | Int |
 | `readBoolWithDefault(buf, bitOffset, default: Boolean): Boolean` | Boolean |
 
-### Length-prefixed (Ticket 05)
+### Length-prefixed
 
-Each consumes a fixed-width little-endian length prefix at `bitOffset`, then reads
-`length` bytes (or `length` elements for `readRepeated`).
+Each consumes a fixed-width little-endian length prefix at `bitOffset`, then reads `length` bytes (or `length` elements for `readRepeated`).
 
 | Method | Reads | Returns |
 |---|---|---|
@@ -104,28 +90,24 @@ Each consumes a fixed-width little-endian length prefix at `bitOffset`, then rea
 | `readNested(buf, bitOffset, lengthPrefixBits): NestedResult` | sub-region as `ByteArray` | `NestedResult` (use to wrap a generated nested view) |
 | `readRepeated(buf, bitOffset, countPrefixBits, elementBitWidth): RepeatedResult` | `count` element bit-slices | `RepeatedResult` (value is `Pair<Int, List<ByteArray>>`) |
 
-`lengthPrefixBits` must be one of `8`, `16`, `32`. Mismatched width returns
-`KompactError.BoundsError`. A prefix that claims more bytes than remain returns
-`KompactError.BadLengthPrefix` (strings/blobs) or `KompactError.TruncatedNested` (nested).
+`lengthPrefixBits` must be one of `8`, `16`, `32`. A mismatched width returns `KompactError.BoundsError`. A prefix that claims more bytes than remain returns `KompactError.BadLengthPrefix` (strings, blobs, repeated) or `KompactError.TruncatedNested` (nested).
 
-### Skip (Ticket 09 — older reader / newer writer)
+### Skip (forward compat for older reader / newer writer)
 
-- `readSkipLengthPrefixed(buf, bitOffset, lengthPrefixBits): IntResult` — reads the uniform-width length prefix and returns the new bit cursor (`bitOffset + widthBits + length*8`), allowing the older reader to advance past an unknown trailing length-delimited field.
+- `readSkipLengthPrefixed(buf, bitOffset, lengthPrefixBits): IntResult`. Reads the uniform-width length prefix and returns the new bit cursor (`bitOffset + widthBits + length*8`), letting the older reader advance past an unknown trailing length-delimited field.
 
 ### Write a length prefix
 
-- `writeLengthPrefix(buf, bitOffset, widthBits, length): IntResult` — writes `length` as a fixed-width little-endian prefix at `bitOffset`. Returns the bit offset after the prefix, or a failure on invalid `widthBits`. The runtime primitive for callers (including KSP-generated views) that need to write their own length-prefixed fields.
+- `writeLengthPrefix(buf, bitOffset, widthBits, length): IntResult`. Writes `length` as a fixed-width little-endian prefix at `bitOffset`. Returns the bit offset after the prefix, or a failure on invalid `widthBits`. The runtime primitive for callers (including KSP-generated views) that need to write their own length-prefixed fields.
 
 ## `KompactWriter` (class, commonMain)
 
-Owns a growable buffer; fields are written forward-only; `build()` snapshots the result.
-Writer is **not** zero-allocation — the runtime zero-alloc guarantee is for the read path
-only.
+Owns a growable buffer. Fields are written forward-only. `build()` snapshots the result. The writer is **not** zero-allocation (the runtime zero-allocation guarantee is for the read path only).
 
 ### State
 
-- `bitLength(): Int` — current bit cursor.
-- `byteLength(): Int` — `(bitLength + 7) ushr 3`.
+- `bitLength(): Int`. The current bit cursor.
+- `byteLength(): Int`. `(bitLength + 7) ushr 3`.
 
 ### Fixed-width scalar writes
 
@@ -137,48 +119,44 @@ only.
 
 ### Length-delimited writes
 
-- `writeString(value: String, lengthPrefixBits: Int)` — UTF-8 encodes and writes `[length-prefix][bytes]`.
-- `writeBlob(value: ByteArray, lengthPrefixBits: Int)` — writes `[length-prefix][bytes]`.
+- `writeString(value: String, lengthPrefixBits: Int)`. UTF-8 encodes and writes `[length-prefix][bytes]`.
+- `writeBlob(value: ByteArray, lengthPrefixBits: Int)`. Writes `[length-prefix][bytes]`.
 
 ### Nested composite
 
-- `writeNested(lengthPrefixBits: Int, block: (KompactWriter) -> Unit): ByteArray` — runs `block` against a sub-writer, then emits `[length-prefix][sub-writer bytes]`. Returns the sub-region's `ByteArray` (for symmetry with `readNested`).
+- `writeNested(lengthPrefixBits: Int, block: (KompactWriter) -> Unit): ByteArray`. Runs `block` against a sub-writer, then emits `[length-prefix][sub-writer bytes]`. Returns the sub-region's `ByteArray` (for symmetry with `readNested`).
 
 ### Repeated
 
-- `writeRepeated(count: Int, countPrefixBits: Int, block: (KompactWriter) -> Unit)` — emits `[count-prefix][block bytes]`. The count is the caller-known element count; the sub-writer's bits are emitted verbatim.
+- `writeRepeated(count: Int, countPrefixBits: Int, block: (KompactWriter) -> Unit)`. Emits `[count-prefix][block bytes]`. The count is the caller-known element count; the sub-writer's bits are emitted verbatim.
 
 ### Snapshot
 
-- `build(): ByteArray` — copies the growable buffer to a new exact-size array and returns it. Empty buffer returns `ByteArray(0)`.
+- `build(): ByteArray`. Copies the growable buffer to a new exact-size array and returns it. Empty buffer returns `ByteArray(0)`.
 
 ## `KompactVersionedStream` (object, commonMain)
 
-Top-level 4-byte little-endian `UInt` version prefix. The first 4 bytes of any Kompact
-stream with versioning enabled.
+Top-level 4-byte little-endian `UInt` version prefix. The first 4 bytes of any Kompact stream with versioning enabled.
 
-- `setSupportedVersions(versions: Set<UInt>)` — override the supported set (default `{1u}`). Call on the reader before `readVersion`.
-- `supportedVersions(): Set<UInt>` — current set.
-- `writeVersion(buf: ByteArray, version: UInt): Int` — writes 4 LE bytes at offset 0. Returns `4`. Throws `IllegalArgumentException` if `buf.size < 4`.
-- `readVersion(buf: ByteArray): IntResult` — returns `IntResult`:
+- `setSupportedVersions(versions: Set<UInt>)`. Override the supported set (default `{1u}`). Call on the reader before `readVersion`.
+- `supportedVersions(): Set<UInt>`. Current set.
+- `writeVersion(buf: ByteArray, version: UInt): Int`. Writes 4 LE bytes at offset 0. Returns `4`. Throws `IllegalArgumentException` if `buf.size < 4`.
+- `readVersion(buf: ByteArray): IntResult`. Returns `IntResult`:
   - `IntResult.Success(value = version)` if the prefix is in the supported set.
   - `IntResult.Failure(KompactError.BoundsError)` if the buffer is shorter than 4 bytes.
   - `IntResult.Failure(KompactError.UnsupportedSchemaVersion)` if the prefix is outside the supported set.
 
 ## `AllocationCounter` (expect/actual, commonMain)
 
-Thread-local allocation counter for verifying the zero-alloc read path. Reset/measure
-runs OUTSIDE the timed read region (the reset/count themselves allocate).
+Thread-local allocation counter for verifying the zero-allocation read path. Reset/measure runs OUTSIDE the timed read region (the reset/count themselves allocate).
 
 | Target | Implementation |
 |---|---|
-| JVM | `ThreadLocal<AtomicLong>`. `count()` is `AtomicLong.get()` — a primitive long read, not a heap allocation. |
-| iOS | `AtomicReference<AtomicLong?>` per thread. The count is intended to be combined with the Kotlin/Native allocation-instrumentation runtime flag (`kotlin.native.binary.enableAllocationInstrumentation=true`) and `kotlin.test.assertNoAllocations { ... }`. |
+| JVM | `ThreadLocal<AtomicLong>`. `count()` is `AtomicLong.get()`, a primitive long read, not a heap allocation. |
+| iOS | `AtomicReference<AtomicLong?>` per thread. The count combines with the Kotlin/Native allocation-instrumentation runtime flag (`kotlin.native.binary.enableAllocationInstrumentation=true`) and `kotlin.test.assertNoAllocations { ... }`. |
 
-- `reset()` — zero the counter.
-- `count(): Long` — current allocation count since the last `reset()`.
-
-Usage:
+- `reset()`. Zero the counter.
+- `count(): Long`. Current allocation count since the last `reset()`.
 
 ```kotlin
 val buf = ByteArray(16)

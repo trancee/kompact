@@ -1,8 +1,8 @@
 # Result types
 
-Kompact read accessors return typed `expect/actual value class` results, never throw on the read path. Each scalar kind has its own result class; all wrap a single `Long` that packs the value, an ok-flag, a compact error code, and (where applicable) a raw enum code.
+Kompact read accessors return typed `expect/actual value class` results, never throw on the read path. Each scalar kind has its own result class. All wrap a single `Long` that packs the value, an ok-flag, a compact error code, and (where applicable) a raw enum code.
 
-All result classes are zero-allocation: the `Long` is a primitive on the success path; on the failure path the failure is a primitive `Long` carrying the error code.
+All result classes are zero-allocation. The `Long` is a primitive on the success path; on the failure path the failure is a primitive `Long` carrying the error code.
 
 ## Packed `Long` layout
 
@@ -23,10 +23,10 @@ For `LengthReadResult`, the layout is different (it carries both a length and a 
 
 All result classes expose the same shape:
 
-- `packed: Long` — the underlying primitive (use only when interoperating with FFI or packing into a larger protocol).
+- `packed: Long`. The underlying primitive (use only when interoperating with FFI or packing into a larger protocol).
 - `isOk: Boolean` / `isError: Boolean`.
-- `errorCode: Int` — one of the `KompactError` constants below.
-- `value: T` — the decoded value (meaningful only when `isOk == true`).
+- `errorCode: Int`. One of the `KompactError` constants below.
+- `value: T`. The decoded value (meaningful only when `isOk == true`).
 - A companion `success(value)` and `failure(errorCode)` factory.
 
 The `expect` declaration lives in commonMain; the platform `actual` adds `@JvmInline` on the JVM and is plain on iOS. The packing is identical; the `@JvmInline` annotation is a JVM-only language constraint, not a behavioral one.
@@ -50,21 +50,21 @@ The `expect` declaration lives in commonMain; the platform `actual` adds `@JvmIn
 
 ### `LengthReadResult` (internal helper for `KompactRead`)
 
-- `value: Pair<Int, Int>` — `(length, afterPrefix)`.
+- `value: Pair<Int, Int>`. `(length, afterPrefix)`.
 - Used by the length-prefixed read APIs internally. Not typically returned to user code.
 
 ### `StringResult`, `BlobResult`, `NestedResult`, `RepeatedResult` (length-prefixed)
 
 - `StringResult.value: String`
 - `BlobResult.value: ByteArray`
-- `NestedResult.value: ByteArray` — the sub-region's bytes; the caller wraps it in a generated nested view.
-- `RepeatedResult.value: Pair<Int, List<ByteArray>>` — `(count, elements)`.
+- `NestedResult.value: ByteArray`. The sub-region's bytes; the caller wraps it in a generated nested view.
+- `RepeatedResult.value: Pair<Int, List<ByteArray>>`. `(count, elements)`.
 
-`StringResult`, `BlobResult`, and `NestedResult` use the same `String` / `ByteArray` heap-backed value, so they are **not** zero-allocation (the value itself is allocated). The packing is still zero-allocation. `RepeatedResult` is also not zero-allocation (allocates the `List<ByteArray>`).
+`StringResult`, `BlobResult`, and `NestedResult` use a `String` / `ByteArray` heap-backed value, so they are **not** zero-allocation (the value itself is allocated). The packing is still zero-allocation. `RepeatedResult` is also not zero-allocation (allocates the `List<ByteArray>`).
 
 ## `KompactError` (object, commonMain)
 
-Compact error codes packed into every result's high bits. Code 0 means success; non-zero discriminates the typed error. The full list:
+Compact error codes packed into every result's high bits. Code 0 means success. Non-zero discriminates the typed error.
 
 | Constant | Value | When it's returned |
 |---|---|---|
@@ -75,16 +75,16 @@ Compact error codes packed into every result's high bits. Code 0 means success; 
 | `KompactError.UnknownEnumCode` | 4 | The wire ordinal is outside the enum's declared width (reserved for future enum-typed read accessors). |
 | `KompactError.UnsupportedSchemaVersion` | 5 | The top-level version prefix is outside the supported set. |
 
-All failures are typed — there is no global "exception" or `null` sentinel. A reader that wants to react categorically pattern-matches on the `errorCode`.
+All failures are typed. There is no global "exception" or `null` sentinel. A reader that wants to react categorically pattern-matches on the `errorCode`.
 
-## Pattern: discriminating a result
+## Discriminating a result
 
 ```kotlin
 when (val r = KompactRead.readUInt8(buf, 0)) {
     is IntResult.Success -> use(r.value)
     is IntResult.Failure -> when (r.errorCode) {
         KompactError.BoundsError    -> retryWithLargerBuffer()
-        KompactError.BadLengthPrefix -> skipField()           // Ticket 09 forward compat
+        KompactError.BadLengthPrefix -> skipField()
         else                       -> fail("unexpected: ${r.errorCode}")
     }
 }
