@@ -62,7 +62,7 @@ public actual value class FloatResult(public actual val packed: Long) {
         else throw KompactDecodeException(decodeErrorFromSmallBits(packed))
     public actual companion object {
         public actual fun success(value: Float): FloatResult =
-            FloatResult(encodeSmallSuccess(value.toBits().toLong()))
+            FloatResult(encodeSmallSuccess(encodeFloatSuccess(value)))
         public actual fun failure(error: KompactDecodeError): FloatResult =
             FloatResult(encodeSmallFailure(error))
     }

@@ -169,6 +169,21 @@ public final class ch/trancee/kompact/runtime/KompactDecodeException : java/lang
 public abstract interface annotation class ch/trancee/kompact/runtime/KompactField : java/lang/annotation/Annotation {
 	public abstract fun bitOffset ()I
 	public abstract fun bitWidth ()I
+	public abstract fun defaultValue ()Ljava/lang/String;
+	public abstract fun enumWidth ()I
+	public abstract fun isNested ()Z
+	public abstract fun isVersionField ()Z
+	public abstract fun lengthPrefixWidth ()I
+	public abstract fun repeatCountWidth ()I
+}
+
+public final class ch/trancee/kompact/runtime/KompactFraming {
+	public static final field INSTANCE Lch/trancee/kompact/runtime/KompactFraming;
+	public final fun getVALID_PREFIX_WIDTHS ()Ljava/util/Set;
+	public final fun nestedRegionOrNull ([BII)Lkotlin/Pair;
+	public final fun readCountPrefix ([BII)I
+	public final fun readLengthPrefix ([BII)I
+	public final fun writeLengthPrefix ([BIII)V
 }
 
 public abstract interface annotation class ch/trancee/kompact/runtime/KompactModel : java/lang/annotation/Annotation {
@@ -176,6 +191,7 @@ public abstract interface annotation class ch/trancee/kompact/runtime/KompactMod
 
 public final class ch/trancee/kompact/runtime/KompactRuntime {
 	public static final field INSTANCE Lch/trancee/kompact/runtime/KompactRuntime;
+	public final fun fits ([BII)Z
 	public final fun readBits ([BII)I
 	public final fun readBitsBoolean ([BI)Z
 	public final fun readBitsLong ([BII)J
@@ -193,6 +209,30 @@ public final class ch/trancee/kompact/runtime/KompactRuntime {
 	public final fun writeBits ([BIII)V
 	public final fun writeBitsBoolean ([BIZ)V
 	public final fun writeBitsLong ([BIIJ)V
+}
+
+public final class ch/trancee/kompact/runtime/KompactWriter {
+	public static final field Companion Lch/trancee/kompact/runtime/KompactWriter$Companion;
+	public fun <init> ()V
+	public final fun build ()[B
+	public final fun getBitCursor ()I
+	public final fun writeBits (II)V
+	public final fun writeBitsLong (IJ)V
+	public final fun writeBlob (I[B)V
+	public final fun writeBool (Z)V
+	public final fun writeEnum (II)V
+	public final fun writeInt (II)V
+	public final fun writeInt64 (IJ)V
+	public final fun writeNested (ILkotlin/jvm/functions/Function1;)V
+	public static synthetic fun writeNested$default (Lch/trancee/kompact/runtime/KompactWriter;ILkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun writeRepeated (IILkotlin/jvm/functions/Function1;)V
+	public static synthetic fun writeRepeated$default (Lch/trancee/kompact/runtime/KompactWriter;IILkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun writeString (ILjava/lang/String;)V
+	public final fun writeUInt (II)V
+	public final fun writeUInt (IJ)V
+}
+
+public final class ch/trancee/kompact/runtime/KompactWriter$Companion {
 }
 
 public final class ch/trancee/kompact/runtime/LongResult {

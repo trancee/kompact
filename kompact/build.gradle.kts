@@ -5,7 +5,13 @@ plugins {
 }
 
 kotlin {
-    jvm()
+    // Ticket 13: pin JVM target to 21 LTS so BCV (ASM 9.8 / v0.18.0) can parse the
+    // emitted class files on hosts running JDK 25 (Kotlin 2.4.10 otherwise emits v69).
+    jvm {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        }
+    }
     iosArm64()
     iosSimulatorArm64()
 
@@ -33,7 +39,6 @@ kotlin {
         iosSimulatorArm64Main { dependsOn(iosMain) }
     }
 }
-
 // Ticket 13: BCV 0.18.0 — lock the public ABI for common + each Kotlin/Native target.
 apiValidation {
     klib {

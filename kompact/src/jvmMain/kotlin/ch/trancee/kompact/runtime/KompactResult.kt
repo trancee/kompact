@@ -67,7 +67,7 @@ public actual value class FloatResult(public actual val packed: Long) {
         else throw KompactDecodeException(decodeErrorFromSmallBits(packed))
     public actual companion object {
         public actual fun success(value: Float): FloatResult =
-            FloatResult(encodeSmallSuccess(value.toBits().toLong()))
+            FloatResult(encodeSmallSuccess(encodeFloatSuccess(value)))
         public actual fun failure(error: KompactDecodeError): FloatResult =
             FloatResult(encodeSmallFailure(error))
     }
@@ -89,6 +89,8 @@ public actual value class BooleanResult(public actual val packed: Long) {
             BooleanResult(encodeSmallFailure(error))
     }
 }
+
+// LongResult — sentinel-based encoding (bits 63 set + 62..58 clear) (Ticket 08)
 @JvmInline
 public actual value class LongResult(public actual val packed: Long) {
     public actual val isSuccess: Boolean get() = !isLongFailure(packed)
@@ -104,6 +106,8 @@ public actual value class LongResult(public actual val packed: Long) {
             LongResult(encodeLongFailure(error))
     }
 }
+
+// DoubleResult — canonical-NaN success, reserved NaN payload for errors (Ticket 04)
 @JvmInline
 public actual value class DoubleResult(public actual val packed: Long) {
     public actual val isSuccess: Boolean get() = !isDoubleFailure(packed)

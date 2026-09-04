@@ -32,6 +32,11 @@ internal val RESULT_VALUE_MASK: Long = 0x0000_FFFF_FFFF_FFFFL
 internal val LONG_FAIL_MASK: Long = Long.MIN_VALUE or 0x7C00_0000_0000_0000L
 internal val LONG_FAIL_BASE: Long = Long.MIN_VALUE
 
+// --- FloatResult NaN encoding ---
+
+// Canonical IEEE-754 single-precision quiet NaN (payload 0).
+internal const val FLOAT_NAN_CANONICAL_BITS: Int = 0x7FC00000
+
 // --- DoubleResult NaN encoding ---
 
 internal val DOUBLE_NAN_CANONICAL: Long = 0x7FF8_0000_0000_0000L
@@ -123,6 +128,9 @@ internal fun decodeDoubleError(packed: Long): KompactDecodeError {
 internal fun encodeDoubleSuccess(value: Double): Long =
     if (value.isNaN()) DOUBLE_NAN_CANONICAL else value.toBits()
 
+internal fun encodeFloatSuccess(value: Float): Long =
+    if (value.isNaN()) FLOAT_NAN_CANONICAL_BITS.toLong() else value.toBits().toLong()
+
 // ====================================================================
 // Ticket 08 — result value class declarations (expect)
 //
@@ -186,6 +194,19 @@ public expect value class BooleanResult(public val packed: Long) {
     }
 }
 
+/**
+ * Checked 64-bit integer result (Ticket 08).
+ *
+ * Because every 64-bit `Long` bit-pattern is a valid signed value, success
+ * and failure cannot be distinguished without reserving a sentinel band.
+ * [success] therefore treats a compact range near [Long.MIN_VALUE]
+ * (bit 63 set with bits 62..58 clear, i.e. `Long.MIN_VALUE` through
+ * `Long.MIN_VALUE + (1L shl 58) - 1`) as the failure sentinel — these values
+ * are **not representable as success**. The first representable negative
+ * success value is `Long.MIN_VALUE + (1L shl 58)` (bit 58 set, outside the
+ * sentinel mask). This is the documented tradeoff of packing a typed result
+ * into a single `Long` without boxing; see Ticket 08.
+ */
 public expect value class LongResult(public val packed: Long) {
     public val isSuccess: Boolean
     public val isFailure: Boolean
