@@ -1,0 +1,23 @@
+# Gradle
+.gradle/
+build/
+out/
+gradle/wrapper/dists/
+
+# Artifacts
+*.jar
+*.war
+*.class
+*.klib
+*.knp
+# The Gradle wrapper jar MUST be committed (gradle/wrapper/gradle-wrapper.jar) so
+# `./gradlew` works in CI/dev — un-ignore it despite the *.jar rule above.
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+local.properties
+
+# OS
+.DS_Store

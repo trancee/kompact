@@ -1,59 +1,58 @@
 # Kompact
 
-Bit-packed Kotlin Multiplatform serialization for Bluetooth Low Energy, designed for allocation-free reads and interoperable C firmware.
+A bit-packed, zero-allocation serialization framework for Kotlin Multiplatform.
+Built for tiny, dense wire payloads (think BLE characteristics) that still need to
+be safely decoded on the hot path — no boxing, no exception throwing, no
+intermediate copies.
 
-> [!IMPORTANT]
-> The Kompact v1 architecture and implementation specification are complete. Production implementation has not started, so the runtime, generator, and published artifacts do not exist yet. The closed [Kompact v1 implementation-ready specification](https://github.com/trancee/kompact/issues/1) map records every decision.
+```
+// Write 16 bits: 4 bits battery + 10 bits speed + 1 bit flag + 1 bit reserved
+val w = KompactWriter()
+w.writeScalar(bitWidth = 4,  value = 5L)    // battery = 5
+w.writeScalar(bitWidth = 10, value = 10L)   // speed = 10
+w.writeBool(true)                           // malfunction = true
+val bytes: ByteArray = w.build()            // 2 bytes: 0xA5 0x40
 
-## Why Kompact
-
-BLE payloads are small, and byte-aligned formats can spend more space on padding and metadata than the values require. Kompact defines each field at bit precision. A 5-bit value occupies 5 bits, including when it crosses a byte boundary.
-
-The project has four goals:
-
-- Pack fixed-size payloads without byte padding.
-- Read scalar fields directly from caller-owned `ByteArray` storage without copying.
-- Generate a typed Kotlin interface for shared Android and iOS code.
-- Generate matching C99 constants and helpers for firmware.
-
-## Current design direction
-
-Kompact v1 is specified with these constraints:
-
-- Schemas have fixed, versioned layouts and an explicit envelope.
-- Bit offset zero is the least-significant bit of byte zero.
-- Kotlin runtime and generated code live in `commonMain` and target Android/JVM, `iosArm64`, and `iosSimulatorArm64`.
-- A checked factory validates the envelope, version, and payload length before creating a view.
-- Scalar properties read bits directly from the underlying buffer.
-- Writers update caller-owned buffers in place and reject invalid values before mutation.
-- KSP processes schemas and generates Kotlin code.
-- Build-time JVM tooling generates portable C99 masks and byte-array helpers. It does not generate packed structs or C bitfields.
-- Performance claims require measurements for reads, writes, allocations, encoded size, and code size.
-
-Variable-length fields, direct Swift export, compiler-plugin generation, and non-iOS Apple targets are outside the v1 scope.
-
-## Example layout
-
-A 16-bit telemetry payload can assign every bit without alignment padding:
-
-```text
-bits  0..3   battery status       4-bit enum
-bits  4..13  speed               10-bit unsigned integer
-bit      14  engine malfunction   1-bit boolean
-bit      15  reserved             1 bit
+// Read them back as typed results — no exceptions on the success path
+val battery: Int      = KompactRuntime.readScalar(bytes, 0,  4, signed = false).getOrThrow()
+val speed:    Int      = KompactRuntime.readScalar(bytes, 4, 10, signed = false).getOrThrow()
+val flag:     Boolean  = KompactRuntime.readBool    (bytes, 14          ).getOrThrow()
 ```
 
-The same schema will drive generated Kotlin accessors and C99 extraction helpers. Developers author annotated schema interfaces; generated checked facades expose value-class views and writers in Kotlin and header-only typed handles in C99.
+## What's in this repo
 
-## Specification status
+- **`:kompact`** — the KMP runtime: bit primitives, a forward-only writer, framing
+  helpers, and seven zero-alloc typed result value classes (`ByteResult`,
+  `ShortResult`, `IntResult`, `LongResult`, `FloatResult`, `DoubleResult`,
+  `BooleanResult`).
+- **Targets**: `jvm` (JVM 21), `iosArm64`, `iosSimulatorArm64`. Android consumes
+  the `jvm` artifact.
+- **No codegen yet.** `@KompactModel` / `@KompactField` annotations are defined
+  (and validated for source compatibility by `KompactFieldV1SurfaceTest`) but
+  no KSP processor ships in this repository. Today you write the bit-shifting
+  by hand, the way the bundled `VehicleTelemetry` example does.
 
-The closed [Kompact v1 implementation-ready specification](https://github.com/trancee/kompact/issues/1) is the canonical decision map. Its child issues record:
+## Where to go next
 
-- wire and envelope semantics;
-- KSP and Gradle integration;
-- generated Kotlin and C99 interfaces;
-- validation and compatibility;
-- cross-platform conformance; and
-- performance budgets.
+| If you want to … | Read |
+| --- | --- |
+| Try it end-to-end (write a frame, read it back) | **[`docs/getting-started.md`](docs/getting-started.md)** |
+| Look up an exact API signature, parameter, or error | **[`docs/api-reference.md`](docs/api-reference.md)** |
+| Understand the design choices (LSB-first, zero-alloc, value classes, framing) | **[`docs/architecture.md`](docs/architecture.md)** |
+| Run / understand the CI gates and goldens | **[`docs/ci.md`](docs/ci.md)** |
+| See all of the above at a glance | **[`docs/README.md`](docs/README.md)** |
+| Read the original product brief | [`PROMPT.md`](PROMPT.md) |
+| Read the locked implementation spec (tickets 01–13) | [`.scratch/kompact-spec/map.md`](.scratch/kompact-spec/map.md) |
 
-Project-specific terminology lives in [`CONTEXT.md`](CONTEXT.md).
+## Status
+
+`0.1.0-SNAPSHOT` — the runtime, writer, framing, and result value classes are
+stable and exercised by the `commonTest` suite. The publication pipeline is
+configured (Maven coordinates `ch.trancee.kompact:kompact`, license Apache-2.0)
+but **no release has been cut to Maven Central yet**. Build from source or
+`./gradlew :kompact:publishToMavenLocal` and consume the local snapshot.
+
+## License
+
+Apache License 2.0. See [`build.gradle.kts`](kompact/build.gradle.kts) for the
+full publication metadata.
