@@ -1,0 +1,35 @@
+name: Regen Goldens
+
+# Regenerates the BCV ABI goldens (kompact.api + kompact.klib.api) on macOS.
+# macOS is the only host where ios klib ABI inference succeeds, so kompact.klib.api
+# can only be produced here. Non-Apple contributors invoke this workflow to refresh
+# the goldens (apiDump overwrites api/ in place), then commit the result. Manual
+# (workflow_dispatch) only — it does NOT run on every push; the apiCheck gate
+# lives in ci.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      args:
+        description: 'Gradle task args to regenerate goldens (default: apiDump)'
+        default: ':kompact:apiDump'
+        type: string
+
+jobs:
+  regen:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - name: Regenerate ABI goldens
+        run: ./gradlew ${{ inputs.args }} --no-daemon
+      - name: Upload regenerated goldens
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-goldens
+          path: kompact/api/
+          retention-days: 3
