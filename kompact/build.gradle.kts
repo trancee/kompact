@@ -73,3 +73,8 @@ mavenPublishing {
         }
     }
 }
+
+// F-002 boundary tests allocate 256 MiB buffers; give the JVM test fork headroom.
+tasks.withType<Test>().configureEach {
+    maxHeapSize = "1g"
+}

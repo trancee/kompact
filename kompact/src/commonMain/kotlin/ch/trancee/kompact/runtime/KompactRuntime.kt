@@ -125,7 +125,7 @@ public object KompactRuntime {
 
     /** Bounds-check: true iff [bitOffset]+[bitWidth] fits in [raw]. */
     public inline fun fits(raw: ByteArray, bitOffset: Int, bitWidth: Int): Boolean =
-        bitOffset >= 0 && bitWidth >= 1 && bitOffset + bitWidth <= raw.size * 8
+        bitOffset >= 0 && bitWidth >= 1 && bitOffset.toLong() + bitWidth.toLong() <= raw.size.toLong() * 8L
 
     /** Reads 1 bit at [bitOffset] as a checked [BooleanResult]. */
     public inline fun readBool(raw: ByteArray, bitOffset: Int): BooleanResult {
@@ -228,7 +228,7 @@ public object KompactRuntime {
 
     /** Reads 32 bits at [bitOffset] as a checked [FloatResult]. NaN is canonicalized (Ticket 04). */
     public inline fun readFloat(raw: ByteArray, bitOffset: Int): FloatResult {
-        if (bitOffset < 0 || bitOffset + 32 > raw.size * 8) {
+        if (bitOffset < 0 || bitOffset.toLong() + 32L > raw.size.toLong() * 8L) {
             return FloatResult.failure(KompactDecodeError.BoundsError)
         }
         val bits = readBitsLong(raw, bitOffset, 32).toInt()
@@ -237,7 +237,7 @@ public object KompactRuntime {
 
     /** Reads 64 bits at [bitOffset] as a checked [DoubleResult]. NaN is canonicalized (Ticket 04). */
     public inline fun readDouble(raw: ByteArray, bitOffset: Int): DoubleResult {
-        if (bitOffset < 0 || bitOffset + 64 > raw.size * 8) {
+        if (bitOffset < 0 || bitOffset.toLong() + 64L > raw.size.toLong() * 8L) {
             return DoubleResult.failure(KompactDecodeError.BoundsError)
         }
         val bits = readBitsLong(raw, bitOffset, 64)

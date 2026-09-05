@@ -10,6 +10,12 @@ import kotlin.jvm.JvmInline
 @JvmInline
 public actual value class VehicleTelemetry(public actual val raw: ByteArray) {
 
+    init {
+        require(raw.size >= 2) {
+            "VehicleTelemetry requires a buffer of at least 2 bytes (16-bit layout, bits 0-15); got ${raw.size}"
+        }
+    }
+
     @KompactField(bitOffset = 0, bitWidth = 4)
     public actual val batteryStatus: Int get() = KompactRuntime.readBits(raw, 0, 4)
 

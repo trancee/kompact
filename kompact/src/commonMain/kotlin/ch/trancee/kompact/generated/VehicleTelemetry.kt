@@ -23,6 +23,12 @@ import ch.trancee.kompact.runtime.KompactModel
 @KompactModel
 public expect value class VehicleTelemetry(public val raw: ByteArray) {
 
+    // F-001: the platform actuals validate raw.size >= 2 (the 16-bit layout,
+    // bits 0-15) in their constructor init-blocks, failing fast with
+    // IllegalArgumentException on a truncated buffer (Ticket 06) rather than a
+    // delayed AIOOBE at field-access. These getters stay the raw zero-alloc fast
+    // path (Ticket 08:39); decode untrusted input via the checked accessors.
+
     @KompactField(bitOffset = 0, bitWidth = 4)
     public val batteryStatus: Int
 

@@ -3,6 +3,7 @@ package ch.trancee.kompact.generated
 import ch.trancee.kompact.runtime.KompactRuntime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class VehicleTelemetryTest {
 
@@ -75,5 +76,26 @@ class VehicleTelemetryTest {
         assertEquals(0, batteryStatus)
         assertEquals(0, speed)
         assertEquals(false, isMalfunctioning)
+    }
+
+    // === F-001: constructor must validate the in-format buffer precondition ===
+    // The 16-bit layout ([0..15]) requires >= 2 bytes. A truncated/untrusted
+    // buffer must fail fast at construction with a clear IllegalArgumentException
+    // (fail-fast, Ticket 06) rather than a delayed ArrayIndexOutOfBoundsException
+    // at field-access time. The raw getters remain the zero-alloc fast path
+    // (Ticket 08:39); untrusted input should use the checked accessors instead.
+
+    @Test
+    fun constructorRejectsTruncatedBuffer() {
+        assertFailsWith<IllegalArgumentException> { VehicleTelemetry(ByteArray(0)) }
+        assertFailsWith<IllegalArgumentException> { VehicleTelemetry(ByteArray(1)) }
+    }
+
+    @Test
+    fun constructorAcceptsInFormatBuffer() {
+        val tel = VehicleTelemetry(ByteArray(2))
+        assertEquals(0, tel.batteryStatus)
+        assertEquals(0, tel.speed)
+        assertEquals(false, tel.isMalfunctioning)
     }
 }

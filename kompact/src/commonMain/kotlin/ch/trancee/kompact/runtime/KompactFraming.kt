@@ -69,12 +69,19 @@ public object KompactFraming {
         prefixBitWidth: Int
     ): Pair<Int, Int>? {
         if (bitOffset < 0 || prefixBitWidth !in VALID_PREFIX_WIDTHS) return null
-        if (bitOffset + prefixBitWidth > raw.size * 8) return null
+        if (!KompactRuntime.fits(raw, bitOffset, prefixBitWidth)) return null
         val byteCount = readLengthPrefix(raw, bitOffset, prefixBitWidth)
         if (byteCount < 0) return null
+        // (startBit, bitLength) is an Int pair: a payload whose bit-length would
+        // overflow signed Int is unrepresentable, so fail fast to null (a typed
+        // TruncatedNested at the caller, Ticket 06/09) instead of wrapping to a
+        // negative length. A 32-bit prefix can encode up to Int.MAX_VALUE
+        // (0x7FFFFFFF) bytes; byteCount*8 overflows Int above Int.MAX_VALUE/8
+        // = 268,435,455 bytes. Reject counts beyond that here (F-003).
+        if (byteCount > Int.MAX_VALUE / 8) return null
         val regionStart = bitOffset + prefixBitWidth
-        val regionBits = byteCount * 8
-        if (regionStart + regionBits > raw.size * 8) return null
+        val regionBits = byteCount * 8 // safe: byteCount <= Int.MAX_VALUE/8 -> regionBits <= Int.MAX_VALUE - 7
+        if (!KompactRuntime.fits(raw, regionStart, regionBits)) return null
         return regionStart to regionBits
     }
 

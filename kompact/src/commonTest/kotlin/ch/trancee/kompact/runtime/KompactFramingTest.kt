@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 /**
  * Ticket 05: sequential, length-delimited framing (fixed-width LE byte-count
@@ -111,5 +112,28 @@ class KompactFramingTest {
         val buf = ByteArray(4)
         KompactFraming.writeLengthPrefix(buf, 0, 16, 7)
         assertEquals(7, KompactFraming.readLengthPrefix(buf, 0, 16))
+    }
+
+    // --- 32-bit length prefix + nested region (Ticket 05) ---
+    // F-003: a 32-bit prefix encoding Int.MAX_VALUE (0x7FFFFFFF) wraps byteCount*8
+    // to a negative region bit-length under Int arithmetic and returns a corrupt
+    // Pair(32, -8). The bit-length is unrepresentable in the Int-pair contract,
+    // so it must fail fast to null (TruncatedNested at the caller, Ticket 06/09).
+
+    @Test
+    fun nestedRegionOrNull_rejectsIntMaxByteCountPrefix() {
+        val buf = byteArrayOf(0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0x7F)
+        // 32-bit LE prefix = 0x7FFFFFFF = Int.MAX_VALUE bytes (largest positive count).
+        assertNull(KompactFraming.nestedRegionOrNull(buf, 0, 32), "0x7FFFFFFF prefix must return null, not a corrupt Pair")
+    }
+
+    @Test
+    fun nestedRegionOrNull32_roundTripsLegitByteCount() {
+        val buf = ByteArray(8)
+        KompactFraming.writeLengthPrefix(buf, 0, 32, 4)
+        val r = KompactFraming.nestedRegionOrNull(buf, 0, 32)
+        assertNotNull(r)
+        assertEquals(32, r.first)   // prefix occupies [0..31], payload starts at bit 32
+        assertEquals(32, r.second) // 4 bytes * 8 bits = 32-bit payload
     }
 }
