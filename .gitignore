@@ -10,6 +10,9 @@ gradle/wrapper/dists/
 *.class
 *.klib
 *.knp
+# The Gradle wrapper jar MUST be committed (gradle/wrapper/gradle-wrapper.jar) so
+# `./gradlew` works in CI/dev — un-ignore it despite the *.jar rule above.
+!gradle/wrapper/gradle-wrapper.jar
 
 # IDE
 .idea/
