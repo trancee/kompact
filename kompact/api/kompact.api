@@ -181,7 +181,6 @@ public final class ch/trancee/kompact/runtime/KompactFraming {
 	public static final field INSTANCE Lch/trancee/kompact/runtime/KompactFraming;
 	public final fun getVALID_PREFIX_WIDTHS ()Ljava/util/Set;
 	public final fun nestedRegionOrNull ([BII)Lkotlin/Pair;
-	public final fun readCountPrefix ([BII)I
 	public final fun readLengthPrefix ([BII)I
 	public final fun writeLengthPrefix ([BIII)V
 }
@@ -198,14 +197,8 @@ public final class ch/trancee/kompact/runtime/KompactRuntime {
 	public final fun readBool-8-YI_fo ([BI)J
 	public final fun readDouble-HEcpYgM ([BI)J
 	public final fun readFloat-jORRDc0 ([BI)J
-	public final fun readInt16-xlB7gnY ([BII)J
-	public final fun readInt32-TxaLSrY ([BII)J
-	public final fun readInt64--8k1EKY ([BII)J
-	public final fun readInt8-uD3HChw ([BII)J
-	public final fun readUInt16-xlB7gnY ([BII)J
-	public final fun readUInt32-TxaLSrY ([BII)J
-	public final fun readUInt64--8k1EKY ([BII)J
-	public final fun readUInt8-uD3HChw ([BII)J
+	public final fun readScalar-Wm7bNI4 ([BIIZ)J
+	public final fun readScalarLong-UQ2bvJM ([BIIZ)J
 	public final fun writeBits ([BIII)V
 	public final fun writeBitsBoolean ([BIZ)V
 	public final fun writeBitsLong ([BIIJ)V
@@ -220,16 +213,12 @@ public final class ch/trancee/kompact/runtime/KompactWriter {
 	public final fun writeBitsLong (IJ)V
 	public final fun writeBlob (I[B)V
 	public final fun writeBool (Z)V
-	public final fun writeEnum (II)V
-	public final fun writeInt (II)V
-	public final fun writeInt64 (IJ)V
 	public final fun writeNested (ILkotlin/jvm/functions/Function1;)V
 	public static synthetic fun writeNested$default (Lch/trancee/kompact/runtime/KompactWriter;ILkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public final fun writeRepeated (IILkotlin/jvm/functions/Function1;)V
 	public static synthetic fun writeRepeated$default (Lch/trancee/kompact/runtime/KompactWriter;IILkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun writeScalar (IJ)V
 	public final fun writeString (ILjava/lang/String;)V
-	public final fun writeUInt (II)V
-	public final fun writeUInt (IJ)V
 }
 
 public final class ch/trancee/kompact/runtime/KompactWriter$Companion {

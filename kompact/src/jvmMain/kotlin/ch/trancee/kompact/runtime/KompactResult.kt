@@ -13,7 +13,7 @@ public actual value class ByteResult(public actual val packed: Long) {
         if (isSuccess) null else decodeErrorFromSmallBits(packed)
     public actual fun getOrThrow(): Byte =
         if (isSuccess) (packed and RESULT_VALUE_MASK).toByte()
-        else throw KompactDecodeException(decodeErrorFromSmallBits(packed))
+        else throwSmallFailure(packed)
     public actual companion object {
         public actual fun success(value: Byte): ByteResult =
             ByteResult(encodeSmallSuccess(value.toLong()))
@@ -30,7 +30,7 @@ public actual value class ShortResult(public actual val packed: Long) {
         if (isSuccess) null else decodeErrorFromSmallBits(packed)
     public actual fun getOrThrow(): Short =
         if (isSuccess) (packed and RESULT_VALUE_MASK).toShort()
-        else throw KompactDecodeException(decodeErrorFromSmallBits(packed))
+        else throwSmallFailure(packed)
     public actual companion object {
         public actual fun success(value: Short): ShortResult =
             ShortResult(encodeSmallSuccess(value.toLong()))
@@ -47,7 +47,7 @@ public actual value class IntResult(public actual val packed: Long) {
         if (isSuccess) null else decodeErrorFromSmallBits(packed)
     public actual fun getOrThrow(): Int =
         if (isSuccess) (packed and RESULT_VALUE_MASK).toInt()
-        else throw KompactDecodeException(decodeErrorFromSmallBits(packed))
+        else throwSmallFailure(packed)
     public actual companion object {
         public actual fun success(value: Int): IntResult =
             IntResult(encodeSmallSuccess(value.toLong()))
@@ -64,7 +64,7 @@ public actual value class FloatResult(public actual val packed: Long) {
         if (isSuccess) null else decodeErrorFromSmallBits(packed)
     public actual fun getOrThrow(): Float =
         if (isSuccess) Float.fromBits((packed and RESULT_VALUE_MASK).toInt())
-        else throw KompactDecodeException(decodeErrorFromSmallBits(packed))
+        else throwSmallFailure(packed)
     public actual companion object {
         public actual fun success(value: Float): FloatResult =
             FloatResult(encodeSmallSuccess(encodeFloatSuccess(value)))
@@ -81,7 +81,7 @@ public actual value class BooleanResult(public actual val packed: Long) {
         if (isSuccess) null else decodeErrorFromSmallBits(packed)
     public actual fun getOrThrow(): Boolean =
         if (isSuccess) (packed and RESULT_VALUE_MASK) != 0L
-        else throw KompactDecodeException(decodeErrorFromSmallBits(packed))
+        else throwSmallFailure(packed)
     public actual companion object {
         public actual fun success(value: Boolean): BooleanResult =
             BooleanResult(encodeSmallSuccess(if (value) 1L else 0L))
@@ -99,7 +99,7 @@ public actual value class LongResult(public actual val packed: Long) {
         if (isSuccess) null else decodeLongError(packed)
     public actual fun getOrThrow(): Long =
         if (isSuccess) packed
-        else throw KompactDecodeException(decodeLongError(packed))
+        else throwLongFailure(packed)
     public actual companion object {
         public actual fun success(value: Long): LongResult = LongResult(value)
         public actual fun failure(error: KompactDecodeError): LongResult =
@@ -116,7 +116,7 @@ public actual value class DoubleResult(public actual val packed: Long) {
         if (isSuccess) null else decodeDoubleError(packed)
     public actual fun getOrThrow(): Double =
         if (isSuccess) Double.fromBits(packed)
-        else throw KompactDecodeException(decodeDoubleError(packed))
+        else throwDoubleFailure(packed)
     public actual companion object {
         public actual fun success(value: Double): DoubleResult =
             DoubleResult(encodeDoubleSuccess(value))

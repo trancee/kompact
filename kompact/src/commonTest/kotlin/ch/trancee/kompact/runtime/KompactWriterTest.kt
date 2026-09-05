@@ -29,39 +29,39 @@ class KompactWriterTest {
     }
 
     @Test
-    fun writeInt8_signExtended_roundTrip() {
+    fun writeScalar_width8_signed_roundTrip() {
         val w = KompactWriter()
-        w.writeInt(8, -5)
+        w.writeScalar(8, -5L)
         val buf = w.build()
-        val r = KompactRuntime.readInt8(buf, 0, 8)
+        val r = KompactRuntime.readScalar(buf, 0, 8, signed = true)
         assertTrue(r.isSuccess)
-        assertEquals(-5, r.getOrThrow().toInt())
+        assertEquals(-5, r.getOrThrow())
     }
 
     @Test
-    fun writeUInt16_roundTrip() {
+    fun writeScalar_width16_unsigned_roundTrip() {
         val w = KompactWriter()
-        w.writeUInt(16, 1023)
+        w.writeScalar(16, 1023L)
         val buf = w.build()
-        val r = KompactRuntime.readUInt16(buf, 0, 16)
+        val r = KompactRuntime.readScalar(buf, 0, 16, signed = false)
         assertTrue(r.isSuccess)
-        assertEquals(1023, r.getOrThrow().toInt())
+        assertEquals(1023, r.getOrThrow())
     }
 
     @Test
-    fun writeInt32_negative_roundTrip() {
+    fun writeScalar_width32_signed_negative_roundTrip() {
         val w = KompactWriter()
-        w.writeInt(32, -1)
+        w.writeScalar(32, -1L)
         val buf = w.build()
-        val r = KompactRuntime.readInt32(buf, 0, 32)
+        val r = KompactRuntime.readScalar(buf, 0, 32, signed = true)
         assertTrue(r.isSuccess)
-        assertEquals(-1, r.getOrThrow().toInt())
+        assertEquals(-1, r.getOrThrow())
     }
 
     @Test
-    fun writeEnum_roundTrip() {
+    fun writeScalar_width4_roundTrip() {
         val w = KompactWriter()
-        w.writeEnum(width = 4, code = 7)
+        w.writeScalar(bitWidth = 4, value = 7L)
         val buf = w.build()
         assertEquals(7, KompactRuntime.readBits(buf, 0, 4))
     }
@@ -95,8 +95,8 @@ class KompactWriterTest {
     fun writeNested_emitsPrefixThenChildBytes() {
         val w = KompactWriter()
         w.writeNested(lengthPrefixWidth = 16) {
-            writeInt(8, 0xAB)
-            writeInt(8, 0xCD)
+            writeScalar(8, 0xABL)
+            writeScalar(8, 0xCDL)
         }
         val buf = w.build()
         // 2-byte LE prefix (length=2) + 2 payload bytes.
@@ -107,7 +107,6 @@ class KompactWriterTest {
         assertEquals(16, start)
         assertEquals(16, bitLen)
     }
-
 
     @Test
     fun writeRepeated_emitsCountThenElements() {

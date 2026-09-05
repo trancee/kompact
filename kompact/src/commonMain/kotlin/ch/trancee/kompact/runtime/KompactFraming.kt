@@ -68,8 +68,6 @@ public object KompactFraming {
         bitOffset: Int,
         prefixBitWidth: Int
     ): Pair<Int, Int>? {
-        if (bitOffset < 0 || prefixBitWidth !in VALID_PREFIX_WIDTHS) return null
-        if (!KompactRuntime.fits(raw, bitOffset, prefixBitWidth)) return null
         val byteCount = readLengthPrefix(raw, bitOffset, prefixBitWidth)
         if (byteCount < 0) return null
         // (startBit, bitLength) is an Int pair: a payload whose bit-length would
@@ -84,13 +82,5 @@ public object KompactFraming {
         if (!KompactRuntime.fits(raw, regionStart, regionBits)) return null
         return regionStart to regionBits
     }
-
-    /**
-     * Count-prefixed repeat read (Ticket 05). Returns the element count decoded
-     * from the fixed-width LE prefix at [bitOffset], or -1 when invalid/out-of-bounds.
-     * The caller then reads [count] sequential elements starting at
-     * `bitOffset + prefixBitWidth`.
-     */
-    public inline fun readCountPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int =
-        readLengthPrefix(raw, bitOffset, bitWidth)
 }
+

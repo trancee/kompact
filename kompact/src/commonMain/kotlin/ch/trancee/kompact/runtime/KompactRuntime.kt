@@ -135,49 +135,16 @@ public object KompactRuntime {
         return BooleanResult.success(readBitsBoolean(raw, bitOffset))
     }
 
-    /** Reads up to [bitWidth] bits (1..8) as a sign-extended [ByteResult]. */
-    public inline fun readInt8(raw: ByteArray, bitOffset: Int, bitWidth: Int): ByteResult {
-        if (!fits(raw, bitOffset, bitWidth) || bitWidth > 8) {
-            return ByteResult.failure(KompactDecodeError.BoundsError)
-        }
-        val magnitude = readBits(raw, bitOffset, bitWidth)
-        val shift = Int.SIZE_BITS - bitWidth
-        val signExtended = (magnitude shl shift) shr shift
-        return ByteResult.success(signExtended.toByte())
-    }
-
-    /** Reads up to [bitWidth] bits (1..8) as an unsigned [ByteResult]. */
-    public inline fun readUInt8(raw: ByteArray, bitOffset: Int, bitWidth: Int): ByteResult {
-        if (!fits(raw, bitOffset, bitWidth) || bitWidth > 8) {
-            return ByteResult.failure(KompactDecodeError.BoundsError)
-        }
-        val magnitude = readBits(raw, bitOffset, bitWidth).toByte()
-        return ByteResult.success(magnitude)
-    }
-
-    /** Reads up to [bitWidth] bits (1..16) as a sign-extended [ShortResult]. */
-    public inline fun readInt16(raw: ByteArray, bitOffset: Int, bitWidth: Int): ShortResult {
-        if (!fits(raw, bitOffset, bitWidth) || bitWidth > 16) {
-            return ShortResult.failure(KompactDecodeError.BoundsError)
-        }
-        val magnitude = readBits(raw, bitOffset, bitWidth)
-        val shift = Int.SIZE_BITS - bitWidth
-        val signExtended = (magnitude shl shift) shr shift
-        return ShortResult.success(signExtended.toShort())
-    }
-
-    /** Reads up to [bitWidth] bits (1..16) as an unsigned [ShortResult]. */
-    public inline fun readUInt16(raw: ByteArray, bitOffset: Int, bitWidth: Int): ShortResult {
-        if (!fits(raw, bitOffset, bitWidth) || bitWidth > 16) {
-            return ShortResult.failure(KompactDecodeError.BoundsError)
-        }
-        val magnitude = readBits(raw, bitOffset, bitWidth).toShort()
-        return ShortResult.success(magnitude)
-    }
-
-    /** Reads up to [bitWidth] bits (1..32) as a sign-extended [IntResult]. */
-    public inline fun readInt32(raw: ByteArray, bitOffset: Int, bitWidth: Int): IntResult {
-        if (!fits(raw, bitOffset, bitWidth) || bitWidth > 32) {
+    /**
+     * Reads up to [bitWidth] bits (1..32) as a checked [IntResult]. When [signed]
+     * is true the magnitude is sign-extended (two's-complement); when false it is
+     * zero-extended. Replaces the per-width readInt8/readInt16/readInt32 (signed)
+     * and readUInt8/readUInt16/readUInt32 (unsigned) accessors — one dispatch per
+     * width-band, not 8 overloads. Sign extension uses Long-arithmetic shifts,
+     * bit-identical to the legacy accessors (Ticket 10 deepen).
+     */
+    public inline fun readScalar(raw: ByteArray, bitOffset: Int, bitWidth: Int, signed: Boolean): IntResult {
+        if (!fits(raw, bitOffset, bitWidth) || bitWidth !in 1..32) {
             return IntResult.failure(KompactDecodeError.BoundsError)
         }
         val magnitude = if (bitWidth <= 31) {
@@ -185,45 +152,27 @@ public object KompactRuntime {
         } else {
             readBitsLong(raw, bitOffset, bitWidth)
         }
-        val shift = Long.SIZE_BITS - bitWidth
-        val signExtended = (magnitude shl shift) shr shift
-        return IntResult.success(signExtended.toInt())
+        val value = if (signed) {
+            val shift = Long.SIZE_BITS - bitWidth
+            (magnitude shl shift) shr shift
+        } else magnitude
+        return IntResult.success(value.toInt())
     }
 
-    /** Reads up to [bitWidth] bits (1..32) as an unsigned [IntResult]. */
-    public inline fun readUInt32(raw: ByteArray, bitOffset: Int, bitWidth: Int): IntResult {
-        if (!fits(raw, bitOffset, bitWidth) || bitWidth > 32) {
-            return IntResult.failure(KompactDecodeError.BoundsError)
-        }
-        val magnitude = if (bitWidth <= 31) {
-            readBits(raw, bitOffset, bitWidth).toLong()
-        } else {
-            readBitsLong(raw, bitOffset, bitWidth)
-        }
-        return IntResult.success(magnitude.toInt())
-    }
-
-    /** Reads up to [bitWidth] bits (1..64) as a sign-extended [LongResult]. */
-    public inline fun readInt64(raw: ByteArray, bitOffset: Int, bitWidth: Int): LongResult {
-        if (!fits(raw, bitOffset, bitWidth) || bitWidth > 64) {
+    /**
+     * Reads up to [bitWidth] bits (1..64) as a checked [LongResult]. When [signed]
+     * is true the magnitude is sign-extended; when false it is zero-extended.
+     * Replaces readInt64 (signed) and readUInt64 (unsigned) (Ticket 10 deepen).
+     */
+    public inline fun readScalarLong(raw: ByteArray, bitOffset: Int, bitWidth: Int, signed: Boolean): LongResult {
+        if (!fits(raw, bitOffset, bitWidth) || bitWidth !in 1..64) {
             return LongResult.failure(KompactDecodeError.BoundsError)
         }
         val magnitude = readBitsLong(raw, bitOffset, bitWidth)
-        return if (bitWidth < 64) {
+        return if (signed && bitWidth < 64) {
             val shift = Long.SIZE_BITS - bitWidth
             LongResult.success((magnitude shl shift) shr shift)
-        } else {
-            LongResult.success(magnitude)
-        }
-    }
-
-    /** Reads up to [bitWidth] bits (1..64) as an unsigned [LongResult]. */
-    public inline fun readUInt64(raw: ByteArray, bitOffset: Int, bitWidth: Int): LongResult {
-        if (!fits(raw, bitOffset, bitWidth) || bitWidth > 64) {
-            return LongResult.failure(KompactDecodeError.BoundsError)
-        }
-        val magnitude = readBitsLong(raw, bitOffset, bitWidth)
-        return LongResult.success(magnitude)
+        } else LongResult.success(magnitude)
     }
 
     /** Reads 32 bits at [bitOffset] as a checked [FloatResult]. NaN is canonicalized (Ticket 04). */

@@ -49,29 +49,15 @@ public class KompactWriter {
         bitCursor += 1
     }
 
-    /** Writes a signed integer in [bitWidth] bits, two's-complement truncation. */
-    public fun writeInt(bitWidth: Int, value: Int) {
-        if (bitWidth == 32) writeBitsLong(32, value.toLong()) else writeBits(bitWidth, value)
-    }
-
-    /** Writes an unsigned integer in [bitWidth] bits (Int form; 32-bit values go wide). */
-    public fun writeUInt(bitWidth: Int, value: Int) {
-        if (bitWidth == 32) writeBitsLong(32, value.toLong()) else writeBits(bitWidth, value)
-    }
-
-    /** Writes an unsigned integer in [bitWidth] bits (64-bit value). */
-    public fun writeUInt(bitWidth: Int, value: Long) {
-        writeBitsLong(bitWidth, value)
-    }
-
-    /** Writes a 64-bit signed integer (two's-complement truncation), [bitWidth] ∈ 1..64. */
-    public fun writeInt64(bitWidth: Int, value: Long) {
-        writeBitsLong(bitWidth, value)
-    }
-
-    /** Writes an enum/ordinal [code] in [width] bits (codegen-validated width). */
-    public fun writeEnum(width: Int, code: Int) {
-        writeBits(width, code)
+    /**
+     * Writes [bitWidth] low bits of [value] as a two's-complement magnitude (1..64).
+     * Replaces the writeInt/writeUInt/writeInt64/writeEnum overloads — one dispatch
+     * to [writeBits] (<=31) / [writeBitsLong] (32..64) (Ticket 10 deepen).
+     */
+    public fun writeScalar(bitWidth: Int, value: Long) {
+        require(bitWidth in 1..64) { "writeScalar bitWidth must be 1..64, was $bitWidth" }
+        if (bitWidth <= 31) writeBits(bitWidth, value.toInt())
+        else writeBitsLong(bitWidth, value)
     }
 
     /** Writes a length-prefixed UTF-8 string: `<prefix><bytes>` (Ticket 05). */
