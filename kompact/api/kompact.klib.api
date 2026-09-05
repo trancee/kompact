@@ -7,12 +7,24 @@
 
 // Library unique name: <ch.trancee.kompact:kompact>
 open annotation class ch.trancee.kompact.runtime/KompactField : kotlin/Annotation { // ch.trancee.kompact.runtime/KompactField|null[0]
-    constructor <init>(kotlin/Int, kotlin/Int) // ch.trancee.kompact.runtime/KompactField.<init>|<init>(kotlin.Int;kotlin.Int){}[0]
+    constructor <init>(kotlin/Int, kotlin/Int, kotlin/Int = ..., kotlin/Boolean = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/String = ..., kotlin/Boolean = ...) // ch.trancee.kompact.runtime/KompactField.<init>|<init>(kotlin.Int;kotlin.Int;kotlin.Int;kotlin.Boolean;kotlin.Int;kotlin.Int;kotlin.String;kotlin.Boolean){}[0]
 
     final val bitOffset // ch.trancee.kompact.runtime/KompactField.bitOffset|{}bitOffset[0]
         final fun <get-bitOffset>(): kotlin/Int // ch.trancee.kompact.runtime/KompactField.bitOffset.<get-bitOffset>|<get-bitOffset>(){}[0]
     final val bitWidth // ch.trancee.kompact.runtime/KompactField.bitWidth|{}bitWidth[0]
         final fun <get-bitWidth>(): kotlin/Int // ch.trancee.kompact.runtime/KompactField.bitWidth.<get-bitWidth>|<get-bitWidth>(){}[0]
+    final val defaultValue // ch.trancee.kompact.runtime/KompactField.defaultValue|{}defaultValue[0]
+        final fun <get-defaultValue>(): kotlin/String // ch.trancee.kompact.runtime/KompactField.defaultValue.<get-defaultValue>|<get-defaultValue>(){}[0]
+    final val enumWidth // ch.trancee.kompact.runtime/KompactField.enumWidth|{}enumWidth[0]
+        final fun <get-enumWidth>(): kotlin/Int // ch.trancee.kompact.runtime/KompactField.enumWidth.<get-enumWidth>|<get-enumWidth>(){}[0]
+    final val isNested // ch.trancee.kompact.runtime/KompactField.isNested|{}isNested[0]
+        final fun <get-isNested>(): kotlin/Boolean // ch.trancee.kompact.runtime/KompactField.isNested.<get-isNested>|<get-isNested>(){}[0]
+    final val isVersionField // ch.trancee.kompact.runtime/KompactField.isVersionField|{}isVersionField[0]
+        final fun <get-isVersionField>(): kotlin/Boolean // ch.trancee.kompact.runtime/KompactField.isVersionField.<get-isVersionField>|<get-isVersionField>(){}[0]
+    final val lengthPrefixWidth // ch.trancee.kompact.runtime/KompactField.lengthPrefixWidth|{}lengthPrefixWidth[0]
+        final fun <get-lengthPrefixWidth>(): kotlin/Int // ch.trancee.kompact.runtime/KompactField.lengthPrefixWidth.<get-lengthPrefixWidth>|<get-lengthPrefixWidth>(){}[0]
+    final val repeatCountWidth // ch.trancee.kompact.runtime/KompactField.repeatCountWidth|{}repeatCountWidth[0]
+        final fun <get-repeatCountWidth>(): kotlin/Int // ch.trancee.kompact.runtime/KompactField.repeatCountWidth.<get-repeatCountWidth>|<get-repeatCountWidth>(){}[0]
 }
 
 open annotation class ch.trancee.kompact.runtime/KompactModel : kotlin/Annotation { // ch.trancee.kompact.runtime/KompactModel|null[0]
@@ -24,6 +36,25 @@ final class ch.trancee.kompact.runtime/KompactDecodeException : kotlin/RuntimeEx
 
     final val error // ch.trancee.kompact.runtime/KompactDecodeException.error|{}error[0]
         final fun <get-error>(): ch.trancee.kompact.runtime/KompactDecodeError // ch.trancee.kompact.runtime/KompactDecodeException.error.<get-error>|<get-error>(){}[0]
+}
+
+final class ch.trancee.kompact.runtime/KompactWriter { // ch.trancee.kompact.runtime/KompactWriter|null[0]
+    constructor <init>() // ch.trancee.kompact.runtime/KompactWriter.<init>|<init>(){}[0]
+
+    final var bitCursor // ch.trancee.kompact.runtime/KompactWriter.bitCursor|{}bitCursor[0]
+        final fun <get-bitCursor>(): kotlin/Int // ch.trancee.kompact.runtime/KompactWriter.bitCursor.<get-bitCursor>|<get-bitCursor>(){}[0]
+
+    final fun build(): kotlin/ByteArray // ch.trancee.kompact.runtime/KompactWriter.build|build(){}[0]
+    final fun writeBits(kotlin/Int, kotlin/Int) // ch.trancee.kompact.runtime/KompactWriter.writeBits|writeBits(kotlin.Int;kotlin.Int){}[0]
+    final fun writeBitsLong(kotlin/Int, kotlin/Long) // ch.trancee.kompact.runtime/KompactWriter.writeBitsLong|writeBitsLong(kotlin.Int;kotlin.Long){}[0]
+    final fun writeBlob(kotlin/Int, kotlin/ByteArray) // ch.trancee.kompact.runtime/KompactWriter.writeBlob|writeBlob(kotlin.Int;kotlin.ByteArray){}[0]
+    final fun writeBool(kotlin/Boolean) // ch.trancee.kompact.runtime/KompactWriter.writeBool|writeBool(kotlin.Boolean){}[0]
+    final fun writeNested(kotlin/Int = ..., kotlin/Function1<ch.trancee.kompact.runtime/KompactWriter, kotlin/Unit>) // ch.trancee.kompact.runtime/KompactWriter.writeNested|writeNested(kotlin.Int;kotlin.Function1<ch.trancee.kompact.runtime.KompactWriter,kotlin.Unit>){}[0]
+    final fun writeRepeated(kotlin/Int, kotlin/Int = ..., kotlin/Function1<ch.trancee.kompact.runtime/KompactWriter, kotlin/Unit>) // ch.trancee.kompact.runtime/KompactWriter.writeRepeated|writeRepeated(kotlin.Int;kotlin.Int;kotlin.Function1<ch.trancee.kompact.runtime.KompactWriter,kotlin.Unit>){}[0]
+    final fun writeScalar(kotlin/Int, kotlin/Long) // ch.trancee.kompact.runtime/KompactWriter.writeScalar|writeScalar(kotlin.Int;kotlin.Long){}[0]
+    final fun writeString(kotlin/Int, kotlin/String) // ch.trancee.kompact.runtime/KompactWriter.writeString|writeString(kotlin.Int;kotlin.String){}[0]
+
+    final object Companion // ch.trancee.kompact.runtime/KompactWriter.Companion|null[0]
 }
 
 final value class ch.trancee.kompact.generated/VehicleTelemetry { // ch.trancee.kompact.generated/VehicleTelemetry|null[0]
@@ -225,16 +256,26 @@ sealed class ch.trancee.kompact.runtime/KompactDecodeError { // ch.trancee.kompa
     final object TruncatedNested : ch.trancee.kompact.runtime/KompactDecodeError // ch.trancee.kompact.runtime/KompactDecodeError.TruncatedNested|null[0]
 }
 
+final object ch.trancee.kompact.runtime/KompactFraming { // ch.trancee.kompact.runtime/KompactFraming|null[0]
+    final val VALID_PREFIX_WIDTHS // ch.trancee.kompact.runtime/KompactFraming.VALID_PREFIX_WIDTHS|{}VALID_PREFIX_WIDTHS[0]
+        final fun <get-VALID_PREFIX_WIDTHS>(): kotlin.collections/Set<kotlin/Int> // ch.trancee.kompact.runtime/KompactFraming.VALID_PREFIX_WIDTHS.<get-VALID_PREFIX_WIDTHS>|<get-VALID_PREFIX_WIDTHS>(){}[0]
+
+    final inline fun nestedRegionOrNull(kotlin/ByteArray, kotlin/Int, kotlin/Int): kotlin/Pair<kotlin/Int, kotlin/Int>? // ch.trancee.kompact.runtime/KompactFraming.nestedRegionOrNull|nestedRegionOrNull(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final inline fun readLengthPrefix(kotlin/ByteArray, kotlin/Int, kotlin/Int): kotlin/Int // ch.trancee.kompact.runtime/KompactFraming.readLengthPrefix|readLengthPrefix(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final inline fun writeLengthPrefix(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Int) // ch.trancee.kompact.runtime/KompactFraming.writeLengthPrefix|writeLengthPrefix(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+}
+
 final object ch.trancee.kompact.runtime/KompactRuntime { // ch.trancee.kompact.runtime/KompactRuntime|null[0]
-    final fun readBits(kotlin/ByteArray, kotlin/Int, kotlin/Int): kotlin/Int // ch.trancee.kompact.runtime/KompactRuntime.readBits|readBits(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
-    final fun readBitsBoolean(kotlin/ByteArray, kotlin/Int): kotlin/Boolean // ch.trancee.kompact.runtime/KompactRuntime.readBitsBoolean|readBitsBoolean(kotlin.ByteArray;kotlin.Int){}[0]
-    final fun readBitsLong(kotlin/ByteArray, kotlin/Int, kotlin/Int): kotlin/Long // ch.trancee.kompact.runtime/KompactRuntime.readBitsLong|readBitsLong(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
-    final fun readBool(kotlin/ByteArray, kotlin/Int): ch.trancee.kompact.runtime/BooleanResult // ch.trancee.kompact.runtime/KompactRuntime.readBool|readBool(kotlin.ByteArray;kotlin.Int){}[0]
-    final fun readDouble(kotlin/ByteArray, kotlin/Int): ch.trancee.kompact.runtime/DoubleResult // ch.trancee.kompact.runtime/KompactRuntime.readDouble|readDouble(kotlin.ByteArray;kotlin.Int){}[0]
-    final fun readFloat(kotlin/ByteArray, kotlin/Int): ch.trancee.kompact.runtime/FloatResult // ch.trancee.kompact.runtime/KompactRuntime.readFloat|readFloat(kotlin.ByteArray;kotlin.Int){}[0]
-    final fun readScalar(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Boolean): ch.trancee.kompact.runtime/IntResult // ch.trancee.kompact.runtime/KompactRuntime.readScalar|readScalar(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Boolean){}[0]
-    final fun readScalarLong(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Boolean): ch.trancee.kompact.runtime/LongResult // ch.trancee.kompact.runtime/KompactRuntime.readScalarLong|readScalarLong(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Boolean){}[0]
-    final fun writeBits(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Int) // ch.trancee.kompact.runtime/KompactRuntime.writeBits|writeBits(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Int){}[0]
-    final fun writeBitsBoolean(kotlin/ByteArray, kotlin/Int, kotlin/Boolean) // ch.trancee.kompact.runtime/KompactRuntime.writeBitsBoolean|writeBitsBoolean(kotlin.ByteArray;kotlin.Int;kotlin.Boolean){}[0]
-    final fun writeBitsLong(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Long) // ch.trancee.kompact.runtime/KompactRuntime.writeBitsLong|writeBitsLong(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Long){}[0]
+    final inline fun fits(kotlin/ByteArray, kotlin/Int, kotlin/Int): kotlin/Boolean // ch.trancee.kompact.runtime/KompactRuntime.fits|fits(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final inline fun readBits(kotlin/ByteArray, kotlin/Int, kotlin/Int): kotlin/Int // ch.trancee.kompact.runtime/KompactRuntime.readBits|readBits(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final inline fun readBitsBoolean(kotlin/ByteArray, kotlin/Int): kotlin/Boolean // ch.trancee.kompact.runtime/KompactRuntime.readBitsBoolean|readBitsBoolean(kotlin.ByteArray;kotlin.Int){}[0]
+    final inline fun readBitsLong(kotlin/ByteArray, kotlin/Int, kotlin/Int): kotlin/Long // ch.trancee.kompact.runtime/KompactRuntime.readBitsLong|readBitsLong(kotlin.ByteArray;kotlin.Int;kotlin.Int){}[0]
+    final inline fun readBool(kotlin/ByteArray, kotlin/Int): ch.trancee.kompact.runtime/BooleanResult // ch.trancee.kompact.runtime/KompactRuntime.readBool|readBool(kotlin.ByteArray;kotlin.Int){}[0]
+    final inline fun readDouble(kotlin/ByteArray, kotlin/Int): ch.trancee.kompact.runtime/DoubleResult // ch.trancee.kompact.runtime/KompactRuntime.readDouble|readDouble(kotlin.ByteArray;kotlin.Int){}[0]
+    final inline fun readFloat(kotlin/ByteArray, kotlin/Int): ch.trancee.kompact.runtime/FloatResult // ch.trancee.kompact.runtime/KompactRuntime.readFloat|readFloat(kotlin.ByteArray;kotlin.Int){}[0]
+    final inline fun readScalar(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Boolean): ch.trancee.kompact.runtime/IntResult // ch.trancee.kompact.runtime/KompactRuntime.readScalar|readScalar(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Boolean){}[0]
+    final inline fun readScalarLong(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Boolean): ch.trancee.kompact.runtime/LongResult // ch.trancee.kompact.runtime/KompactRuntime.readScalarLong|readScalarLong(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Boolean){}[0]
+    final inline fun writeBits(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Int) // ch.trancee.kompact.runtime/KompactRuntime.writeBits|writeBits(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+    final inline fun writeBitsBoolean(kotlin/ByteArray, kotlin/Int, kotlin/Boolean) // ch.trancee.kompact.runtime/KompactRuntime.writeBitsBoolean|writeBitsBoolean(kotlin.ByteArray;kotlin.Int;kotlin.Boolean){}[0]
+    final inline fun writeBitsLong(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Long) // ch.trancee.kompact.runtime/KompactRuntime.writeBitsLong|writeBitsLong(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Long){}[0]
 }

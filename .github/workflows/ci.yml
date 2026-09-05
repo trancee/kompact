@@ -40,27 +40,3 @@ jobs:
           java-version: 21
           cache: gradle
       - run: ./gradlew :kompact:jvmTest --no-daemon
-  api-dump:
-    name: Regenerate goldens (macOS, feat/* only)
-    runs-on: macos-latest
-    if: startsWith(github.ref, 'refs/heads/feat/')
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
-          cache: gradle
-      # Regenerate ABI goldens. Only macOS can infer the ios klib ABI, so this
-      # job runs on macos-latest and is gated to feat/* pushes. We intentionally
-      # do NOT call :kompact:apiCheck here: apiCheck is the gate, and invoking
-      # it in the same gradle build as apiDump triggers Gradle's implicit-
-      # dependency validation failure (jvmApiCheck reads kompact.api without
-      # declaring a dep on jvmApiDump). The dedicated api-check job validates
-      # the committed goldens.
-      - run: ./gradlew :kompact:apiDump --no-daemon
-      - uses: actions/upload-artifact@v4
-        with:
-          name: api-goldens
-          path: kompact/api/
-          retention-days: 1
