@@ -1,5 +1,14 @@
 # Wayfinder Map: Kompact
 
+> **For library consumers (using kompact in another project):** start at the
+> project root [README.md](../../README.md), which links into
+> [docs/getting-started.md](../../docs/getting-started.md) (a verified
+> tutorial), [docs/api-reference.md](../../docs/api-reference.md),
+> [docs/architecture.md](../../docs/architecture.md), and
+> [docs/ci.md](../../docs/ci.md). This map and the tickets below are the
+> source of truth for *why* the API looks the way it does; the docs/ tree
+> is the source of truth for *how* to use it.
+
 ## Destination
 
 A decided, implementable architecture spec for **Kompact**, the bit-packed, zero-allocation Kotlin Multiplatform serialization framework described in `PROMPT.md`, ready to hand off for implementation. Reaching the end of this map means the spec locks the wire format, the common runtime API (`readBits` / `writeBits` / `readBitsBoolean` over a `ByteArray`), the generated value-class view pattern, the code-generation strategy, the validation model, the cross-platform testing model, and the performance-evidence plan — leaving no gating decisions for the person who implements it.
