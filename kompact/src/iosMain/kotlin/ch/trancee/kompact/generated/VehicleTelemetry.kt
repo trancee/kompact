@@ -1,8 +1,11 @@
+@file:OptIn(KompactPreview::class)
 package ch.trancee.kompact.generated
 
-import ch.trancee.kompact.runtime.KompactField
-import ch.trancee.kompact.runtime.KompactModel
+import ch.trancee.kompact.annotations.KompactField
+import ch.trancee.kompact.annotations.KompactModel
+import ch.trancee.kompact.annotations.KompactPreview
 import ch.trancee.kompact.runtime.KompactRuntime
+import ch.trancee.kompact.runtime.ScalarType
 
 /** iOS actual: a plain value class (Kotlin/Native) with identical field layout. */
 @KompactModel
@@ -15,11 +18,11 @@ public actual value class VehicleTelemetry(public actual val raw: ByteArray) {
     }
 
     @KompactField(bitOffset = 0, bitWidth = 4)
-    public actual val batteryStatus: Int get() = KompactRuntime.readBits(raw, 0, 4)
+    public actual val batteryStatus: Int get() = KompactRuntime.readScalar(raw, 0, ScalarType.of(4, signed = false)).getOrThrow()
 
     @KompactField(bitOffset = 4, bitWidth = 10)
-    public actual val speed: Int get() = KompactRuntime.readBits(raw, 4, 10)
+    public actual val speed: Int get() = KompactRuntime.readScalar(raw, 4, ScalarType.of(10, signed = false)).getOrThrow()
 
     @KompactField(bitOffset = 14, bitWidth = 1)
-    public actual val isMalfunctioning: Boolean get() = KompactRuntime.readBitsBoolean(raw, 14)
+    public actual val isMalfunctioning: Boolean get() = KompactRuntime.readBool(raw, 14).getOrThrow()
 }

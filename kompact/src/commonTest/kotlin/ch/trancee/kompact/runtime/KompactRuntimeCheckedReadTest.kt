@@ -52,7 +52,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalar_width8_signed_positiveValue() {
         val buf = ByteArray(1) { 0 }
         KompactRuntime.writeBits(buf, 0, 8, 42)
-        val r = KompactRuntime.readScalar(buf, 0, 8, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(8, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(42, r.getOrThrow())
     }
@@ -61,7 +61,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalar_width8_signed_negativeValue_signExtended() {
         // 8-bit value 0xC8 (200 unsigned) → -56 signed
         val buf = byteArrayOf(0xC8.toByte())
-        val r = KompactRuntime.readScalar(buf, 0, 8, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(8, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(-56, r.getOrThrow())
     }
@@ -70,7 +70,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalar_width8_signed_smallBitWidth_signExtended() {
         // 4-bit value 0b1111 (15 unsigned) → -1 signed
         val buf = byteArrayOf(0x0F.toByte())
-        val r = KompactRuntime.readScalar(buf, 0, 4, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(4, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(-1, r.getOrThrow())
     }
@@ -79,7 +79,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalar_width8_signed_smallBitWidth_positive() {
         val buf = ByteArray(1) { 0 }
         KompactRuntime.writeBits(buf, 0, 4, 5)
-        val r = KompactRuntime.readScalar(buf, 0, 4, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(4, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(5, r.getOrThrow())
     }
@@ -87,7 +87,7 @@ class KompactRuntimeCheckedReadTest {
     @Test
     fun readScalar_boundsError_shortBuffer() {
         val buf = ByteArray(1) { 0 }
-        val r = KompactRuntime.readScalar(buf, 4, 8, signed = true) // needs 12 bits, only 8 available
+        val r = KompactRuntime.readScalar(buf, 4, ScalarType.of(8, signed = true)) // needs 12 bits, only 8 available
         assertFalse(r.isSuccess)
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
@@ -95,7 +95,7 @@ class KompactRuntimeCheckedReadTest {
     @Test
     fun readScalar_boundsError_bitWidthTooLarge() {
         val buf = ByteArray(1) { 0 }
-        val r = KompactRuntime.readScalar(buf, 0, 33, signed = true) // max 32
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(33, signed = true)) // max 32
         assertFalse(r.isSuccess)
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
@@ -103,7 +103,7 @@ class KompactRuntimeCheckedReadTest {
     @Test
     fun readScalar_width8_unsigned_value() {
         // 0xFF as unsigned → 255 (zero-extended to Int)
-        val r = KompactRuntime.readScalar(byteArrayOf(0xFF.toByte()), 0, 8, signed = false)
+        val r = KompactRuntime.readScalar(byteArrayOf(0xFF.toByte()), 0, ScalarType.of(8, signed = false))
         assertTrue(r.isSuccess)
         assertEquals(255, r.getOrThrow())
     }
@@ -112,14 +112,14 @@ class KompactRuntimeCheckedReadTest {
     fun readScalar_width8_unsigned_smallBitWidth() {
         val buf = ByteArray(1) { 0 }
         KompactRuntime.writeBits(buf, 0, 3, 7)
-        val r = KompactRuntime.readScalar(buf, 0, 3, signed = false)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(3, signed = false))
         assertTrue(r.isSuccess)
         assertEquals(7, r.getOrThrow())
     }
 
     @Test
     fun readScalar_width8_unsigned_boundsError_shortBuffer() {
-        val r = KompactRuntime.readScalar(ByteArray(0), 0, 4, signed = false)
+        val r = KompactRuntime.readScalar(ByteArray(0), 0, ScalarType.of(4, signed = false))
         assertFalse(r.isSuccess)
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
@@ -130,7 +130,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalar_width16_signed_positiveValue() {
         val buf = ByteArray(2) { 0 }
         KompactRuntime.writeBits(buf, 0, 16, 1024)
-        val r = KompactRuntime.readScalar(buf, 0, 16, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(16, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(1024, r.getOrThrow())
     }
@@ -141,7 +141,7 @@ class KompactRuntimeCheckedReadTest {
         val buf = ByteArray(2) { 0 }
         buf[0] = 0x00.toByte()
         buf[1] = 0x80.toByte() // LSB-first: low byte = 0x00, high byte = 0x80
-        val r = KompactRuntime.readScalar(buf, 0, 16, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(16, signed = true))
         assertTrue(r.isSuccess)
     assertEquals(Short.MIN_VALUE.toInt(), r.getOrThrow())
     }
@@ -150,7 +150,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalar_width16_signed_smallBitWidth() {
         // 5-bit value 0b11111 (31 unsigned) → -1 signed
         val buf = byteArrayOf(0x1F)
-        val r = KompactRuntime.readScalar(buf, 0, 5, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(5, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(-1, r.getOrThrow())
     }
@@ -158,7 +158,7 @@ class KompactRuntimeCheckedReadTest {
     @Test
     fun readScalar_width16_signed_boundsError_shortBuffer() {
         val buf = ByteArray(1) { 0 }
-        val r = KompactRuntime.readScalar(buf, 4, 16, signed = true) // needs 20 bits, only 8 available
+        val r = KompactRuntime.readScalar(buf, 4, ScalarType.of(16, signed = true)) // needs 20 bits, only 8 available
         assertFalse(r.isSuccess)
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
@@ -168,7 +168,7 @@ class KompactRuntimeCheckedReadTest {
         val buf = ByteArray(2) { 0 }
         buf[0] = 0xFF.toByte()
         buf[1] = 0xFF.toByte()
-        val r = KompactRuntime.readScalar(buf, 0, 16, signed = false)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(16, signed = false))
         assertTrue(r.isSuccess)
         assertEquals(65535, r.getOrThrow())
     }
@@ -179,7 +179,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalar_width32_signed_positiveValue() {
         val buf = ByteArray(4) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 32, 1_000_000L)
-        val r = KompactRuntime.readScalar(buf, 0, 32, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(32, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(1_000_000, r.getOrThrow())
     }
@@ -188,7 +188,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalar_width32_signed_negativeValue() {
         val buf = ByteArray(4) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 32, 0xFF80_0000L)
-        val r = KompactRuntime.readScalar(buf, 0, 32, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(32, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(-8_388_608, r.getOrThrow())
     }
@@ -197,7 +197,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalar_width32_signed_maxInt() {
         val buf = ByteArray(4) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 32, Int.MAX_VALUE.toLong())
-        val r = KompactRuntime.readScalar(buf, 0, 32, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(32, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(Int.MAX_VALUE, r.getOrThrow())
     }
@@ -206,7 +206,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalar_width32_signed_minInt() {
         val buf = ByteArray(4) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 32, Int.MIN_VALUE.toLong())
-        val r = KompactRuntime.readScalar(buf, 0, 32, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(32, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(Int.MIN_VALUE, r.getOrThrow())
     }
@@ -216,7 +216,7 @@ class KompactRuntimeCheckedReadTest {
         // 10-bit value 1008
         val buf = ByteArray(2) { 0 }
         KompactRuntime.writeBits(buf, 0, 10, 1008)
-        val r = KompactRuntime.readScalar(buf, 0, 10, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(10, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(-16, r.getOrThrow())
     }
@@ -224,7 +224,7 @@ class KompactRuntimeCheckedReadTest {
     @Test
     fun readScalar_width32_signed_boundsError_shortBuffer() {
         val buf = ByteArray(3) { 0 }
-        val r = KompactRuntime.readScalar(buf, 0, 32, signed = true) // needs 32 bits, only 24 available
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(32, signed = true)) // needs 32 bits, only 24 available
         assertFalse(r.isSuccess)
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
@@ -233,7 +233,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalar_width32_unsigned_value() {
         val buf = ByteArray(4) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 32, 0xFFFF_FFFFL)
-        val r = KompactRuntime.readScalar(buf, 0, 32, signed = false)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(32, signed = false))
         assertTrue(r.isSuccess)
         assertEquals(-1, r.getOrThrow()) // 0xFFFFFFFF as signed Int = -1
         assertEquals(0xFFFF_FFFFL, r.getOrThrow().toLong() and 0xFFFF_FFFFL)
@@ -245,7 +245,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalarLong_width64_signed_maxValue() {
         val buf = ByteArray(8) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 64, Long.MAX_VALUE)
-        val r = KompactRuntime.readScalarLong(buf, 0, 64, signed = true)
+        val r = KompactRuntime.readScalarAsLong(buf, 0, ScalarType.of(64, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(Long.MAX_VALUE, r.getOrThrow())
     }
@@ -257,7 +257,7 @@ class KompactRuntimeCheckedReadTest {
         val value = Long.MIN_VALUE + (1L shl 58)
         val buf = ByteArray(8) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 64, value)
-        val r = KompactRuntime.readScalarLong(buf, 0, 64, signed = true)
+        val r = KompactRuntime.readScalarAsLong(buf, 0, ScalarType.of(64, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(value, r.getOrThrow())
     }
@@ -266,7 +266,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalarLong_width64_signed_negativeValue() {
         val buf = ByteArray(8) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 64, -1L)
-        val r = KompactRuntime.readScalarLong(buf, 0, 64, signed = true)
+        val r = KompactRuntime.readScalarAsLong(buf, 0, ScalarType.of(64, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(-1L, r.getOrThrow())
     }
@@ -275,7 +275,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalarLong_width64_signed_smallBitWidth_signExtended() {
         // 4-bit value 0b1111 (15 unsigned) → -1 signed
         val buf = byteArrayOf(0x0F.toByte())
-        val r = KompactRuntime.readScalarLong(buf, 0, 4, signed = true)
+        val r = KompactRuntime.readScalarAsLong(buf, 0, ScalarType.of(4, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(-1L, r.getOrThrow())
     }
@@ -285,7 +285,7 @@ class KompactRuntimeCheckedReadTest {
         // 0x4000_0000_0000_0000 is outside the LongResult failure sentinel range
         val buf = ByteArray(8) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 64, 0x4000_0000_0000_0000L)
-        val r = KompactRuntime.readScalarLong(buf, 0, 64, signed = true)
+        val r = KompactRuntime.readScalarAsLong(buf, 0, ScalarType.of(64, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(0x4000_0000_0000_0000L, r.getOrThrow())
     }
@@ -293,7 +293,7 @@ class KompactRuntimeCheckedReadTest {
     @Test
     fun readScalarLong_width64_signed_boundsError_shortBuffer() {
         val buf = ByteArray(7) { 0 }
-        val r = KompactRuntime.readScalarLong(buf, 0, 64, signed = true) // needs 64 bits, only 56 available
+        val r = KompactRuntime.readScalarAsLong(buf, 0, ScalarType.of(64, signed = true)) // needs 64 bits, only 56 available
         assertFalse(r.isSuccess)
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
@@ -302,7 +302,7 @@ class KompactRuntimeCheckedReadTest {
     fun readScalarLong_width64_unsigned_value() {
         val buf = ByteArray(8) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 64, -1L)
-        val r = KompactRuntime.readScalarLong(buf, 0, 64, signed = false)
+        val r = KompactRuntime.readScalarAsLong(buf, 0, ScalarType.of(64, signed = false))
         assertTrue(r.isSuccess)
         assertEquals(-1L, r.getOrThrow())
     }
@@ -311,14 +311,14 @@ class KompactRuntimeCheckedReadTest {
     fun readScalarLong_width64_unsigned_smallBitWidth() {
         val buf = ByteArray(1) { 0 }
         KompactRuntime.writeBits(buf, 0, 3, 5)
-        val r = KompactRuntime.readScalarLong(buf, 0, 3, signed = false)
+        val r = KompactRuntime.readScalarAsLong(buf, 0, ScalarType.of(3, signed = false))
         assertTrue(r.isSuccess)
         assertEquals(5L, r.getOrThrow())
     }
 
     @Test
     fun readScalarLong_width64_unsigned_boundsError_shortBuffer() {
-        val r = KompactRuntime.readScalarLong(ByteArray(4), 0, 64, signed = false)
+        val r = KompactRuntime.readScalarAsLong(ByteArray(4), 0, ScalarType.of(64, signed = false))
         assertFalse(r.isSuccess)
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
@@ -433,8 +433,8 @@ class KompactRuntimeCheckedReadTest {
     fun boundsChecks_survive256MiBBuffer() {
         val buf = ByteArray(1 shl 28) // 268_435_456 bytes -> 2^31 bits (Int-overflow threshold)
         assertTrue(KompactRuntime.readBool(buf, 0).isSuccess, "readBool must succeed on a 256 MiB buffer")
-        assertTrue(KompactRuntime.readScalar(buf, 0, 8, signed = false).isSuccess, "readScalar/8 unsigned must succeed")
-        assertTrue(KompactRuntime.readScalar(buf, 0, 32, signed = true).isSuccess, "readScalar/32 signed must succeed")
+        assertTrue(KompactRuntime.readScalar(buf, 0, ScalarType.of(8, signed = false)).isSuccess, "readScalar/8 unsigned must succeed")
+        assertTrue(KompactRuntime.readScalar(buf, 0, ScalarType.of(32, signed = true)).isSuccess, "readScalar/32 signed must succeed")
         assertTrue(KompactRuntime.readFloat(buf, 0).isSuccess, "readFloat must succeed")
         assertTrue(KompactRuntime.readDouble(buf, 0).isSuccess, "readDouble must succeed")
     }

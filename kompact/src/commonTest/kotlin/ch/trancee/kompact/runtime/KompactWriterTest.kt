@@ -31,9 +31,9 @@ class KompactWriterTest {
     @Test
     fun writeScalar_width8_signed_roundTrip() {
         val w = KompactWriter()
-        w.writeScalar(8, -5L)
+        w.writeScalar(ScalarType.of(8, signed = true), -5L)
         val buf = w.build()
-        val r = KompactRuntime.readScalar(buf, 0, 8, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(8, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(-5, r.getOrThrow())
     }
@@ -41,9 +41,9 @@ class KompactWriterTest {
     @Test
     fun writeScalar_width16_unsigned_roundTrip() {
         val w = KompactWriter()
-        w.writeScalar(16, 1023L)
+        w.writeScalar(ScalarType.of(16, signed = false), 1023L)
         val buf = w.build()
-        val r = KompactRuntime.readScalar(buf, 0, 16, signed = false)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(16, signed = false))
         assertTrue(r.isSuccess)
         assertEquals(1023, r.getOrThrow())
     }
@@ -51,9 +51,9 @@ class KompactWriterTest {
     @Test
     fun writeScalar_width32_signed_negative_roundTrip() {
         val w = KompactWriter()
-        w.writeScalar(32, -1L)
+        w.writeScalar(ScalarType.of(32, signed = true), -1L)
         val buf = w.build()
-        val r = KompactRuntime.readScalar(buf, 0, 32, signed = true)
+        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(32, signed = true))
         assertTrue(r.isSuccess)
         assertEquals(-1, r.getOrThrow())
     }
@@ -61,7 +61,7 @@ class KompactWriterTest {
     @Test
     fun writeScalar_width4_roundTrip() {
         val w = KompactWriter()
-        w.writeScalar(bitWidth = 4, value = 7L)
+        w.writeScalar(ScalarType.of(4, signed = false), 7L)
         val buf = w.build()
         assertEquals(7, KompactRuntime.readBits(buf, 0, 4))
     }
@@ -95,8 +95,8 @@ class KompactWriterTest {
     fun writeNested_emitsPrefixThenChildBytes() {
         val w = KompactWriter()
         w.writeNested(lengthPrefixWidth = 16) {
-            writeScalar(8, 0xABL)
-            writeScalar(8, 0xCDL)
+            writeScalar(ScalarType.of(8, signed = false), 0xABL)
+            writeScalar(ScalarType.of(8, signed = false), 0xCDL)
         }
         val buf = w.build()
         // 2-byte LE prefix (length=2) + 2 payload bytes.

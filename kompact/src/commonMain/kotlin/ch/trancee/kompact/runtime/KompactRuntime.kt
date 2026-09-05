@@ -136,14 +136,16 @@ public object KompactRuntime {
     }
 
     /**
-     * Reads up to [bitWidth] bits (1..32) as a checked [IntResult]. When [signed]
-     * is true the magnitude is sign-extended (two's-complement); when false it is
-     * zero-extended. Replaces the per-width readInt8/readInt16/readInt32 (signed)
-     * and readUInt8/readUInt16/readUInt32 (unsigned) accessors — one dispatch per
-     * width-band, not 8 overloads. Sign extension uses Long-arithmetic shifts,
-     * bit-identical to the legacy accessors (Ticket 10 deepen).
+     * Reads up to [bitWidth] bits of [type] as a checked [IntResult]. The width
+     * (1..32) and signedness come from [type], so a single accessor replaces the
+     * 8 per-width readInt8/16/32 and readUInt8/16/32 overloads (Ticket 10 deepen).
+     * Sign extension uses Long-arithmetic shifts, bit-identical to the legacy
+     * accessors. Callers pass a [ScalarType]; see [readScalarOrThrow] for the
+     * exceptions variant.
      */
-    public inline fun readScalar(raw: ByteArray, bitOffset: Int, bitWidth: Int, signed: Boolean): IntResult {
+    public inline fun readScalar(raw: ByteArray, bitOffset: Int, type: ScalarType): IntResult {
+        val bitWidth = type.bitWidth
+        val signed = type.signed
         if (!fits(raw, bitOffset, bitWidth) || bitWidth !in 1..32) {
             return IntResult.failure(KompactDecodeError.BoundsError)
         }
@@ -160,11 +162,15 @@ public object KompactRuntime {
     }
 
     /**
-     * Reads up to [bitWidth] bits (1..64) as a checked [LongResult]. When [signed]
-     * is true the magnitude is sign-extended; when false it is zero-extended.
-     * Replaces readInt64 (signed) and readUInt64 (unsigned) (Ticket 10 deepen).
+     * Reads up to [bitWidth] bits of [type] as a checked [LongResult] (1..64).
+     * Width/signedness derive from [type]; sign extension (two's-complement)
+     * uses Long-arithmetic shifts. Replaces readScalarLong(w, b, signed);
+     * callers pass a [ScalarType] carrying the UInt64/Int64 bands (Ticket 10
+     * deepen). See [readScalarAsLongOrThrow] for the exceptions variant.
      */
-    public inline fun readScalarLong(raw: ByteArray, bitOffset: Int, bitWidth: Int, signed: Boolean): LongResult {
+    public inline fun readScalarAsLong(raw: ByteArray, bitOffset: Int, type: ScalarType): LongResult {
+        val bitWidth = type.bitWidth
+        val signed = type.signed
         if (!fits(raw, bitOffset, bitWidth) || bitWidth !in 1..64) {
             return LongResult.failure(KompactDecodeError.BoundsError)
         }
@@ -192,4 +198,24 @@ public object KompactRuntime {
         val bits = readBitsLong(raw, bitOffset, 64)
         return DoubleResult.success(Double.fromBits(bits))
     }
+
+    /** Throws [KompactDecodeException] on a bounds error; otherwise reads 1 bit as a [Boolean] (Ticket 04). */
+    public inline fun readBoolOrThrow(raw: ByteArray, bitOffset: Int): Boolean =
+        readBool(raw, bitOffset).getOrThrow()
+
+    /** Throws [KompactDecodeException] on a bounds error; otherwise decodes [type] bits as an [Int] (Ticket 04). */
+    public inline fun readScalarOrThrow(raw: ByteArray, bitOffset: Int, type: ScalarType): Int =
+        readScalar(raw, bitOffset, type).getOrThrow()
+
+    /** Throws [KompactDecodeException] on a bounds error; otherwise decodes [type] bits as a [Long] (Ticket 04). */
+    public inline fun readScalarAsLongOrThrow(raw: ByteArray, bitOffset: Int, type: ScalarType): Long =
+        readScalarAsLong(raw, bitOffset, type).getOrThrow()
+
+    /** Throws [KompactDecodeException] on a bounds error; otherwise reads 32 bits as a [Float] (Ticket 04). */
+    public inline fun readFloatOrThrow(raw: ByteArray, bitOffset: Int): Float =
+        readFloat(raw, bitOffset).getOrThrow()
+
+    /** Throws [KompactDecodeException] on a bounds error; otherwise reads 64 bits as a [Double] (Ticket 04). */
+    public inline fun readDoubleOrThrow(raw: ByteArray, bitOffset: Int): Double =
+        readDouble(raw, bitOffset).getOrThrow()
 }

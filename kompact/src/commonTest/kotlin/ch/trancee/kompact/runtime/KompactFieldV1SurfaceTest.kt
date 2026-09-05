@@ -1,6 +1,7 @@
 package ch.trancee.kompact.runtime
 
 import kotlin.test.Test
+import ch.trancee.kompact.annotations.KompactField
 
 /**
  * Ticket 04/06 v1 annotation surface — compile-time existence check.

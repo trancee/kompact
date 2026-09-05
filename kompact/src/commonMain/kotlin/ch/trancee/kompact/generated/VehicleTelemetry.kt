@@ -1,7 +1,11 @@
+@file:OptIn(KompactPreview::class)
 package ch.trancee.kompact.generated
 
-import ch.trancee.kompact.runtime.KompactField
-import ch.trancee.kompact.runtime.KompactModel
+import ch.trancee.kompact.annotations.KompactField
+import ch.trancee.kompact.annotations.KompactModel
+import ch.trancee.kompact.annotations.KompactPreview
+import ch.trancee.kompact.runtime.KompactRuntime
+import ch.trancee.kompact.runtime.ScalarType
 
 /**
  * Concrete shared example (PROMPT §3), realized as an `expect value class` per
@@ -25,9 +29,11 @@ public expect value class VehicleTelemetry(public val raw: ByteArray) {
 
     // F-001: the platform actuals validate raw.size >= 2 (the 16-bit layout,
     // bits 0-15) in their constructor init-blocks, failing fast with
-    // IllegalArgumentException on a truncated buffer (Ticket 06) rather than a
-    // delayed AIOOBE at field-access. These getters stay the raw zero-alloc fast
-    // path (Ticket 08:39); decode untrusted input via the checked accessors.
+    // IllegalArgumentException on a truncated buffer (Ticket 06). These getters
+    // decode untrusted input via the checked `readScalar`/`readBool` accessors
+    // and throw on a bounds error (Ticket 04/07), trading one bounds-check per
+    // field for safety; the unchecked `KompactRuntime.readBits` fast path stays
+    // available for trusted in-memory frames.
 
     @KompactField(bitOffset = 0, bitWidth = 4)
     public val batteryStatus: Int
