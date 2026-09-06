@@ -63,18 +63,25 @@ final class ch.trancee.kompact.runtime/KompactWriter { // ch.trancee.kompact.run
 final value class ch.trancee.kompact.generated/VehicleTelemetry { // ch.trancee.kompact.generated/VehicleTelemetry|null[0]
     constructor <init>(kotlin/ByteArray) // ch.trancee.kompact.generated/VehicleTelemetry.<init>|<init>(kotlin.ByteArray){}[0]
 
-    final val batteryStatus // ch.trancee.kompact.generated/VehicleTelemetry.batteryStatus|{}batteryStatus[0]
+    final var batteryStatus // ch.trancee.kompact.generated/VehicleTelemetry.batteryStatus|{}batteryStatus[0]
         final fun <get-batteryStatus>(): kotlin/Int // ch.trancee.kompact.generated/VehicleTelemetry.batteryStatus.<get-batteryStatus>|<get-batteryStatus>(){}[0]
-    final val isMalfunctioning // ch.trancee.kompact.generated/VehicleTelemetry.isMalfunctioning|{}isMalfunctioning[0]
+        final fun <set-batteryStatus>(kotlin/Int): kotlin/Unit // ch.trancee.kompact.generated/VehicleTelemetry.batteryStatus.<set-batteryStatus>|<set-batteryStatus>(kotlin.Int){}[0]
+    final var isMalfunctioning // ch.trancee.kompact.generated/VehicleTelemetry.isMalfunctioning|{}isMalfunctioning[0]
         final fun <get-isMalfunctioning>(): kotlin/Boolean // ch.trancee.kompact.generated/VehicleTelemetry.isMalfunctioning.<get-isMalfunctioning>|<get-isMalfunctioning>(){}[0]
+        final fun <set-isMalfunctioning>(kotlin/Boolean): kotlin/Unit // ch.trancee.kompact.generated/VehicleTelemetry.isMalfunctioning.<set-isMalfunctioning>|<set-isMalfunctioning>(kotlin.Boolean){}[0]
     final val raw // ch.trancee.kompact.generated/VehicleTelemetry.raw|{}raw[0]
         final fun <get-raw>(): kotlin/ByteArray // ch.trancee.kompact.generated/VehicleTelemetry.raw.<get-raw>|<get-raw>(){}[0]
-    final val speed // ch.trancee.kompact.generated/VehicleTelemetry.speed|{}speed[0]
+    final var speed // ch.trancee.kompact.generated/VehicleTelemetry.speed|{}speed[0]
         final fun <get-speed>(): kotlin/Int // ch.trancee.kompact.generated/VehicleTelemetry.speed.<get-speed>|<get-speed>(){}[0]
+        final fun <set-speed>(kotlin/Int): kotlin/Unit // ch.trancee.kompact.generated/VehicleTelemetry.speed.<set-speed>|<set-speed>(kotlin.Int){}[0]
 
     final fun equals(kotlin/Any?): kotlin/Boolean // ch.trancee.kompact.generated/VehicleTelemetry.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // ch.trancee.kompact.generated/VehicleTelemetry.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // ch.trancee.kompact.generated/VehicleTelemetry.toString|toString(){}[0]
+
+    final object Companion { // ch.trancee.kompact.generated/VehicleTelemetry.Companion|null[0]
+        final fun create(kotlin/Int, kotlin/Int, kotlin/Boolean): ch.trancee.kompact/generated/VehicleTelemetry // ch.trancee.kompact.generated/VehicleTelemetry.Companion.create|create(kotlin.Int;kotlin.Int;kotlin.Boolean){}[0]
+    }
 }
 
 final value class ch.trancee.kompact.runtime/BooleanResult { // ch.trancee.kompact.runtime/BooleanResult|null[0]

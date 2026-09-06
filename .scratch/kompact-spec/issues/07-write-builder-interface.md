@@ -55,3 +55,26 @@ User decided: adopt the recommended option on both forks.
 - ticket 04 (v1 type set: ints/signed/enum widths/float NaN) 
 - ticket 05 (sequential length-delimited framing; no random access) 
 - ticket 06 (compile-time-validated length-prefix + value widths; symbol-located errors) 
+
+## Comments
+
+**2026-09-06 — Amendment (overriding consequence: read-only views).**
+
+This ticket's consequence stated: "the generated value-class views
+(ticket 02/03) are read-only." That consequence is **overridden** by
+[`docs/adr/0001-mutable-view-classes-with-write-through-setters.md`](../../../docs/adr/0001-mutable-view-classes-with-write-through-setters.md),
+which deviates from PROMPT.md §1 ("Fields must be exposed as Kotlin `val`
+properties") to add write-through `var` setters + `Companion.create(...)`
+on the `VehicleTelemetry` example model.
+
+The `KompactWriter` path remains the canonical **construction** writer
+(forward-only, growable buffer, `build(): ByteArray`). The `var` setters
+are a **secondary** mutation path for receive/modify/retransmit BLE
+cycles — a hot-path optimization that avoids `ByteArray` reallocation
+per field edit. The zero-alloc read contract is preserved (getters still
+use checked accessors with `getOrThrow()`).
+
+For the codegen strategy (ticket 02): generated views **may** emit
+write-through `var` setters where the schema permits in-place mutation,
+but the `KompactWriter` remains the sole construction path. ADR-0001
+captures the full alternatives/risks/migration analysis.

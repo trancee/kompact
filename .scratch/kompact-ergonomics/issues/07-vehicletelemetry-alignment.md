@@ -269,3 +269,24 @@ primitives. The test passes with no edits.
   not affected.
 
 ## Comments
+
+2026-09-06 — Amendment (mutable view classes override).
+
+ADR-0001 [`../../../docs/adr/0001-mutable-view-classes-with-write-through-setters.md`]
+overrides the read-only-view decision from this ticket and ticket 07
+(write-builder-interface). The `VehicleTelemetry` fields are now `var`
+with write-through setters in addition to the checked-accessor getters.
+
+The parts of this ticket's Answer that remain valid:
+- Getters use `readScalar`/`readBool` + `getOrThrow()` (not raw `readBits`).
+- `@KompactModel` / `@KompactField` annotations stay on the example.
+- F-001 constructor validation stays.
+- Wire bytes `0xA5 0x40` and round-trip values stay.
+
+The parts superseded:
+- "Fields must be exposed as `val`" (PROMPT.md §1) — overridden to `var`.
+- "Views are read-only" (ticket 07) — setters added as a secondary mutation path.
+- "No `Companion.create`" — a `create` factory is added for outbound construction.
+
+`docs/architecture.md` updated to document the codegen-output reference (raw
+`readBits` shape) as prose, and the mutable-view decision captured in ADR-0001.

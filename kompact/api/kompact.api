@@ -25,6 +25,7 @@ public abstract interface annotation class ch/trancee/kompact/annotations/Kompac
 }
 
 public final class ch/trancee/kompact/generated/VehicleTelemetry {
+	public static final field Companion Lch/trancee/kompact/generated/VehicleTelemetry$Companion;
 	public static final synthetic fun box-impl ([B)Lch/trancee/kompact/generated/VehicleTelemetry;
 	public static fun constructor-impl ([B)[B
 	public fun equals (Ljava/lang/Object;)Z
@@ -36,9 +37,16 @@ public final class ch/trancee/kompact/generated/VehicleTelemetry {
 	public fun hashCode ()I
 	public static fun hashCode-impl ([B)I
 	public static final fun isMalfunctioning-impl ([B)Z
+	public static final fun setBatteryStatus-impl ([BI)V
+	public static final fun setMalfunctioning-impl ([BZ)V
+	public static final fun setSpeed-impl ([BI)V
 	public fun toString ()Ljava/lang/String;
 	public static fun toString-impl ([B)Ljava/lang/String;
 	public final synthetic fun unbox-impl ()[B
+}
+
+public final class ch/trancee/kompact/generated/VehicleTelemetry$Companion {
+	public final fun create-UmxqB8U (IIZ)[B
 }
 
 public final class ch/trancee/kompact/runtime/BooleanResult {

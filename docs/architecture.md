@@ -215,8 +215,13 @@ not silently truncate or misread.
   is in source and the test suite pins the compile-time contract, but
   the processor that would generate the value-class view bodies from
   `@KompactField` declarations does not ship here. Today, models
-  like `VehicleTelemetry` are written by hand (the value-class getters
-  call the raw `KompactRuntime` primitives).
+  like `VehicleTelemetry` are written by hand. The example getters use
+  the public checked accessors (`readScalar`/`readBool` + `getOrThrow()`,
+  per ticket 07-vehicletelemetry-alignment); write-through `var` setters
+  and a `Companion.create(...)` factory are added over the backing
+  `ByteArray` for receive/modify/retransmit BLE cycles (ADR-0001). The
+  raw `readBits` codegen-output pattern is documented as prose in the
+  [Codegen output reference](#codegen-output-reference) below.
 - **Not yet released**: the Maven Central artifact. Publication is wired via
   standard `maven-publish` + `signing` + Dokka, with a custom Portal Publisher
   API task (`centralPortalDeploy`) for Central Portal upload (no third-party
@@ -229,3 +234,40 @@ The lock and the gating decisions behind every choice in this
 document live in the spec tickets under
 [`.scratch/kompact-spec/`](../.scratch/kompact-spec/) — start with
 [`map.md`](../.scratch/kompact-spec/map.md) for the index.
+
+## Codegen output reference
+
+The future KSP processor (ticket 02) will emit `expect value class`
+declarations into `commonMain` plus `@JvmInline actual` (jvmMain) and
+plain `actual value class` (iosMain), all wrapping a single `ByteArray`.
+The getter bodies use the **raw** `KompactRuntime.readBits` /
+`readBitsBoolean` path — not the checked `readScalar`/`readBool`
+accessors — because codegen can prove bounds at compile time (ticket 06)
+and avoids the `Long`-packed result value class on the success path:
+
+```kotlin
+// What the KSP processor emits (not the hand-written example):
+@KompactModel
+@JvmInline
+public actual value class VehicleTelemetry(public actual val raw: ByteArray) {
+    init { require(raw.size >= 2) }
+
+    @KompactField(bitOffset = 0, bitWidth = 4)
+    public val batteryStatus: Int
+        get() = KompactRuntime.readBits(raw, 0, 4)       // raw, zero-alloc, no check
+
+    @KompactField(bitOffset = 4, bitWidth = 10)
+    public val speed: Int
+        get() = KompactRuntime.readBits(raw, 4, 10)
+
+    @KompactField(bitOffset = 14, bitWidth = 1)
+    public val isMalformed: Boolean
+        get() = KompactRuntime.readBitsBoolean(raw, 14)
+}
+```
+
+The hand-written example instead uses the checked accessors
+(`readScalar`/`readBool` + `getOrThrow()`) so newcomers see the public
+API they would use without a processor (ticket 07-vehicletelemetry-alignment).
+The codegen-output reference above is the shape the processor will emit;
+it exists for the processor implementer, not for consumers.

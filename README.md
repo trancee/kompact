@@ -21,6 +21,75 @@ val speed:    Int      = KompactRuntime.readScalar(bytes, 4, ScalarType.of(10, s
 val flag:     Boolean  = KompactRuntime.readBool    (bytes, 14          ).getOrThrow()
 ```
 
+## Why the reader/writer pattern (not serialize/deserialize)
+
+Kompact's `ByteArray` **is** the data structure. The value
+class `@KompactModel value class VehicleTelemetry(val raw: ByteArray)` stores
+the wire bytes directly. Field getters call `KompactRuntime.readBits` /
+`readScalar` / `readBool` on that same buffer. There is no step that
+turns bytes into a separate object, because that step allocates.
+
+This matters because BLE characteristics are tiny (a few bytes) and
+arrive frequently. The decoder runs on battery-powered devices. Every
+heap allocation costs power and stalls the radio. Traditional frameworks
+pay that cost twice: once on decode (allocate a data class, box every
+field) and once on encode (build an object tree, then walk it).
+
+Kompact avoids both by reading a primitive directly from the buffer with
+zero heap activity. The result value classes (`IntResult`, `LongResult`,
+`BooleanResult`, `FloatResult`, `DoubleResult`, and the rest) are
+`@JvmInline` / `value class` wrappers over a single packed `Long`. On
+success they cost exactly a `Long` on the stack — no object header, no
+GC pressure.
+
+Reads are also **lazy**. You pull only the fields you need. A 2-byte
+telemetry frame with a 4-bit battery status and a 10-bit speed lets you
+read `speed` without ever decoding `batteryStatus`. A
+`deserialize(bytes) → FullObject` forces you to parse everything first.
+
+This design also **cannot** be FlatBuffers-style random access.
+FlatBuffers stores offset pointers so you can jump to any field. That
+breaks when a field before it changes size. Kompact's v1 type set
+includes variable-length strings, blobs, nested composites, and repeats.
+So offsets would shift on every schema change. Reads are sequential,
+parse-forward instead — the deliberate but necessary tradeoff: you
+trade random-access field jumps for zero-allocation, lazy, sequential
+reads.
+
+## Creating and modifying frames
+
+Construct a frame from field values with `VehicleTelemetry.create(...)`:
+
+```kotlin
+val tel = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
+// tel.raw is the 2-byte wire buffer: [0xA5, 0x40]
+```
+
+Modify a field in-place — the setter writes directly to the backing `ByteArray`:
+
+```kotlin
+tel.speed = 30
+// tel.raw is now updated; no new allocation
+```
+
+Send the buffer over BLE:
+
+```kotlin
+bleCharacteristic.value = tel.raw
+```
+
+Receive a frame from BLE and decode it:
+
+```kotlin
+val tel = VehicleTelemetry(bleCharacteristic.value)
+val speed = tel.speed      // 30
+val flag  = tel.isMalfunctioning  // true
+```
+
+Setters work because the `ByteArray` is a mutable reference shared by the
+value class. You read one field, modify one field, and transmit the same
+buffer — no intermediate objects, no copy.
+
 ## What's in this repo
 
 - **`:kompact`** — the KMP runtime: bit primitives, a forward-only writer, framing

@@ -51,3 +51,17 @@ All gating decisions are made (tickets 01–12). The Destination spec is locked 
 - **C / C99 header generation and foreign-language interop** — `PROMPT.md` is purely Kotlin Multiplatform; no C emission requested.
 - **BLE transport layer** — `PROMPT.md` covers serialization format and runtime, not the GATT/profile layer that carries payloads.
 - **iOS Swift / Objective-C API surface generation** — in scope only if the Kotlin view class needs a Swift-visible wrapper; not a first concern.
+
+## Deviations (post-lock)
+
+- **ADR-0001 (2026-09-06):** Ticket 07's consequence "generated value-class views
+  are read-only" is overridden. The hand-written `VehicleTelemetry` example now
+  exposes `var` setters with write-through to the backing `ByteArray` and a
+  `Companion.create(...)` factory, deviating from PROMPT.md §1 ("Fields must be
+  exposed as Kotlin `val` properties"). The `KompactWriter` remains the canonical
+  construction path; `var` setters are a secondary mutation path for
+  receive/modify/retransmit BLE cycles. Full analysis:
+  [`docs/adr/0001`](../../docs/adr/0001-mutable-view-classes-with-write-through-setters.md).
+  Amendment notes appended to
+  [ticket 07](issues/07-write-builder-interface.md) and
+  [ticket 07-vehicletelemetry-alignment](../kompact-ergonomics/issues/07-vehicletelemetry-alignment.md).

@@ -5,6 +5,7 @@ import ch.trancee.kompact.annotations.KompactField
 import ch.trancee.kompact.annotations.KompactModel
 import ch.trancee.kompact.annotations.KompactPreview
 import ch.trancee.kompact.runtime.KompactRuntime
+import ch.trancee.kompact.runtime.KompactWriter
 import ch.trancee.kompact.runtime.ScalarType
 
 /**
@@ -20,27 +21,44 @@ import ch.trancee.kompact.runtime.ScalarType
  * - [14..14]  (1 bit)  : Is Engine Malfunction Active (Boolean)
  * - [15..15]  (1 bit)  : Reserved/Unused
  *
- * Zero-copy read view (PROMPT §1 #2, §3): a producer serializes via
- * `KompactRuntime.writeBits` into a buffer, then wraps it; a consumer reads
- * fields via the val getters with no heap allocation. Read-only by design.
+ * The `ByteArray` is the wire format. A producer builds it via `KompactWriter`
+ * or `VehicleTelemetry.create(...)`; a consumer reads fields via the
+ * `@KompactField`-annotated properties. Properties have write-through
+ * setters that modify the backing `ByteArray` in place, so you can read
+ * from a BLE characteristic, modify a field, and re-send the same
+ * buffer — no intermediate objects, no allocation on the read hot path.
  */
 @KompactModel
 public expect value class VehicleTelemetry(public val raw: ByteArray) {
 
+    public companion object {
+        /**
+         * Creates a fully-encoded frame from individual field values.
+         * Allocates on the write path (KompactWriter's growable buffer);
+         * use this for outbound frames, not the read hot path.
+         */
+        public fun create(
+            batteryStatus: Int,
+            speed: Int,
+            isMalfunctioning: Boolean,
+        ): VehicleTelemetry
+    }
+
     // F-001: the platform actuals validate raw.size >= 2 (the 16-bit layout,
     // bits 0-15) in their constructor init-blocks, failing fast with
-    // IllegalArgumentException on a truncated buffer (Ticket 06). These getters
-    // decode untrusted input via the checked `readScalar`/`readBool` accessors
-    // and throw on a bounds error (Ticket 04/07), trading one bounds-check per
-    // field for safety; the unchecked `KompactRuntime.readBits` fast path stays
-    // available for trusted in-memory frames.
+    // IllegalArgumentException on a truncated buffer (Ticket 06). These
+    // getters decode untrusted input via the checked `readScalar`/`readBool`
+    // accessors and throw on a bounds error (Ticket 04/07), trading one
+    // bounds-check per field for safety; the unchecked `KompactRuntime.readBits`
+    // fast path stays available for trusted in-memory frames. Setters write
+    // the field's bit range in-place on the backing `ByteArray`.
 
     @KompactField(bitOffset = 0, bitWidth = 4)
-    public val batteryStatus: Int
+    public var batteryStatus: Int
 
     @KompactField(bitOffset = 4, bitWidth = 10)
-    public val speed: Int
+    public var speed: Int
 
     @KompactField(bitOffset = 14, bitWidth = 1)
-    public val isMalfunctioning: Boolean
+    public var isMalfunctioning: Boolean
 }
