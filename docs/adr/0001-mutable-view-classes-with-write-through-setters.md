@@ -54,6 +54,13 @@ path. `val raw: ByteArray` remains the wire-format backing store; no copy is mad
   instances wrapping the same `ByteArray` will observe each other's writes. Mitigated by the
   KDoc and README documenting the write-through contract; `raw` is already `public val`, so
   direct `writeBits` on `raw` was already possible.
+- **No setter input validation (intentional):** `writeBits` performs no range check on
+  the incoming value — a caller passing `batteryStatus = 20` (5 bits) into the 4-bit
+  field silently truncates to `4`. This mirrors the raw `KompactRuntime.writeBits`
+  contract: the write path is a zero-overhead mutation API, not a checked accessor.
+  Getters remain checked (`readScalar(...).getOrThrow()`); callers needing validation
+  should use `KompactWriter` for outbound construction or validate before calling
+  setters.
 - **Klib ABI golden:** must be regenerated on macOS via `apiDump` (ticket 10 testing model).
   Hand-editing the golden on Linux is a temporary workaround — CI on macOS will validate.
 
