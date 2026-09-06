@@ -261,7 +261,7 @@ public actual value class VehicleTelemetry(public actual val raw: ByteArray) {
         get() = KompactRuntime.readBits(raw, 4, 10)
 
     @KompactField(bitOffset = 14, bitWidth = 1)
-    public val isMalformed: Boolean
+    public val isMalfunctioning: Boolean
         get() = KompactRuntime.readBitsBoolean(raw, 14)
 }
 ```

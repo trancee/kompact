@@ -8,11 +8,13 @@ source layout: [`ScalarType`](#scalartype) → [`KompactRuntime`](#kompactruntim
 [`KompactDecodeError`](#kompactdecodeerror) →
 [extension functions](#extension-functions) →
 [`Kompact.Result`](#kompactresult-namespace) →
-[annotations](#annotations) → [constants](#constants-and-limits).
+[annotations](#annotations) → [`VehicleTelemetry`](#vehicle-telemetry-example-model) → [constants](#constants-and-limits).
 
 All declarations are in the package `ch.trancee.kompact.runtime` unless noted.
-`ch.trancee.kompact` is the package of `Kompact.Result`; `ch.trancee.kompact.annotations`
-is the package of `@KompactModel`, `@KompactField`, and `@KompactPreview`.
+`ch.trancee.kompact.generated` is the package of the bundled
+`VehicleTelemetry` example model; `ch.trancee.kompact` is the package of
+`Kompact.Result`; `ch.trancee.kompact.annotations` is the package of
+`@KompactModel`, `@KompactField`, and `@KompactPreview`.
 
 ---
 
@@ -324,6 +326,43 @@ declaration valid.
 `@KompactPreview` is the API-preview opt-in marker (`@RequiresOptIn`,
 `Level.WARNING`, targets `CLASS`/`FUNCTION`/`PROPERTY`). Generated
 declarations carry it via `@file:OptIn(KompactPreview::class)`.
+
+---
+
+## VehicleTelemetry (example model)
+
+`ch.trancee.kompact.generated.VehicleTelemetry` — the bundled example model.
+A `@JvmInline value class` on the JVM / plain `value class` on iOS, wrapping a
+single `ByteArray` that holds the wire-format bytes directly. See
+[`VehicleTelemetry.kt`](../kompact/src/commonMain/kotlin/ch/trancee/kompact/generated/VehicleTelemetry.kt)
+for the source layout and [`architecture — codegen output reference`](architecture.md#codegen-output-reference)
+for the raw `readBits` pattern the KSP processor will emit.
+
+A 16-bit frame with this layout (LSB-first):
+
+| Bits | Width | Field | Type |
+| --- | --- | --- | --- |
+| 0..3 | 4 | `batteryStatus` | `Int` (0–15) |
+| 4..13 | 10 | `speed` | `Int` (0–1023) |
+| 14 | 1 | `isMalfunctioning` | `Boolean` |
+| 15 | 1 | _reserved_ | left zero |
+
+| Member | Signature | Description |
+| --- | --- | --- |
+| `raw` | `val raw: ByteArray` | The backing wire-format buffer. Pass this directly to a BLE characteristic for transmission. |
+| `batteryStatus` | `var batteryStatus: Int` | 4 bits at offset 0. Getter calls `readScalar(...).getOrThrow()`; setter writes bits in-place via `writeBits`. |
+| `speed` | `var speed: Int` | 10 bits at offset 4. Getter calls `readScalar(...).getOrThrow()`; setter writes bits in-place via `writeBits`. |
+| `isMalfunctioning` | `var isMalfunctioning: Boolean` | 1 bit at offset 14. Getter calls `readBool(...).getOrThrow()`; setter writes a single bit in-place via `writeBitsBoolean`. |
+| `Companion.create` | `create(batteryStatus: Int, speed: Int, isMalfunctioning: Boolean): VehicleTelemetry` | Factory that encodes the three fields into a fresh 2-byte `ByteArray` via `KompactWriter` and wraps it. Use this for outbound frames. |
+
+**Constructor validation (F-001).** The platform `actual` init-blocks require
+`raw.size >= 2` and throw `IllegalArgumentException` on a truncated buffer.
+
+**Write-through contract.** Each `var` setter mutates the shared `ByteArray`
+in-place — no copy, no allocation. Two `VehicleTelemetry` instances wrapping
+the same `raw` buffer will observe each other's writes. Pass `tel.raw`
+directly to a BLE characteristic for transmission. Full workflow:
+[`README.md`](../README.md#creating-and-modifying-frames).
 
 ---
 
