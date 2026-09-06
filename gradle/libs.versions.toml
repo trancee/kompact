@@ -2,10 +2,10 @@
 kotlin = "2.4.10"
 ksp = "2.3.11"
 bcv = "0.18.0"
-vanniktech = "0.37.0"
+dokka = "2.0.0"
 
 [plugins]
-kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kmp = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-binaryCompatibilityValidator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "bcv" }
-vanniktechMavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech" }
+bcv = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "bcv" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

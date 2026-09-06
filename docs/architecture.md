@@ -210,11 +210,13 @@ not silently truncate or misread.
   `@KompactField` declarations does not ship here. Today, models
   like `VehicleTelemetry` are written by hand (the value-class getters
   call the raw `KompactRuntime` primitives).
-- **Not yet released**: the Maven Central artifact. The publication
-  pipeline is configured (`com.vanniktech.maven.publish` 0.37.0,
-  coordinates `ch.trancee.kompact:kompact:0.1.0-SNAPSHOT`) but no
-  release has been cut. Build from source or
-  `./gradlew :kompact:publishToMavenLocal` to consume the snapshot.
+- **Not yet released**: the Maven Central artifact. Publication is wired via
+  standard `maven-publish` + `signing` + Dokka, with a custom Portal Publisher
+  API task (`centralPortalDeploy`) for Central Portal upload (no third-party
+  publishing plugin). Coordinates `ch.trancee.kompact:kompact:0.1.0-SNAPSHOT`.
+  No release has been cut — the Portal namespace, PGP key, and user token still
+  require user authorization. Build from source or `./gradlew
+  :kompact:publishToMavenLocal` to consume the snapshot.
 
 The lock and the gating decisions behind every choice in this
 document live in the spec tickets under

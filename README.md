@@ -47,10 +47,15 @@ val flag:     Boolean  = KompactRuntime.readBool    (bytes, 14          ).getOrT
 ## Status
 
 `0.1.0-SNAPSHOT` — the runtime, writer, framing, and result value classes are
-stable and exercised by the `commonTest` suite. The publication pipeline is
-configured (Maven coordinates `ch.trancee.kompact:kompact`, license Apache-2.0)
-but **no release has been cut to Maven Central yet**. Build from source or
+stable and exercised by the `commonTest` suite. Publication is wired via
+standard `maven-publish` + `signing` + Dokka with a custom Central Portal
+Publisher API task (`centralPortalDeploy`, staging to `USER_MANAGED`). Maven
+coordinates `ch.trancee.kompact:kompact`, license Apache-2.0, but **no
+release has been cut to Maven Central yet** — the Portal namespace, PGP key,
+and user token still require user authorization. Build from source or
 `./gradlew :kompact:publishToMavenLocal` and consume the local snapshot.
+See the [release contract](.scratch/kompact-spec/issues/14-maven-central-publishing.md)
+for what's left to do.
 
 ## License
 

@@ -103,6 +103,8 @@ golden updated from a non-Mac host.
 Both workflows pin to JDK 21 (Temurin) and enable the Gradle build
 cache. The `:kompact` module builds with the Kotlin 2.4.10 Gradle
 plugin and KMP targets `jvm` (JVM 21), `iosArm64`, and
-`iosSimulatorArm64`. No hand-rolled `multiplatformPublication` DSL —
-KGP auto-creates the per-target artifacts and
-`com.vanniktech.maven.publish` 0.37.0 publishes to Maven Central.
+`iosSimulatorArm64`. KGP auto-creates the per-target publications via
+`maven-publish`; `ch.trancee.kompact:kompact` is staged for Maven
+Central Portal via a custom Portal Publisher API task (no third-party
+publishing plugin). See `.scratch/kompact-spec/issues/14-maven-central-publishing.md`
+for the release contract and remaining authorization-gated steps.

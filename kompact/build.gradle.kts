@@ -1,7 +1,21 @@
+@file:OptIn(kotlinx.validation.ExperimentalBCVApi::class)
+
+import java.io.ByteArrayOutputStream
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.security.MessageDigest
+import java.util.Base64
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.bundling.Zip
+
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.binaryCompatibilityValidator)
-    alias(libs.plugins.vanniktechMavenPublish)
+    alias(libs.plugins.kmp)
+    alias(libs.plugins.bcv)
+    alias(libs.plugins.dokka)
+    `maven-publish`
+    `signing`
 }
 
 kotlin {
@@ -46,31 +60,274 @@ apiValidation {
     }
 }
 
-// Ticket 13: vanniktech maven-publish 0.37.0 — central publishing gates.
-mavenPublishing {
-    coordinates("ch.trancee.kompact", "kompact", "0.1.0-SNAPSHOT")
-    pom {
-        name.set("Kompact")
-        description.set("Zero-allocation bit-stream pack/unpack primitives and generated model views for Kotlin Multiplatform.")
-        url.set("https://github.com/trancee/kompact")
-        licenses {
-            license {
-                name.set("Apache License 2.0")
-                url.set("https://www.apache.org/licenses/LICENSE-2.0")
+// --- Maven Central Portal publishing ---
+// Route: Portal Publisher API (direct integration — no third-party plugin).
+// Signing: PGP key injected via environment variables (never in source).
+// See the maven-central-publishing skill for the full workflow.
+
+// KGP creates jvmSourcesJar and auto-attaches it to the JVM publication.
+// We add commonMain sources to it so the sources JAR is complete for Central.
+val commonMainSource = kotlin.sourceSets.getByName("commonMain")
+afterEvaluate {
+    val task = tasks.findByName("jvmSourcesJar")
+    if (task != null) {
+        task.withGroovyBuilder {
+            invokeMethod("from", commonMainSource.kotlin)
+        }
+    }
+}
+
+// Javadoc JAR for the JVM target — Central requires a Javadoc artifact for JVM publications.
+// Dokka V1/V2 dokkaHtml/dokkaJavadoc tasks are incompatible with KMP + JDK 25.
+// Maven Central accepts minimal/empty Javadoc JARs for KMP projects (standard practice).
+val dokkaJavadocJar = tasks.register<Jar>("dokkaJavadocJar") {
+    archiveClassifier.set("javadoc")
+    from(rootProject.file("README.md"))
+}
+
+// POM metadata applied to every auto-created KMP publication (root + per-target).
+// publications holds Publication (supertype), so cast to MavenPublication for pom{} .
+publishing {
+    publications {
+        all {
+            if (this is MavenPublication) {
+                pom {
+                    name.set("Kompact")
+                    description.set("Zero-allocation bit-stream pack/unpack primitives and generated model views for Kotlin Multiplatform.")
+                    url.set("https://github.com/trancee/kompact")
+                    licenses {
+                        license {
+                            name.set("Apache License 2.0")
+                            url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                            distribution.set("repo")
+                        }
+                    }
+                    developers {
+                        developer {
+                            id.set("trancee")
+                            name.set("Philipp Grosswiler")
+                            email.set("philipp.grosswiler@gmail.com")
+                        }
+                    }
+                    scm {
+                        url.set("https://github.com/trancee/kompact")
+                        connection.set("scm:git:git://github.com/trancee/kompact.git")
+                        developerConnection.set("scm:git:ssh://git@github.com/trancee/kompact.git")
+                    }
+                }
             }
         }
-        developers {
-            developer {
-                id.set("trancee")
-                name.set("Philipp Grosswiler")
-                email.set("philipp.grosswiler@gmail.com")
+    }
+    repositories {
+        // Local staging directory — never touches Maven Central.
+        maven {
+            name = "bundleDir"
+            url = layout.buildDirectory.dir("maven-layout").get().asFile.toURI()
+        }
+    }
+}
+
+// Attach the Dokka Javadoc JAR to the JVM publication and configure PGP signing.
+// KGP auto-attaches jvmSourcesJar to the JVM publication; we only add dokkaJavadocJar.
+// KGP creates KMP publications during evaluation, so this runs after.
+afterEvaluate {
+    publishing.publications.all {
+        if (this is MavenPublication && name == "jvm") {
+            artifact(dokkaJavadocJar.get())
+        }
+    }
+
+    val signingKey = System.getenv("SIGNING_KEY")
+    if (signingKey != null && signingKey.isNotBlank()) {
+        signing {
+            useInMemoryPgpKeys(
+                System.getenv("SIGNING_KEY_ID"),
+                signingKey,
+                System.getenv("SIGNING_PASSWORD")
+            )
+            sign(publishing.publications)
+        }
+    }
+}
+
+// --- Custom Central Portal Publisher API tasks ---
+// API: https://central.sonatype.com/api/v1/publisher
+// Auth: Bearer base64(portalTokenUsername:portalTokenPassword)
+// Mode: USER_MANAGED (default safe — validation does not auto-publish)
+
+val portalBuildDir = layout.buildDirectory.dir("portal")
+
+// Generate .md5, .sha1, .sha256, .sha512 for every published file (not for existing
+// checksums — those must never be signed or re-checksummed).
+tasks.register("generateChecksums") {
+    group = "publication"
+    description = "Generate MD5/SHA-1/SHA-256/SHA-512 checksums for all files in the Maven layout"
+    dependsOn("publishAllPublicationsToBundleDirRepository")
+    val mavenDir = layout.buildDirectory.get().dir("maven-layout").asFile
+    doLast {
+        if (!mavenDir.exists()) {
+            throw GradleException("Maven layout not found at ${mavenDir.absolutePath}. Ensure publishAllPublicationsToBundleDirRepository succeeded.")
+        }
+        val checksumExts = setOf("md5", "sha1", "sha256", "sha512")
+        mavenDir.walkTopDown().forEach { file ->
+            if (file.isFile && file.extension !in checksumExts) {
+                val bytes = file.readBytes()
+                listOf("md5", "sha1", "sha256", "sha512").forEach { algo ->
+                    val digest = MessageDigest.getInstance(algo).digest(bytes)
+                    val hex = digest.joinToString("") { "%02x".format(it) }
+                    file.parentFile.resolve("${file.name}.$algo").writeText(hex)
+                }
             }
         }
-        scm {
-            url.set("https://github.com/trancee/kompact")
-            connection.set("scm:git:git://github.com/trancee/kompact.git")
-            developerConnection.set("scm:git:ssh://git@github.com/trancee/kompact.git")
+        logger.lifecycle("Checksums generated for all files in ${mavenDir.absolutePath}")
+    }
+}
+
+// Assemble a Maven-layout ZIP bundle (artifacts + .asc + checksums) for upload.
+tasks.register<Zip>("assembleCentralBundle") {
+    group = "publication"
+    description = "Assemble Maven-layout ZIP bundle for Central Portal upload"
+    archiveBaseName.set("kompact-portal-bundle")
+    archiveVersion.set("")
+    destinationDirectory.set(layout.buildDirectory)
+    from(layout.buildDirectory.dir("maven-layout"))
+    dependsOn("generateChecksums")
+}
+
+// Upload the bundle to the Sonatype Central Portal (USER_MANAGED staging).
+// Credentials: CENTRAL_PORTAL_TOKEN_USERNAME + CENTRAL_PORTAL_TOKEN_PASSWORD (env vars)
+// These are Portal user tokens, NOT the interactive account password.
+tasks.register("centralPortalDeploy") {
+    group = "publication"
+    description = "Upload bundle to Central Portal (USER_MANAGED) — requires CENTRAL_PORTAL_TOKEN_USERNAME/PASSWORD"
+    dependsOn("assembleCentralBundle")
+    doLast {
+        val tokenUsername = System.getenv("CENTRAL_PORTAL_TOKEN_USERNAME")
+        val tokenPassword = System.getenv("CENTRAL_PORTAL_TOKEN_PASSWORD")
+        if (tokenUsername.isNullOrBlank() || tokenPassword.isNullOrBlank()) {
+            throw GradleException(
+                "CENTRAL_PORTAL_TOKEN_USERNAME and CENTRAL_PORTAL_TOKEN_PASSWORD environment variables are required.\n" +
+                    "Generate a token at https://central.sonatype.com/ → Account → User Tokens."
+            )
         }
+
+        val bundleFile = layout.buildDirectory.file("kompact-portal-bundle.zip").get().asFile
+        if (!bundleFile.exists()) {
+            throw GradleException("Bundle not found: ${bundleFile.absolutePath}")
+        }
+
+        val credentials = Base64.getEncoder()
+            .encodeToString("$tokenUsername:$tokenPassword".toByteArray())
+        val boundary = "----KompactPortal${System.currentTimeMillis()}"
+        val publishingType = System.getenv("CENTRAL_PORTAL_PUBLISHING_TYPE") ?: "USER_MANAGED"
+
+        val body = ByteArrayOutputStream().use { out ->
+            out.write(("--$boundary\r\n").toByteArray())
+            out.write("Content-Disposition: form-data; name=\"bundle\"; filename=\"${bundleFile.name}\"\r\n".toByteArray())
+            out.write("Content-Type: application/octet-stream\r\n\r\n".toByteArray())
+            out.write(bundleFile.readBytes())
+            out.write("\r\n".toByteArray())
+            out.write(("--$boundary--\r\n".toByteArray()))
+            out.toByteArray()
+        }
+
+        val portalUrl = URI.create(
+            "https://central.sonatype.com/api/v1/publisher/upload?name=kompact-${project.version}&publishingType=$publishingType"
+        )
+        val client = HttpClient.newHttpClient()
+        val request = HttpRequest.newBuilder()
+            .uri(portalUrl)
+            .header("Authorization", "Bearer $credentials")
+            .header("Content-Type", "multipart/form-data; boundary=$boundary")
+            .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+            .build()
+
+        val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+
+        val portalOut = portalBuildDir.get().asFile
+        portalOut.mkdirs()
+        portalOut.resolve("deploy-response").writeText(response.body())
+
+        val responseBody = response.body().trim()
+        if (response.statusCode() == 201 && responseBody.isNotEmpty()) {
+            portalOut.resolve("deployment-id").writeText(responseBody)
+            logger.lifecycle("Central Portal deploy response (HTTP ${response.statusCode()}):")
+            logger.lifecycle("Deployment ID: $responseBody — track with: ./gradlew centralPortalStatus")
+        } else {
+            logger.lifecycle("Central Portal deploy failed (HTTP ${response.statusCode()}):")
+            logger.lifecycle(response.body())
+            throw GradleException("Portal deploy failed with HTTP ${response.statusCode()}: ${response.body()}")
+        }
+    }
+}
+
+// Check Central Portal deployment validation status by deployment ID.
+tasks.register("centralPortalStatus") {
+    group = "publication"
+    description = "Check Central Portal deployment validation status"
+    doLast {
+        val deploymentId = System.getenv("CENTRAL_PORTAL_DEPLOYMENT_ID")
+            ?: run {
+                val idFile = portalBuildDir.get().asFile.resolve("deployment-id")
+                if (idFile.exists()) idFile.readText().trim() else null
+            }
+        if (deploymentId.isNullOrBlank()) {
+            throw GradleException(
+                "No deployment ID found. Set CENTRAL_PORTAL_DEPLOYMENT_ID env var or run centralPortalDeploy first."
+            )
+        }
+
+        val tokenUsername = System.getenv("CENTRAL_PORTAL_TOKEN_USERNAME")
+        val tokenPassword = System.getenv("CENTRAL_PORTAL_TOKEN_PASSWORD")
+        if (tokenUsername.isNullOrBlank() || tokenPassword.isNullOrBlank()) {
+            throw GradleException("CENTRAL_PORTAL_TOKEN_USERNAME and CENTRAL_PORTAL_TOKEN_PASSWORD environment variables are required.")
+        }
+
+        val credentials = Base64.getEncoder()
+            .encodeToString("$tokenUsername:$tokenPassword".toByteArray())
+        val client = HttpClient.newHttpClient()
+        val request = HttpRequest.newBuilder()
+            .uri(URI.create("https://central.sonatype.com/api/v1/publisher/status?id=$deploymentId"))
+            .header("Authorization", "Bearer $credentials")
+            .header("Accept", "application/json")
+            .POST(HttpRequest.BodyPublishers.noBody())
+            .build()
+        val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+        logger.lifecycle("Central Portal deployment status for $deploymentId (HTTP ${response.statusCode()}):")
+        logger.lifecycle(response.body())
+    }
+}
+
+// Publish a validated USER_MANAGED deployment (irreversible — coordinates go live).
+tasks.register("centralPortalPublish") {
+    group = "publication"
+    description = "Publish a VALIDATED Central Portal deployment (IRREVERSIBLE)"
+    doLast {
+        val deploymentId = System.getenv("CENTRAL_PORTAL_DEPLOYMENT_ID")
+            ?: run {
+                val idFile = portalBuildDir.get().asFile.resolve("deployment-id")
+                if (idFile.exists()) idFile.readText().trim() else null
+            }
+        if (deploymentId.isNullOrBlank()) {
+            throw GradleException("No deployment ID found.")
+        }
+
+        val tokenUsername = System.getenv("CENTRAL_PORTAL_TOKEN_USERNAME")
+        val tokenPassword = System.getenv("CENTRAL_PORTAL_TOKEN_PASSWORD")
+        if (tokenUsername.isNullOrBlank() || tokenPassword.isNullOrBlank()) {
+            throw GradleException("CENTRAL_PORTAL_TOKEN_USERNAME and CENTRAL_PORTAL_TOKEN_PASSWORD environment variables are required.")
+        }
+
+        val credentials = Base64.getEncoder()
+            .encodeToString("$tokenUsername:$tokenPassword".toByteArray())
+        val client = HttpClient.newHttpClient()
+        val request = HttpRequest.newBuilder()
+            .uri(URI.create("https://central.sonatype.com/api/v1/publisher/deployment/$deploymentId"))
+            .header("Authorization", "Bearer $credentials")
+            .POST(HttpRequest.BodyPublishers.noBody())
+            .build()
+        val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+        logger.lifecycle("Central Portal publish response (HTTP ${response.statusCode()}): ${response.body().takeIf { it.isNotBlank() } ?: "(no body — expected for 204)"}")
     }
 }
 
