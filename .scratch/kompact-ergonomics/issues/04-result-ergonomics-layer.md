@@ -276,3 +276,21 @@ public inline fun readScalarOrThrow(raw: ByteArray, bitOffset: Int, type: Scalar
   macOS via the existing `regen-goldens.yml` workflow.
 
 ## Comments
+
+**Implementation outcome (2026-09-06).** Resolved as decided.
+
+- Registered `Kompact.Result` namespace at `ch/trancee/kompact/Kompact.kt`
+  (`object Kompact { object Result { 7 typealias } }`); additive, no
+  zero-alloc regression, scoped inside `Kompact.Result` (no shadowing of
+  `kotlin.Result`).
+- 5 `…OrThrow` wrappers on `KompactRuntime` + 14 `getOrElse`/`map`
+  extensions (7 + 7) on the result value classes.
+- ABI: `kompact.api` (JVM) regenerated via `:kompact:jvmApiDump`, green
+  via `:kompact:jvmApiCheck`; byte-identical on the macOS regen.
+  `kompact.klib.api` (merged iOS klib) regenerated on macOS via
+  `regen-goldens.yml` (run `34021875744`, +4 lines for Kompact/Result).
+- `:kompact:jvmTest` → BUILD SUCCESSFUL (187 tests).
+- CI `34022123785` (`feat/laguna` @ `cf7dde57`) → `jvmTest (Linux)`:
+  success + `apiCheck (macOS)`: success.
+- Commits `13f2f5b` (Kompact.kt + kompact.api + test split) +
+  `cf7dde5` (klib golden) on `feat/laguna`.

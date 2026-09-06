@@ -236,3 +236,30 @@ result kind, in the per-accessor file).
   9. Push to `feat/laguna`; CI should stay green.
 
 ## Comments
+
+**Implementation outcome (2026-09-06).** Resolved — the 441-line
+`KompactRuntimeCheckedReadTest.kt` was deleted and replaced with 6
+per-result-kind files in `kompact/src/commonTest/kotlin/ch/trancee/kompact/runtime/`
+(46 tests relocated, 0 added; `KompactRuntimeCheckedApiTest.kt` untouched):
+
+| File | Tests | Coverage |
+| --- | --- | --- |
+| `KompactRuntimeReadBoolTest` | 4 | readBool |
+| `KompactRuntimeReadScalarTest` | 21 | widths 8/16/32 |
+| `KompactRuntimeReadScalarAsLongTest` | 9 | width 64 |
+| `KompactRuntimeReadFloatTest` | 5 | readFloat |
+| `KompactRuntimeReadDoubleTest` | 6 | readDouble |
+| `KompactRuntimeBoundsHardeningTest` | 1 | F-002 |
+
+**Divergence from the Answer (above):** the executed split (6 files,
+0 new tests, no framing nested file) supersedes the grilled Answer
+(7 files incl. `KompactFramingReadNestedTest.kt` + ~17 new
+`…OrThrow`/`getOrElse`/`map` tests). Per the user's final directive
+("write the 6 files"), the split went per-result-kind with zero new
+tests; the framing nested tests stayed in `KompactFramingTest.kt`.
+The grilled Answer is retained above for context.
+
+- `:kompact:jvmTest` → BUILD SUCCESSFUL (187 tests).
+- CI `34022123785` (`feat/laguna` @ `cf7dde57`) → `jvmTest` + `apiCheck` success.
+- Commits `13f2f5b` (Kompact.kt + kompact.api + test split) +
+  `cf7dde5` (klib golden) on `feat/laguna`.
