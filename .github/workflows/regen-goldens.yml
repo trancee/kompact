@@ -15,6 +15,9 @@ on:
         default: ':kompact:apiDump'
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   regen:
     runs-on: macos-latest
