@@ -76,12 +76,15 @@ Linux), with the klib golden regenerated via the
 ## Frontier
 
 > All 11 design tickets (01–11) are resolved. The wayfinder frontier is
-> **exhausted**. The next phase is the **implementation commit** — the single
-> atomic commit that applies tickets 01 + 02 + 04 + 05 + 06 + 11 to the source,
-  splits the tests per ticket 09, and regenerates the goldens. It is tracked
-  by the implementation todo (below), not by a wayfinder ticket. The klib
-  golden regen is the final macOS-gated step (dispatch `regen-goldens.yml`
-  via the GitHub web UI).
+> **exhausted**. The implementation commit is **applied** (`13f2f5b`: source
+> per 01+02+04+05+06+11; `cf7dde5`: klib golden via macOS
+> `regen-goldens.yml`); the closeout of issues 04 + 09 is committed
+> (`445397d`: issue `## Comments` + pushes). CI on `feat/laguna @ cf7dde5`
+> is green (run `34022123785`: `jvmTest (Linux)` + `apiCheck (macOS)`).
+> The klib golden regen was the final macOS-gated step. Remaining
+> **follow-ups** (decided but not yet in the tree): **08** (fold
+> `:kompact:jvmApiCheck` into the `jvm-test` CI job) and **10** (add the
+> `dokka` Gradle plugin to `:kompact`).
 
 ## Implementation
 
@@ -117,9 +120,13 @@ precedence that the decisions impose:
 6. **Source: example** — ticket 07 (`VehicleTelemetry` getters use
   `readScalar(raw, off, type).getOrThrow()` / `readBool(raw, off)
   .getOrThrow()`; annotations opt in).
-7. **Tests** — ticket 09 (7 files, ~63 tests; relocate 46 existing +
-  add `…OrThrow` / `getOrElse` / `map` / framing tests; update tutorial
-  + example tests for the new signatures; delete the old file).
+7. **Tests** — ticket 09 (6 files, 46 tests, 0 added; relocate the 46
+  existing read tests 1:1 into per-result-kind files — `ReadBoolTest` 4,
+  `ReadScalarTest` 21, `ReadScalarAsLongTest` 9, `ReadFloatTest` 5,
+  `ReadDoubleTest` 6, `BoundsHardeningTest` 1 (F-002); delete the old
+  `KompactRuntimeCheckedReadTest.kt`). Deviation from the grilled 7-file
+  answer (which carried a `KompactFramingReadNestedTest.kt` plus ~17 new
+  ergonomics tests) — see ticket 09 `## Comments`.
 8. **Golden** — regen JVM golden (`apiDump`) on Linux (host-capable);
   regen klib golden on macOS via `regen-goldens.yml` web-UI dispatch
   (Linux cannot infer it). Verify `jvmApiCheck` + `jvmTest` green on
@@ -129,7 +136,7 @@ precedence that the decisions impose:
   (Linux `jvmTest + jvmApiCheck` + macOS `apiCheck`).
 
 Sizing: ~6 source edits (3 files × 2 platforms for the actuals) + 1
-annotation file + 1 example (3 platform actuals) + 7 test files + 2
+annotation file + 1 example (3 platform actuals) + 6 test files + 2
 goldens. The source edits are mechanical (signature changes + additive
 declarations); the test files are the bulk (rewrite the read tests + new
 ergonomics tests). The klib golden is the final macOS-gated step.
@@ -143,10 +150,10 @@ ergonomics tests). The klib golden is the final macOS-gated step.
      graduated to ticket 09 (resolved). The frontier is exhausted; all
      11 design tickets decided. The implementation commit (applying
      tickets 01 + 02 + 04 + 05 + 06 + 11 to the source + splitting
-     tests per ticket 09 + regenerating goldens) is the next phase,
-     tracked by the implementation todo below, not by a wayfinder
-     ticket. Revisit this section when the implementation surfaces
-     new in-scope fog. -->
+     tests per ticket 09 + regenerating goldens) has been applied
+     (`13f2f5b` + `cf7dde5`); the closeout of issues 04 + 09 was
+     committed (`445397d`). Revisit this section only if a follow-up
+     (08 CI ergonomics, 10 docs structure) surfaces new in-scope fog. -->
 <!-- (empty)
 
 ## Out of scope
