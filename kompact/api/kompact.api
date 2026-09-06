@@ -1,3 +1,11 @@
+public final class ch/trancee/kompact/Kompact {
+	public static final field INSTANCE Lch/trancee/kompact/Kompact;
+}
+
+public final class ch/trancee/kompact/Kompact$Result {
+	public static final field INSTANCE Lch/trancee/kompact/Kompact$Result;
+}
+
 public abstract interface annotation class ch/trancee/kompact/annotations/KompactField : java/lang/annotation/Annotation {
 	public abstract fun bitOffset ()I
 	public abstract fun bitWidth ()I
