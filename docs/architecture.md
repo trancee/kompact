@@ -61,7 +61,8 @@ are wrappers over a single `Long`. On the JVM, `@JvmInline value class`
 over a primitive `Long` is stored as the `Long` itself — no object
 header, no heap allocation. On Kotlin/Native, a `value class` over a
 primitive `Long` is an inline value with the same property. So
-`IntResult` / `LongResult` / `BooleanResult` cost exactly the same
+`ByteResult`, `ShortResult`, `IntResult`, `LongResult`, `FloatResult`,
+`DoubleResult`, and `BooleanResult` cost exactly the same
 as a `Long` would, on both platforms, on both the success and
 failure paths.
 
@@ -93,11 +94,16 @@ A single packed `Long` layout:
 ```
 
 - `ok = 1` (bit 63 set) means success; the low 48 bits are the value
-  bits (sign- or zero-extended by the caller via `readScalar`'s
-  `signed` flag).
+  bits (sign- or zero-extended by the caller via [ScalarType.signed](api-reference.md#scalartype)).
 - `ok = 0` means failure; bits 62..60 carry the error kind code and
   bits 59..48 carry the raw enum code for `UnknownEnumCode`. The
   value bits are unused.
+- `FloatResult` uses this same layout; its 32-bit IEEE-754 bits are stored
+  in the value field, with NaN canonicalized to the canonical quiet-NaN on
+  the success path (so a NaN payload cannot collide with the error encoding).
+  Because 32 bits fit comfortably in the 48-bit value field, `FloatResult`
+  does **not** use the NaN-payload scheme — that is a `DoubleResult`-only
+  technique (see below).
 
 ### LongResult — the sentinel band
 
@@ -113,16 +119,16 @@ without boxing; the reserved range is wide enough to carry the
 error kind and the raw enum code, and it is small enough that
 realistic long values almost never land in it.
 
-### FloatResult / DoubleResult — NaN payloads
+### DoubleResult — NaN payloads
 
-IEEE-754 reserves the NaN space for diagnostic payloads. `FloatResult`
-and `DoubleResult` use canonical quiet-NaN for success and a quiet NaN
-with a non-zero low-payload for failure. The low 4 bits of the NaN
-payload carry the error-kind code (`ERROR_BOUNDS = 0`,
-`ERROR_BAD_LENGTH = 1`, `ERROR_TRUNCATED = 2`, `ERROR_UNKNOWN_ENUM = 3`).
-A non-canonical NaN read off the wire is canonicalized to the
-canonical-quiet-NaN on success, so the writer's "I don't know the
-value" NaN cannot smuggle a real NaN through the decoder.
+IEEE-754 reserves the NaN space for diagnostic payloads. `DoubleResult`
+uses canonical quiet-NaN for success and a quiet NaN with a non-zero
+low-payload for failure. The failure payload is `errorKind + 1` (1–4)
+in bits 3–0, with the raw enum code (when applicable) in bits 7–4;
+payload `0` is reserved for canonical success NaN. A non-canonical NaN
+read off the wire is canonicalized to the canonical-quiet-NaN on success,
+so the writer's "I don't know the value" NaN cannot smuggle a failure
+through the decoder.
 
 ## Value-class representation across platforms
 
@@ -162,13 +168,14 @@ shared length-prefix contract. The contract is:
   sequentially. The writer's `writeRepeated` invokes its block `count`
   times against the parent writer.
 
-The framing helpers live in `KompactFraming` (the `readLengthPrefix`
-/ `writeLengthPrefix` / `nestedRegionOrNull` object) and the writer
-exposes the user-facing shape (`writeString` / `writeBlob` /
-`writeNested` / `writeRepeated`). Reads in this layer do not allocate
-a typed result on a `null` return — the caller is expected to
-pattern-match the nullable pair and produce a typed result at the
-edge, keeping the framing hot path allocation-free.
+The framing helpers live in `KompactFraming`: `readLengthPrefix` and
+`writeLengthPrefix` for the fixed-width count, plus `readNested` (the
+typed public entry point returning a `NestedRegionResult`) which wraps
+the internal `nestedRegionOrNull`. The writer exposes the user-facing
+shape (`writeString` / `writeBlob` / `writeNested` / `writeRepeated`).
+The typed `NestedRegionResult` carries `TruncatedNested` /
+`BadLengthPrefix` failures as values — never throwing on the hot path —
+so the framing layer stays allocation-free.
 
 The deliberate rejection: no random-access offset jumps (see wire
 format rule 3). This is what made the variable-length type set

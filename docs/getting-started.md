@@ -46,11 +46,12 @@ in the order they appear on the wire; `build()` returns the exact-length
 
 ```kotlin
 import ch.trancee.kompact.runtime.KompactWriter
+import ch.trancee.kompact.runtime.ScalarType
 
 val w = KompactWriter()
-w.writeScalar(bitWidth = 4,  value = 5L)    // batteryStatus  = 5
-w.writeScalar(bitWidth = 10, value = 10L)   // speed          = 10
-w.writeBool(true)                           // isMalfunctioning = true
+w.writeScalar(ScalarType.of(4,  signed = false), 5L)   // batteryStatus  = 5
+w.writeScalar(ScalarType.of(10, signed = false), 10L) // speed          = 10
+w.writeBool(true)                                      // isMalfunctioning = true
 // bit 15 (reserved) is left zero by default.
 val bytes: ByteArray = w.build()
 ```
@@ -62,19 +63,19 @@ shifts the wire format, the test will break and this doc gets
 updated to match).
 
 ## Step 2 — read it back, checked
-
 Every `KompactRuntime` read accessor that ends in a typed result
-(`readBool`, `readScalar`, `readScalarLong`, `readFloat`, `readDouble`)
+(`readBool`, `readScalar`, `readScalarAsLong`, `readFloat`, `readDouble`)
 returns a **zero-allocation result value class** — not a primitive, not
 a throw. The success hot path never throws.
 
 ```kotlin
 import ch.trancee.kompact.runtime.KompactRuntime
+import ch.trancee.kompact.runtime.ScalarType
 
 val battery: Int =
-    KompactRuntime.readScalar(bytes, 0,  4, signed = false).getOrThrow()
+    KompactRuntime.readScalar(bytes, 0,  ScalarType.of(4,  signed = false)).getOrThrow()
 val speed: Int =
-    KompactRuntime.readScalar(bytes, 4, 10, signed = false).getOrThrow()
+    KompactRuntime.readScalar(bytes, 4, ScalarType.of(10, signed = false)).getOrThrow()
 val flag: Boolean =
     KompactRuntime.readBool(bytes, 14).getOrThrow()
 ```
@@ -94,7 +95,7 @@ instead of throwing:
 
 ```kotlin
 val truncated = byteArrayOf(0xA5.toByte())   // only 1 byte, layout needs 2
-val speed = KompactRuntime.readScalar(truncated, 4, 10, signed = false)
+val speed = KompactRuntime.readScalar(truncated, 4, ScalarType.of(10, signed = false))
 
 if (speed.isFailure) {
     when (val err = speed.error) {

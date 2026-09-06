@@ -6,16 +6,18 @@ be safely decoded on the hot path — no boxing, no exception throwing, no
 intermediate copies.
 
 ```
+import ch.trancee.kompact.runtime.ScalarType
+
 // Write 16 bits: 4 bits battery + 10 bits speed + 1 bit flag + 1 bit reserved
 val w = KompactWriter()
-w.writeScalar(bitWidth = 4,  value = 5L)    // battery = 5
-w.writeScalar(bitWidth = 10, value = 10L)   // speed = 10
-w.writeBool(true)                           // malfunction = true
-val bytes: ByteArray = w.build()            // 2 bytes: 0xA5 0x40
+w.writeScalar(ScalarType.of(4,  signed = false), 5L)  // battery = 5
+w.writeScalar(ScalarType.of(10, signed = false), 10L)  // speed = 10
+w.writeBool(true)                                       // malfunction = true
+val bytes: ByteArray = w.build()                        // 2 bytes: 0xA5 0x40
 
 // Read them back as typed results — no exceptions on the success path
-val battery: Int      = KompactRuntime.readScalar(bytes, 0,  4, signed = false).getOrThrow()
-val speed:    Int      = KompactRuntime.readScalar(bytes, 4, 10, signed = false).getOrThrow()
+val battery: Int      = KompactRuntime.readScalar(bytes, 0,  ScalarType.of(4,  signed = false)).getOrThrow()
+val speed:    Int      = KompactRuntime.readScalar(bytes, 4, ScalarType.of(10, signed = false)).getOrThrow()
 val flag:     Boolean  = KompactRuntime.readBool    (bytes, 14          ).getOrThrow()
 ```
 
