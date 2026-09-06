@@ -90,6 +90,23 @@ Setters work because the `ByteArray` is a mutable reference shared by the
 value class. You read one field, modify one field, and transmit the same
 buffer — no intermediate objects, no copy.
 
+**Quick reference** — all four operations in one snippet:
+
+```kotlin
+// 1. One-liner create → raw bytes
+val raw: ByteArray = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalformed = true).raw
+
+// 2. Construct from raw bytes (e.g. received from BLE)
+val tel = VehicleTelemetry(raw)
+
+// 3. Overwrite a field in-place (writes directly to the backing buffer)
+tel.speed = 30
+
+// 4. Get the raw bytes again — no copy
+bleCharacteristic.value = tel.raw
+```
+
+
 ## What's in this repo
 
 - **`:kompact`** — the KMP runtime: bit primitives, a forward-only writer, framing
