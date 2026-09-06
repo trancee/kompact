@@ -355,6 +355,10 @@ final object ch.trancee.kompact.runtime/KompactRuntime { // ch.trancee.kompact.r
     final inline fun writeBitsLong(kotlin/ByteArray, kotlin/Int, kotlin/Int, kotlin/Long) // ch.trancee.kompact.runtime/KompactRuntime.writeBitsLong|writeBitsLong(kotlin.ByteArray;kotlin.Int;kotlin.Int;kotlin.Long){}[0]
 }
 
+final object ch.trancee.kompact/Kompact { // ch.trancee.kompact/Kompact|null[0]
+    final object Result // ch.trancee.kompact/Kompact.Result|null[0]
+}
+
 final inline fun (ch.trancee.kompact.runtime/BooleanResult).ch.trancee.kompact.runtime/getOrElse(kotlin/Function1<ch.trancee.kompact.runtime/KompactDecodeError, kotlin/Boolean>): kotlin/Boolean // ch.trancee.kompact.runtime/getOrElse|getOrElse@ch.trancee.kompact.runtime.BooleanResult(kotlin.Function1<ch.trancee.kompact.runtime.KompactDecodeError,kotlin.Boolean>){}[0]
 final inline fun (ch.trancee.kompact.runtime/BooleanResult).ch.trancee.kompact.runtime/map(kotlin/Function1<kotlin/Boolean, kotlin/Boolean>): ch.trancee.kompact.runtime/BooleanResult // ch.trancee.kompact.runtime/map|map@ch.trancee.kompact.runtime.BooleanResult(kotlin.Function1<kotlin.Boolean,kotlin.Boolean>){}[0]
 final inline fun (ch.trancee.kompact.runtime/ByteResult).ch.trancee.kompact.runtime/getOrElse(kotlin/Function1<ch.trancee.kompact.runtime/KompactDecodeError, kotlin/Byte>): kotlin/Byte // ch.trancee.kompact.runtime/getOrElse|getOrElse@ch.trancee.kompact.runtime.ByteResult(kotlin.Function1<ch.trancee.kompact.runtime.KompactDecodeError,kotlin.Byte>){}[0]
