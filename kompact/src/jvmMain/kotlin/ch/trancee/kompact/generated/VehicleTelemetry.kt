@@ -5,7 +5,6 @@ import ch.trancee.kompact.annotations.KompactField
 import ch.trancee.kompact.annotations.KompactModel
 import ch.trancee.kompact.annotations.KompactPreview
 import ch.trancee.kompact.runtime.KompactRuntime
-import ch.trancee.kompact.runtime.KompactWriter
 import ch.trancee.kompact.runtime.ScalarType
 import kotlin.jvm.JvmInline
 
@@ -25,13 +24,7 @@ public actual value class VehicleTelemetry(public actual val raw: ByteArray) {
             batteryStatus: Int,
             speed: Int,
             isMalfunctioning: Boolean,
-        ): VehicleTelemetry {
-            val w = KompactWriter()
-            w.writeScalar(ScalarType.of(4, signed = false), batteryStatus.toLong())
-            w.writeScalar(ScalarType.of(10, signed = false), speed.toLong())
-            w.writeBool(isMalfunctioning)
-            return VehicleTelemetry(w.build())
-        }
+        ): VehicleTelemetry = VehicleTelemetry(encodeVehicleTelemetry(batteryStatus, speed, isMalfunctioning))
     }
 
     @KompactField(bitOffset = 0, bitWidth = 4)

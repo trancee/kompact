@@ -103,12 +103,18 @@ class VehicleTelemetryTest {
     // === create() factory ===
 
     @Test
-    fun create_encodesAllFieldsToExpectedWireBytes() {
+    fun create_roundTripsDecodedFields() {
         val tel = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
 
         assertEquals(5, tel.batteryStatus)
         assertEquals(10, tel.speed)
         assertEquals(true, tel.isMalfunctioning)
+    }
+
+    @Test
+    fun create_encodesFieldsToExpectedWireBytes() {
+        val tel = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
+
         assertEquals(0xA5, tel.raw[0].toInt() and 0xFF)
         assertEquals(0x40, tel.raw[1].toInt() and 0xFF)
     }

@@ -62,3 +62,21 @@ public expect value class VehicleTelemetry(public val raw: ByteArray) {
     @KompactField(bitOffset = 14, bitWidth = 1)
     public var isMalfunctioning: Boolean
 }
+
+/**
+ * Encodes the three VehicleTelemetry fields into a fresh 2-byte wire-format
+ * buffer. Shared by the JVM and iOS `create` factories to avoid duplication.
+ * Allocates on the write path (KompactWriter's growable buffer); use this
+ * for outbound frames, not the read hot path.
+ */
+internal fun encodeVehicleTelemetry(
+    batteryStatus: Int,
+    speed: Int,
+    isMalfunctioning: Boolean,
+): ByteArray {
+    val w = KompactWriter()
+    w.writeScalar(ScalarType.of(4, signed = false), batteryStatus.toLong())
+    w.writeScalar(ScalarType.of(10, signed = false), speed.toLong())
+    w.writeBool(isMalfunctioning)
+    return w.build()
+}
