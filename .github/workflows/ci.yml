@@ -1,9 +1,11 @@
 name: CI
 
 # Validates the public ABI goldens and runs the JVM test suite.
-# apiCheck enforces both kompact.api (JVM) and kompact.klib.api (merged ios klib).
-# ios klib ABI inference only succeeds on Apple hosts, so the klib golden is
-# only meaningfully validated on the macOS job — that is its gate.
+# apiCheck (macOS) enforces both kompact.api (JVM) and kompact.klib.api (merged
+# ios klib) with strictValidation — iOS klibs can only be compiled on Apple
+# hosts, so the klib golden is only meaningfully validated on the macOS job.
+# On Linux, klibApiCheck fails (unsupported targets); the Linux job runs
+# jvmApiCheck + jvmTest only (fast JVM API gate before the macOS final gate).
 
 on:
   push:
@@ -30,7 +32,7 @@ jobs:
       - run: ./gradlew :kompact:apiCheck --no-daemon
 
   jvm-test:
-    name: jvmTest (Linux)
+    name: jvmTest + jvmApiCheck (Linux)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,4 +41,4 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
-      - run: ./gradlew :kompact:jvmTest --no-daemon
+      - run: ./gradlew :kompact:jvmTest :kompact:jvmApiCheck --no-daemon

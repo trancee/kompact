@@ -209,7 +209,7 @@ not silently truncate or misread.
   `VehicleTelemetry` example, the source-retained `@KompactModel` /
   `@KompactField` annotations, the full `commonTest` suite
   (round-trip, property-based, long-form, allocation-discipline),
-  CI gates (`apiCheck` on macOS, `jvmTest` on Linux), and the BCV
+  CI gates (`apiCheck` on macOS for JVM + iOS klib; `jvmApiCheck` + `jvmTest` on Linux)
   goldens in [`kompact/api/`](../kompact/api/).
 - **Not yet in repo**: the KSP code generator. The annotation surface
   is in source and the test suite pins the compile-time contract, but

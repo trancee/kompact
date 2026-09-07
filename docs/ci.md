@@ -12,7 +12,7 @@ Two workflow files live in [`.github/workflows/`](../.github/workflows/):
 
 | Workflow | File | Runner | Gates |
 | --- | --- | --- | --- |
-| **CI** | `ci.yml` | `api-check` on `macos-latest`; `jvm-test` on `ubuntu-latest` | Public ABI goldens (JVM + merged iOS klib); `commonTest` on the JVM |
+| **CI** | `ci.yml` | `api-check` on `macos-latest`; `jvmTest + jvmApiCheck` on `ubuntu-latest` | Public ABI goldens (JVM + merged iOS klib) on macOS; `jvmApiCheck` on JVM (fast gate); `commonTest` on the JVM |
 | **Regen Goldens** | `regen-goldens.yml` | `macos-latest` | Regenerate the BCV goldens (manual `workflow_dispatch`) |
 
 The CI workflow triggers on pushes to `main`, `master`, and `feat/**`,
@@ -23,32 +23,44 @@ and on pull requests into `main` or `master`. The regen workflow is
 
 Runs `./gradlew :kompact:apiCheck --no-daemon` on the latest macOS
 runner with JDK 21 (Temurin). `apiCheck` compares the committed BCV
-goldens against the freshly-inferred ABIs:
+goldens against the freshly-inferred ABIs with `strictValidation = true`:
 
 - `kompact/api/kompact.api` — the JVM bytecode ABI (compiled from the
   current source).
 - `kompact/api/kompact.klib.api` — the merged iOS klib ABI (the union
-  of `iosArm64` and `iosSimulatorArm64`, inferred only on Apple hosts).
+  of `iosArm64` and `iosSimulatorArm64`, compiled and dumped only on
+  Apple hosts).
 
-**Why this gate exists.** The golden files pin the public ABI of the
-runtime. A change that accidentally narrows or widens a public
+**Why this gate is the final gate.** The golden files pin the public ABI
+of the runtime. A change that accidentally narrows or widens a public
 signature — or that adds a new public declaration without a deliberate
 golden bump — breaks this gate and forces a review. The JVM golden is
-host-independent; the iOS klib golden is **only meaningfully
-validated on a macOS runner** (the Linux CI job cannot infer the iOS
-klib ABI). That is why the API check is split across runners.
+host-independent; the iOS klib golden is **only meaningfully validated on
+a macOS runner** because iOS klibs can only be compiled there.
+`strictValidation = true` makes `klibApiCheck` fail rather than silently
+infer on a non-Apple host, so this macOS job is the only one that
+catches klib drift — it remains the final gate.
 
-### `jvm-test` (Linux)
+### `jvmTest + jvmApiCheck (Linux)`
 
-Runs `./gradlew :kompact:jvmTest --no-daemon` on Ubuntu with JDK 21
-(Temurin). `jvmTest` runs the `commonTest` suite on the JVM target.
-The suite covers round-trip unit tests, property-based tests, the
-allocation discipline, and the long-form framing tests
-(strings / blobs / nested / repeated).
+Runs `./gradlew :kompact:jvmTest :kompact:jvmApiCheck --no-daemon` on
+Ubuntu with JDK 21 (Temurin).
 
-**Why this gate exists.** A pure ABI check is not enough — a source
-change can pass the goldens (no public-surface drift) and still break
-the runtime behaviour. `jvmTest` is the behavioural safety net.
+- `jvmTest` runs the `commonTest` suite on the JVM target. The suite
+  covers round-trip unit tests, property-based tests, the allocation
+  discipline, and the long-form framing tests (strings / blobs / nested /
+  repeated).
+- `jvmApiCheck` compares the committed `kompact/api/kompact.api` JVM
+  golden against the freshly-inferred JVM ABI. It is a JVM task with no
+  native toolchain dependency, so it runs on any host.
+
+**Why this gate exists.** The macOS `api-check` job is the final gate, but
+it carries a ~6 min queue. Folding `jvmApiCheck` into the Linux job gives
+contributors fast feedback — a JVM-API drift fails the PR on Linux before
+the macOS runner is even scheduled. The iOS klib half is deliberately
+**not** run here: `strictValidation = true` makes `klibApiCheck` fail on
+non-Apple hosts (iOS klibs can't be compiled on Linux), so this job runs
+`jvmApiCheck` only and leaves the klib check to the macOS job.
 
 ### `Regen Goldens` (macOS, manual)
 
@@ -77,26 +89,34 @@ download the `api-goldens` artifact and replace the files under
 
 ## Re-running gates locally
 
-You do not need a CI runner to verify the gates — both `apiCheck`
-and `jvmTest` are ordinary Gradle tasks. The difference is that on
-Linux you can only verify the JVM side; the iOS klib inference needs
-a macOS host.
+You do not need a CI runner to verify the gates — `apiCheck`,
+`jvmApiCheck`, `jvmTest`, and `apiDump` are all ordinary Gradle
+tasks. The split follows the host:
+
+- **On macOS** (all targets supported): run the full `apiCheck`
+  (JVM + iOS klib, with `strictValidation = true`).
+- **On Linux / Windows** (iOS klibs can't be compiled): run
+  `jvmApiCheck` for the JVM golden. `apiCheck` will fail on the
+  klib part — `strictValidation = true` makes `klibApiCheck` fail
+  on unsupported targets instead of silently inferring — so run
+  the two tasks separately on a non-Apple host.
 
 ```bash
-# JVM tests (Linux + macOS)
-./gradlew :kompact:jvmTest
+# JVM tests + JVM API check (Linux + macOS)
+./gradlew :kompact:jvmTest :kompact:jvmApiCheck
 
-# API check — JVM part runs anywhere; iOS klib part only on macOS
+# Full ABI check — macOS only (iOS klibs can only be compiled here)
 ./gradlew :kompact:apiCheck
 
 # Regenerate the goldens in place (macOS only)
 ./gradlew :kompact:apiDump
 ```
 
-When the goldens drift on a non-Mac host, the iOS half of
-`apiCheck` is a no-op and you'll see a false green. The
-`Regen Goldens` workflow is the supported way to get the iOS
-golden updated from a non-Mac host.
+When you change a public JVM declaration, update the golden
+locally with `:kompact:jvmApiDump`. When you change a public iOS
+declaration, regenerate the klib golden on macOS — Linux cannot
+produce it. The `Regen Goldens` workflow is the supported way to
+get the iOS golden updated from a non-Mac host.
 
 ## Build environment
 

@@ -53,10 +53,16 @@ kotlin {
         iosSimulatorArm64Main { dependsOn(iosMain) }
     }
 }
+
 // Ticket 13: BCV 0.18.0 — lock the public ABI for common + each Kotlin/Native target.
+// strictValidation makes klibApiCheck fail on hosts that can't compile every
+// target (e.g. iOS klibs on Linux) instead of silently inferring the ABI —
+// which produces false greens. macOS validates all iOS targets for real;
+// Linux is expected to run jvmApiCheck only (see ci.yml / docs/ci.md).
 apiValidation {
     klib {
         enabled = true
+        strictValidation = true
     }
 }
 

@@ -28,9 +28,9 @@ The blast radius is everything in this repository except the locked
 v1 spec tickets 01–13 (those carry user-decided scope and may not be
 reopened by this effort — see `Out of scope`). The public ABI is free
 to change; the library has not been released. Commits land on
-`feat/laguna` behind the BCV gate (`apiCheck` on macOS, `jvmTest` on
-Linux), with the klib golden regenerated via the
-`regen-goldens.yml` workflow.
+`feat/laguna` behind the BCV gate (`apiCheck` on macOS for JVM + iOS klib
+with `strictValidation=true`; `jvmApiCheck` + `jvmTest` on Linux), with the
+klib golden regenerated via the `regen-goldens.yml` workflow.
 
 ## Notes
 
@@ -82,8 +82,7 @@ Linux), with the klib golden regenerated via the
 > (`445397d`: issue `## Comments` + pushes). CI on `feat/laguna @ cf7dde5`
 > is green (run `34022123785`: `jvmTest (Linux)` + `apiCheck (macOS)`).
 > The klib golden regen was the final macOS-gated step. Remaining
-> **follow-ups** (decided but not yet in the tree): **08** (fold
-> `:kompact:jvmApiCheck` into the `jvm-test` CI job) and **10** (add the
+> **follow-ups** (decided but not yet in the tree): **10** (add the
 > `dokka` Gradle plugin to `:kompact`).
 
 ## Implementation
