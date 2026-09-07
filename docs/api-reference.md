@@ -8,13 +8,66 @@ source layout: [`ScalarType`](#scalartype) → [`KompactRuntime`](#kompactruntim
 [`KompactDecodeError`](#kompactdecodeerror) →
 [extension functions](#extension-functions) →
 [`Kompact.Result`](#kompactresult-namespace) →
-[annotations](#annotations) → [`VehicleTelemetry`](#vehicle-telemetry-example-model) → [constants](#constants-and-limits).
+[annotations](#annotations) → [`VehicleTelemetry`](#vehicletelemetry-example-model) → [constants](#constants-and-limits).
 
 All declarations are in the package `ch.trancee.kompact.runtime` unless noted.
 `ch.trancee.kompact.generated` is the package of the bundled
 `VehicleTelemetry` example model; `ch.trancee.kompact` is the package of
 `Kompact.Result`; `ch.trancee.kompact.annotations` is the package of
 `@KompactModel`, `@KompactField`, and `@KompactPreview`.
+
+---
+## Common patterns
+
+The full API tables are below. This section shows the three shapes
+that cover ~90% of Kompact usage. If you are coming back to the
+reference to look up a parameter, jump to the relevant section; if
+you are seeing the reference for the first time, start here.
+
+### Pattern 1 — encode a frame from field values, hand the bytes to a sink
+
+```kotlin
+import ch.trancee.kompact.runtime.KompactWriter
+import ch.trancee.kompact.runtime.ScalarType
+
+val w = KompactWriter()
+w.writeScalar(ScalarType.of(4,  signed = false), battery.toLong())    // 4 bits
+w.writeScalar(ScalarType.of(10, signed = false), speed.toLong())      // 10 bits
+w.writeBool(fault)                                                     // 1 bit
+val bytes: ByteArray = w.build()                                       // exact-length snapshot
+bleCharacteristic.value = bytes
+```
+
+### Pattern 2 — wrap received bytes in a value class, read fields
+
+```kotlin
+import ch.trancee.kompact.generated.VehicleTelemetry
+
+val tel = VehicleTelemetry(bleCharacteristic.value)   // zero-alloc wrap
+if (tel.isMalfunctioning) alertOps(tel)              // hot-path: one field
+val speed = tel.speed                                // pull another field later
+```
+
+### Pattern 3 — read a hand-decoded field, recover from a bad wire
+
+```kotlin
+import ch.trancee.kompact.runtime.KompactDecodeError
+import ch.trancee.kompact.runtime.KompactRuntime
+import ch.trancee.kompact.runtime.ScalarType
+
+val speed = KompactRuntime.readScalar(raw, 0, ScalarType.of(10, signed = false))
+if (speed.isSuccess) {
+    val v: Int = speed.getOrThrow()    // safe; we just checked
+    use(v)
+} else {
+    when (val err = speed.error) {
+        KompactDecodeError.BoundsError     -> log.warn("truncated: $err")
+        KompactDecodeError.BadLengthPrefix -> log.warn("bad prefix: $err")
+        KompactDecodeError.TruncatedNested -> log.warn("nested: $err")
+        is KompactDecodeError.UnknownEnumCode -> log.warn("unknown enum ${err.rawCode}")
+    }
+}
+```
 
 ---
 

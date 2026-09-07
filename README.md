@@ -129,6 +129,12 @@ bleCharacteristic.value = tel.raw
 | Understand the design choices (LSB-first, zero-alloc, value classes, framing) | **[`docs/architecture.md`](docs/architecture.md)** |
 | Run / understand the CI gates and goldens | **[`docs/ci.md`](docs/ci.md)** |
 | See all of the above at a glance | **[`docs/README.md`](docs/README.md)** |
+| Define your own message (with code snippets for common cases) | **[`docs/how-to/define-message.md`](docs/how-to/define-message.md)** |
+| Pack / parse strings, blobs, nested composites, or repeated fields | **[`docs/how-to/long-form-payloads.md`](docs/how-to/long-form-payloads.md)** |
+| Handle a `KompactDecodeError` without throwing on the hot path | **[`docs/how-to/handle-decode-errors.md`](docs/how-to/handle-decode-errors.md)** |
+| Send a frame over BLE / receive one back | **[`docs/how-to/integrate-ble.md`](docs/how-to/integrate-ble.md)** |
+| Consume Kompact from a separate Kotlin / KMP project | **[`docs/how-to/consume-from-another-project.md`](docs/how-to/consume-from-another-project.md)** |
+| All how-to guides (task-oriented recipes) | **[`docs/how-to/README.md`](docs/how-to/README.md)** |
 | Read the original product brief | [`PROMPT.md`](PROMPT.md) |
 | Read the locked implementation spec (tickets 01–13) | [`.scratch/kompact-spec/map.md`](.scratch/kompact-spec/map.md) |
 

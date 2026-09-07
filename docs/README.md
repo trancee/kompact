@@ -11,6 +11,11 @@ one-paragraph pitch, then pick the doc that matches your task:
 | I want to … | Read |
 | --- | --- |
 | Try kompact end-to-end (write a frame, read it back) | [`getting-started.md`](getting-started.md) |
+| Define my own message model (like `VehicleTelemetry`) | [`how-to/define-message.md`](how-to/define-message.md) |
+| Pack / parse a string, blob, nested composite, or repeated field | [`how-to/long-form-payloads.md`](how-to/long-form-payloads.md) |
+| Handle a `KompactDecodeError` without throwing on the hot path | [`how-to/handle-decode-errors.md`](how-to/handle-decode-errors.md) |
+| Send a frame over BLE / receive one back | [`how-to/integrate-ble.md`](how-to/integrate-ble.md) |
+| Consume kompact from a separate Kotlin / KMP project | [`how-to/consume-from-another-project.md`](how-to/consume-from-another-project.md) |
 | Look up an exact API signature, parameter, or error type | [`api-reference.md`](api-reference.md) |
 | Understand the design choices (LSB-first, zero-alloc, value classes, framing, error encoding) | [`architecture.md`](architecture.md) |
 | Run the CI gates / regenerate the goldens | [`ci.md`](ci.md) |

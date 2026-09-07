@@ -109,6 +109,42 @@ if (speed.isFailure) {
 
 This pattern (no exception on the hot path) is what the API is shaped
 for — see [`docs/architecture.md`](architecture.md) for the why.
+## Step 4 — add a length-prefixed string, a blob, a nested record, a repeated field
+
+Fixed-width scalars are the first half of the wire. The other half
+is length-delimited framing — strings, blobs, nested composites, and
+repeated fields. All four share one contract: a fixed-width
+little-endian byte-count prefix, then the payload. The legal prefix
+widths are `8`, `16`, `32` bits
+([`KompactFraming.VALID_PREFIX_WIDTHS`](api-reference.md#kompactframing)).
+
+```kotlin
+import ch.trancee.kompact.runtime.KompactWriter
+import ch.trancee.kompact.runtime.ScalarType
+
+val w = KompactWriter()
+w.writeScalar(ScalarType.of(8, signed = false), 1L)            // 1 byte: version = 1
+w.writeString(countWidth = 8, value = "hello")                 // 1 + 5 = 6 bytes
+w.writeBlob(countWidth = 16, bytes = byteArrayOf(0x89, 0x50, 0x4E, 0x47))  // 2 + 4 = 6 bytes
+w.writeRepeated(count = 3, countWidth = 8) {                   // 1 byte count + 3 x 2-byte elements
+    writeScalar(ScalarType.of(16, signed = true), 100L)        // each block re-runs against the same writer
+}
+w.writeNested(lengthPrefixWidth = 16) {                        // 2 byte length prefix + payload
+    writeScalar(ScalarType.of(8, signed = false), 1L)
+    writeScalar(ScalarType.of(32, signed = true), 1700000000L)
+}
+val mixed: ByteArray = w.build()
+println(mixed.size)                                            // total bytes
+```
+
+**Expected result.** A single contiguous `ByteArray` carrying all
+four payloads back-to-back in the order they were written. The
+reader walks the same shape forward — read the prefix, consume
+that many bytes, repeat. See the
+[how-to guide for long-form payloads](how-to/long-form-payloads.md)
+for the full reader-side walkthrough and a worked `readNested`
+example.
+
 
 ## Where to go next
 
@@ -116,8 +152,11 @@ for — see [`docs/architecture.md`](architecture.md) for the why.
   [`docs/api-reference.md`](api-reference.md).
 - **Design rationale** — why LSB-first, why zero-alloc, why value
   classes over a packed `Long`: [`docs/architecture.md`](architecture.md).
-- **Long-form payload (string, blob, nested, repeated)** — the framing
-  helpers and writer extensions that go beyond fixed-width scalars:
-  [`docs/api-reference.md#long-form-framing-and-writer-extensions`](api-reference.md#long-form-framing-and-writer-extensions).
+- **How-to guides** — task-oriented recipes for common use cases
+  (define your own message, handle decode errors, send over BLE,
+  consume from another project): [`docs/how-to/README.md`](how-to/README.md).
+- **Long-form payload** — strings, blobs, nested composites, and
+  repeated fields in depth:
+  [`docs/how-to/long-form-payloads.md`](how-to/long-form-payloads.md).
 - **Run the tests yourself** — `./gradlew :kompact:jvmTest` (the tutorial
   test is part of the suite).
