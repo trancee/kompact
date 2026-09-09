@@ -9,7 +9,7 @@ class KompactRuntimeReadScalarTest {
 
     // === readScalar (1..32 bits) / readScalarLong (1..64 bits) ===
     // Replaces the per-width readInt8/readUInt8/readInt16/readUInt16/readInt32/
-    // readUInt32/readInt64/readUInt64 accessors (Ticket 10 deepen).
+    // readUInt32/readInt64/readUInt64 accessors (ergonomics-01: ScalarType consolidation).
     // Sign/zero extension uses Long-arithmetic shifts — bit-identical to the
     // legacy accessors' Int/Long shift logic.
 

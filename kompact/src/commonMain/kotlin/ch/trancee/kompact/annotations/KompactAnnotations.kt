@@ -27,7 +27,7 @@ public annotation class KompactModel
  *
  * @param bitOffset zero-based LSB-first start bit of the field
  * @param bitWidth  number of bits occupied by the field (1..64; for 32-bit use 32)
- * @param signed   true for two's-complement, false for unsigned magnitude (Ticket 07)
+ * @param signed   true for two's-complement, false for unsigned magnitude (v1-spec-04: type set)
  * @param lengthPrefixWidth fixed-width LE byte-count prefix width in {8,16,32}
  *        used when the field is a string/blob/nested/repeat (Ticket 05)
  * @param isNested   true when the field is a length-delimited composite region

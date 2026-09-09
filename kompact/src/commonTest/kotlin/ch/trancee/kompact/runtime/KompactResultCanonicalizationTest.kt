@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
  */
 class KompactResultCanonicalizationTest {
 
-    // --- FloatResult NaN canonicalization (Ticket 04) — RED until fixed ---
+    // --- FloatResult NaN canonicalization (Ticket 04) ---
 
     @Test
     fun floatResult_success_canonicalizesAnyNanToSinglePayload() {

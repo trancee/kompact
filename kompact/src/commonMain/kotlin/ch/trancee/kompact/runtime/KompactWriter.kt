@@ -19,7 +19,7 @@ public class KompactWriter {
      * Internal write cursor in bits (LSB-first packing, Ticket 01). Advances as
      * values are written; callers observe progress via [build]. Not part of the
      * public API — nested/repeat assembly is write-forward and does not read the
-     * cursor (Ticket 11).
+     * cursor (ergonomics-11: bit-cursor visibility).
      */
     internal var bitCursor: Int = 0
         private set
@@ -53,7 +53,7 @@ public class KompactWriter {
      * Writes [value] under [type]: [type.bitWidth] low bits as a two's-complement
      * magnitude (1..64), dispatched to [writeBits] (<=31) / [writeBitsLong] (32..64).
      * Replaces the writeInt/writeUInt/writeInt64/writeEnum overloads — one accessor
-     * per width-band (Ticket 10 deepen). Pass a [ScalarType] carrying the band.
+     * per width-band (ergonomics-01: ScalarType consolidation). Pass a [ScalarType] carrying the band.
      */
     public fun writeScalar(type: ScalarType, value: Long) {
         val bitWidth = type.bitWidth

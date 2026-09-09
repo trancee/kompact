@@ -2,7 +2,7 @@ package ch.trancee.kompact.runtime
 
 /*
  * getOrElse / map extensions on the seven result value classes plus
- * NestedRegionResult (Ticket 04 / Ticket 05).
+ * NestedRegionResult (ergonomics-04: result-ergonomics extensions).
  *
  * These mirror stdlib Result<T>.getOrElse / Result<T>.map, specialized per type
  * so no boxing occurs on the success path (each result is a value class over a
