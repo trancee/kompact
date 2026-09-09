@@ -196,14 +196,14 @@ including the parse-forward property and the `BadLengthPrefix` /
 Length-prefix helpers shared by the reader and the writer. Reads never
 throw on the hot path; a prefix that overruns the buffer is surfaced
 via `readNested`'s `NestedRegionResult` failure so the caller can map it
-to a typed `TruncatedNested` / `BadLengthPrefix` error.
+to a typed `BadLengthPrefix` error.
 
 | Member | Signature | Description |
 | --- | --- | --- |
 | `VALID_PREFIX_WIDTHS` | `Set<Int> = setOf(8, 16, 32)` | The set of legal length-prefix bit widths. |
 | `readLengthPrefix` | `readLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int` | Reads a fixed-width little-endian byte count at `bitOffset`. Returns `-1` when `bitWidth` is invalid or the region overruns `raw`. |
 | `writeLengthPrefix` | `writeLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int, length: Int)` | Writes `length` as a fixed-width little-endian byte count at `bitOffset`. Throws `IllegalArgumentException` if `bitWidth` is not in `VALID_PREFIX_WIDTHS`. |
-| `readNested` | `readNested(raw: ByteArray, bitOffset: Int, prefixBitWidth: Int): NestedRegionResult` | Typed parse-forward nested region: reads the byte-count prefix at `bitOffset`, returns `(startBit, bitLength)` of the payload, or a typed failure (`BadLengthPrefix` / `TruncatedNested`). |
+| `readNested` | `readNested(raw: ByteArray, bitOffset: Int, prefixBitWidth: Int): NestedRegionResult` | Typed parse-forward nested region: reads the byte-count prefix at `bitOffset`, returns `(startBit, bitLength)` of the payload, or a typed failure (`BadLengthPrefix`). |
 | `readNestedOrThrow` | `readNestedOrThrow(raw: ByteArray, bitOffset: Int, prefixBitWidth: Int): NestedRegion` | Throwing variant of `readNested`: throws `KompactDecodeException` on failure. |
 | `readLengthPrefixOrThrow` | `readLengthPrefixOrThrow(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int` | Throwing variant of `readLengthPrefix`: throws `KompactDecodeException` on a bad prefix. |
 

@@ -100,7 +100,8 @@ class KompactFramingTest {
         // length prefix says 10 bytes but only 3 available past the prefix byte.
         val buf = byteArrayOf(10, 1, 2, 3)
         val region = KompactFraming.nestedRegionOrNull(buf, 0, 8)
-        // TruncatedNested: prefix exceeds remaining bytes (fail-fast, never silent).
+        // BadLengthPrefix at the caller: prefix exceeds remaining bytes
+        // (fail-fast, never silent — Ticket 06/09).
         assertEquals(null, region)
     }
 
@@ -118,7 +119,7 @@ class KompactFramingTest {
     // F-003: a 32-bit prefix encoding Int.MAX_VALUE (0x7FFFFFFF) wraps byteCount*8
     // to a negative region bit-length under Int arithmetic and returns a corrupt
     // Pair(32, -8). The bit-length is unrepresentable in the Int-pair contract,
-    // so it must fail fast to null (TruncatedNested at the caller, Ticket 06/09).
+    // so it must fail fast to null (BadLengthPrefix at the caller, Ticket 06/09).
 
     @Test
     fun nestedRegionOrNull_rejectsIntMaxByteCountPrefix() {

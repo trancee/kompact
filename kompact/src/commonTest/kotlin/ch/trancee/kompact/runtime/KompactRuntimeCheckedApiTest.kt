@@ -151,11 +151,12 @@ class KompactRuntimeCheckedApiTest {
         assertTrue(badWidth.isFailure)
         assertEquals(KompactDecodeError.BadLengthPrefix, badWidth.error)
 
-        // Prefix claims 2 payload bytes but only 1 present -> TruncatedNested.
+        // Prefix claims 2 payload bytes but only 1 present -> length-prefix
+        // exceeds remaining bytes -> BadLengthPrefix (Ticket 06/09).
         val truncated = byteArrayOf(0x02, 0xAB.toByte())
         val trunc = KompactFraming.readNested(truncated, 0, 8)
         assertTrue(trunc.isFailure)
-        assertEquals(KompactDecodeError.TruncatedNested, trunc.error)
+        assertEquals(KompactDecodeError.BadLengthPrefix, trunc.error)
     }
 
     @Test
@@ -170,11 +171,23 @@ class KompactRuntimeCheckedApiTest {
         }
         assertEquals(KompactDecodeError.BadLengthPrefix, ex1.error)
 
-        // Truncated region throws TruncatedNested.
+        // Prefix exceeds remaining bytes throws BadLengthPrefix (Ticket 06/09).
         val ex2 = assertFailsWith<KompactDecodeException> {
             KompactFraming.readNestedOrThrow(byteArrayOf(0x02, 0xAB.toByte()), 0, 8)
         }
-        assertEquals(KompactDecodeError.TruncatedNested, ex2.error)
+        assertEquals(KompactDecodeError.BadLengthPrefix, ex2.error)
+    }
+
+    @Test
+    fun readNested_classifiesF003IntMaxPrefixAsBadLengthPrefix() {
+        // F-003: a 32-bit prefix encoding 0x7FFFFFFF (= Int.MAX_VALUE bytes) makes
+        // byteCount*8 overflow Int to a negative region bit-length, which is
+        // unrepresentable in the Int-pair contract. Length-prefix > remaining
+        // buffer is a typed BadLengthPrefix for the typed reader too (Ticket 06/09).
+        val buf = byteArrayOf(0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0x7F)
+        val res = KompactFraming.readNested(buf, 0, 32)
+        assertTrue(res.isFailure)
+        assertEquals(KompactDecodeError.BadLengthPrefix, res.error)
     }
 
     @Test

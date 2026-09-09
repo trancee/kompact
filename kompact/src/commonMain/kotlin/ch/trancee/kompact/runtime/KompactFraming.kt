@@ -15,8 +15,9 @@ package ch.trancee.kompact.runtime
  *
  * Reads never throw on the hot path (Ticket 06): a prefix that overruns the
  * buffer is surfaced via [nestedRegionOrNull]'s nullable return so the caller
- * can map it to a typed `TruncatedNested`/`BadLengthPrefix` result (Ticket 09:
- * skew is fail-fast, never silent).
+ * can map it to a typed `BadLengthPrefix` result (Ticket 06/09: a length-prefix
+ * that exceeds remaining bytes is `BadLengthPrefix`; skew is fail-fast, never
+ * silent).
  */
 public object KompactFraming {
 
@@ -60,8 +61,8 @@ public object KompactFraming {
      * Parse-forward nested region: reads the byte-count length prefix at
      * [bitOffset] ([prefixBitWidth] ∈ 8/16/32 — caller-validated) and returns the
      * sub-region as `(startBit, bitLength)` where the payload lives. Returns
-     * `null` when the prefix overruns the buffer (a typed `TruncatedNested` /
-     * `BadLengthPrefix` at the caller, per Ticket 06/09; never a silent misread).
+     * `null` when the prefix overruns the buffer (a typed `BadLengthPrefix` at the
+     * caller, per Ticket 06/09; never a silent misread).
      */
     internal inline fun nestedRegionOrNull(
         raw: ByteArray,
@@ -72,7 +73,7 @@ public object KompactFraming {
         if (byteCount < 0) return null
         // (startBit, bitLength) is an Int pair: a payload whose bit-length would
         // overflow signed Int is unrepresentable, so fail fast to null (a typed
-        // TruncatedNested at the caller, Ticket 06/09) instead of wrapping to a
+        // BadLengthPrefix at the caller, Ticket 06/09) instead of wrapping to a
         // negative length. A 32-bit prefix can encode up to Int.MAX_VALUE
         // (0x7FFFFFFF) bytes; byteCount*8 overflows Int above Int.MAX_VALUE/8
         // = 268,435,455 bytes. Reject counts beyond that here (F-003).
@@ -85,9 +86,20 @@ public object KompactFraming {
 
     /**
      * Typed [NestedRegionResult] variant of [nestedRegionOrNull] (Ticket 05).
+     *
      * Parses the [prefixBitWidth] length-prefix at [bitOffset] and, on success,
-     * returns the `(startBit, bitLength)` of the payload region. Returns a
-     * typed failure — never null — on a bad prefix width or truncated region.
+     * returns the `(startBit, bitLength)` of the payload region. On a bad prefix
+     * width, an unreadable prefix, an overflowing count (F-003), or a length-prefix
+     * that exceeds the remaining buffer, returns a typed [KompactDecodeError.BadLengthPrefix]
+     * failure — never null — per the Ticket 06/09 invariant (`length-prefix >
+     * remaining bytes -> BadLengthPrefix`); skew is fail-fast, never silent.
+     *
+     * This is a `public inline` accessor, so it re-inlines the parse rather than
+     * calling `internal` [nestedRegionOrNull] — a public-inline body cannot invoke
+     * an internal-inline function, and going through an internal helper would box
+     * the value-class result at cross-module call sites (Ticket 03/08 zero-alloc
+     * hot path). The guards are therefore intentionally duplicated with
+     * [nestedRegionOrNull].
      */
     public inline fun readNested(raw: ByteArray, bitOffset: Int, prefixBitWidth: Int): NestedRegionResult {
         if (prefixBitWidth !in VALID_PREFIX_WIDTHS || !KompactRuntime.fits(raw, bitOffset, prefixBitWidth)) {
@@ -95,12 +107,12 @@ public object KompactFraming {
         }
         val byteCount = readLengthPrefix(raw, bitOffset, prefixBitWidth)
         if (byteCount > Int.MAX_VALUE / 8) {
-            return NestedRegionResult.failure(KompactDecodeError.TruncatedNested)
+            return NestedRegionResult.failure(KompactDecodeError.BadLengthPrefix)
         }
         val regionStart = bitOffset + prefixBitWidth
         val regionBits = byteCount * 8
         if (!KompactRuntime.fits(raw, regionStart, regionBits)) {
-            return NestedRegionResult.failure(KompactDecodeError.TruncatedNested)
+            return NestedRegionResult.failure(KompactDecodeError.BadLengthPrefix)
         }
         return NestedRegionResult.success(regionStart, regionBits)
     }
