@@ -132,12 +132,12 @@ internal fun encodeFloatSuccess(value: Float): Long =
     if (value.isNaN()) FLOAT_NAN_CANONICAL_BITS.toLong() else value.toBits().toLong()
 
 // Centralize the failure-branch throw for the small/long/double result encoders
-// so each platform actual's getOrThrow stays one expression (Ticket 10 deepen).
-internal inline fun throwSmallFailure(packed: Long): Nothing =
+// so each platform actual's getOrThrow stays one expression (ergonomics-03: throw-helper naming).
+internal inline fun throwDecodeErrorFromSmallBits(packed: Long): Nothing =
     throw KompactDecodeException(decodeErrorFromSmallBits(packed))
-internal inline fun throwLongFailure(packed: Long): Nothing =
+internal inline fun throwDecodeErrorFromLong(packed: Long): Nothing =
     throw KompactDecodeException(decodeLongError(packed))
-internal inline fun throwDoubleFailure(packed: Long): Nothing =
+internal inline fun throwDecodeErrorFromDouble(packed: Long): Nothing =
     throw KompactDecodeException(decodeDoubleError(packed))
 
 // ====================================================================

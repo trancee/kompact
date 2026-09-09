@@ -11,7 +11,7 @@ public actual value class NestedRegionResult(public actual val packed: Long) {
     public actual val startBit: Int get() = (packed ushr 32).toInt()
     public actual val bitLength: Int get() = packed.toInt()
     public actual fun getOrThrow(): NestedRegion =
-        if (isSuccess) startBit to bitLength else throwLongFailure(packed)
+        if (isSuccess) startBit to bitLength else throwDecodeErrorFromLong(packed)
     public actual companion object {
         public actual fun success(startBit: Int, bitLength: Int): NestedRegionResult =
             NestedRegionResult((startBit.toLong() shl 32) or (bitLength.toLong() and 0xFFFF_FFFFL))
