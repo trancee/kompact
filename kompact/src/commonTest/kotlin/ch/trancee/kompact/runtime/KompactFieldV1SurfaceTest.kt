@@ -1,3 +1,5 @@
+@file:OptIn(ch.trancee.kompact.annotations.KompactPreview::class)
+
 package ch.trancee.kompact.runtime
 
 import kotlin.test.Test
@@ -32,6 +34,7 @@ private class KompactFieldV1Probe(
 class KompactFieldV1SurfaceTest {
 
     @Test
+    @Suppress("UNUSED_EXPRESSION")
     fun v1AnnotationMembersExist_compileTimeContract() {
         // If any of lengthPrefixWidth/isNested/repeatCountWidth/enumWidth/
         // defaultValue/isVersionField is absent on @KompactField, the probe

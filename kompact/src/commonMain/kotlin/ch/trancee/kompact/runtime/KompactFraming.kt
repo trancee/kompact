@@ -38,7 +38,7 @@ public object KompactFraming {
      * (-1) when [bitWidth] is invalid or the region overruns [raw] (caller maps to a
      * typed error — never throws on the read path, Ticket 06).
      */
-    public inline fun readLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int {
+    public fun readLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int {
         if (bitWidth !in VALID_PREFIX_WIDTHS || !KompactRuntime.fits(raw, bitOffset, bitWidth)) {
             return INVALID_LENGTH_PREFIX
         }
@@ -54,7 +54,7 @@ public object KompactFraming {
      * Mirrors [readLengthPrefix] (Ticket 07: the writer selects the per-field
      * prefix width at codegen time; it must be one of [VALID_PREFIX_WIDTHS]).
      */
-    public inline fun writeLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int, length: Int) {
+    public fun writeLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int, length: Int) {
         if (bitWidth !in VALID_PREFIX_WIDTHS) {
             throw IllegalArgumentException("length-prefix bit width must be 8, 16, or 32 (Ticket 06)")
         }
@@ -72,7 +72,7 @@ public object KompactFraming {
      * `null` when the prefix overruns the buffer (a typed `BadLengthPrefix` at the
      * caller, per Ticket 06/09; never a silent misread).
      */
-    internal inline fun nestedRegionOrNull(
+    internal fun nestedRegionOrNull(
         raw: ByteArray,
         bitOffset: Int,
         prefixBitWidth: Int
@@ -102,35 +102,21 @@ public object KompactFraming {
      * failure — never null — per the Ticket 06/09 invariant (`length-prefix >
      * remaining bytes -> BadLengthPrefix`); skew is fail-fast, never silent.
      *
-     * This is a `public inline` accessor, so it re-inlines the parse rather than
-     * calling `internal` [nestedRegionOrNull] — a public-inline body cannot invoke
-     * an internal-inline function, and going through an internal helper would box
-     * the value-class result at cross-module call sites (Ticket 03/08 zero-alloc
-     * hot path). The guards are therefore intentionally duplicated with
-     * [nestedRegionOrNull].
+     * Delegates to [nestedRegionOrNull] (no guard duplication needed since this
+     * function is no longer `inline`, so it can call `internal` helpers; see
+     * Q9 note on sentinel-named failure paths).
      */
-    public inline fun readNested(raw: ByteArray, bitOffset: Int, prefixBitWidth: Int): NestedRegionResult {
-        if (prefixBitWidth !in VALID_PREFIX_WIDTHS || !KompactRuntime.fits(raw, bitOffset, prefixBitWidth)) {
-            return NestedRegionResult.failure(KompactDecodeError.BadLengthPrefix)
-        }
-        val byteCount = readLengthPrefix(raw, bitOffset, prefixBitWidth)
-        if (byteCount > Int.MAX_VALUE / 8) {
-            return NestedRegionResult.failure(KompactDecodeError.BadLengthPrefix)
-        }
-        val regionStart = bitOffset + prefixBitWidth
-        val regionBits = byteCount * 8
-        if (!KompactRuntime.fits(raw, regionStart, regionBits)) {
-            return NestedRegionResult.failure(KompactDecodeError.BadLengthPrefix)
-        }
-        return NestedRegionResult.success(regionStart, regionBits)
-    }
+    public fun readNested(raw: ByteArray, bitOffset: Int, prefixBitWidth: Int): NestedRegionResult =
+        nestedRegionOrNull(raw, bitOffset, prefixBitWidth)?.let { (start, length) ->
+            NestedRegionResult.success(start, length)
+        } ?: NestedRegionResult.failure(KompactDecodeError.BadLengthPrefix)
 
     /** Throwing variant of [readNested]: throws [KompactDecodeException] on failure (Ticket 05). */
-    public inline fun readNestedOrThrow(raw: ByteArray, bitOffset: Int, prefixBitWidth: Int): NestedRegion =
+    public fun readNestedOrThrow(raw: ByteArray, bitOffset: Int, prefixBitWidth: Int): NestedRegion =
         readNested(raw, bitOffset, prefixBitWidth).getOrThrow()
 
     /** Throwing variant of [readLengthPrefix]: throws [KompactDecodeException] on a bad prefix (Ticket 05). */
-    public inline fun readLengthPrefixOrThrow(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int {
+    public fun readLengthPrefixOrThrow(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int {
         val count = readLengthPrefix(raw, bitOffset, bitWidth)
         if (count == INVALID_LENGTH_PREFIX) throw KompactDecodeException(KompactDecodeError.BadLengthPrefix)
         return count

@@ -1,8 +1,8 @@
 [versions]
-kotlin = "2.4.10"
+kotlin = "2.4.20"
 ksp = "2.3.11"
-bcv = "0.18.0"
-dokka = "2.0.0"
+bcv = "0.18.2"
+dokka = "2.2.0"
 
 [plugins]
 kmp = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

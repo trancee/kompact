@@ -9,16 +9,15 @@ package ch.trancee.kompact.runtime
  * with `and 0xFF` before `ushr`/`shl`/`or`, so assembly is identical on the
  * JVM and Kotlin/Native regardless of platform endianness (PROMPT §1).
  *
- * These primitives are small, side-effect-free, and reference-free: an
- * inlinable value-class getter delegates to them with no heap allocation
- * (the backing `ByteArray` is shared, not copied) (Ticket 03). Per
- * PROMPT §3 Phase 1 + Ticket 03, every primitive and checked accessor is
- * `inline` so the zero-allocation call shape holds at the call site.
+ * These primitives are small, side-effect-free, and reference-free: a
+ * value-class getter delegates to them with no heap allocation on Kotlin/Native
+ * (value classes over primitive `Long` are unboxed) and no heap allocation
+ * on the JVM (the JIT scalar-replaces the `@JvmInline` wrapper) (Ticket 03).
  */
 public object KompactRuntime {
 
     /** Reads [bitWidth] bits (1..31) from [raw] starting at [bitOffset], LSB-first. */
-    public inline fun readBits(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int {
+    public fun readBits(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int {
         var result = 0
         var srcBit = bitOffset
         var destBit = 0
@@ -39,7 +38,7 @@ public object KompactRuntime {
     }
 
     /** Writes the low [bitWidth] bits (1..31) of [value] into [raw] at [bitOffset], LSB-first. */
-    public inline fun writeBits(raw: ByteArray, bitOffset: Int, bitWidth: Int, value: Int) {
+    public fun writeBits(raw: ByteArray, bitOffset: Int, bitWidth: Int, value: Int) {
         var srcBit = bitOffset
         var srcValBit = 0
         var remaining = bitWidth
@@ -61,14 +60,14 @@ public object KompactRuntime {
     }
 
     /** Reads a single bit at [bitOffset] as a [Boolean]. */
-    public inline fun readBitsBoolean(raw: ByteArray, bitOffset: Int): Boolean {
+    public fun readBitsBoolean(raw: ByteArray, bitOffset: Int): Boolean {
         val byteIndex = bitOffset ushr 3
         val bitIndex = bitOffset and 7
         return ((raw[byteIndex].toInt() and 0xFF) ushr bitIndex and 1) == 1
     }
 
     /** Writes [value] as a single bit at [bitOffset]. */
-    public inline fun writeBitsBoolean(raw: ByteArray, bitOffset: Int, value: Boolean) {
+    public fun writeBitsBoolean(raw: ByteArray, bitOffset: Int, value: Boolean) {
         val byteIndex = bitOffset ushr 3
         val bitIndex = bitOffset and 7
         if (value) {
@@ -79,7 +78,7 @@ public object KompactRuntime {
     }
 
     /** Reads [bitWidth] bits (1..64) from [raw] starting at [bitOffset], LSB-first. */
-    public inline fun readBitsLong(raw: ByteArray, bitOffset: Int, bitWidth: Int): Long {
+    public fun readBitsLong(raw: ByteArray, bitOffset: Int, bitWidth: Int): Long {
         var result = 0L
         var srcBit = bitOffset
         var destBit = 0
@@ -100,7 +99,7 @@ public object KompactRuntime {
     }
 
     /** Writes the low [bitWidth] bits (1..64) of [value] into [raw] at [bitOffset], LSB-first. */
-    public inline fun writeBitsLong(raw: ByteArray, bitOffset: Int, bitWidth: Int, value: Long) {
+    public fun writeBitsLong(raw: ByteArray, bitOffset: Int, bitWidth: Int, value: Long) {
         var srcBit = bitOffset
         var srcValBit = 0
         var remaining = bitWidth
@@ -124,11 +123,11 @@ public object KompactRuntime {
     // --- Ticket 06/07 — bounded (checked) read accessors ---
 
     /** Bounds-check: true iff [bitOffset]+[bitWidth] fits in [raw]. */
-    public inline fun fits(raw: ByteArray, bitOffset: Int, bitWidth: Int): Boolean =
+    public fun fits(raw: ByteArray, bitOffset: Int, bitWidth: Int): Boolean =
         bitOffset >= 0 && bitWidth >= 1 && bitOffset.toLong() + bitWidth.toLong() <= raw.size.toLong() * 8L
 
     /** Reads 1 bit at [bitOffset] as a checked [BooleanResult]. */
-    public inline fun readBool(raw: ByteArray, bitOffset: Int): BooleanResult {
+    public fun readBool(raw: ByteArray, bitOffset: Int): BooleanResult {
         if (!fits(raw, bitOffset, 1)) {
             return BooleanResult.failure(KompactDecodeError.BoundsError)
         }
@@ -143,7 +142,7 @@ public object KompactRuntime {
      * accessors. Callers pass a [ScalarType]; see [readScalarOrThrow] for the
      * exceptions variant.
      */
-    public inline fun readScalar(raw: ByteArray, bitOffset: Int, type: ScalarType): IntResult {
+    public fun readScalar(raw: ByteArray, bitOffset: Int, type: ScalarType): IntResult {
         val bitWidth = type.bitWidth
         val signed = type.signed
         if (!fits(raw, bitOffset, bitWidth) || bitWidth !in 1..32) {
@@ -169,7 +168,7 @@ public object KompactRuntime {
      * (ergonomics-01: ScalarType consolidation). See [readScalarAsLongOrThrow]
      * for the exceptions variant.
      */
-    public inline fun readScalarAsLong(raw: ByteArray, bitOffset: Int, type: ScalarType): LongResult {
+    public fun readScalarAsLong(raw: ByteArray, bitOffset: Int, type: ScalarType): LongResult {
         val bitWidth = type.bitWidth
         val signed = type.signed
         if (!fits(raw, bitOffset, bitWidth) || bitWidth !in 1..64) {
@@ -183,7 +182,7 @@ public object KompactRuntime {
     }
 
     /** Reads 32 bits at [bitOffset] as a checked [FloatResult]. NaN is canonicalized (Ticket 04). */
-    public inline fun readFloat(raw: ByteArray, bitOffset: Int): FloatResult {
+    public fun readFloat(raw: ByteArray, bitOffset: Int): FloatResult {
         if (bitOffset < 0 || bitOffset.toLong() + 32L > raw.size.toLong() * 8L) {
             return FloatResult.failure(KompactDecodeError.BoundsError)
         }
@@ -192,7 +191,7 @@ public object KompactRuntime {
     }
 
     /** Reads 64 bits at [bitOffset] as a checked [DoubleResult]. NaN is canonicalized (Ticket 04). */
-    public inline fun readDouble(raw: ByteArray, bitOffset: Int): DoubleResult {
+    public fun readDouble(raw: ByteArray, bitOffset: Int): DoubleResult {
         if (bitOffset < 0 || bitOffset.toLong() + 64L > raw.size.toLong() * 8L) {
             return DoubleResult.failure(KompactDecodeError.BoundsError)
         }
@@ -201,22 +200,22 @@ public object KompactRuntime {
     }
 
     /** Throws [KompactDecodeException] on a bounds error; otherwise reads 1 bit as a [Boolean] (Ticket 04). */
-    public inline fun readBoolOrThrow(raw: ByteArray, bitOffset: Int): Boolean =
+    public fun readBoolOrThrow(raw: ByteArray, bitOffset: Int): Boolean =
         readBool(raw, bitOffset).getOrThrow()
 
     /** Throws [KompactDecodeException] on a bounds error; otherwise decodes [type] bits as an [Int] (Ticket 04). */
-    public inline fun readScalarOrThrow(raw: ByteArray, bitOffset: Int, type: ScalarType): Int =
+    public fun readScalarOrThrow(raw: ByteArray, bitOffset: Int, type: ScalarType): Int =
         readScalar(raw, bitOffset, type).getOrThrow()
 
     /** Throws [KompactDecodeException] on a bounds error; otherwise decodes [type] bits as a [Long] (Ticket 04). */
-    public inline fun readScalarAsLongOrThrow(raw: ByteArray, bitOffset: Int, type: ScalarType): Long =
+    public fun readScalarAsLongOrThrow(raw: ByteArray, bitOffset: Int, type: ScalarType): Long =
         readScalarAsLong(raw, bitOffset, type).getOrThrow()
 
     /** Throws [KompactDecodeException] on a bounds error; otherwise reads 32 bits as a [Float] (Ticket 04). */
-    public inline fun readFloatOrThrow(raw: ByteArray, bitOffset: Int): Float =
+    public fun readFloatOrThrow(raw: ByteArray, bitOffset: Int): Float =
         readFloat(raw, bitOffset).getOrThrow()
 
     /** Throws [KompactDecodeException] on a bounds error; otherwise reads 64 bits as a [Double] (Ticket 04). */
-    public inline fun readDoubleOrThrow(raw: ByteArray, bitOffset: Int): Double =
+    public fun readDoubleOrThrow(raw: ByteArray, bitOffset: Int): Double =
         readDouble(raw, bitOffset).getOrThrow()
 }

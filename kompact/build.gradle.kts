@@ -19,8 +19,8 @@ plugins {
 }
 
 kotlin {
-    // Ticket 13: pin JVM target to 21 LTS so BCV (ASM 9.8 / v0.18.0) can parse the
-    // emitted class files on hosts running JDK 25 (Kotlin 2.4.10 otherwise emits v69).
+    // Ticket 13: pin JVM target to 21 LTS so BCV (ASM 9.8 / v0.18.2) can parse the
+    // emitted class files on hosts running JDK 25 (Kotlin 2.4.20 otherwise emits v69).
     jvm {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
@@ -30,31 +30,31 @@ kotlin {
     iosSimulatorArm64()
 
     sourceSets {
-        val commonMain by getting {
+        val commonMain = getByName("commonMain") {
             compilerOptions {
                 // KT-61573: expect/actual value classes are stable in 2.4; silence the Beta warning.
                 freeCompilerArgs.addAll("-Xexpect-actual-classes")
             }
         }
-        val commonTest by getting {
+        val commonTest = getByName("commonTest") {
             dependencies {
                 // kotlin("test") is version-aligned to the Kotlin Gradle plugin (catalog'd).
                 implementation(kotlin("test"))
             }
         }
-        val jvmMain by getting
-        val jvmTest by getting
+        val jvmMain = getByName("jvmMain")
+        val jvmTest = getByName("jvmTest")
         // Shared iOS source set (Ticket 03 expect/actual value class).
         // gradle.properties: kotlin.mpp.applyDefaultHierarchyTemplate=false so this
         // intermediate is the sole iosMain (avoids the default-template conflict).
-        val iosMain by creating
-        iosMain { dependsOn(commonMain) }
-        iosArm64Main { dependsOn(iosMain) }
-        iosSimulatorArm64Main { dependsOn(iosMain) }
+        val iosMain = create("iosMain")
+        iosMain.dependsOn(commonMain)
+        getByName("iosArm64Main") { dependsOn(iosMain) }
+        getByName("iosSimulatorArm64Main") { dependsOn(iosMain) }
     }
 }
 
-// Ticket 13: BCV 0.18.0 — lock the public ABI for common + each Kotlin/Native target.
+// Ticket 13: BCV 0.18.2 — lock the public ABI for common + each Kotlin/Native target.
 // strictValidation makes klibApiCheck fail on hosts that can't compile every
 // target (e.g. iOS klibs on Linux) instead of silently inferring the ABI —
 // which produces false greens. macOS validates all iOS targets for real;

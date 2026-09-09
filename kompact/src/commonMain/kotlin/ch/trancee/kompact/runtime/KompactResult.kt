@@ -133,11 +133,11 @@ internal fun encodeFloatSuccess(value: Float): Long =
 
 // Centralize the failure-branch throw for the small/long/double result encoders
 // so each platform actual's getOrThrow stays one expression (ergonomics-03: throw-helper naming).
-internal inline fun throwDecodeErrorFromSmallBits(packed: Long): Nothing =
+internal fun throwDecodeErrorFromSmallBits(packed: Long): Nothing =
     throw KompactDecodeException(decodeErrorFromSmallBits(packed))
-internal inline fun throwDecodeErrorFromLong(packed: Long): Nothing =
+internal fun throwDecodeErrorFromLong(packed: Long): Nothing =
     throw KompactDecodeException(decodeLongError(packed))
-internal inline fun throwDecodeErrorFromDouble(packed: Long): Nothing =
+internal fun throwDecodeErrorFromDouble(packed: Long): Nothing =
     throw KompactDecodeException(decodeDoubleError(packed))
 
 // ====================================================================
