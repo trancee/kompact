@@ -25,14 +25,22 @@ public object KompactFraming {
     public val VALID_PREFIX_WIDTHS: Set<Int> = setOf(8, 16, 32)
 
     /**
+     * Sentinel returned by [readLengthPrefix] when [bitWidth] is invalid or the
+     * prefix field overruns [raw] (Q9: name the length-prefix failure sentinel
+     * rather than scattering a bare `-1`). This is the only value [readLengthPrefix]
+     * returns on failure; it is never a valid (non-negative) byte count.
+     */
+    public const val INVALID_LENGTH_PREFIX: Int = -1
+
+    /**
      * Reads a fixed-width (8/16/32-bit) little-endian byte count at [bitOffset].
-     * Unsigned magnitude via the raw bit primitives; returns -1 when
-     * [bitWidth] is invalid or the region overruns [raw] (caller maps to a
+     * Unsigned magnitude via the raw bit primitives; returns [INVALID_LENGTH_PREFIX]
+     * (-1) when [bitWidth] is invalid or the region overruns [raw] (caller maps to a
      * typed error — never throws on the read path, Ticket 06).
      */
     public inline fun readLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int {
         if (bitWidth !in VALID_PREFIX_WIDTHS || !KompactRuntime.fits(raw, bitOffset, bitWidth)) {
-            return -1
+            return INVALID_LENGTH_PREFIX
         }
         return when (bitWidth) {
             8 -> KompactRuntime.readBits(raw, bitOffset, 8)
@@ -70,7 +78,7 @@ public object KompactFraming {
         prefixBitWidth: Int
     ): Pair<Int, Int>? {
         val byteCount = readLengthPrefix(raw, bitOffset, prefixBitWidth)
-        if (byteCount < 0) return null
+        if (byteCount == INVALID_LENGTH_PREFIX) return null
         // (startBit, bitLength) is an Int pair: a payload whose bit-length would
         // overflow signed Int is unrepresentable, so fail fast to null (a typed
         // BadLengthPrefix at the caller, Ticket 06/09) instead of wrapping to a
@@ -124,7 +132,7 @@ public object KompactFraming {
     /** Throwing variant of [readLengthPrefix]: throws [KompactDecodeException] on a bad prefix (Ticket 05). */
     public inline fun readLengthPrefixOrThrow(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int {
         val count = readLengthPrefix(raw, bitOffset, bitWidth)
-        if (count < 0) throw KompactDecodeException(KompactDecodeError.BadLengthPrefix)
+        if (count == INVALID_LENGTH_PREFIX) throw KompactDecodeException(KompactDecodeError.BadLengthPrefix)
         return count
     }
 }
