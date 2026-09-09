@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
  *
  *  - the five `…OrThrow` wrappers (return the decoded value, or throw
  *    `KompactDecodeException(BoundsError)` when the buffer overruns),
- *  - `getOrElse` / `map` extensions on `IntResult` and `NestedRegionResult`,
+ *  - `getOrElse` / `map` extensions on the typed results (`IntResult`, `ByteResult`, `ShortResult`, `LongResult`, `FloatResult`, `DoubleResult`, `BooleanResult`, `NestedRegionResult`),
  *  - the typed nested framing: `readNested`, `readNestedOrThrow`,
  *    `readLengthPrefixOrThrow`, and `NestedRegionResult`'s success/failure shape.
  *
@@ -132,6 +132,60 @@ class KompactRuntimeCheckedApiTest {
         val mappedBad = bad.map { it * 2 }
         assertTrue(mappedBad.isFailure)
         assertEquals(KompactDecodeError.BoundsError, mappedBad.error)
+    }
+
+    // ---- getOrElse / map on the remaining typed results ----
+
+    @Test
+    fun remainingResultTypes_getOrElseAndMap_preserveTypedFailure() {
+        // IntResult + NestedRegion are covered above; these pin the wiring for the
+        // other specialised value classes.
+
+        // BooleanResult: success map, failure-fallback, and failure-propagation.
+        val boolOk = KompactRuntime.readBool(byteArrayOf(0x01), 0)
+        assertTrue(boolOk.isSuccess)
+        assertEquals(true, boolOk.getOrElse { false })
+        val boolMapped = boolOk.map { !it }
+        assertTrue(boolMapped.isSuccess)
+        assertEquals(false, boolMapped.getOrThrow())
+        val boolBad = KompactRuntime.readBool(byteArrayOf(), 0)
+        assertEquals(false, boolBad.getOrElse { false })
+        val boolMapBad = boolBad.map { !it }
+        assertTrue(boolMapBad.isFailure)
+        assertEquals(KompactDecodeError.BoundsError, boolMapBad.error)
+
+        // LongResult: sign-extended small value + failure (sentinel-band decode).
+        val longOk = KompactRuntime.readScalarAsLong(byteArrayOf(0x2A), 0, ScalarType.of(8, signed = true))
+        assertTrue(longOk.isSuccess)
+        assertEquals(42L, longOk.getOrElse { 0L })
+        val longBad = KompactRuntime.readScalarAsLong(byteArrayOf(), 0, ScalarType.of(8, signed = true))
+        assertEquals(0L, longBad.getOrElse { 0L })
+        assertTrue(longBad.map { it + 1L }.isFailure)
+
+        // FloatResult: canonical NaN on the success path.
+        val floatOk = KompactRuntime.readFloat(byteArrayOf(0x00, 0x00, 0x48, 0x42), 0)
+        assertTrue(floatOk.isSuccess)
+        assertEquals(50.0f, floatOk.getOrElse { 0f }, 0f)
+        val floatBad = KompactRuntime.readFloat(byteArrayOf(), 0)
+        assertEquals(0f, floatBad.getOrElse { 0f })
+
+        // DoubleResult: canonical NaN on the success path.
+        val doubleOk = KompactRuntime.readDouble(byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0.toByte(), 0x3F), 0)
+        assertTrue(doubleOk.isSuccess)
+        assertEquals(1.0, doubleOk.getOrElse { 0.0 }, 0.0)
+        val doubleBad = KompactRuntime.readDouble(byteArrayOf(), 0)
+        assertEquals(0.0, doubleBad.getOrElse { 0.0 })
+
+        // ByteResult: no checked accessor returns ByteResult (api-reference), so
+        // construct directly to pin success/failure wiring.
+        val byteOk = ByteResult.success(0xAB.toByte())
+        assertEquals(0xAB.toByte(), byteOk.getOrElse { 0 })
+        val byteMapped = byteOk.map { (it + 1).toByte() }
+        assertTrue(byteMapped.isSuccess)
+        assertEquals(0xAC.toByte(), byteMapped.getOrThrow())
+        val byteBad = ByteResult.failure(KompactDecodeError.BoundsError)
+        assertEquals(0, byteBad.getOrElse { 0 })
+        assertTrue(byteBad.map { (it + 1).toByte() }.isFailure)
     }
 
     // ---- readNested / readNestedOrThrow / readLengthPrefixOrThrow / NestedRegionResult ----
