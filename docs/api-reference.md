@@ -441,6 +441,7 @@ directly to a BLE characteristic for transmission. Full workflow:
 | Name | Value | Meaning |
 | --- | --- | --- |
 | `KompactFraming.VALID_PREFIX_WIDTHS` | `setOf(8, 16, 32)` | Legal length-prefix widths (bits). |
+| `KompactFraming.INVALID_LENGTH_PREFIX` | `-1` | Sentinel returned by `readLengthPrefix` when `bitWidth` is invalid or the region overruns `raw`. |
 | `ScalarType` bit-width range (`readScalar`) | 1–32 | Width passed to `readScalar`; wider reads use `readScalarAsLong`. |
 | `ScalarType` bit-width range (`readScalarAsLong`) | 1–64 | Width passed to `readScalarAsLong`. |
 | `LongResult` success range exclusion | `Long.MIN_VALUE .. Long.MIN_VALUE + (1L shl 58) - 1` | Sentinel band — see [architecture](architecture.md#runtime-error-encoding). |

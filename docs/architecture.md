@@ -161,7 +161,7 @@ shared length-prefix contract. The contract is:
   to `{8, 16, 32}`.
 - Nested composites are length-delimited sub-regions. The reader
   consumes the prefix, learns the byte count, then consumes exactly
-  `prefixWidth + count * 8` bits and hands the caller a
+  `prefixWidth + byteCount * 8` bits and hands the caller a
   `(startBit, bitLength)` pair.
 - Repeated fields are count-prefixed. The reader reads a count prefix
   of the field's declared `countWidth`, then iterates `count` elements
