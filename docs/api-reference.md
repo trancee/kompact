@@ -16,6 +16,14 @@ All declarations are in the package `ch.trancee.kompact.runtime` unless noted.
 `Kompact.Result`; `ch.trancee.kompact.annotations` is the package of
 `@KompactModel`, `@KompactField`, and `@KompactPreview`.
 
+> **Generated API reference:** the complete hyperlinked KDoc for every public
+> declaration is rendered as HTML and committed under
+> [`kompact/docs/api/index.html`](../kompact/docs/api/index.html). The tables
+> below are the curated summary (signatures, one-line intent, and the cross
+> references to `architecture.md`); open the generated site for the full
+> per-member KDoc and parameter docs. Regenerate it locally with
+> `./gradlew :kompact:dokkaGeneratePublicationHtml`.
+
 ---
 ## Common patterns
 

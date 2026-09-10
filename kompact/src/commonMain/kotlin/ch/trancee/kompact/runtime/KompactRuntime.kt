@@ -165,7 +165,7 @@ public object KompactRuntime {
     }
 
     /**
-     * Reads up to [bitWidth] bits of [type] as a checked [IntResult]. The width
+     * Reads up to [ScalarType.bitWidth] bits of [type] as a checked [IntResult]. The width
      * (1..32) and signedness come from [type], so a single accessor replaces the
      * 8 per-width readInt8/16/32 and readUInt8/16/32 overloads (ergonomics-01: ScalarType consolidation).
      * Sign extension uses Long-arithmetic shifts, bit-identical to the legacy
@@ -199,7 +199,7 @@ public object KompactRuntime {
     }
 
     /**
-     * Reads up to [bitWidth] bits of [type] as a checked [LongResult] (1..64).
+     * Reads up to [ScalarType.bitWidth] bits of [type] as a checked [LongResult] (1..64).
      * Width/signedness derive from [type]; sign extension (two's-complement)
      * uses Long-arithmetic shifts. Replaces readScalarLong(w, b, signed);
      * callers pass a [ScalarType] carrying the UInt64/Int64 bands

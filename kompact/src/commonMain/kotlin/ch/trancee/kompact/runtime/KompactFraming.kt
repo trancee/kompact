@@ -5,7 +5,7 @@ package ch.trancee.kompact.runtime
  *
  * Wire shape, read forward (no random access):
  * - **Length prefix** — a fixed-width (8/16/32-bit) little-endian byte count
- *   placed at [bitOffset]; the prefixed payload follows immediately at
+ *   placed at `bitOffset`; the prefixed payload follows immediately at
  *   `bitOffset + prefixBitWidth`.
  * - **Nested composite** — a length-delimited sub-region: read the prefix to
  *   learn the byte count, then consume `prefixBitWidth + count * 8` bits and
@@ -24,8 +24,8 @@ public object KompactFraming {
     public val VALID_PREFIX_WIDTHS: Set<Int> = setOf(8, 16, 32)
 
     /**
-     * Sentinel returned by [readLengthPrefix] when [bitWidth] is invalid or the
-     * prefix field overruns [raw] (Q9: name the length-prefix failure sentinel
+     * Sentinel returned by [readLengthPrefix] when `bitWidth` is invalid or the
+     * prefix field overruns `raw` (Q9: name the length-prefix failure sentinel
      * rather than scattering a bare `-1`). This is the only value [readLengthPrefix]
      * returns on failure; it is never a valid (non-negative) byte count.
      */

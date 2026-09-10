@@ -1,0 +1,1 @@
+sourceset_dependencies='{":kompact/commonMain":[],":kompact/iosArm64Main":[":kompact/commonMain",":kompact/iosMain"],":kompact/iosMain":[":kompact/commonMain"],":kompact/iosSimulatorArm64Main":[":kompact/commonMain",":kompact/iosMain"],":kompact/jvmMain":[":kompact/commonMain"]}'

@@ -26,12 +26,12 @@ val bytes = w.build()                            // 6 bytes
 The reader side:
 
 ```kotlin
-import ch.trancee.kompact.runtime.KompactRuntime
+import ch.trancee.kompact.runtime.KompactFraming
 
 // After reading the previous fixed-width fields, the byte cursor sits
 // at the start of the length prefix. readLengthPrefix gives you the
 // declared byte count.
-val byteCount = KompactRuntime.readLengthPrefix(bytes, currentBitOffset, 8)
+val byteCount = KompactFraming.readLengthPrefix(bytes, currentBitOffset, 8)
 // → 5  ("hello" in UTF-8)
 ```
 
@@ -91,10 +91,11 @@ if (region.isSuccess) {
 }
 ```
 
-`readNested` returns a [`NestedRegionResult`](../api-reference.md#nestedregionresult)
-on success, a typed `KompactDecodeError` on failure (truncated buffer
-or prefix that overruns the remaining buffer). It never throws on the
-hot path. See [`handle-decode-errors.md`](handle-decode-errors.md).
+`readNested` always returns a [`NestedRegionResult`](../api-reference.md#nestedregionresult):
+on success it carries the `(startBit, bitLength)` of the payload; on failure
+(a prefix that overruns the buffer, or a count that overflows the remaining
+buffer) it carries a typed `KompactDecodeError.BadLengthPrefix`. It never
+throws on the hot path. See [`handle-decode-errors.md`](handle-decode-errors.md).
 
 ## 4. Write a count-prefixed repeated field
 

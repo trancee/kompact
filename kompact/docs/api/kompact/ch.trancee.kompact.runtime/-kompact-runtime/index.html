@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>KompactRuntime</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="../../../index.html" tabindex="1">
+                    kompact
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+0.1.0-SNAPSHOT        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true"
+                        data-filter=":kompact/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":kompact/commonMain"
+                                       data-filter=":kompact/commonMain"/>
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    kompact
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="kompact::ch.trancee.kompact.runtime/KompactRuntime///PointingToDeclaration//-476770652">
+  <div class="breadcrumbs"><a href="../../../index.html">kompact</a><span class="delimiter">/</span><a href="../index.html">ch.trancee.kompact.runtime</a><span class="delimiter">/</span><span class="current">KompactRuntime</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Kompact</span><wbr></wbr><span><span>Runtime</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="index.html">KompactRuntime</a></div><p class="paragraph">Bit-stream primitives for Kompact.</p><p class="paragraph">Bit order is <strong>LSB-first</strong> (little-endian bit packing): byte 0 holds the field's bits 0-7, byte 1 holds bits 8-15, and bit 0 of each byte is the least-significant bit of the field value (Ticket 01). Every <code class="lang-kotlin">Byte</code> is masked with <code class="lang-kotlin">and 0xFF</code> before <code class="lang-kotlin">ushr</code>/<code class="lang-kotlin">shl</code>/<code class="lang-kotlin">or</code>, so assembly is identical on the JVM and Kotlin/Native regardless of platform endianness (PROMPT §1).</p><p class="paragraph">These primitives are small, side-effect-free, and reference-free: a value-class getter delegates to them with no heap allocation on Kotlin/Native (value classes over primitive <code class="lang-kotlin">Long</code> are unboxed) and no heap allocation on the JVM (the JIT scalar-replaces the <code class="lang-kotlin">@JvmInline</code> wrapper) (Ticket 03).</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="494280014%2FFunctions%2F-476770652" anchor-label="fits" id="494280014%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="fits.html"><span><span>fits</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="494280014%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="fits.html"><span class="token function">fits</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">bitWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Bounds-check: true iff <a href="fits.html">bitOffset</a>+<a href="fits.html">bitWidth</a> fits in <a href="fits.html">raw</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="62994772%2FFunctions%2F-476770652" anchor-label="readBits" id="62994772%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-bits.html"><span>read</span><wbr></wbr><span><span>Bits</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="62994772%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-bits.html"><span class="token function">readBits</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">bitWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">Reads <a href="read-bits.html">bitWidth</a> bits (1..31) from <a href="read-bits.html">raw</a> starting at <a href="read-bits.html">bitOffset</a>, LSB-first.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1591137223%2FFunctions%2F-476770652" anchor-label="readBitsBoolean" id="1591137223%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-bits-boolean.html"><span>read</span><wbr></wbr><span>Bits</span><wbr></wbr><span><span>Boolean</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1591137223%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-bits-boolean.html"><span class="token function">readBitsBoolean</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Reads a single bit at <a href="read-bits-boolean.html">bitOffset</a> as a <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-66423368%2FFunctions%2F-476770652" anchor-label="readBitsLong" id="-66423368%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-bits-long.html"><span>read</span><wbr></wbr><span>Bits</span><wbr></wbr><span><span>Long</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-66423368%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-bits-long.html"><span class="token function">readBitsLong</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">bitWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">Reads <a href="read-bits-long.html">bitWidth</a> bits (1..64) from <a href="read-bits-long.html">raw</a> starting at <a href="read-bits-long.html">bitOffset</a>, LSB-first.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="807068749%2FFunctions%2F-476770652" anchor-label="readBool" id="807068749%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-bool.html"><span>read</span><wbr></wbr><span><span>Bool</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="807068749%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-bool.html"><span class="token function">readBool</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-boolean-result/index.html">BooleanResult</a></div><div class="brief "><p class="paragraph">Reads 1 bit at <a href="read-bool.html">bitOffset</a> as a checked <a href="../-boolean-result/index.html">BooleanResult</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="206350974%2FFunctions%2F-476770652" anchor-label="readBoolOrThrow" id="206350974%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-bool-or-throw.html"><span>read</span><wbr></wbr><span>Bool</span><wbr></wbr><span>Or</span><wbr></wbr><span><span>Throw</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="206350974%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-bool-or-throw.html"><span class="token function">readBoolOrThrow</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Throws <a href="../-kompact-decode-exception/index.html">KompactDecodeException</a> on a bounds error; otherwise reads 1 bit as a <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a> (Ticket 04).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1837159436%2FFunctions%2F-476770652" anchor-label="readDouble" id="-1837159436%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-double.html"><span>read</span><wbr></wbr><span><span>Double</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1837159436%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-double.html"><span class="token function">readDouble</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-double-result/index.html">DoubleResult</a></div><div class="brief "><p class="paragraph">Reads 64 bits at <a href="read-double.html">bitOffset</a> as a checked <a href="../-double-result/index.html">DoubleResult</a>. NaN is canonicalized (Ticket 04).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="683591927%2FFunctions%2F-476770652" anchor-label="readDoubleOrThrow" id="683591927%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-double-or-throw.html"><span>read</span><wbr></wbr><span>Double</span><wbr></wbr><span>Or</span><wbr></wbr><span><span>Throw</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="683591927%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-double-or-throw.html"><span class="token function">readDoubleOrThrow</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a></div><div class="brief "><p class="paragraph">Throws <a href="../-kompact-decode-exception/index.html">KompactDecodeException</a> on a bounds error; otherwise reads 64 bits as a <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a> (Ticket 04).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-750223967%2FFunctions%2F-476770652" anchor-label="readFloat" id="-750223967%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-float.html"><span>read</span><wbr></wbr><span><span>Float</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-750223967%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-float.html"><span class="token function">readFloat</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-float-result/index.html">FloatResult</a></div><div class="brief "><p class="paragraph">Reads 32 bits at <a href="read-float.html">bitOffset</a> as a checked <a href="../-float-result/index.html">FloatResult</a>. NaN is canonicalized (Ticket 04).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1774998870%2FFunctions%2F-476770652" anchor-label="readFloatOrThrow" id="-1774998870%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-float-or-throw.html"><span>read</span><wbr></wbr><span>Float</span><wbr></wbr><span>Or</span><wbr></wbr><span><span>Throw</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1774998870%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-float-or-throw.html"><span class="token function">readFloatOrThrow</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">Throws <a href="../-kompact-decode-exception/index.html">KompactDecodeException</a> on a bounds error; otherwise reads 32 bits as a <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a> (Ticket 04).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-797986188%2FFunctions%2F-476770652" anchor-label="readScalar" id="-797986188%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-scalar.html"><span>read</span><wbr></wbr><span><span>Scalar</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-797986188%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-scalar.html"><span class="token function">readScalar</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">type<span class="token operator">: </span><a href="../-scalar-type/index.html">ScalarType</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-int-result/index.html">IntResult</a></div><div class="brief "><p class="paragraph">Reads up to <a href="../-scalar-type/bit-width.html">ScalarType.bitWidth</a> bits of <a href="read-scalar.html">type</a> as a checked <a href="../-int-result/index.html">IntResult</a>. The width (1..32) and signedness come from <a href="read-scalar.html">type</a>, so a single accessor replaces the 8 per-width readInt8/16/32 and readUInt8/16/32 overloads (ergonomics-01: ScalarType consolidation). Sign extension uses Long-arithmetic shifts, bit-identical to the legacy accessors. Callers pass a <a href="../-scalar-type/index.html">ScalarType</a>; see <a href="read-scalar-or-throw.html">readScalarOrThrow</a> for the exceptions variant.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-787176798%2FFunctions%2F-476770652" anchor-label="readScalarAsLong" id="-787176798%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-scalar-as-long.html"><span>read</span><wbr></wbr><span>Scalar</span><wbr></wbr><span>As</span><wbr></wbr><span><span>Long</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-787176798%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-scalar-as-long.html"><span class="token function">readScalarAsLong</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">type<span class="token operator">: </span><a href="../-scalar-type/index.html">ScalarType</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-long-result/index.html">LongResult</a></div><div class="brief "><p class="paragraph">Reads up to <a href="../-scalar-type/bit-width.html">ScalarType.bitWidth</a> bits of <a href="read-scalar-as-long.html">type</a> as a checked <a href="../-long-result/index.html">LongResult</a> (1..64). Width/signedness derive from <a href="read-scalar-as-long.html">type</a>; sign extension (two's-complement) uses Long-arithmetic shifts. Replaces readScalarLong(w, b, signed); callers pass a <a href="../-scalar-type/index.html">ScalarType</a> carrying the UInt64/Int64 bands (ergonomics-01: ScalarType consolidation). See <a href="read-scalar-as-long-or-throw.html">readScalarAsLongOrThrow</a> for the exceptions variant.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1265342413%2FFunctions%2F-476770652" anchor-label="readScalarAsLongOrThrow" id="-1265342413%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-scalar-as-long-or-throw.html"><span>read</span><wbr></wbr><span>Scalar</span><wbr></wbr><span>As</span><wbr></wbr><span>Long</span><wbr></wbr><span>Or</span><wbr></wbr><span><span>Throw</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1265342413%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-scalar-as-long-or-throw.html"><span class="token function">readScalarAsLongOrThrow</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">type<span class="token operator">: </span><a href="../-scalar-type/index.html">ScalarType</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">Throws <a href="../-kompact-decode-exception/index.html">KompactDecodeException</a> on a bounds error; otherwise decodes <a href="read-scalar-as-long-or-throw.html">type</a> bits as a <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a> (Ticket 04).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="825313313%2FFunctions%2F-476770652" anchor-label="readScalarOrThrow" id="825313313%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-scalar-or-throw.html"><span>read</span><wbr></wbr><span>Scalar</span><wbr></wbr><span>Or</span><wbr></wbr><span><span>Throw</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="825313313%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="read-scalar-or-throw.html"><span class="token function">readScalarOrThrow</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">type<span class="token operator">: </span><a href="../-scalar-type/index.html">ScalarType</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">Throws <a href="../-kompact-decode-exception/index.html">KompactDecodeException</a> on a bounds error; otherwise decodes <a href="read-scalar-or-throw.html">type</a> bits as an <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a> (Ticket 04).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-585039072%2FFunctions%2F-476770652" anchor-label="writeBits" id="-585039072%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="write-bits.html"><span>write</span><wbr></wbr><span><span>Bits</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-585039072%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="write-bits.html"><span class="token function">writeBits</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">bitWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Writes the low <a href="write-bits.html">bitWidth</a> bits (1..31) of <a href="write-bits.html">value</a> into <a href="write-bits.html">raw</a> at <a href="write-bits.html">bitOffset</a>, LSB-first.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1766970484%2FFunctions%2F-476770652" anchor-label="writeBitsBoolean" id="1766970484%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="write-bits-boolean.html"><span>write</span><wbr></wbr><span>Bits</span><wbr></wbr><span><span>Boolean</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1766970484%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="write-bits-boolean.html"><span class="token function">writeBitsBoolean</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Writes <a href="write-bits-boolean.html">value</a> as a single bit at <a href="write-bits-boolean.html">bitOffset</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1658878939%2FFunctions%2F-476770652" anchor-label="writeBitsLong" id="1658878939%2FFunctions%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="write-bits-long.html"><span>write</span><wbr></wbr><span>Bits</span><wbr></wbr><span><span>Long</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1658878939%2FFunctions%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="write-bits-long.html"><span class="token function">writeBitsLong</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">raw<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">bitWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Writes the low <a href="write-bits-long.html">bitWidth</a> bits (1..64) of <a href="write-bits-long.html">value</a> into <a href="write-bits-long.html">raw</a> at <a href="write-bits-long.html">bitOffset</a>, LSB-first.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

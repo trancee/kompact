@@ -34,6 +34,14 @@ jobs:
           java-version: 21
           cache: gradle
       - run: ./gradlew spotlessCheck :kompact:apiCheck --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+      # The committed rendered reference in kompact/docs/api/ must stay in sync
+      # with the KDoc in commonMain. Regenerate and fail if the committed tree
+      # drifts (up-to-date checking means dokka only re-runs when KDoc changes).
+      # macOS only: dokka analyses the iOS klibs, which can't be compiled on Linux.
+      - name: Verify generated Dokka reference is in sync
+        run: |
+          ./gradlew :kompact:dokkaGeneratePublicationHtml --no-daemon --console=plain
+          git diff --exit-code -- kompact/docs/api/
 
   jvm-test:
     name: jvmTest + jvmApiCheck + spotlessCheck + koverVerify (Linux)

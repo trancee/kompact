@@ -137,6 +137,20 @@ declaration, regenerate the klib golden on macOS — Linux cannot
 produce it. The `Regen Goldens` workflow is the supported way to
 get the iOS golden updated from a non-Mac host.
 
+### Generated API reference (Dokka)
+
+The rendered HTML reference lives (committed) at `kompact/docs/api/` and is
+linked from [`docs/api-reference.md`](api-reference.md). It is produced by
+`:kompact:dokkaGeneratePublicationHtml`, which writes into `kompact/docs/api/`.
+
+The **macOS `api-check` job** regenerates the reference and fails the build if
+the committed tree drifts from the KDoc in `commonMain` (it runs
+`dokkaGeneratePublicationHtml`, then `git diff --exit-code -- kompact/docs/api/`).
+This runs only on macOS: Dokka analyses the iOS klibs, which can't be compiled
+on Linux. The KDoc comments in `commonMain` are the source of truth for the API
+surface; `docs/api/` is a rendered convenience copy committed so the in-repo
+link is always live. `docs/api/` is tracked (no `.gitignore` rule applies to it).
+
 ## Build environment
 
 Both workflows pin to JDK 21 (Temurin) and use `--rerun-tasks

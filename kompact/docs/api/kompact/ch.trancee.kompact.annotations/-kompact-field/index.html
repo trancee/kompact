@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>KompactField</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="../../../index.html" tabindex="1">
+                    kompact
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+0.1.0-SNAPSHOT        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true"
+                        data-filter=":kompact/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":kompact/commonMain"
+                                       data-filter=":kompact/commonMain"/>
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    kompact
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="kompact::ch.trancee.kompact.annotations/KompactField///PointingToDeclaration//-476770652">
+  <div class="breadcrumbs"><a href="../../../index.html">kompact</a><span class="delimiter">/</span><a href="../index.html">ch.trancee.kompact.annotations</a><span class="delimiter">/</span><span class="current">KompactField</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Kompact</span><wbr></wbr><span><span>Field</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.annotation/-target/index.html"><span class="token annotation builtin">Target</span></a><span class="token punctuation">(</span><span>allowedTargets<span class="token operator"> = </span><span class="token punctuation">[</span><span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.annotation/-annotation-target/-p-r-o-p-e-r-t-y/index.html">AnnotationTarget.PROPERTY</a></span><wbr></wbr><span class="token punctuation">]</span></span><wbr></wbr><span class="token punctuation">)</span></div></div><span class="token keyword">annotation class </span><a href="index.html">KompactField</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>bitOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>bitWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>signed<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>lengthPrefixWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">8</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>isNested<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>repeatCountWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">8</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>enumWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>defaultValue<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">&quot;&quot;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>isVersionField<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span></span></span><span class="token punctuation">)</span></div><p class="paragraph">Documents a property's bit position and width in the packed <code class="lang-kotlin">ByteArray</code>.</p><p class="paragraph">The Kompact KSP processor reads these to generate the backing read/write logic (Tickets 04, 05, 06, 09). Offsets are LSB-first (Ticket 01) and must be densely packed with no gaps or overlaps (Ticket 06: the processor enforces this).</p><p class="paragraph">The length-prefix / nesting / repeat / enum / version members are v1 schema metadata consumed by codegen; they carry safe defaults so a plain <code class="lang-kotlin">@KompactField(bitOffset, bitWidth)</code> scalar declaration remains valid.</p><h4 class="tableheader">Parameters</h4><div class="table"><div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>bit</span><wbr></wbr><span><span>Offset</span></span></u></div></span></div><div><div class="title"><p class="paragraph">zero-based LSB-first start bit of the field</p></div></div></div></div><div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>bit</span><wbr></wbr><span><span>Width</span></span></u></div></span></div><div><div class="title"><p class="paragraph">number of bits occupied by the field (1..64; for 32-bit use 32)</p></div></div></div></div><div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span><span>signed</span></span></u></div></span></div><div><div class="title"><p class="paragraph">true for two's-complement, false for unsigned magnitude (v1-spec-04: type set)</p></div></div></div></div><div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>length</span><wbr></wbr><span>Prefix</span><wbr></wbr><span><span>Width</span></span></u></div></span></div><div><div class="title"><p class="paragraph">fixed-width LE byte-count prefix width in {8,16,32}         used when the field is a string/blob/nested/repeat (Ticket 05)</p></div></div></div></div><div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>is</span><wbr></wbr><span><span>Nested</span></span></u></div></span></div><div><div class="title"><p class="paragraph">true when the field is a length-delimited composite region</p></div></div></div></div><div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>repeat</span><wbr></wbr><span>Count</span><wbr></wbr><span><span>Width</span></span></u></div></span></div><div><div class="title"><p class="paragraph">fixed-width LE count prefix width in {8,16,32}         for repeated fields</p></div></div></div></div><div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>enum</span><wbr></wbr><span><span>Width</span></span></u></div></span></div><div><div class="title"><p class="paragraph">bit width of an enum/ordinal (0 = not an enum)</p></div></div></div></div><div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>default</span><wbr></wbr><span><span>Value</span></span></u></div></span></div><div><div class="title"><p class="paragraph">string-encoded default used by the generated ctor/accessor         when the backing region is absent or zero-filled (Ticket 04)</p></div></div></div></div><div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>is</span><wbr></wbr><span>Version</span><wbr></wbr><span><span>Field</span></span></u></div></span></div><div><div class="title"><p class="paragraph">true for the schema-evolution version-tag field (Ticket 09)</p></div></div></div></div></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-1651006928%2FProperties%2F-476770652" anchor-label="bitOffset" id="-1651006928%2FProperties%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="bit-offset.html"><span>bit</span><wbr></wbr><span><span>Offset</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1651006928%2FProperties%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="bit-offset.html">bitOffset</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="442608721%2FProperties%2F-476770652" anchor-label="bitWidth" id="442608721%2FProperties%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="bit-width.html"><span>bit</span><wbr></wbr><span><span>Width</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="442608721%2FProperties%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="bit-width.html">bitWidth</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1615653190%2FProperties%2F-476770652" anchor-label="defaultValue" id="-1615653190%2FProperties%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="default-value.html"><span>default</span><wbr></wbr><span><span>Value</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1615653190%2FProperties%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="default-value.html">defaultValue</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1623693451%2FProperties%2F-476770652" anchor-label="enumWidth" id="1623693451%2FProperties%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="enum-width.html"><span>enum</span><wbr></wbr><span><span>Width</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1623693451%2FProperties%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="enum-width.html">enumWidth</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="320344905%2FProperties%2F-476770652" anchor-label="isNested" id="320344905%2FProperties%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="is-nested.html"><span>is</span><wbr></wbr><span><span>Nested</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="320344905%2FProperties%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="is-nested.html">isNested</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1241897634%2FProperties%2F-476770652" anchor-label="isVersionField" id="-1241897634%2FProperties%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="is-version-field.html"><span>is</span><wbr></wbr><span>Version</span><wbr></wbr><span><span>Field</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1241897634%2FProperties%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="is-version-field.html">isVersionField</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-778079390%2FProperties%2F-476770652" anchor-label="lengthPrefixWidth" id="-778079390%2FProperties%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="length-prefix-width.html"><span>length</span><wbr></wbr><span>Prefix</span><wbr></wbr><span><span>Width</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-778079390%2FProperties%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="length-prefix-width.html">lengthPrefixWidth</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">8</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2089127880%2FProperties%2F-476770652" anchor-label="repeatCountWidth" id="-2089127880%2FProperties%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="repeat-count-width.html"><span>repeat</span><wbr></wbr><span>Count</span><wbr></wbr><span><span>Width</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2089127880%2FProperties%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="repeat-count-width.html">repeatCountWidth</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">8</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="639101582%2FProperties%2F-476770652" anchor-label="signed" id="639101582%2FProperties%2F-476770652" data-filterable-set=":kompact/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kompact/commonMain" data-filterable-set=":kompact/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="signed.html"><span><span>signed</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="639101582%2FProperties%2F-476770652"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kompact/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="signed.html">signed</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

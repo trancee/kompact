@@ -55,7 +55,7 @@ public class KompactWriter {
     }
 
     /**
-     * Writes [value] under [type]: [type.bitWidth] low bits as a two's-complement
+     * Writes [value] under [type]: [ScalarType.bitWidth] low bits as a two's-complement
      * magnitude (1..64), dispatched to [writeBits] (<=31) / [writeBitsLong] (32..64).
      * Replaces the writeInt/writeUInt/writeInt64/writeEnum overloads — one accessor
      * per width-band (ergonomics-01: ScalarType consolidation). Pass a [ScalarType] carrying the band.
@@ -160,12 +160,10 @@ public class KompactWriter {
         ensureCapacityBits(bytes.size * 8)
         // Byte-aligned append fast path (the prefix left us byte-aligned for nested/blob).
         if (bitCursor % 8 == 0) {
+            // copyInto lowers to System.arraycopy on the JVM (memcpy on Native),
+            // avoiding a per-byte Kotlin loop on the common aligned string/blob path.
             val dst = bitCursor / 8
-            var i = 0
-            while (i < bytes.size) {
-                buffer[dst + i] = bytes[i]
-                i++
-            }
+            bytes.copyInto(buffer, destinationOffset = dst)
             bitCursor += bytes.size * 8
         } else {
             // Fall back to the bit primitive so we handle the rare non-aligned case.

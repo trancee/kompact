@@ -185,13 +185,25 @@ afterEvaluate {
 }
 
 // Javadoc JAR for the JVM target — Central requires a Javadoc artifact for JVM publications.
-// Dokka V1/V2 dokkaHtml/dokkaJavadoc tasks are incompatible with KMP + JDK 25.
-// Maven Central accepts minimal/empty Javadoc JARs for KMP projects (standard practice).
+// Dokka 2.x generates HTML/GFM from KDoc and `dokkaGenerateHtml` runs correctly on Kotlin
+// Multiplatform + JDK 25 (verified on this host). Dokka 2.x has no Javadoc-*format* task
+// — the legacy dokkaJavadoc/dokkaGfm task names were removed/changed in 2.x — so the
+// published javadoc artifact remains a minimal README stub, which Maven Central accepts
+// for KMP projects. The full generated API reference is rendered as HTML into
+// docs/api (committed; see docs/api-reference.md) via dokkaGeneratePublicationHtml
+// below; the KDoc source is the single source of truth for the API.
 val dokkaJavadocJar =
     tasks.register<Jar>("dokkaJavadocJar") {
         archiveClassifier.set("javadoc")
         from(rootProject.file("README.md"))
     }
+
+// Generated HTML API reference, committed under docs/api so the
+// api-reference.md pointer is always live. Regenerate with
+// `:kompact:dokkaGeneratePublicationHtml`.
+tasks.named<org.jetbrains.dokka.gradle.tasks.DokkaGeneratePublicationTask>("dokkaGeneratePublicationHtml") {
+    outputDirectory.set(layout.projectDirectory.dir("docs/api"))
+}
 
 // POM metadata applied to every auto-created KMP publication (root + per-target).
 // publications holds Publication (supertype), so cast to MavenPublication for pom{} .

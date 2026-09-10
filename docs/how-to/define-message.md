@@ -18,7 +18,7 @@ field 0 occupies the low bits, field N occupies the next higher bits.
 | ------- | ----- | ------------- | -------------- | ----- |
 | 0..3    | 4     | `status`      | `Int` (0–15)   | enum ordinal |
 | 4..7    | 4     | `battery`     | `Int` (0–15)   | percent / 6.25 |
-| 8..19   | 12    | `temperature` | `Int` (0–4095) | signed; offset = -40 °C |
+| 8..19   | 12    | `temperature` | `Int` (−2048..2047) | signed; offset = -40 °C |
 | 20..31  | 12    | `timestamp`   | `Int` (0–4095) | seconds / 16 |
 
 > **Tip.** Keep the schema in a comment next to the value class — the

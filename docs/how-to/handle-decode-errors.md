@@ -166,8 +166,8 @@ modelled as a fixed-width integer field plus a hand-written check
 against the declared set, producing `UnknownEnumCode(rawCode)`:
 
 ```kotlin
-val raw = KompactRuntime.readScalar(raw, 0, ScalarType.of(4, signed = false))
-val code: Int = raw.getOrElse { return@decodeFrame DecodeResult.Malformed }
+val statusResult = KompactRuntime.readScalar(raw, 0, ScalarType.of(4, signed = false))
+val code: Int = statusResult.getOrElse { return@decodeFrame DecodeResult.Malformed }
 when (code) {
     0 -> BatteryStatus.OK
     1 -> BatteryStatus.LOW
