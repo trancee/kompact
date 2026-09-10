@@ -94,6 +94,10 @@ If the buffer is truncated, the same accessor returns a failure result
 instead of throwing:
 
 ```kotlin
+import ch.trancee.kompact.runtime.KompactDecodeError
+import ch.trancee.kompact.runtime.KompactRuntime
+import ch.trancee.kompact.runtime.ScalarType
+
 val truncated = byteArrayOf(0xA5.toByte())   // only 1 byte, layout needs 2
 val speed = KompactRuntime.readScalar(truncated, 4, ScalarType.of(10, signed = false))
 

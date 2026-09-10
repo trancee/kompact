@@ -10,7 +10,6 @@ import kotlin.test.assertTrue
  * nested + count-prefixed repeats, `build(): ByteArray`, symmetric with reads.
  */
 class KompactWriterTest {
-
     // --- fixed-width scalar writes, symmetric with the read-side checked accessors ---
 
     @Test
@@ -23,7 +22,8 @@ class KompactWriterTest {
         // 3 one-bit values pack into 1 byte.
         assertEquals(1, buf.size)
         val r = KompactRuntime.readBool(buf, 0)
-        assertTrue(r.isSuccess); assertTrue(r.getOrThrow())
+        assertTrue(r.isSuccess)
+        assertTrue(r.getOrThrow())
         assertEquals(false, KompactRuntime.readBool(buf, 1).getOrThrow())
         assertEquals(true, KompactRuntime.readBool(buf, 2).getOrThrow())
     }

@@ -6,7 +6,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class KompactRuntimeReadScalarTest {
-
     // === readScalar (1..32 bits) / readScalarLong (1..64 bits) ===
     // Replaces the per-width readInt8/readUInt8/readInt16/readUInt16/readInt32/
     // readUInt32/readInt64/readUInt64 accessors (ergonomics-01: ScalarType consolidation).
@@ -110,7 +109,7 @@ class KompactRuntimeReadScalarTest {
         buf[1] = 0x80.toByte() // LSB-first: low byte = 0x00, high byte = 0x80
         val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(16, signed = true))
         assertTrue(r.isSuccess)
-    assertEquals(Short.MIN_VALUE.toInt(), r.getOrThrow())
+        assertEquals(Short.MIN_VALUE.toInt(), r.getOrThrow())
     }
 
     @Test

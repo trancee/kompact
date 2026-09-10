@@ -6,7 +6,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class KompactRuntimeReadScalarAsLongTest {
-
     // --- 64-bit width (readScalarAsLong) ---
 
     @Test
@@ -61,7 +60,12 @@ class KompactRuntimeReadScalarAsLongTest {
     @Test
     fun readScalarLong_width64_signed_boundsError_shortBuffer() {
         val buf = ByteArray(7) { 0 }
-        val r = KompactRuntime.readScalarAsLong(buf, 0, ScalarType.of(64, signed = true)) // needs 64 bits, only 56 available
+        val r =
+            KompactRuntime.readScalarAsLong(
+                buf,
+                0,
+                ScalarType.of(64, signed = true),
+            ) // needs 64 bits, only 56 available
         assertFalse(r.isSuccess)
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }

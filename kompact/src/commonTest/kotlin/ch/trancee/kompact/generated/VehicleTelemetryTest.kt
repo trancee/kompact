@@ -7,7 +7,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class VehicleTelemetryTest {
-
     // PROMPT §3 layout (LSB-first, 16 bits):
     // [0..3] batteryStatus (4 bits), [4..13] speed (10 bits),
     // [14] isMalfunctioning (1 bit), [15] reserved.
@@ -139,19 +138,19 @@ class VehicleTelemetryTest {
         tel.batteryStatus = 3
 
         assertEquals(3, tel.batteryStatus)
-        assertEquals(10, tel.speed)               // unchanged
-        assertEquals(true, tel.isMalfunctioning)  // unchanged
+        assertEquals(10, tel.speed) // unchanged
+        assertEquals(true, tel.isMalfunctioning) // unchanged
         assertEquals(0xA3, tel.raw[0].toInt() and 0xFF) // low nibble changed, high nibble preserved
     }
 
     @Test
     fun speedSetter_writesTenBitField() {
         val tel = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
-        tel.speed = 1023  // max 10-bit value
+        tel.speed = 1023 // max 10-bit value
 
         assertEquals(1023, tel.speed)
-        assertEquals(5, tel.batteryStatus)             // unchanged
-        assertEquals(true, tel.isMalfunctioning)      // unchanged
+        assertEquals(5, tel.batteryStatus) // unchanged
+        assertEquals(true, tel.isMalfunctioning) // unchanged
     }
 
     @Test

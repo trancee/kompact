@@ -10,7 +10,6 @@ import kotlin.test.assertTrue
  * Ticket 08: LongResult reserves a sentinel band near Long.MIN_VALUE (documented tradeoff).
  */
 class KompactResultCanonicalizationTest {
-
     // --- FloatResult NaN canonicalization (Ticket 04) ---
 
     @Test
@@ -24,7 +23,7 @@ class KompactResultCanonicalizationTest {
             assertEquals(
                 canonicalBits,
                 r.getOrThrow().toBits(),
-                "non-canonical NaN bits=${bits.toString(16)}"
+                "non-canonical NaN bits=${bits.toString(16)}",
             )
         }
     }
@@ -52,15 +51,23 @@ class KompactResultCanonicalizationTest {
             assertEquals(
                 canonical.toBits(),
                 r.getOrThrow().toBits(),
-                "non-canonical NaN bits=${bits.toString(16)}"
+                "non-canonical NaN bits=${bits.toString(16)}",
             )
         }
     }
 
     @Test
     fun doubleResult_success_preservesNonNanValue() {
-        val values = listOf(0.0, -0.0, 1.5, -1.5, Double.MAX_VALUE, Double.POSITIVE_INFINITY,
-            Double.NEGATIVE_INFINITY)
+        val values =
+            listOf(
+                0.0,
+                -0.0,
+                1.5,
+                -1.5,
+                Double.MAX_VALUE,
+                Double.POSITIVE_INFINITY,
+                Double.NEGATIVE_INFINITY,
+            )
         for (v in values) {
             val r = DoubleResult.success(v)
             assertTrue(r.isSuccess, "value=$v")

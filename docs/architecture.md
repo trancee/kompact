@@ -124,7 +124,7 @@ realistic long values almost never land in it.
 IEEE-754 reserves the NaN space for diagnostic payloads. `DoubleResult`
 uses canonical quiet-NaN for success and a quiet NaN with a non-zero
 low-payload for failure. The failure payload is `errorKind + 1` (1–4)
-in bits 3–0, with the raw enum code (when applicable) in bits 7–4;
+in bits 3–0, with the raw enum code (when applicable) in bits 11–4;
 payload `0` is reserved for canonical success NaN. A non-canonical NaN
 read off the wire is canonicalized to the canonical-quiet-NaN on success,
 so the writer's "I don't know the value" NaN cannot smuggle a failure
@@ -139,9 +139,9 @@ platform actuals diverge:
 
 - `jvmMain`: `@JvmInline actual value class …` — required by the
   language for value classes over a primitive `Long` on the JVM.
-- `iosArm64Main` / `iosSimulatorArm64Main`: plain `actual value class …` —
-  Kotlin/Native represents the same over-primitive-Long shape as an
-  inline value automatically.
+- `iosMain` (shared by `iosArm64` and `iosSimulatorArm64`): plain
+  `actual value class …` — Kotlin/Native represents the same
+  over-primitive-Long shape as an inline value automatically.
 
 Both platforms get the same allocation behaviour (zero on success and
 failure) but the language requires the `@JvmInline` opt-in on the JVM.
@@ -183,15 +183,13 @@ addable to v1 without sacrificing the parse-forward property.
 
 ## Versioning and schema evolution
 
-The v1 plan is positional + additive-only:
+The v1 plan is positional + additive-only (deferred versioning surface —
+see [ADR-0002](adr/0002-defer-versioning-surface-to-v2.md)):
 
 - New fields are appended at the **end** of a length-delimited group.
 - All length-delimited fields in a group share one uniform prefix
   width so an older reader can skip unknown trailing length-delimited
   fields by reading prefix + payload.
-- A fixed-width version prefix at the very start of the stream signals
-  the schema version; an unknown version is a typed
-  `UnsupportedSchemaVersion` failure, never a silent misread.
 - Missing trailing fields fall back to the field's `defaultValue` (the
   `defaultValue` member of `@KompactField`).
 - Breaking changes are reserved for: reordering fields, inserting a
@@ -199,8 +197,12 @@ The v1 plan is positional + additive-only:
   the stream's uniform prefix width.
 
 Skew (newer writer, older reader) is always surfaced as a typed
-`BadLengthPrefix` or `UnsupportedSchemaVersion`. The framework does
-not silently truncate or misread.
+`BadLengthPrefix`. The framework does not silently truncate or misread.
+
+A stream-level version prefix and `UnsupportedSchemaVersion` error are
+**deferred to v2** where the KSP codegen can emit version-aware views
+and a real upgrade/compat story can be designed. See
+[ADR-0002](adr/0002-defer-versioning-surface-to-v2.md) for the rationale.
 
 ## What is and is not in this repository today
 
@@ -209,7 +211,9 @@ not silently truncate or misread.
   `VehicleTelemetry` example, the source-retained `@KompactModel` /
   `@KompactField` annotations, the full `commonTest` suite
   (round-trip, property-based, long-form, allocation-discipline),
-  CI gates (`apiCheck` on macOS for JVM + iOS klib; `jvmApiCheck` + `jvmTest` on Linux)
+  CI gates (`spotlessCheck` + `apiCheck` on macOS for JVM + iOS klib;
+  `spotlessCheck` + `koverVerify` + `jvmTest` + `jvmApiCheck` on
+  Linux)
   goldens in [`kompact/api/`](../kompact/api/).
 - **Not yet in repo**: the KSP code generator. The annotation surface
   is in source and the test suite pins the compile-time contract, but

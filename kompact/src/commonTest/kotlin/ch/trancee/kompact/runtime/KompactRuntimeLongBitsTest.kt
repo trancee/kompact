@@ -4,7 +4,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class KompactRuntimeLongBitsTest {
-
     // Ticket 01: LSB-first — same bit order as readBits, but Long-backed (1..64).
 
     @Test
@@ -93,7 +92,6 @@ class KompactRuntimeLongBitsTest {
         assertEquals(v32, KompactRuntime.readBitsLong(buf, 0, 32))
         // Upper 32 bits untouched — byte 7 still has 0x80
         assertEquals(0x8000_0000L, KompactRuntime.readBitsLong(buf, 32, 32))
-
     }
 
     // --- writeBitsLong only touches target range ---

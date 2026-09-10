@@ -51,12 +51,13 @@ internal const val ERROR_UNKNOWN_ENUM: Int = 3
 
 // === Shared helpers (commonMain, visible from platform actuals) ===
 
-internal fun encodeErrorKind(error: KompactDecodeError): Int = when (error) {
-    is KompactDecodeError.BoundsError -> ERROR_BOUNDS
-    is KompactDecodeError.BadLengthPrefix -> ERROR_BAD_LENGTH
-    is KompactDecodeError.TruncatedNested -> ERROR_TRUNCATED
-    is KompactDecodeError.UnknownEnumCode -> ERROR_UNKNOWN_ENUM
-}
+internal fun encodeErrorKind(error: KompactDecodeError): Int =
+    when (error) {
+        is KompactDecodeError.BoundsError -> ERROR_BOUNDS
+        is KompactDecodeError.BadLengthPrefix -> ERROR_BAD_LENGTH
+        is KompactDecodeError.TruncatedNested -> ERROR_TRUNCATED
+        is KompactDecodeError.UnknownEnumCode -> ERROR_UNKNOWN_ENUM
+    }
 
 internal fun decodeErrorFromSmallBits(packed: Long): KompactDecodeError {
     val kind = ((packed ushr RESULT_ERROR_KIND_SHIFT) and 0x7L).toInt()
@@ -70,8 +71,7 @@ internal fun decodeErrorFromSmallBits(packed: Long): KompactDecodeError {
     }
 }
 
-internal fun encodeSmallSuccess(value: Long): Long =
-    RESULT_OK_FLAG or (value and RESULT_VALUE_MASK)
+internal fun encodeSmallSuccess(value: Long): Long = RESULT_OK_FLAG or (value and RESULT_VALUE_MASK)
 
 internal fun encodeSmallFailure(error: KompactDecodeError): Long {
     val kind = encodeErrorKind(error).toLong()
@@ -79,8 +79,7 @@ internal fun encodeSmallFailure(error: KompactDecodeError): Long {
     return (kind shl RESULT_ERROR_KIND_SHIFT) or (rawCode shl RESULT_RAW_ENUM_SHIFT)
 }
 
-internal fun isLongFailure(packed: Long): Boolean =
-    (packed and LONG_FAIL_MASK) == LONG_FAIL_BASE
+internal fun isLongFailure(packed: Long): Boolean = (packed and LONG_FAIL_MASK) == LONG_FAIL_BASE
 
 internal fun encodeLongFailure(error: KompactDecodeError): Long {
     val kind = encodeErrorKind(error).toLong()
@@ -125,8 +124,7 @@ internal fun decodeDoubleError(packed: Long): KompactDecodeError {
     }
 }
 
-internal fun encodeDoubleSuccess(value: Double): Long =
-    if (value.isNaN()) DOUBLE_NAN_CANONICAL else value.toBits()
+internal fun encodeDoubleSuccess(value: Double): Long = if (value.isNaN()) DOUBLE_NAN_CANONICAL else value.toBits()
 
 internal fun encodeFloatSuccess(value: Float): Long =
     if (value.isNaN()) FLOAT_NAN_CANONICAL_BITS.toLong() else value.toBits().toLong()
@@ -135,10 +133,10 @@ internal fun encodeFloatSuccess(value: Float): Long =
 // so each platform actual's getOrThrow stays one expression (ergonomics-03: throw-helper naming).
 internal fun throwDecodeErrorFromSmallBits(packed: Long): Nothing =
     throw KompactDecodeException(decodeErrorFromSmallBits(packed))
-internal fun throwDecodeErrorFromLong(packed: Long): Nothing =
-    throw KompactDecodeException(decodeLongError(packed))
-internal fun throwDecodeErrorFromDouble(packed: Long): Nothing =
-    throw KompactDecodeException(decodeDoubleError(packed))
+
+internal fun throwDecodeErrorFromLong(packed: Long): Nothing = throw KompactDecodeException(decodeLongError(packed))
+
+internal fun throwDecodeErrorFromDouble(packed: Long): Nothing = throw KompactDecodeException(decodeDoubleError(packed))
 
 // ====================================================================
 // Ticket 08 — result value class declarations (expect)
@@ -148,57 +146,82 @@ internal fun throwDecodeErrorFromDouble(packed: Long): Nothing =
 // Kotlin/Native (value class).
 // ====================================================================
 
-public expect value class ByteResult(public val packed: Long) {
+public expect value class ByteResult(
+    public val packed: Long,
+) {
     public val isSuccess: Boolean
     public val isFailure: Boolean
     public val error: KompactDecodeError?
+
     public fun getOrThrow(): Byte
+
     public companion object {
         public fun success(value: Byte): ByteResult
+
         public fun failure(error: KompactDecodeError): ByteResult
     }
 }
 
-public expect value class ShortResult(public val packed: Long) {
+public expect value class ShortResult(
+    public val packed: Long,
+) {
     public val isSuccess: Boolean
     public val isFailure: Boolean
     public val error: KompactDecodeError?
+
     public fun getOrThrow(): Short
+
     public companion object {
         public fun success(value: Short): ShortResult
+
         public fun failure(error: KompactDecodeError): ShortResult
     }
 }
 
-public expect value class IntResult(public val packed: Long) {
+public expect value class IntResult(
+    public val packed: Long,
+) {
     public val isSuccess: Boolean
     public val isFailure: Boolean
     public val error: KompactDecodeError?
+
     public fun getOrThrow(): Int
+
     public companion object {
         public fun success(value: Int): IntResult
+
         public fun failure(error: KompactDecodeError): IntResult
     }
 }
 
-public expect value class FloatResult(public val packed: Long) {
+public expect value class FloatResult(
+    public val packed: Long,
+) {
     public val isSuccess: Boolean
     public val isFailure: Boolean
     public val error: KompactDecodeError?
+
     public fun getOrThrow(): Float
+
     public companion object {
         public fun success(value: Float): FloatResult
+
         public fun failure(error: KompactDecodeError): FloatResult
     }
 }
 
-public expect value class BooleanResult(public val packed: Long) {
+public expect value class BooleanResult(
+    public val packed: Long,
+) {
     public val isSuccess: Boolean
     public val isFailure: Boolean
     public val error: KompactDecodeError?
+
     public fun getOrThrow(): Boolean
+
     public companion object {
         public fun success(value: Boolean): BooleanResult
+
         public fun failure(error: KompactDecodeError): BooleanResult
     }
 }
@@ -216,24 +239,34 @@ public expect value class BooleanResult(public val packed: Long) {
  * sentinel mask). This is the documented tradeoff of packing a typed result
  * into a single `Long` without boxing; see Ticket 08.
  */
-public expect value class LongResult(public val packed: Long) {
+public expect value class LongResult(
+    public val packed: Long,
+) {
     public val isSuccess: Boolean
     public val isFailure: Boolean
     public val error: KompactDecodeError?
+
     public fun getOrThrow(): Long
+
     public companion object {
         public fun success(value: Long): LongResult
+
         public fun failure(error: KompactDecodeError): LongResult
     }
 }
 
-public expect value class DoubleResult(public val packed: Long) {
+public expect value class DoubleResult(
+    public val packed: Long,
+) {
     public val isSuccess: Boolean
     public val isFailure: Boolean
     public val error: KompactDecodeError?
+
     public fun getOrThrow(): Double
+
     public companion object {
         public fun success(value: Double): DoubleResult
+
         public fun failure(error: KompactDecodeError): DoubleResult
     }
 }

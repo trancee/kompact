@@ -14,7 +14,6 @@ package ch.trancee.kompact.runtime
  * exposed, so the writer remains single-use forward-only (PROMPT §1).
  */
 public class KompactWriter {
-
     /**
      * Internal write cursor in bits (LSB-first packing, Ticket 01). Advances as
      * values are written; callers observe progress via [build]. Not part of the
@@ -27,7 +26,10 @@ public class KompactWriter {
     private var buffer: ByteArray = ByteArray(INITIAL_CAPACITY_BYTES)
 
     /** Appends [bitWidth] low bits of [value] (two's-complement magnitude). */
-    public fun writeBits(bitWidth: Int, value: Int) {
+    public fun writeBits(
+        bitWidth: Int,
+        value: Int,
+    ) {
         require(bitWidth in 1..31) { "writeBits bitWidth must be 1..31, was $bitWidth" }
         ensureCapacityBits(bitWidth)
         KompactRuntime.writeBits(buffer, bitCursor, bitWidth, value)
@@ -35,7 +37,10 @@ public class KompactWriter {
     }
 
     /** Appends [bitWidth] low bits of [value] (64-bit, for UInt64/Int64). */
-    public fun writeBitsLong(bitWidth: Int, value: Long) {
+    public fun writeBitsLong(
+        bitWidth: Int,
+        value: Long,
+    ) {
         require(bitWidth in 1..64) { "writeBitsLong bitWidth must be 1..64, was $bitWidth" }
         ensureCapacityBits(bitWidth)
         KompactRuntime.writeBitsLong(buffer, bitCursor, bitWidth, value)
@@ -55,15 +60,24 @@ public class KompactWriter {
      * Replaces the writeInt/writeUInt/writeInt64/writeEnum overloads — one accessor
      * per width-band (ergonomics-01: ScalarType consolidation). Pass a [ScalarType] carrying the band.
      */
-    public fun writeScalar(type: ScalarType, value: Long) {
+    public fun writeScalar(
+        type: ScalarType,
+        value: Long,
+    ) {
         val bitWidth = type.bitWidth
         require(bitWidth in 1..64) { "writeScalar bitWidth must be 1..64, was $bitWidth" }
-        if (bitWidth <= 31) writeBits(bitWidth, value.toInt())
-        else writeBitsLong(bitWidth, value)
+        if (bitWidth <= 31) {
+            writeBits(bitWidth, value.toInt())
+        } else {
+            writeBitsLong(bitWidth, value)
+        }
     }
 
     /** Writes a length-prefixed UTF-8 string: `<prefix><bytes>` (Ticket 05). */
-    public fun writeString(countWidth: Int, value: String) {
+    public fun writeString(
+        countWidth: Int,
+        value: String,
+    ) {
         val bytes = value.encodeToByteArray()
         KompactFraming.writeLengthPrefix(buffer, bitCursor, countWidth, bytes.size)
         bitCursor += countWidth
@@ -71,18 +85,25 @@ public class KompactWriter {
     }
 
     /** Writes a length-prefixed blob: `<prefix><bytes>` (Ticket 05). */
-    public fun writeBlob(countWidth: Int, bytes: ByteArray) {
+    public fun writeBlob(
+        countWidth: Int,
+        bytes: ByteArray,
+    ) {
         KompactFraming.writeLengthPrefix(buffer, bitCursor, countWidth, bytes.size)
         bitCursor += countWidth
         appendBytes(bytes)
     }
+
     /**
      * Writes a nested sub-region: a child `KompactWriter` drains [block], then the
      * child's byte length is emitted as a [lengthPrefixWidth]-bit LE prefix
      * immediately followed by the child bytes (forward-only, compute-first —
      * Ticket 07). The child region begins byte-aligned after the prefix.
      */
-    public fun writeNested(lengthPrefixWidth: Int = 16, block: KompactWriter.() -> Unit) {
+    public fun writeNested(
+        lengthPrefixWidth: Int = 16,
+        block: KompactWriter.() -> Unit,
+    ) {
         val child = KompactWriter()
         block(child)
         val bytes = child.build()
@@ -96,7 +117,11 @@ public class KompactWriter {
      * element is produced by one invocation of [block] against this writer
      * (Ticket 05). [countWidth] must be one of [KompactFraming.VALID_PREFIX_WIDTHS].
      */
-    public fun writeRepeated(count: Int, countWidth: Int = 8, block: KompactWriter.() -> Unit) {
+    public fun writeRepeated(
+        count: Int,
+        countWidth: Int = 8,
+        block: KompactWriter.() -> Unit,
+    ) {
         require(countWidth in KompactFraming.VALID_PREFIX_WIDTHS) {
             "countWidth must be 8, 16, or 32 (Ticket 06), was $countWidth"
         }

@@ -102,8 +102,10 @@ identical, the only thing that differs is the `@JvmInline` annotation.
 @file:OptIn(KompactPreview::class)
 package your.package
 
+import ch.trancee.kompact.annotations.KompactModel
 import ch.trancee.kompact.annotations.KompactPreview
 import ch.trancee.kompact.runtime.KompactRuntime
+import ch.trancee.kompact.runtime.ScalarType
 
 @KompactModel
 public actual value class SensorFrame(public actual val raw: ByteArray) {
@@ -158,10 +160,10 @@ for the full pattern.
 val frame = SensorFrame.create(
     status = 2,
     battery = 13,
-    temperature = 525,    // 525 - 40 = 485 °C offset, fits in 12-bit signed
+    temperature = 525,    // raw 12-bit signed value (e.g. 525 = 565 °C with -40 °C offset)
     timestamp = 1024,
 )
-println(frame.raw.toHexString())   // → e.g. "d2884000" (4 bytes, platform-endian
+println(frame.raw.toHexString())   // → e.g. "d20d0240" (4 bytes, platform-endian
                                   //    order of bits, LSB-first field packing)
 
 // Decode (e.g. from BLE)

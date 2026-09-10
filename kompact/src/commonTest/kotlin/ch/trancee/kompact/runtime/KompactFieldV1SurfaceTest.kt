@@ -2,8 +2,8 @@
 
 package ch.trancee.kompact.runtime
 
-import kotlin.test.Test
 import ch.trancee.kompact.annotations.KompactField
+import kotlin.test.Test
 
 /**
  * Ticket 04/06 v1 annotation surface — compile-time existence check.
@@ -25,14 +25,12 @@ private class KompactFieldV1Probe(
         isVersionField = true,
     )
     val tag: Int,
-
     // Scalar default: only bitOffset/bitWidth declared.
     @KompactField(bitOffset = 4, bitWidth = 1)
     val valid: Boolean,
 )
 
 class KompactFieldV1SurfaceTest {
-
     @Test
     @Suppress("UNUSED_EXPRESSION")
     fun v1AnnotationMembersExist_compileTimeContract() {

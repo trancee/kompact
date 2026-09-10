@@ -4,7 +4,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class KompactRuntimeTest {
-
     // Ticket 01: LSB-first — byte 0 holds value bits 0-7, bit 0 = value LSB.
 
     @Test

@@ -201,7 +201,7 @@ to a typed `BadLengthPrefix` error.
 | Member | Signature | Description |
 | --- | --- | --- |
 | `VALID_PREFIX_WIDTHS` | `Set<Int> = setOf(8, 16, 32)` | The set of legal length-prefix bit widths. |
-| `readLengthPrefix` | `readLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int` | Reads a fixed-width little-endian byte count at `bitOffset`. Returns `-1` when `bitWidth` is invalid or the region overruns `raw`. |
+| `readLengthPrefix` | `readLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int` | Reads a fixed-width little-endian byte count at `bitOffset`. Returns [`INVALID_LENGTH_PREFIX`](#constants-and-limits) (`-1`) when `bitWidth` is invalid or the region overruns `raw`. |
 | `writeLengthPrefix` | `writeLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int, length: Int)` | Writes `length` as a fixed-width little-endian byte count at `bitOffset`. Throws `IllegalArgumentException` if `bitWidth` is not in `VALID_PREFIX_WIDTHS`. |
 | `readNested` | `readNested(raw: ByteArray, bitOffset: Int, prefixBitWidth: Int): NestedRegionResult` | Typed parse-forward nested region: reads the byte-count prefix at `bitOffset`, returns `(startBit, bitLength)` of the payload, or a typed failure (`BadLengthPrefix`). |
 | `readNestedOrThrow` | `readNestedOrThrow(raw: ByteArray, bitOffset: Int, prefixBitWidth: Int): NestedRegion` | Throwing variant of `readNested`: throws `KompactDecodeException` on failure. |
@@ -230,21 +230,22 @@ specialized types let the success-path primitives stay unboxed.
 | `DoubleResult` | `Long` (NaN payload) | Canonical quiet-NaN for success; quiet NaN with non-zero payload for failure (see [architecture](architecture.md#runtime-error-encoding)). | `readDouble` |
 | `BooleanResult` | `Long` (packed) | ≤32-bit packed-Long (see below) | `readBool` |
 
-Every result class exposes the same four members:
+Every result class exposes the same four members. The concrete return
+type of `getOrThrow()` varies by class — see the table below.
 
 | Member | Description |
 | --- | --- |
 | `isSuccess: Boolean` | `true` iff the result carries a decoded value. |
 | `isFailure: Boolean` | `true` iff the result carries an error. |
 | `error: KompactDecodeError?` | The decoded error on failure, `null` on success. |
-| `getOrThrow(): <T>` | Returns the decoded primitive on success; throws `KompactDecodeException` on failure. The **only** call that can allocate / throw on the failure path. |
+| `getOrThrow(): <see table>` | Returns the decoded primitive on success; throws `KompactDecodeException` on failure. The **only** call that can allocate / throw on the failure path. Return type is `Byte` for `ByteResult`, `Short` for `ShortResult`, `Int` for `IntResult`, `Long` for `LongResult`, `Float` for `FloatResult`, `Double` for `DoubleResult`, `Boolean` for `BooleanResult`, and `NestedRegion` (`Pair<Int, Int>`) for `NestedRegionResult`. |
 
 Each result class also has a `Companion`:
 
 | Member | Description |
 | --- | --- |
-| `success(value: <T>): <T>Result` | Packs a value into a success result. |
-| `failure(error: KompactDecodeError): <T>Result` | Packs a `KompactDecodeError` into a failure result. |
+| `success(value: <see table>): <ResultClass>` | Packs a value into a success result. The `value` parameter type matches `getOrThrow()`: `Byte` for `ByteResult`, `Short` for `ShortResult`, `Int` for `IntResult`, `Long` for `LongResult`, `Float` for `FloatResult`, `Double` for `DoubleResult`, `Boolean` for `BooleanResult`. `NestedRegionResult.success(startBit: Int, bitLength: Int)` takes the two region coordinates instead. |
+| `failure(error: KompactDecodeError): <ResultClass>` | Packs a `KompactDecodeError` into a failure result. |
 
 #### ≤32-bit packed-Long encoding (ByteResult, ShortResult, IntResult, FloatResult, BooleanResult)
 
@@ -320,16 +321,32 @@ recovery calls. It is not used on the success path.
 `getOrElse` and `map` extensions on each result value class, specialized
 per type so no boxing occurs on the success path. These mirror
 `stdlib`'s `Result<T>.getOrElse` / `Result<T>.map` but are typed to the
-concrete result class.
+concrete result class — there is no generic `Result<T>` here.
 
-| Extension | Signature | Description |
+Extensions exist for all seven scalar result classes plus
+`NestedRegionResult`. The table shows the shape for each type; the
+parameterized type matches the class's decoded primitive (`Byte`,
+`Short`, `Int`, `Long`, `Float`, `Double`, `Boolean`) or `NestedRegion`
+for `NestedRegionResult`.
+
+| Extension | Signature (shape) | Description |
 | --- | --- | --- |
-| `<T>Result.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> <T>): <T>` | Returns the decoded value on success; invokes `fallback(error)` on failure. |
-| `<T>Result.map` | `map(transform: (<T>) -> <T>): <T>Result` | Transforms the success value on success; returns the result unchanged on failure. |
-
-The `<T>` here is the concrete primitive (`Byte`, `Short`, `Int`, `Long`,
-`Float`, `Double`, `Boolean`) or `NestedRegion`. Extensions exist for all
-seven scalar result classes plus `NestedRegionResult`.
+| `ByteResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Byte): Byte` | |
+| `ByteResult.map` | `map(transform: (Byte) -> Byte): ByteResult` | |
+| `ShortResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Short): Short` | |
+| `ShortResult.map` | `map(transform: (Short) -> Short): ShortResult` | |
+| `IntResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Int): Int` | Returns the decoded value on success; invokes `fallback(error)` on failure. |
+| `IntResult.map` | `map(transform: (Int) -> Int): IntResult` | Transforms the success value on success; returns the result unchanged on failure. |
+| `LongResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Long): Long` | |
+| `LongResult.map` | `map(transform: (Long) -> Long): LongResult` | |
+| `FloatResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Float): Float` | |
+| `FloatResult.map` | `map(transform: (Float) -> Float): FloatResult` | |
+| `DoubleResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Double): Double` | |
+| `DoubleResult.map` | `map(transform: (Double) -> Double): DoubleResult` | |
+| `BooleanResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Boolean): Boolean` | |
+| `BooleanResult.map` | `map(transform: (Boolean) -> Boolean): BooleanResult` | |
+| `NestedRegionResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> NestedRegion): NestedRegion` | |
+| `NestedRegionResult.map` | `map(transform: (NestedRegion) -> NestedRegion): NestedRegionResult` | |
 
 ---
 

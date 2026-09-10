@@ -9,14 +9,15 @@ package ch.trancee.kompact.runtime
  * the common path, `UnknownEnumCode` allocates only the data-class payload.
  */
 public sealed class KompactDecodeError {
-
     public object BoundsError : KompactDecodeError()
 
     public object BadLengthPrefix : KompactDecodeError()
 
     public object TruncatedNested : KompactDecodeError()
 
-    public data class UnknownEnumCode(public val rawCode: Int) : KompactDecodeError()
+    public data class UnknownEnumCode(
+        public val rawCode: Int,
+    ) : KompactDecodeError()
 }
 
 /**
@@ -24,5 +25,6 @@ public sealed class KompactDecodeError {
  * hot-path never throws (Ticket 03 zero-alloc). Allocation of this exception
  * is acceptable because it only occurs on an explicit recovery call.
  */
-public class KompactDecodeException(public val error: KompactDecodeError) :
-    RuntimeException("Kompact decode failed: $error")
+public class KompactDecodeException(
+    public val error: KompactDecodeError,
+) : RuntimeException("Kompact decode failed: $error")

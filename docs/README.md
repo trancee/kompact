@@ -27,7 +27,7 @@ The locked implementation spec is the source of truth for design
 decisions. Start with the index:
 
 - [`.scratch/kompact-spec/map.md`](../.scratch/kompact-spec/map.md) —
-  the spec index, with a one-line summary of each of the 13 tickets
+  the spec index, with a one-line summary of each of the 15 tickets
   and links to the underlying research notes.
 - The spec tickets under [`.scratch/kompact-spec/issues/`](../.scratch/kompact-spec/issues/)
   record the **why** behind every API decision, in ticket form.

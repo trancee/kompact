@@ -20,9 +20,7 @@ import ch.trancee.kompact.runtime.ShortResult
  * See `KompactResult.kt` for the packed-Long encodings of each result kind.
  */
 public object Kompact {
-
     public object Result {
-
         public typealias Byte = ByteResult
 
         public typealias Short = ShortResult

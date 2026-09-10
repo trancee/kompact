@@ -20,14 +20,13 @@ import kotlin.test.assertTrue
  *   [15]     reserved      (1 bit, left zero)
  */
 class GettingStartedTest {
-
     @Test
     fun readYourFirstMessage() {
         // --- Write: build a 2-byte telemetry frame with KompactWriter ---
         val w = KompactWriter()
-        w.writeScalar(ScalarType.of(4, signed = false), 5L)     // battery = 5
-        w.writeScalar(ScalarType.of(10, signed = false), 10L)   // speed = 10
-        w.writeBool(true)                                       // isMalfunctioning = true
+        w.writeScalar(ScalarType.of(4, signed = false), 5L) // battery = 5
+        w.writeScalar(ScalarType.of(10, signed = false), 10L) // speed = 10
+        w.writeBool(true) // isMalfunctioning = true
         // bit 15 (reserved) is left zero.
         val bytes: ByteArray = w.build()
         assertEquals(2, bytes.size)

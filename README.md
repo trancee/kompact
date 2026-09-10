@@ -94,7 +94,7 @@ buffer — no intermediate objects, no copy.
 
 ```kotlin
 // 1. One-liner create → raw bytes
-val raw: ByteArray = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalformed = true).raw
+val raw: ByteArray = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true).raw
 
 // 2. Construct from raw bytes (e.g. received from BLE)
 val tel = VehicleTelemetry(raw)

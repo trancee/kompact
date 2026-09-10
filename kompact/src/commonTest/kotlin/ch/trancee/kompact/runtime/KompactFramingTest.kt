@@ -2,16 +2,15 @@ package ch.trancee.kompact.runtime
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Ticket 05: sequential, length-delimited framing (fixed-width LE byte-count
  * prefix per field; parse-forward nested sub-regions; count-prefixed repeats).
  */
 class KompactFramingTest {
-
     // --- 8-bit length prefix (1 byte) ---
 
     @Test
@@ -105,7 +104,6 @@ class KompactFramingTest {
         assertEquals(null, region)
     }
 
-
     // --- repeat count: fixed-width LE count prefix, sequential ---
 
     @Test
@@ -125,7 +123,10 @@ class KompactFramingTest {
     fun nestedRegionOrNull_rejectsIntMaxByteCountPrefix() {
         val buf = byteArrayOf(0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0x7F)
         // 32-bit LE prefix = 0x7FFFFFFF = Int.MAX_VALUE bytes (largest positive count).
-        assertNull(KompactFraming.nestedRegionOrNull(buf, 0, 32), "0x7FFFFFFF prefix must return null, not a corrupt Pair")
+        assertNull(
+            KompactFraming.nestedRegionOrNull(buf, 0, 32),
+            "0x7FFFFFFF prefix must return null, not a corrupt Pair",
+        )
     }
 
     @Test
@@ -134,7 +135,7 @@ class KompactFramingTest {
         KompactFraming.writeLengthPrefix(buf, 0, 32, 4)
         val r = KompactFraming.nestedRegionOrNull(buf, 0, 32)
         assertNotNull(r)
-        assertEquals(32, r.first)   // prefix occupies [0..31], payload starts at bit 32
+        assertEquals(32, r.first) // prefix occupies [0..31], payload starts at bit 32
         assertEquals(32, r.second) // 4 bytes * 8 bits = 32-bit payload
     }
 }

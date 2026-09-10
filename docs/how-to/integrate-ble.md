@@ -7,10 +7,16 @@ characteristic notification into a value class on the way in.
 Kompact is transport-agnostic — it produces and consumes `ByteArray`.
 This guide shows the two integration points (write, read) and the
 common idioms for each.
+
 A value class init-block validates `raw.size` (see
 [`api-reference.md`](../api-reference.md#vehicletelemetry-example-model)
-— F-001). For a hand-written value class, the per-field read uses
+— F-001). For a hand-written value class, the per-field getters use the
+checked `readScalar` / `readBool` accessors with `getOrThrow()`, which
+throws on a bounds error; if you need to recover from a truncated
+buffer without throwing, use the typed-result API directly (see
+[`handle-decode-errors.md`](handle-decode-errors.md)).
 
+## 1. The BLE / Kompact boundary
 
 Kompact hands you a `ByteArray`. BLE hands you a `ByteArray`. The
 integration point is a single assignment:
@@ -69,6 +75,7 @@ simplest pattern is to expose a thin wrapper:
 
 ```kotlin
 // In your Kotlin common code (or iosMain):
+@OptIn(KompactPreview::class)
 class TelemetryChannel {
     fun encode(battery: Int, speed: Int, fault: Boolean): ByteArray =
         VehicleTelemetry.create(battery, speed, fault).raw

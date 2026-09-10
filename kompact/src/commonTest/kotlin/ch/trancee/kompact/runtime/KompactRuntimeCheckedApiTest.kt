@@ -19,7 +19,6 @@ import kotlin.test.assertTrue
  * -> no cross-package imports required.
  */
 class KompactRuntimeCheckedApiTest {
-
     // ---- …OrThrow wrappers: success path returns the decoded value ----
 
     @Test
@@ -58,48 +57,56 @@ class KompactRuntimeCheckedApiTest {
     @Test
     fun readDoubleOrThrow_returnsValueOnSuccess() {
         // 1.0 == 0x3FF0000000000000, little-endian bytes.
-        assertEquals(1.0, KompactRuntime.readDoubleOrThrow(byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0.toByte(), 0x3F), 0))
+        assertEquals(
+            1.0,
+            KompactRuntime.readDoubleOrThrow(byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0.toByte(), 0x3F), 0),
+        )
     }
 
     // ---- …OrThrow wrappers: a bounds overrun raises KompactDecodeException ----
 
     @Test
     fun readScalarOrThrow_throwsOnBoundsError() {
-        val ex = assertFailsWith<KompactDecodeException> {
-            KompactRuntime.readScalarOrThrow(byteArrayOf(), 0, ScalarType.of(8, signed = false))
-        }
+        val ex =
+            assertFailsWith<KompactDecodeException> {
+                KompactRuntime.readScalarOrThrow(byteArrayOf(), 0, ScalarType.of(8, signed = false))
+            }
         assertEquals(KompactDecodeError.BoundsError, ex.error)
     }
 
     @Test
     fun readScalarAsLongOrThrow_throwsOnBoundsError() {
-        val ex = assertFailsWith<KompactDecodeException> {
-            KompactRuntime.readScalarAsLongOrThrow(byteArrayOf(), 0, ScalarType.of(16, signed = false))
-        }
+        val ex =
+            assertFailsWith<KompactDecodeException> {
+                KompactRuntime.readScalarAsLongOrThrow(byteArrayOf(), 0, ScalarType.of(16, signed = false))
+            }
         assertEquals(KompactDecodeError.BoundsError, ex.error)
     }
 
     @Test
     fun readBoolOrThrow_throwsOnBoundsError() {
-        val ex = assertFailsWith<KompactDecodeException> {
-            KompactRuntime.readBoolOrThrow(byteArrayOf(), 0)
-        }
+        val ex =
+            assertFailsWith<KompactDecodeException> {
+                KompactRuntime.readBoolOrThrow(byteArrayOf(), 0)
+            }
         assertEquals(KompactDecodeError.BoundsError, ex.error)
     }
 
     @Test
     fun readFloatOrThrow_throwsOnBoundsError() {
-        val ex = assertFailsWith<KompactDecodeException> {
-            KompactRuntime.readFloatOrThrow(byteArrayOf(0x00, 0x00, 0x80.toByte()), 0) // 3 bytes < 4
-        }
+        val ex =
+            assertFailsWith<KompactDecodeException> {
+                KompactRuntime.readFloatOrThrow(byteArrayOf(0x00, 0x00, 0x80.toByte()), 0) // 3 bytes < 4
+            }
         assertEquals(KompactDecodeError.BoundsError, ex.error)
     }
 
     @Test
     fun readDoubleOrThrow_throwsOnBoundsError() {
-        val ex = assertFailsWith<KompactDecodeException> {
-            KompactRuntime.readDoubleOrThrow(byteArrayOf(0x00, 0x00, 0x00, 0x00), 0) // 4 bytes < 8
-        }
+        val ex =
+            assertFailsWith<KompactDecodeException> {
+                KompactRuntime.readDoubleOrThrow(byteArrayOf(0x00, 0x00, 0x00, 0x00), 0) // 4 bytes < 8
+            }
         assertEquals(KompactDecodeError.BoundsError, ex.error)
     }
 
@@ -170,7 +177,11 @@ class KompactRuntimeCheckedApiTest {
         assertEquals(0f, floatBad.getOrElse { 0f })
 
         // DoubleResult: canonical NaN on the success path.
-        val doubleOk = KompactRuntime.readDouble(byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0.toByte(), 0x3F), 0)
+        val doubleOk =
+            KompactRuntime.readDouble(
+                byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0.toByte(), 0x3F),
+                0,
+            )
         assertTrue(doubleOk.isSuccess)
         assertEquals(1.0, doubleOk.getOrElse { 0.0 }, 0.0)
         val doubleBad = KompactRuntime.readDouble(byteArrayOf(), 0)
@@ -220,15 +231,17 @@ class KompactRuntimeCheckedApiTest {
         assertEquals(1, KompactFraming.readLengthPrefixOrThrow(valid, 0, 8))
 
         // Bad prefix width throws BadLengthPrefix.
-        val ex1 = assertFailsWith<KompactDecodeException> {
-            KompactFraming.readLengthPrefixOrThrow(valid, 0, 7)
-        }
+        val ex1 =
+            assertFailsWith<KompactDecodeException> {
+                KompactFraming.readLengthPrefixOrThrow(valid, 0, 7)
+            }
         assertEquals(KompactDecodeError.BadLengthPrefix, ex1.error)
 
         // Prefix exceeds remaining bytes throws BadLengthPrefix (Ticket 06/09).
-        val ex2 = assertFailsWith<KompactDecodeException> {
-            KompactFraming.readNestedOrThrow(byteArrayOf(0x02, 0xAB.toByte()), 0, 8)
-        }
+        val ex2 =
+            assertFailsWith<KompactDecodeException> {
+                KompactFraming.readNestedOrThrow(byteArrayOf(0x02, 0xAB.toByte()), 0, 8)
+            }
         assertEquals(KompactDecodeError.BadLengthPrefix, ex2.error)
     }
 

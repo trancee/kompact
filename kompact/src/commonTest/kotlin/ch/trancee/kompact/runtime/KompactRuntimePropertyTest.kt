@@ -5,7 +5,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class KompactRuntimePropertyTest {
-
     // Ticket 10: round-trip property — for arbitrary widths/offsets over a random
     // background, encode(value) then decode(value) is identity.
 
@@ -46,7 +45,7 @@ class KompactRuntimePropertyTest {
                     assertEquals(
                         KompactRuntime.readBitsBoolean(original, b),
                         KompactRuntime.readBitsBoolean(buf, b),
-                        "bit $b changed outside [$bitOffset, ${bitOffset + bitWidth})"
+                        "bit $b changed outside [$bitOffset, ${bitOffset + bitWidth})",
                     )
                 }
             }
@@ -67,8 +66,7 @@ class KompactRuntimePropertyTest {
 
     // --- Ticket 04: readBitsLong/writeBitsLong round-trip & byte-identity ---
 
-    private fun maskForWidth(bitWidth: Int): Long =
-        if (bitWidth >= 64) -1L else (1L shl bitWidth) - 1L
+    private fun maskForWidth(bitWidth: Int): Long = if (bitWidth >= 64) -1L else (1L shl bitWidth) - 1L
 
     @Test
     fun writeBitsLong_thenReadLong_roundTrip_random() {
@@ -105,7 +103,7 @@ class KompactRuntimePropertyTest {
                     assertEquals(
                         KompactRuntime.readBitsBoolean(original, b),
                         KompactRuntime.readBitsBoolean(buf, b),
-                        "bit $b changed outside [$bitOffset, ${bitOffset + bitWidth})"
+                        "bit $b changed outside [$bitOffset, ${bitOffset + bitWidth})",
                     )
                 }
             }

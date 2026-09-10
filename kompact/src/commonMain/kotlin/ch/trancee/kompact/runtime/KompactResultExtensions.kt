@@ -67,4 +67,6 @@ public inline fun NestedRegionResult.map(transform: (NestedRegion) -> NestedRegi
     if (isSuccess) {
         val region = transform(getOrThrow())
         NestedRegionResult.success(region.first, region.second)
-    } else this
+    } else {
+        this
+    }

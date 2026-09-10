@@ -1,4 +1,5 @@
 @file:OptIn(KompactPreview::class)
+
 package ch.trancee.kompact.generated
 
 import ch.trancee.kompact.annotations.KompactField
@@ -29,8 +30,9 @@ import ch.trancee.kompact.runtime.ScalarType
  * buffer — no intermediate objects, no allocation on the read hot path.
  */
 @KompactModel
-public expect value class VehicleTelemetry(public val raw: ByteArray) {
-
+public expect value class VehicleTelemetry(
+    public val raw: ByteArray,
+) {
     public companion object {
         /**
          * Creates a fully-encoded frame from individual field values.

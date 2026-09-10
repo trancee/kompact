@@ -1,8 +1,8 @@
 package ch.trancee.kompact.runtime
 
 import kotlin.test.Test
-import kotlin.test.assertFailsWith
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
@@ -10,7 +10,6 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class KompactResultTest {
-
     // === KompactDecodeError (ticket 06) ===
 
     @Test
@@ -117,7 +116,10 @@ class KompactResultTest {
     @Test
     fun byteResult_equality() {
         assertEquals(ByteResult.success(42), ByteResult.success(42))
-        assertEquals(ByteResult.failure(KompactDecodeError.BoundsError), ByteResult.failure(KompactDecodeError.BoundsError))
+        assertEquals(
+            ByteResult.failure(KompactDecodeError.BoundsError),
+            ByteResult.failure(KompactDecodeError.BoundsError),
+        )
         assertNotEquals(ByteResult.success(42), ByteResult.failure(KompactDecodeError.BoundsError))
     }
 
@@ -270,9 +272,17 @@ class KompactResultTest {
 
     @Test
     fun longResult_roundTrip_arbitraryLongs() {
-        val values = listOf(0L, 1L, -1L, 42L, -42L,
-            Long.MAX_VALUE, 0x4000_0000_0000_0000L,
-            Long.MIN_VALUE + (1L shl 58))
+        val values =
+            listOf(
+                0L,
+                1L,
+                -1L,
+                42L,
+                -42L,
+                Long.MAX_VALUE,
+                0x4000_0000_0000_0000L,
+                Long.MIN_VALUE + (1L shl 58),
+            )
         for (v in values) {
             val r = LongResult.success(v)
             assertTrue(r.isSuccess, "value=$v packed=${v.toString(16)}")
@@ -338,9 +348,20 @@ class KompactResultTest {
 
     @Test
     fun doubleResult_roundTrip_arbitraryDoubles() {
-        val values = listOf(0.0, 1.0, -1.0, 3.14159, -2.71828,
-            Double.MAX_VALUE, Double.MIN_VALUE, Double.NEGATIVE_INFINITY,
-            Double.POSITIVE_INFINITY, Double.NaN, -0.0)
+        val values =
+            listOf(
+                0.0,
+                1.0,
+                -1.0,
+                3.14159,
+                -2.71828,
+                Double.MAX_VALUE,
+                Double.MIN_VALUE,
+                Double.NEGATIVE_INFINITY,
+                Double.POSITIVE_INFINITY,
+                Double.NaN,
+                -0.0,
+            )
         for (v in values) {
             val r = DoubleResult.success(v)
             assertTrue(r.isSuccess, "value=$v")

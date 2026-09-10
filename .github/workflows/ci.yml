@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   api-check:
-    name: apiCheck (macOS)
+    name: apiCheck + spotlessCheck (macOS)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
@@ -33,10 +33,10 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
-      - run: ./gradlew :kompact:apiCheck --no-daemon
+      - run: ./gradlew spotlessCheck :kompact:apiCheck --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
   jvm-test:
-    name: jvmTest + jvmApiCheck (Linux)
+    name: jvmTest + jvmApiCheck + spotlessCheck + koverVerify (Linux)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -45,4 +45,4 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
-      - run: ./gradlew :kompact:jvmTest :kompact:jvmApiCheck --no-daemon
+      - run: ./gradlew spotlessCheck :kompact:koverVerify :kompact:jvmTest :kompact:jvmApiCheck --no-daemon --rerun-tasks --no-build-cache --warning-mode all

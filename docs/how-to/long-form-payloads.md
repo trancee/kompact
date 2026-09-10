@@ -100,18 +100,31 @@ hot path. See [`handle-decode-errors.md`](handle-decode-errors.md).
 
 A repeated field emits `<countWidth>-bit LE count><elem₀>…<elem_{n-1}>`.
 `KompactWriter.writeRepeated(count, countWidth) { ... }` runs the
-block `count` times against the parent writer.
+block `count` times against the parent writer. Each invocation of the
+block writes one element's worth of bits.
 
 ```kotlin
 val w = KompactWriter()
-// 4 samples, each a 16-bit signed value, count width = 8
-w.writeRepeated(count = 4, countWidth = 8) {
-    writeBits(bitWidth = 16, value = 100)
-    writeBits(bitWidth = 16, value = -200)
-    writeBits(bitWidth = 16, value = 1500)
-    writeBits(bitWidth = 16, value = -50)
+// 3 samples, each a 16-bit signed value, count width = 8
+w.writeRepeated(count = 3, countWidth = 8) {
+    writeBits(bitWidth = 16, value = 100)   // every element is the same value
 }
-// = 1 byte count (0x04) + 8 bytes payload = 9 bytes
+// = 1 byte count (0x03) + 3 × 2 bytes = 7 bytes
+val bytes = w.build()
+```
+
+If each element needs a **different** value, use a manual `for` loop
+instead of `writeRepeated` — the block is a plain lambda with no
+index parameter:
+
+```kotlin
+val w = KompactWriter()
+w.writeBits(bitWidth = 8, value = 100)      // version
+val readings = intArrayOf(100, -200, 1500)
+w.writeScalar(ScalarType.of(8, signed = false), readings.size.toLong())  // count prefix
+for (v in readings) {
+    w.writeScalar(ScalarType.of(16, signed = true), v.toLong())
+}
 val bytes = w.build()
 ```
 
@@ -149,22 +162,21 @@ fun encodeLog(
     w.writeScalar(ScalarType.of(16, signed = false), ts.toLong())
     w.writeBits(bitWidth = 8, value = level)
     w.writeString(countWidth = 16, value = message)
-    w.writeRepeated(count = readings.size, countWidth = 8) {
-        writeScalar(ScalarType.of(32, signed = true), readings[0].toLong())
-        // writeRepeated re-runs the block count times against the *same* writer
-        // — the index is implicit in the block's repeat context.
+    // Manual count prefix + loop: writeRepeated cannot index its elements.
+    w.writeScalar(ScalarType.of(8, signed = false), readings.size.toLong())
+    for (v in readings) {
+        w.writeScalar(ScalarType.of(32, signed = true), v.toLong())
     }
     return w.build()
 }
 ```
 
-**One quirk of `writeRepeated`.** The block is re-run `count` times
-against the parent writer, but the block is a plain lambda — it
-cannot read its own index. If you need index-dependent writes, write
-the count and then a `writeRepeated` whose block is the same content
-for every element, or fall back to a manual `for` loop with
-`writeScalar` for each reading. Use the count-prefixed pattern when
-every element has the same shape.
+**Index-dependent writes.** The `writeRepeated` block is re-run `count`
+times against the parent writer, but the block is a plain lambda — it
+cannot read its own index. If each element needs a different value,
+write the count prefix manually and use a `for` loop with `writeScalar`
+(as shown above). Use `writeRepeated` only when every element has the
+same shape and content.
 
 ## Common pitfalls
 
