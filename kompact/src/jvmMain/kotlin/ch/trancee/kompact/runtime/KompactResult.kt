@@ -146,7 +146,7 @@ public actual value class LongResult(
     }
 }
 
-// DoubleResult — canonical-NaN success, reserved NaN payload for errors (Ticket 04)
+// DoubleResult — canonical-NaN success, reserved NaN payload for errors (Ticket 08)
 @JvmInline
 public actual value class DoubleResult(
     public actual val packed: Long,

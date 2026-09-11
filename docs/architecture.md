@@ -215,17 +215,15 @@ and a real upgrade/compat story can be designed. See
   `spotlessCheck` + `koverVerify` + `jvmTest` + `jvmApiCheck` on
   Linux)
   goldens in [`kompact/api/`](../kompact/api/).
-- **Not yet in repo**: the KSP code generator. The annotation surface
-  is in source and the test suite pins the compile-time contract, but
-  the processor that would generate the value-class view bodies from
-  `@KompactField` declarations does not ship here. Today, models
-  like `VehicleTelemetry` are written by hand. The example getters use
-  the public checked accessors (`readScalar`/`readBool` + `getOrThrow()`,
-  per ticket 07-vehicletelemetry-alignment); write-through `var` setters
-  and a `Companion.create(...)` factory are added over the backing
-  `ByteArray` for receive/modify/retransmit BLE cycles (ADR-0001). The
-  raw `readBits` codegen-output pattern is documented as prose in the
-  [Codegen output reference](#codegen-output-reference) below.
+- **KSP code generator** (`kompact-ksp/`): the `@KompactModel` /
+  `@KompactField` annotation processor that generates the value-class
+  view bodies (`expect`/`actual` value classes, `encodeXxx()` helpers,
+  write-through `var` setters) from compile-time-validated field layouts.
+  The bundled `VehicleTelemetry` example is **hand-written** (not generated
+  by the processor); its getters use the checked `readScalar` / `readBool`
+  accessors, not the raw `readBits` path — see the
+  [Codegen output reference](#codegen-output-reference) for the
+  raw-readBits shape the processor emits for generated views.
 - **Not yet released**: the Maven Central artifact. Publication is wired via
   standard `maven-publish` + `signing` + Dokka, with a custom Portal Publisher
   API task (`centralPortalDeploy`) for Central Portal upload (no third-party
@@ -234,19 +232,14 @@ and a real upgrade/compat story can be designed. See
   require user authorization. Build from source or `./gradlew
   :kompact:publishToMavenLocal` to consume the snapshot.
 
-The lock and the gating decisions behind every choice in this
-document live in the spec tickets under
-[`.scratch/kompact-spec/`](../.scratch/kompact-spec/) — start with
-[`map.md`](../.scratch/kompact-spec/map.md) for the index.
-
 ## Codegen output reference
 
-The future KSP processor (ticket 02) will emit `expect value class`
+The KSP processor (`kompact-ksp/`) emits `expect value class`
 declarations into `commonMain` plus `@JvmInline actual` (jvmMain) and
 plain `actual value class` (iosMain), all wrapping a single `ByteArray`.
 The getter bodies use the **raw** `KompactRuntime.readBits` /
 `readBitsBoolean` path — not the checked `readScalar`/`readBool`
-accessors — because codegen can prove bounds at compile time (ticket 06)
+accessors — because codegen can prove bounds at compile time and
 and avoids the `Long`-packed result value class on the success path:
 
 ```kotlin
@@ -272,6 +265,6 @@ public actual value class VehicleTelemetry(public actual val raw: ByteArray) {
 
 The hand-written example instead uses the checked accessors
 (`readScalar`/`readBool` + `getOrThrow()`) so newcomers see the public
-API they would use without a processor (ticket 07-vehicletelemetry-alignment).
-The codegen-output reference above is the shape the processor will emit;
-it exists for the processor implementer, not for consumers.
+API they would use without a processor. The codegen-output reference
+above is the shape the processor emits; it exists for the processor
+implementer, not for consumers.

@@ -22,7 +22,6 @@ private class KompactFieldV1Probe(
         repeatCountWidth = 8,
         enumWidth = 4,
         defaultValue = "0",
-        isVersionField = true,
     )
     val tag: Int,
     // Scalar default: only bitOffset/bitWidth declared.
@@ -35,8 +34,8 @@ class KompactFieldV1SurfaceTest {
     @Suppress("UNUSED_EXPRESSION")
     fun v1AnnotationMembersExist_compileTimeContract() {
         // If any of lengthPrefixWidth/isNested/repeatCountWidth/enumWidth/
-        // defaultValue/isVersionField is absent on @KompactField, the probe
-        // above fails to compile — this assert only confirms the class loads.
+        // defaultValue is absent on @KompactField, the probe above fails to
+        // compile — this assert only confirms the class loads.
         KompactFieldV1Probe::class
     }
 }

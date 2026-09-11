@@ -19,10 +19,10 @@ public annotation class KompactModel
  * Documents a property's bit position and width in the packed `ByteArray`.
  *
  * The Kompact KSP processor reads these to generate the backing read/write
- * logic (Tickets 04, 05, 06, 09). Offsets are LSB-first (Ticket 01) and must be
- * densely packed with no gaps or overlaps (Ticket 06: the processor enforces this).
+ * logic (Tickets 04, 05, 06, 09). Offsets are LSB-first (Ticket 01) and must not overlap (Ticket 06: the
+ * processor enforces this; dense packing is not required — gap bits are permitted for future expansion).
  *
- * The length-prefix / nesting / repeat / enum / version members are v1 schema
+ * The length-prefix / nesting / repeat / enum members are v1 schema
  * metadata consumed by codegen; they carry safe defaults so a plain
  * `@KompactField(bitOffset, bitWidth)` scalar declaration remains valid.
  *
@@ -37,7 +37,6 @@ public annotation class KompactModel
  * @param enumWidth    bit width of an enum/ordinal (0 = not an enum)
  * @param defaultValue string-encoded default used by the generated ctor/accessor
  *        when the backing region is absent or zero-filled (Ticket 04)
- * @param isVersionField true for the schema-evolution version-tag field (Ticket 09)
  */
 @KompactPreview
 @Target(AnnotationTarget.PROPERTY)
@@ -51,5 +50,4 @@ public annotation class KompactField(
     public val repeatCountWidth: Int = 8,
     public val enumWidth: Int = 0,
     public val defaultValue: String = "",
-    public val isVersionField: Boolean = false,
 )

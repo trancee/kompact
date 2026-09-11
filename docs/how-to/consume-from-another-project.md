@@ -11,10 +11,8 @@ and a JVM jar via standard `maven-publish`.
 ## 1. Install the snapshot locally
 
 The first release to Maven Central is not yet cut (the Portal
-namespace, PGP key, and user token still need authorization — see
-`.scratch/kompact-spec/issues/14-maven-central-publishing.md` for the
-release contract). Until then, publish the snapshot to your local
-Maven repository:
+namespace, PGP key, and user token still need authorization). Until
+then, publish the snapshot to your local Maven repository:
 
 ```bash
 # From the kompact repository root:
@@ -45,7 +43,7 @@ and the convenience `Kompact.Result` namespace lives in
 
 ```kotlin
 plugins {
-    kotlin("multiplatform") version "2.4.20"
+    kotlin("multiplatform") version "2.3.21"
 }
 
 kotlin {

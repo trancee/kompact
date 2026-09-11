@@ -53,4 +53,4 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
-      - run: ./gradlew spotlessCheck :kompact:koverVerify :kompact:jvmTest :kompact:jvmApiCheck --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+      - run: ./gradlew spotlessCheck :kompact:koverVerify :kompact:jvmTest :kompact:jvmApiCheck :kompact-ksp:test :kompact-ksp:koverVerify :kompact-ksp:apiCheck --no-daemon --rerun-tasks --no-build-cache --warning-mode all

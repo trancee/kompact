@@ -25,7 +25,7 @@ example, but read with the checked, typed API (`readScalar` /
 ## Prerequisites
 
 - A working Kotlin Multiplatform toolchain (the project is built with the
-  Kotlin 2.4.x Gradle plugin and JDK 21).
+  Kotlin 2.3.21 Gradle plugin and JDK 21).
 - The `:kompact` module on your classpath. Until the first Maven Central
   release, either build from source:
   ```bash

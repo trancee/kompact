@@ -383,8 +383,11 @@ definitions.
 ## Annotations
 
 Source-retained (`AnnotationRetention.SOURCE`); **not** present at runtime.
-They document the layout and (eventually) drive a `KompactProcessor`
-(KSP) code generator — no processor ships in this repository today. See
+They document the layout and drive a `KompactProcessor` (KSP) code
+generator — the processor ships in the `kompact-ksp/` module and
+generates value-class view bodies from compile-time-validated field
+layouts (see [`architecture.md`](architecture.md#codegen-output-reference)
+for the emitted shape). See
 [`KompactFieldV1SurfaceTest`](../kompact/src/commonTest/kotlin/ch/trancee/kompact/runtime/KompactFieldV1SurfaceTest.kt)
 for the compile-time contract pinned by the test suite.
 
@@ -393,7 +396,7 @@ All annotations carry `@KompactPreview` and require opt-in (`@OptIn(KompactPrevi
 | Annotation | Target | Members |
 | --- | --- | --- |
 | `@KompactModel` | `CLASS` | — |
-| `@KompactField` | `PROPERTY` | `bitOffset: Int`, `bitWidth: Int`, `signed: Boolean = false`, `lengthPrefixWidth: Int = 8`, `isNested: Boolean = false`, `repeatCountWidth: Int = 8`, `enumWidth: Int = 0`, `defaultValue: String = ""`, `isVersionField: Boolean = false` |
+| `@KompactField` | `PROPERTY` | `bitOffset: Int`, `bitWidth: Int`, `signed: Boolean = false`, `lengthPrefixWidth: Int = 8`, `isNested: Boolean = false`, `repeatCountWidth: Int = 8`, `enumWidth: Int = 0`, `defaultValue: String = ""` |
 
 `@KompactField` is the v1 schema metadata. `bitOffset` is zero-based
 and LSB-first; `bitWidth` is in `1..64` (use `32` for a 32-bit field).

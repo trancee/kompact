@@ -16,8 +16,8 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.validate
 
-private const val KOMPRESS_MODEL_FQN = "ch.trancee.kompact.annotations.KompactModel"
-private const val KOMPRESS_FIELD_FQN = "ch.trancee.kompact.annotations.KompactField"
+private const val KOMPAT_MODEL_FQN = "ch.trancee.kompact.annotations.KompactModel"
+private const val KOMPAT_FIELD_FQN = "ch.trancee.kompact.annotations.KompactField"
 
 /**
  * Core processing logic: finds `@KompactModel`-annotated value classes,
@@ -35,7 +35,7 @@ internal class KompactSymbolProcessor(
     private val logger: KSPLogger = environment.logger
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val symbols = resolver.getSymbolsWithAnnotation(KOMPRESS_MODEL_FQN, false)
+        val symbols = resolver.getSymbolsWithAnnotation(KOMPAT_MODEL_FQN, false)
         val declarations =
             symbols
                 .filterIsInstance<KSClassDeclaration>()
@@ -116,7 +116,7 @@ internal class KompactSymbolProcessor(
                     .resolve()
                     .declaration.qualifiedName
                     ?.asString() ==
-                    KOMPRESS_FIELD_FQN
+                    KOMPAT_FIELD_FQN
             } ?: return null
 
         val args =
@@ -137,7 +137,6 @@ internal class KompactSymbolProcessor(
             repeatCountWidth = (args["repeatCountWidth"] as? Int) ?: 8,
             enumWidth = (args["enumWidth"] as? Int) ?: 0,
             defaultValue = (args["defaultValue"] as? String) ?: "",
-            isVersionField = (args["isVersionField"] as? Boolean) ?: false,
         )
     }
 
@@ -153,7 +152,7 @@ internal class KompactSymbolProcessor(
     ) {
         val outputStream =
             codeGenerator.createNewFile(
-                dependencies = Dependencies(false),
+                dependencies = Dependencies(true),
                 packageName = packageName,
                 fileName = fileName,
             )

@@ -1,6 +1,6 @@
 [versions]
-kotlin = "2.4.20"
-ksp = "2.3.11"
+kotlin = "2.3.21"
+ksp = "2.3.12"
 kotlinpoet = "2.4.0"
 bcv = "0.18.2"
 dokka = "2.2.0"

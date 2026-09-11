@@ -12,7 +12,7 @@ Two workflow files live in [`.github/workflows/`](../.github/workflows/):
 
 | Workflow | File | Runner | Gates |
 | --- | --- | --- | --- |
-| **CI** | `ci.yml` | `api-check` on `macos-latest`; `jvmTest` on `ubuntu-latest` | `spotlessCheck` + `apiCheck` (JVM + merged iOS klib) on macOS; `spotlessCheck` + `koverVerify` + `jvmTest` + `jvmApiCheck` on Linux |
+| **CI** | `ci.yml` | `apiCheck + spotlessCheck (macOS)` on `macos-latest`; `jvmTest + jvmApiCheck + spotlessCheck + koverVerify (Linux)` on `ubuntu-latest` | `spotlessCheck` + `apiCheck` (JVM + merged iOS klib) on macOS; `spotlessCheck` + `koverVerify` + `jvmTest` + `jvmApiCheck` + `kompact-ksp:test` + `kompact-ksp:koverVerify` + `kompact-ksp:apiCheck` on Linux |
 | **Regen Goldens** | `regen-goldens.yml` | `macos-latest` | Regenerate the BCV goldens (manual `workflow_dispatch`) |
 
 Both CI jobs run with `--no-daemon --rerun-tasks --no-build-cache --warning-mode all`
@@ -22,7 +22,7 @@ deprecation/compiler warnings. The CI workflow triggers on pushes to
 `master`. The regen workflow is `workflow_dispatch` only — it does not
 auto-trigger on push.
 
-### `api-check` (macOS)
+### `apiCheck + spotlessCheck` (macOS)
 
 Runs `./gradlew spotlessCheck :kompact:apiCheck` on the latest macOS
 runner with JDK 21 (Temurin). `apiCheck` compares the committed BCV
@@ -45,11 +45,12 @@ host-independent; the iOS klib golden is **only meaningfully validated on
 a macOS runner** because iOS klibs can only be compiled there.
 `strictValidation = true` makes `klibApiCheck` fail rather than silently
 infer on a non-Apple host, so this macOS job is the only one that
-catches klib drift — it remains the final gate.
+catches klib drift — it remains the final gate. The dokka sync check
+in this job makes it the only one that catches kdoc drift too.
 
-### `jvmTest` (Linux)
+### `jvmTest + jvmApiCheck + spotlessCheck + koverVerify` (Linux)
 
-Runs `./gradlew spotlessCheck :kompact:koverVerify :kompact:jvmTest :kompact:jvmApiCheck`
+Runs `./gradlew spotlessCheck :kompact:koverVerify :kompact:jvmTest :kompact:jvmApiCheck :kompact-ksp:test :kompact-ksp:koverVerify :kompact-ksp:apiCheck`
 on Ubuntu with JDK 21 (Temurin).
 
 - `spotlessCheck` — enforces ktlint formatting (read-only check;
@@ -65,13 +66,23 @@ on Ubuntu with JDK 21 (Temurin).
 - `jvmApiCheck` compares the committed `kompact/api/kompact.api` JVM
   golden against the freshly-inferred JVM ABI. It is a JVM task with no
   native toolchain dependency, so it runs on any host.
+- `kompact-ksp:test` runs the KSP processor's JVM test suite
+  (unit tests for `ValueClassGenerator`, `LayoutValidator`,
+  `KompactSymbolProcessor`, and `ModelSpec`).
+- `kompact-ksp:koverVerify` enforces 100% line + branch coverage on
+  the `kompact-ksp` module (same bar as `:kompact:koverVerify`).
+- `kompact-ksp:apiCheck` validates the KSP module's public ABI
+  golden (`kompact-ksp/api/kompact-ksp.api`) against the inferred ABI.
 
-**Why this gate exists.** The macOS `api-check` job is the final gate, but
+**Why this gate exists.** The macOS `apiCheck` job is the final gate, but
 it carries a ~6 min queue. Folding `jvmTest`, `jvmApiCheck`,
 `koverVerify`, and `spotlessCheck` into the Linux job gives
 contributors fast feedback — a test failure, coverage regression, JVM-API
 drift, or format violation fails the PR on Linux before the macOS runner
-is even scheduled. The iOS klib half is deliberately **not** run here:
+is even scheduled. The kompact-ksp tasks (`kompact-ksp:test`,
+`kompact-ksp:koverVerify`, `kompact-ksp:apiCheck`) are folded in here too
+for the same fast-feedback reason — they cover the KSP processor's tests,
+coverage, and ABI. The iOS klib half is deliberately **not** run here:
 `strictValidation = true` makes `klibApiCheck` fail on non-Apple hosts
 (iOS klibs can't be compiled on Linux), so this job runs `jvmApiCheck`
 only and leaves the klib check to the macOS job.
@@ -119,12 +130,14 @@ are all ordinary Gradle tasks. The split follows the host:
   to a macOS host.
 
 ```bash
-# macOS — full gate set (all quality bars + full ABI check)
+# macOS — full gate set (all quality bars + full ABI check + KSP tests)
 ./gradlew spotlessCheck :kompact:apiCheck :kompact:koverVerify :kompact:jvmTest \
+  :kompact-ksp:test :kompact-ksp:koverVerify :kompact-ksp:apiCheck \
   --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
 # Linux / Windows — all gates that work without iOS klib compilation
 ./gradlew spotlessCheck :kompact:koverVerify :kompact:jvmTest :kompact:jvmApiCheck \
+  :kompact-ksp:test :kompact-ksp:koverVerify :kompact-ksp:apiCheck \
   --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
 # Regenerate the goldens in place (macOS only)
@@ -143,7 +156,7 @@ The rendered HTML reference lives (committed) at `kompact/docs/api/` and is
 linked from [`docs/api-reference.md`](api-reference.md). It is produced by
 `:kompact:dokkaGeneratePublicationHtml`, which writes into `kompact/docs/api/`.
 
-The **macOS `api-check` job** regenerates the reference and fails the build if
+The **macOS `apiCheck` job** regenerates the reference and fails the build if
 the committed tree drifts from the KDoc in `commonMain` (it runs
 `dokkaGeneratePublicationHtml`, then `git diff --exit-code -- kompact/docs/api/`).
 This runs only on macOS: Dokka analyses the iOS klibs, which can't be compiled
@@ -156,11 +169,11 @@ link is always live. `docs/api/` is tracked (no `.gitignore` rule applies to it)
 Both workflows pin to JDK 21 (Temurin) and use `--rerun-tasks
 --no-build-cache` to disable the Gradle build cache, plus
 `--warning-mode all` to surface all deprecation/compiler warnings.
-The `:kompact` module builds with the Kotlin 2.4.20 Gradle plugin and
+The `:kompact` module builds with the Kotlin 2.3.21 Gradle plugin and
 KMP targets `jvm` (JVM 21), `iosArm64`, and `iosSimulatorArm64`. KGP
 auto-creates the per-target publications via `maven-publish`;
 `ch.trancee.kompact:kompact` is staged for Maven Central Portal via a
 custom Portal Publisher API task (`centralPortalDeploy`, no
-third-party publishing plugin). See
-`.scratch/kompact-spec/issues/14-maven-central-publishing.md` for the
-release contract and remaining authorization-gated steps.
+third-party publishing plugin). No release has been cut yet — the
+Portal namespace, PGP key, and user token still require user
+authorization.

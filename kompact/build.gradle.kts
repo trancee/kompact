@@ -26,10 +26,12 @@ plugins {
 
 kotlin {
     // Ticket 13: pin JVM target to 21 LTS so BCV (ASM 9.8 / v0.18.2) can parse the
-    // emitted class files on hosts running JDK 25 (Kotlin 2.4.20 otherwise emits v69).
+    // emitted class files on hosts running JDK 25 (without an explicit target,
+    // Kotlin 2.3.21 emits v65 for JVM and v66 for Android — both below v69).
     jvm {
         // Ticket 13: pin JVM target to 21 LTS so BCV (ASM 9.8 / v0.18.2) can parse the
-        // emitted class files on hosts running JDK 25 (Kotlin 2.4.20 otherwise emits v69).
+        // emitted class files on hosts running JDK 25 (without an explicit target,
+        // Kotlin 2.3.21 emits v65 for JVM and v66 for Android — both below v69).
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         }
@@ -41,7 +43,9 @@ kotlin {
         val commonMain =
             getByName("commonMain") {
                 compilerOptions {
-                    // KT-61573: expect/actual value classes are stable in 2.4; silence the Beta warning.
+                    // KT-61573: expect/actual value classes require the experimental
+                    // -Xexpect-actual-classes opt-in on Kotlin 2.3.x; this flag was
+                    // stabilized in Kotlin 2.4 but remains available here for 2.3.21.
                     freeCompilerArgs.addAll("-Xexpect-actual-classes")
                 }
             }
@@ -72,11 +76,11 @@ kotlin {
 
 // --- SKIE (iOS/Swift interop improvements) ---
 // SKIE (co.touchlab.skie) provides KMP-to-Swift interop via a Gradle plugin
-// extension. SKIE 0.10.14 (latest) supports Kotlin up to 2.4.10; Kotlin 2.4.20
-// is not yet supported. SKIE is declared as `apply false` in the root
-// build.gradle.kts and is NOT yet applied to this module. When a compatible
-// version is released, add `alias(libs.plugins.skie)` to this module's plugins
-// block and enable the desired features:
+// extension. SKIE 0.10.14 (latest) supports Kotlin up to 2.4.10; the project
+// runs Kotlin 2.3.21, which is within SKIE's supported range. SKIE is declared
+// as `apply false` in the root build.gradle.kts and is NOT yet applied to
+// this module. When enabled, add `alias(libs.plugins.skie)` to this module's
+// plugins block and enable the desired features:
 //   - Sealed class → Swift enum conversion (e.g. KompactDecodeError)
 //   - Value class Swift-friendliness (e.g. BooleanResult, ByteResult, etc.)
 

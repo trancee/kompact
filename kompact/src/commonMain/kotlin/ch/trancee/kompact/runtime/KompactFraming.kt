@@ -25,8 +25,9 @@ public object KompactFraming {
 
     /**
      * Sentinel returned by [readLengthPrefix] when `bitWidth` is invalid or the
-     * prefix field overruns `raw` (Q9: name the length-prefix failure sentinel
-     * rather than scattering a bare `-1`). This is the only value [readLengthPrefix]
+     * prefix field overruns `raw` — the sentinel [INVALID_LENGTH_PREFIX]
+     * isolates failure from success without scattering bare sentinel values
+     * across call sites. This is the only value [readLengthPrefix]
      * returns on failure; it is never a valid (non-negative) byte count.
      */
     public const val INVALID_LENGTH_PREFIX: Int = -1
@@ -111,8 +112,7 @@ public object KompactFraming {
      * remaining bytes -> BadLengthPrefix`); skew is fail-fast, never silent.
      *
      * Delegates to [nestedRegionOrNull] (no guard duplication needed since this
-     * function is no longer `inline`, so it can call `internal` helpers; see
-     * Q9 note on sentinel-named failure paths).
+     * function is no longer `inline`, so it can call `internal` helpers).
      */
     public fun readNested(
         raw: ByteArray,

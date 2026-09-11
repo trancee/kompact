@@ -16,9 +16,4 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
  */
 public class KompactSymbolProcessorProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor = KompactSymbolProcessor(environment)
-
-    public companion object {
-        @JvmField
-        public val INSTANCE: SymbolProcessorProvider = KompactSymbolProcessorProvider()
-    }
 }

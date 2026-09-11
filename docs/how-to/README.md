@@ -14,7 +14,7 @@ working Kompact setup. Pick the guide that matches your goal.
 
 **Prerequisites.** All guides assume:
 
-- A working Kotlin Multiplatform toolchain (Kotlin 2.4.x, JDK 21).
+- A working Kotlin Multiplatform toolchain (Kotlin 2.3.21, JDK 21).
 - `ch.trancee.kompact:kompact:0.1.0-SNAPSHOT` on the classpath. See
   [`consume-from-another-project.md`](consume-from-another-project.md) if
   you are not yet building against it.
@@ -24,5 +24,5 @@ working Kompact setup. Pick the guide that matches your goal.
 
 **Not a tutorial.** If you are new to Kompact, start with the
 [getting started tutorial](../getting-started.md) first; it builds
-the same 2-byte telemetry frame in 3 steps with visible byte-level
+the same 2-byte telemetry frame in 4 steps with visible byte-level
 output at each step.

@@ -12,7 +12,6 @@ public abstract interface annotation class ch/trancee/kompact/annotations/Kompac
 	public abstract fun defaultValue ()Ljava/lang/String;
 	public abstract fun enumWidth ()I
 	public abstract fun isNested ()Z
-	public abstract fun isVersionField ()Z
 	public abstract fun lengthPrefixWidth ()I
 	public abstract fun repeatCountWidth ()I
 	public abstract fun signed ()Z

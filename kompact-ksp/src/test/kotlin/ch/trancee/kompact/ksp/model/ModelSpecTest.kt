@@ -19,24 +19,23 @@ class ModelSpecTest {
         repeatCountWidth = 8,
         enumWidth = 0,
         defaultValue = "",
-        isVersionField = false,
     )
 
     @Test
     fun `empty field list has zero totalBits`() {
-        val spec = ModelSpec.create("test", "Empty", emptyList())
+        val spec = ModelSpec("test", "Empty", emptyList())
         assertEquals(0, spec.totalBits)
     }
 
     @Test
     fun `empty field list has zero minBufferSize`() {
-        val spec = ModelSpec.create("test", "Empty", emptyList())
+        val spec = ModelSpec("test", "Empty", emptyList())
         assertEquals(0, spec.minBufferSize)
     }
 
     @Test
     fun `minBufferSize rounds up to whole bytes`() {
-        val spec = ModelSpec.create("test", "Model", listOf(field("a", 0, 9)))
+        val spec = ModelSpec("test", "Model", listOf(field("a", 0, 9)))
         // 9 bits → 2 bytes
         assertEquals(2, spec.minBufferSize)
     }
@@ -44,7 +43,7 @@ class ModelSpecTest {
     @Test
     fun `totalBits is end of last field`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 "test",
                 "Model",
                 listOf(field("a", 0, 8), field("b", 8, 8)),

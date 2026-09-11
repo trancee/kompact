@@ -7,7 +7,7 @@
 
 // Library unique name: <ch.trancee.kompact:kompact>
 open annotation class ch.trancee.kompact.annotations/KompactField : kotlin/Annotation { // ch.trancee.kompact.annotations/KompactField|null[0]
-    constructor <init>(kotlin/Int, kotlin/Int, kotlin/Boolean = ..., kotlin/Int = ..., kotlin/Boolean = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/String = ..., kotlin/Boolean = ...) // ch.trancee.kompact.annotations/KompactField.<init>|<init>(kotlin.Int;kotlin.Int;kotlin.Boolean;kotlin.Int;kotlin.Boolean;kotlin.Int;kotlin.Int;kotlin.String;kotlin.Boolean){}[0]
+    constructor <init>(kotlin/Int, kotlin/Int, kotlin/Boolean = ..., kotlin/Int = ..., kotlin/Boolean = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/String = ...) // ch.trancee.kompact.annotations/KompactField.<init>|<init>(kotlin.Int;kotlin.Int;kotlin.Boolean;kotlin.Int;kotlin.Boolean;kotlin.Int;kotlin.Int;kotlin.String){}[0]
 
     final val bitOffset // ch.trancee.kompact.annotations/KompactField.bitOffset|{}bitOffset[0]
         final fun <get-bitOffset>(): kotlin/Int // ch.trancee.kompact.annotations/KompactField.bitOffset.<get-bitOffset>|<get-bitOffset>(){}[0]
@@ -19,8 +19,6 @@ open annotation class ch.trancee.kompact.annotations/KompactField : kotlin/Annot
         final fun <get-enumWidth>(): kotlin/Int // ch.trancee.kompact.annotations/KompactField.enumWidth.<get-enumWidth>|<get-enumWidth>(){}[0]
     final val isNested // ch.trancee.kompact.annotations/KompactField.isNested|{}isNested[0]
         final fun <get-isNested>(): kotlin/Boolean // ch.trancee.kompact.annotations/KompactField.isNested.<get-isNested>|<get-isNested>(){}[0]
-    final val isVersionField // ch.trancee.kompact.annotations/KompactField.isVersionField|{}isVersionField[0]
-        final fun <get-isVersionField>(): kotlin/Boolean // ch.trancee.kompact.annotations/KompactField.isVersionField.<get-isVersionField>|<get-isVersionField>(){}[0]
     final val lengthPrefixWidth // ch.trancee.kompact.annotations/KompactField.lengthPrefixWidth|{}lengthPrefixWidth[0]
         final fun <get-lengthPrefixWidth>(): kotlin/Int // ch.trancee.kompact.annotations/KompactField.lengthPrefixWidth.<get-lengthPrefixWidth>|<get-lengthPrefixWidth>(){}[0]
     final val repeatCountWidth // ch.trancee.kompact.annotations/KompactField.repeatCountWidth|{}repeatCountWidth[0]

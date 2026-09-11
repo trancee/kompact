@@ -24,11 +24,10 @@ class ValueClassGeneratorTest {
         repeatCountWidth = 8,
         enumWidth = 0,
         defaultValue = "",
-        isVersionField = false,
     )
 
     private fun vehicleTelemetrySpec(): ModelSpec =
-        ModelSpec.create(
+        ModelSpec(
             packageName = "ch.trancee.kompact.generated",
             className = "VehicleTelemetry",
             fields =
@@ -187,7 +186,7 @@ class ValueClassGeneratorTest {
     @Test
     fun `Long field uses readBitsLong`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "LongModel",
                 fields =
@@ -206,7 +205,7 @@ class ValueClassGeneratorTest {
     @Test
     fun `Float field uses Float fromBits`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "FloatModel",
                 fields =
@@ -229,7 +228,7 @@ class ValueClassGeneratorTest {
     @Test
     fun `Double field uses Double fromBits`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "DoubleModel",
                 fields =
@@ -254,7 +253,7 @@ class ValueClassGeneratorTest {
     @Test
     fun `invalid layout throws before generation`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "Bad",
                 fields =
@@ -274,7 +273,7 @@ class ValueClassGeneratorTest {
     @Test
     fun `signed Int uses signed = true in ScalarType for encode`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "SignedModel",
                 fields =
@@ -293,7 +292,7 @@ class ValueClassGeneratorTest {
     @Test
     fun `F-001 init guard uses correct min buffer size`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "WideModel",
                 fields =
@@ -311,9 +310,9 @@ class ValueClassGeneratorTest {
     }
 
     @Test
-    fun `String field generates TODO for reads`() {
+    fun `String field fails generation (framing deferred)`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "StringModel",
                 fields =
@@ -321,18 +320,22 @@ class ValueClassGeneratorTest {
                         field("name", 0, 8, kotlinType = "String"),
                     ),
             )
-        val output = ValueClassGenerator.generateJvmActual(spec)
 
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                ValueClassGenerator.generateJvmActual(spec)
+            }
         assertTrue(
-            output.contains("TODO"),
-            "Expected TODO for String reads, got:\n$output",
+            error.message?.contains("String") == true &&
+                error.message?.contains("Ticket 05") == true,
+            "Expected error mentioning String and Ticket 05, got: ${error.message}",
         )
     }
 
     @Test
-    fun `ByteArray field generates TODO for writes`() {
+    fun `ByteArray field fails generation (framing deferred)`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "BytesModel",
                 fields =
@@ -340,18 +343,22 @@ class ValueClassGeneratorTest {
                         field("data", 0, 8, kotlinType = "ByteArray"),
                     ),
             )
-        val output = ValueClassGenerator.generateJvmActual(spec)
 
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                ValueClassGenerator.generateJvmActual(spec)
+            }
         assertTrue(
-            output.contains("TODO"),
-            "Expected TODO for ByteArray writes, got:\n$output",
+            error.message?.contains("ByteArray") == true &&
+                error.message?.contains("Ticket 05") == true,
+            "Expected error mentioning ByteArray and Ticket 05, got: ${error.message}",
         )
     }
 
     @Test
-    fun `unknown type falls through to default case`() {
+    fun `unknown type fails generation with descriptive error`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "UnknownModel",
                 fields =
@@ -359,18 +366,21 @@ class ValueClassGeneratorTest {
                         field("value", 0, 32, kotlinType = "MyCustomType"),
                     ),
             )
-        val output = ValueClassGenerator.generateJvmActual(spec)
 
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                ValueClassGenerator.generateJvmActual(spec)
+            }
         assertTrue(
-            output.contains("MyCustomType"),
-            "Expected unknown type to pass through, got:\n$output",
+            error.message?.contains("MyCustomType") == true,
+            "Expected error mentioning MyCustomType, got: ${error.message}",
         )
     }
 
     @Test
     fun `model with no fields generates valid expect`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "EmptyModel",
                 fields = emptyList(),
@@ -391,7 +401,7 @@ class ValueClassGeneratorTest {
     @Test
     fun `model with no fields generates valid jvm actual`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "EmptyModel",
                 fields = emptyList(),
@@ -407,9 +417,9 @@ class ValueClassGeneratorTest {
     // --- encodeWriteCall coverage via generateExpect ---
 
     @Test
-    fun `expect with String field generates encode TODO`() {
+    fun `expect with String field fails encode generation (framing deferred)`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "StringModel",
                 fields =
@@ -417,18 +427,22 @@ class ValueClassGeneratorTest {
                         field("name", 0, 8, kotlinType = "String"),
                     ),
             )
-        val output = ValueClassGenerator.generateExpect(spec)
 
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                ValueClassGenerator.generateExpect(spec)
+            }
         assertTrue(
-            output.contains("TODO"),
-            "Expected TODO in encodeWriteCall for String, got:\n$output",
+            error.message?.contains("String") == true &&
+                error.message?.contains("Ticket 05") == true,
+            "Expected error mentioning String and Ticket 05, got: ${error.message}",
         )
     }
 
     @Test
-    fun `expect with ByteArray field generates encode TODO`() {
+    fun `expect with ByteArray field fails encode generation (framing deferred)`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "BytesModel",
                 fields =
@@ -436,18 +450,22 @@ class ValueClassGeneratorTest {
                         field("data", 0, 8, kotlinType = "ByteArray"),
                     ),
             )
-        val output = ValueClassGenerator.generateExpect(spec)
 
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                ValueClassGenerator.generateExpect(spec)
+            }
         assertTrue(
-            output.contains("TODO"),
-            "Expected TODO in encodeWriteCall for ByteArray, got:\n$output",
+            error.message?.contains("ByteArray") == true &&
+                error.message?.contains("Ticket 05") == true,
+            "Expected error mentioning ByteArray and Ticket 05, got: ${error.message}",
         )
     }
 
     @Test
-    fun `expect with unknown type generates encode TODO`() {
+    fun `expect with unknown type fails generation with descriptive error`() {
         val spec =
-            ModelSpec.create(
+            ModelSpec(
                 packageName = "test",
                 className = "UnknownModel",
                 fields =
@@ -455,11 +473,14 @@ class ValueClassGeneratorTest {
                         field("value", 0, 32, kotlinType = "MyCustomType"),
                     ),
             )
-        val output = ValueClassGenerator.generateExpect(spec)
 
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                ValueClassGenerator.generateExpect(spec)
+            }
         assertTrue(
-            output.contains("MyCustomType"),
-            "Expected unknown type in encodeWriteCall, got:\n$output",
+            error.message?.contains("MyCustomType") == true,
+            "Expected error mentioning MyCustomType, got: ${error.message}",
         )
     }
 }

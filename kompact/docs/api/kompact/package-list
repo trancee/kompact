@@ -7,7 +7,6 @@ $dokka.location:ch.trancee.kompact.annotations/KompactField/bitWidth/#/PointingT
 $dokka.location:ch.trancee.kompact.annotations/KompactField/defaultValue/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/default-value.html
 $dokka.location:ch.trancee.kompact.annotations/KompactField/enumWidth/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/enum-width.html
 $dokka.location:ch.trancee.kompact.annotations/KompactField/isNested/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/is-nested.html
-$dokka.location:ch.trancee.kompact.annotations/KompactField/isVersionField/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/is-version-field.html
 $dokka.location:ch.trancee.kompact.annotations/KompactField/lengthPrefixWidth/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/length-prefix-width.html
 $dokka.location:ch.trancee.kompact.annotations/KompactField/repeatCountWidth/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/repeat-count-width.html
 $dokka.location:ch.trancee.kompact.annotations/KompactField/signed/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/signed.html

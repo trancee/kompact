@@ -25,8 +25,10 @@ val flag:     Boolean  = KompactRuntime.readBool    (bytes, 14          ).getOrT
 
 Kompact's `ByteArray` **is** the data structure. The value
 class `@KompactModel value class VehicleTelemetry(val raw: ByteArray)` stores
-the wire bytes directly. Field getters call `KompactRuntime.readBits` /
-`readScalar` / `readBool` on that same buffer. There is no step that
+the wire bytes directly. Field getters call the checked
+`readScalar` / `readBool` accessors on that same buffer
+(the unchecked `readBits` primitives are available for trusted
+in-memory frames — see [`architecture.md`](docs/architecture.md#codegen-output-reference)). There is no step that
 turns bytes into a separate object, because that step allocates.
 
 This matters because BLE characteristics are tiny (a few bytes) and
@@ -113,12 +115,12 @@ bleCharacteristic.value = tel.raw
   helpers, and seven zero-alloc typed result value classes (`ByteResult`,
   `ShortResult`, `IntResult`, `LongResult`, `FloatResult`, `DoubleResult`,
   `BooleanResult`).
+- **`:kompact-ksp`** — the KSP annotation processor (`@KompactModel` /
+  `@KompactField`) that generates value-class view bodies from
+  compile-time-validated field layouts. Apply it with `ksp` in a consumer
+  build to generate `@KompactModel` view classes.
 - **Targets**: `jvm` (JVM 21), `iosArm64`, `iosSimulatorArm64`. Android consumes
   the `jvm` artifact.
-- **No codegen yet.** `@KompactModel` / `@KompactField` annotations are defined
-  (and validated for source compatibility by `KompactFieldV1SurfaceTest`) but
-  no KSP processor ships in this repository. Today you write the bit-shifting
-  by hand, the way the bundled `VehicleTelemetry` example does.
 
 ## Where to go next
 
@@ -136,7 +138,6 @@ bleCharacteristic.value = tel.raw
 | Consume Kompact from a separate Kotlin / KMP project | **[`docs/how-to/consume-from-another-project.md`](docs/how-to/consume-from-another-project.md)** |
 | All how-to guides (task-oriented recipes) | **[`docs/how-to/README.md`](docs/how-to/README.md)** |
 | Read the original product brief | [`PROMPT.md`](PROMPT.md) |
-| Read the locked implementation spec (tickets 01–13) | [`.scratch/kompact-spec/map.md`](.scratch/kompact-spec/map.md) |
 
 ## Status
 
@@ -148,8 +149,6 @@ coordinates `ch.trancee.kompact:kompact`, license Apache-2.0, but **no
 release has been cut to Maven Central yet** — the Portal namespace, PGP key,
 and user token still require user authorization. Build from source or
 `./gradlew :kompact:publishToMavenLocal` and consume the local snapshot.
-See the [release contract](.scratch/kompact-spec/issues/14-maven-central-publishing.md)
-for what's left to do.
 
 ## License
 

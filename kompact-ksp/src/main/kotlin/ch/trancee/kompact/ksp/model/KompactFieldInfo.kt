@@ -18,7 +18,6 @@ internal data class KompactFieldInfo(
     val repeatCountWidth: Int,
     val enumWidth: Int,
     val defaultValue: String,
-    val isVersionField: Boolean,
 ) {
     /** The bit range [bitOffset, bitOffset + bitWidth) — exclusive upper bound. */
     val endBit: Int get() = bitOffset + bitWidth
