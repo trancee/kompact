@@ -1,11 +1,13 @@
 plugins {
     alias(libs.plugins.kmp) apply false
+    alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.bcv) apply false
     alias(libs.plugins.dokka) apply false
     alias(libs.plugins.kover) apply false
     alias(libs.plugins.spotless)
     alias(libs.plugins.skie) apply false
     alias(libs.plugins.kotlinPowerAssert) apply false
+    alias(libs.plugins.ksp) apply false
 }
 
 allprojects {
@@ -17,12 +19,14 @@ allprojects {
 spotless {
     kotlin {
         target("kompact/src/**/*.kt")
+        target("kompact-ksp/src/**/*.kt")
         ktlint()
     }
     kotlinGradle {
         target("build.gradle.kts")
         target("settings.gradle.kts")
         target("kompact/build.gradle.kts")
+        target("kompact-ksp/build.gradle.kts")
         ktlint()
     }
 }

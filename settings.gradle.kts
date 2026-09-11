@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "kompact"
 
 include(":kompact")
+include(":kompact-ksp")
