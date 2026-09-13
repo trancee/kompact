@@ -110,8 +110,8 @@ import ch.trancee.kompact.runtime.ScalarType
 @KompactModel
 public actual value class SensorFrame(public actual val raw: ByteArray) {
 
-    actual companion object {
-        actual fun create(
+    public actual companion object {
+        public actual fun create(
             status: Int, battery: Int, temperature: Int, timestamp: Int,
         ): SensorFrame = SensorFrame(
             encodeSensorFrame(status, battery, temperature, timestamp)
@@ -163,8 +163,7 @@ val frame = SensorFrame.create(
     temperature = 525,    // raw 12-bit signed value (e.g. 525 = 565 °C with -40 °C offset)
     timestamp = 1024,
 )
-println(frame.raw.toHexString())   // → e.g. "d20d0240" (4 bytes, platform-endian
-                                  //    order of bits, LSB-first field packing)
+println(frame.raw.toHexString())   // → e.g. "d20d0240" (4 bytes, LSB-first field packing)
 
 // Decode (e.g. from BLE)
 val received = SensorFrame(bleCharacteristic.value)
@@ -221,6 +220,107 @@ class SensorFrameTest {
 - **Forgetting `@OptIn(KompactPreview::class)`.** The annotations and
   the value class are preview-API; without the opt-in the file does
   not compile.
+
+## Using the KSP processor (optional)
+
+The hand-written pattern above — `@KompactField` annotations + manual
+`readScalar`/`writeBits` bodies in each getter/setter — is the v1
+reference implementation. In production, the `@KompactModel` / `@KompactField`
+annotations are consumed by the **KSP processor** (`kompact-ksp`),
+which generates the `expect`/`actual` value-class stubs, the `create()`
+factories, and the getter/setter bodies automatically from your
+annotation metadata alone. See [ADR-0003](adr/0003-kmp-consumer-enablement.md)
+for the publication pipeline.
+
+### Applying the processor
+
+In your consumer module's `build.gradle.kts`:
+
+```kotlin
+plugins {
+    kotlin("multiplatform") version "2.4.20"
+    id("com.google.devtools.ksp") version "2.3.12"
+}
+
+kotlin {
+    jvm()
+    iosArm64()
+
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("ch.trancee.kompact:kompact:0.2.0-SNAPSHOT")
+            }
+        }
+    }
+}
+
+dependencies {
+    // Use kspCommonMainMetadata so generated sources land in the
+    // common source set shared by all KMP targets (not per-target).
+    // The processor generates expect/actual stubs from your annotations.
+    kspCommonMainMetadata("ch.trancee.kompact:kompact-ksp:0.2.0-SNAPSHOT")
+}
+```
+
+### What the processor generates
+
+Given a model annotated with `@KompactModel` + `@KompactField` (same
+annotations as the hand-written example), the processor emits three
+files:
+
+| Output | Source set | Contents |
+| --- | --- | --- |
+| `<Name>.kt` | `commonMain` | `expect value class` + `@KompactPreview` + `internal encodeXxx()` helper |
+| `<Name>JvmActual.kt` | `jvmMain` | `@JvmInline actual value class` with init guard, `@Actual` companion `create()` |
+| `<Name>IosActual.kt` | `iosMain` | plain `actual value class` (no `@JvmInline`) |
+
+The generated getters use the **raw** `KompactRuntime.readBits` /
+`readBitsBoolean` path (not the checked `readScalar`/`readBool`),
+because the processor proves bounds at compile time — see the
+[codegen output reference](../architecture.md#codegen-output-reference)
+for the full shape. Setters are write-through (`writeBits` /
+`writeBitsBoolean`) just like the hand-written example.
+
+**Supported types.** The processor handles `Boolean`, `Int`, `Long`,
+`Float`, `Double`. Variable-length types (`String`, `ByteArray`, nested
+composites, repeated fields) are declared via `@KompactField` metadata
+(`lengthPrefixWidth`, `isNested`, `repeatCountWidth`) but are not yet
+fully generated — use the hand-written [`KompactWriter`](long-form-payloads.md)
+path for those until the v2 codegen lands.
+
+### Writing your annotation-based model
+
+After applying KSP, you write **only the annotations** — the processor
+generates the boilerplate:
+
+```kotlin
+@file:OptIn(KompactPreview::class)
+package your.package
+
+@KompactModel
+public expect value class SensorFrame(public val raw: ByteArray) {
+    public companion object {
+        public fun create(
+            status: Int,
+            battery: Int,
+            temperature: Int,
+            timestamp: Int,
+        ): SensorFrame
+    }
+
+    @KompactField(bitOffset = 0,  bitWidth = 4)  public var status: Int
+    @KompactField(bitOffset = 4,  bitWidth = 4)  public var battery: Int
+    @KompactField(bitOffset = 8,  bitWidth = 12, signed = true) public var temperature: Int
+    @KompactField(bitOffset = 20, bitWidth = 12) public var timestamp: Int
+}
+```
+
+The `expect` declaration is all you write — the `create()` bodies,
+the `@JvmInline actual` (JVM), the plain `actual` (iOS), and every
+getter/setter body are generated. The processor validates the layout
+at compile time (overlapping fields, invalid widths, bad prefix
+widths) and fails the build on violations.
 
 ## What's next
 

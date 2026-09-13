@@ -124,8 +124,8 @@ dependencies {
 
 ## 6. Verify the install
 
-A one-line smoke test that should print `0xA5 0x40` and three
-decoded values:
+A one-line smoke test that should print `a540` and three decoded
+values:
 
 ```kotlin
 import ch.trancee.kompact.generated.VehicleTelemetry

@@ -241,7 +241,7 @@ plain `actual value class` (iosMain), all wrapping a single `ByteArray`.
 The getter bodies use the **raw** `KompactRuntime.readBits` /
 `readBitsBoolean` path — not the checked `readScalar`/`readBool`
 accessors — because codegen can prove bounds at compile time and
-and avoids the `Long`-packed result value class on the success path:
+avoids the `Long`-packed result value class on the success path:
 
 ```kotlin
 // What the KSP processor emits (not the hand-written example):
@@ -251,16 +251,19 @@ public actual value class VehicleTelemetry(public actual val raw: ByteArray) {
     init { require(raw.size >= 2) }
 
     @KompactField(bitOffset = 0, bitWidth = 4)
-    public val batteryStatus: Int
+    public actual var batteryStatus: Int
         get() = KompactRuntime.readBits(raw, 0, 4)       // raw, zero-alloc, no check
+        set(value) { KompactRuntime.writeBits(raw, 0, 4, value) }   // write-through (ADR-0001)
 
     @KompactField(bitOffset = 4, bitWidth = 10)
-    public val speed: Int
+    public actual var speed: Int
         get() = KompactRuntime.readBits(raw, 4, 10)
+        set(value) { KompactRuntime.writeBits(raw, 4, 10, value) }
 
     @KompactField(bitOffset = 14, bitWidth = 1)
-    public val isMalfunctioning: Boolean
+    public actual var isMalfunctioning: Boolean
         get() = KompactRuntime.readBitsBoolean(raw, 14)
+        set(value) { KompactRuntime.writeBitsBoolean(raw, 14, value) }
 }
 ```
 

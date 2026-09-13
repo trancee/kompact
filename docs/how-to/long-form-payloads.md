@@ -70,7 +70,7 @@ w.writeBits(bitWidth = 16, value = 42)             // type
 // Nested body: another timestamped record, 16-bit length prefix
 w.writeNested(lengthPrefixWidth = 16) {
     writeBits(bitWidth = 8, value = 1)              // inner version
-    writeBits(bitWidth = 32, value = 1700000000)    // inner timestamp
+    writeBitsLong(bitWidth = 32, value = 1700000000L)    // inner timestamp
 }
 // = 4-byte header + 2-byte length prefix + 5-byte inner body = 11 bytes
 val bytes = w.build()
@@ -84,10 +84,12 @@ import ch.trancee.kompact.runtime.KompactFraming
 // `cursorBit` sits at the start of the nested length prefix.
 val region = KompactFraming.readNested(bytes, cursorBit, prefixBitWidth = 16)
 if (region.isSuccess) {
-    val inner = NestedRecord(bytes)               // hand-written or generated
-    val innerStart = region.startBit              // bit offset of the inner payload
-    val innerBits  = region.bitLength             // payload length in bits
-    // read inner's fields starting at innerStart, up to innerBits bits
+    val innerStart = region.startBit            // bit offset of the inner payload
+    val innerBits  = region.bitLength           // payload length in bits
+    // Read the inner record's fields starting at innerStart,
+    // consuming up to innerBits bits. A generated @KompactModel
+    // value class or a hand-written one that wraps the same buffer works:
+    val inner = InnerRecord(bytes)              // any value class over `bytes`
 }
 ```
 
@@ -184,11 +186,17 @@ same shape and content.
 - **Mismatched prefix widths.** Writer and reader must agree on
   `countWidth` / `lengthPrefixWidth`. If the writer uses 8 and the
   reader uses 16, the first read returns a garbage length.
-- **Block scope in `writeNested` / `writeRepeated`.** The block is
-  `KompactWriter.() -> Unit` — you write to `this` (the receiver)
-  and you do not see a parent context. Don't try to read or update
-  outer variables in a way that depends on which iteration you're in
-  (use a manual loop instead).
+- **Block scope in `writeNested` vs `writeRepeated`.** These two
+  differ in which writer the block writes to:
+  - `writeRepeated` calls `block()` against the **parent** writer — you
+    write to `this` and `this` IS the parent.
+  - `writeNested` calls `block(child)` against a **throwaway child**
+    writer — you write to `this` but `this` is the child, not the
+    parent. The child's bytes are emitted as a length-prefixed blob.
+  In both cases the block can still capture outer variables for
+  indexing (e.g. reading `readings[i]` in a `for` loop), but
+  `writeRepeated`'s block has no index parameter — use a manual loop
+  for index-dependent writes.
 - **Truncated nested payloads.** If the inner block would write
   beyond the declared length, Kompact's writer trusts your `block`.
   Validate input sizes before passing them in, or use

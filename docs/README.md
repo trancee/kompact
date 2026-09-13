@@ -42,12 +42,15 @@ coding agents should operate here:
   clean cutover, commit conventions, review checklist).
 - [`../CONSTITUTION.md`](../CONSTITUTION.md) — the R/X/D/O normative
   policy. Priority: `CONSTITUTION > AGENTS > scoped docs/ADRs`.
-- [`agents/domain.md`](agents/domain.md) — domain documentation
+- [`domain.md`](domain.md) — domain documentation
   conventions.
-- [`agents/issue-tracker.md`](agents/issue-tracker.md) — how spec
+- [`issue-tracker.md`](issue-tracker.md) — how spec
   tickets and issues are recorded.
-- [`agents/triage-labels.md`](agents/triage-labels.md) — the canonical
+- [`triage-labels.md`](triage-labels.md) — the canonical
   triage label set.
+- [`agent-quick-start.md`](agent-quick-start.md) — a
+  2-minute reference for working with the Kompact library: setup,
+  core API, gotchas, and CI gates.
 
 These files are written in compact directive syntax and are *not*
 the entry point for human consumers of the library — use the

@@ -342,18 +342,18 @@ accessors on the failure path.
 ## Extension functions
 
 Each result class provides the same pair of recovery helpers. The full
-signatures (all 14) are listed below so the concrete return types are
+signatures (all 16) are listed below so the concrete return types are
 visible without a placeholder.
 
 | Extension | On | Signature | Description |
 | --- | --- | --- | --- |
-| `getOrElse` | `ByteResult` | `getOrElse(default: Byte): Byte` | Value on success, `default` on failure. |
-| `getOrElse` | `ShortResult` | `getOrElse(default: Short): Short` | Value on success, `default` on failure. |
-| `getOrElse` | `IntResult` | `getOrElse(default: Int): Int` | Value on success, `default` on failure. |
-| `getOrElse` | `LongResult` | `getOrElse(default: Long): Long` | Value on success, `default` on failure. |
-| `getOrElse` | `FloatResult` | `getOrElse(default: Float): Float` | Value on success, `default` on failure. |
-| `getOrElse` | `DoubleResult` | `getOrElse(default: Double): Double` | Value on success, `default` on failure. |
-| `getOrElse` | `BooleanResult` | `getOrElse(default: Boolean): Boolean` | Value on success, `default` on failure. |
+| `getOrElse` | `ByteResult` | `getOrElse(fallback: (KompactDecodeError) -> Byte): Byte` | Value on success, `fallback(error)` on failure. |
+| `getOrElse` | `ShortResult` | `getOrElse(fallback: (KompactDecodeError) -> Short): Short` | Value on success, `fallback(error)` on failure. |
+| `getOrElse` | `IntResult` | `getOrElse(fallback: (KompactDecodeError) -> Int): Int` | Value on success, `fallback(error)` on failure. |
+| `getOrElse` | `LongResult` | `getOrElse(fallback: (KompactDecodeError) -> Long): Long` | Value on success, `fallback(error)` on failure. |
+| `getOrElse` | `FloatResult` | `getOrElse(fallback: (KompactDecodeError) -> Float): Float` | Value on success, `fallback(error)` on failure. |
+| `getOrElse` | `DoubleResult` | `getOrElse(fallback: (KompactDecodeError) -> Double): Double` | Value on success, `fallback(error)` on failure. |
+| `getOrElse` | `BooleanResult` | `getOrElse(fallback: (KompactDecodeError) -> Boolean): Boolean` | Value on success, `fallback(error)` on failure. |
 | `map` | `ByteResult` | `map(transform: (Byte) -> Byte): ByteResult` | Applies `transform` on success; propagates failure. |
 | `map` | `ShortResult` | `map(transform: (Short) -> Short): ShortResult` | Applies `transform` on success; propagates failure. |
 | `map` | `IntResult` | `map(transform: (Int) -> Int): IntResult` | Applies `transform` on success; propagates failure. |
@@ -361,19 +361,31 @@ visible without a placeholder.
 | `map` | `FloatResult` | `map(transform: (Float) -> Float): FloatResult` | Applies `transform` on success; propagates failure. |
 | `map` | `DoubleResult` | `map(transform: (Double) -> Double): DoubleResult` | Applies `transform` on success; propagates failure. |
 | `map` | `BooleanResult` | `map(transform: (Boolean) -> Boolean): BooleanResult` | Applies `transform` on success; propagates failure. |
+| `getOrElse` | `NestedRegionResult` | `getOrElse(fallback: (KompactDecodeError) -> NestedRegion): NestedRegion` | Region on success, `fallback(error)` on failure. |
+| `map` | `NestedRegionResult` | `map(transform: (NestedRegion) -> NestedRegion): NestedRegionResult` | Applies `transform` on success; propagates failure. |
 
 ---
 
 ## `Kompact.Result` namespace
 
-`ch.trancee.kompact.Kompact.Result` re-exports the seven result value
+`ch.trancee.kompact.Kompact.Result` type-aliases the seven result value
 classes under a single import path for convenience:
 
 ```kotlin
-import ch.trancee.kompact.Kompact.Result.IntResult
-import ch.trancee.kompact.Kompact.Result.LongResult
+import ch.trancee.kompact.Kompact.Result.Int
+import ch.trancee.kompact.Kompact.Result.Long
 // …
 ```
+
+| Alias | Resolves to |
+| --- | --- |
+| `Kompact.Result.Byte` | `ByteResult` |
+| `Kompact.Result.Short` | `ShortResult` |
+| `Kompact.Result.Int` | `IntResult` |
+| `Kompact.Result.Long` | `LongResult` |
+| `Kompact.Result.Float` | `FloatResult` |
+| `Kompact.Result.Double` | `DoubleResult` |
+| `Kompact.Result.Boolean` | `BooleanResult` |
 
 ---
 
