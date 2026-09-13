@@ -269,3 +269,8 @@ The hand-written example instead uses the checked accessors
 API they would use without a processor. The codegen-output reference
 above is the shape the processor emits; it exists for the processor
 implementer, not for consumers.
+
+Note that the hand-written setters are intentionally unchecked (raw
+`writeBits`); only the getters go through the typed result path. See
+the VehicleTelemetry section in [api-reference.md](api-reference.md#vehicletelemetry-example-model)
+and [ADR-0001](adr/0001-mutable-view-classes-with-write-through-setters.md).
