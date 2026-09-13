@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package ch.trancee.kompact.ksp.testing
 
 import com.google.devtools.ksp.processing.KSBuiltIns
@@ -97,7 +99,7 @@ class FakeKSPropertyDeclaration(
 
     override fun findOverridee(): KSPropertyDeclaration? = null
 
-    override fun asMemberOf(owningType: KSType): KSType = FakeKSType(typeStr)
+    override fun asMemberOf(containing: KSType): KSType = FakeKSType(typeStr)
 }
 
 // ------------------------------------------------------------------
@@ -147,7 +149,7 @@ class FakeKSFunctionDeclaration(
 
     override fun findOverridee(): KSDeclaration? = null
 
-    override fun asMemberOf(owningType: KSType): KSFunction =
+    override fun asMemberOf(containing: KSType): KSFunction =
         throw UnsupportedOperationException("Not needed for tests")
 }
 

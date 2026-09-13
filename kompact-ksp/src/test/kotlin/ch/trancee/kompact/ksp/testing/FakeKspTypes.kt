@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package ch.trancee.kompact.ksp.testing
 
 import com.google.devtools.ksp.symbol.AnnotationUseSiteTarget

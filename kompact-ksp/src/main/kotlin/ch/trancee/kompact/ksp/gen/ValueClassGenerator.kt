@@ -112,8 +112,8 @@ internal object ValueClassGenerator {
     private fun buildExpect(spec: ModelSpec): TypeSpec {
         val builder =
             TypeSpec
-                .valueClassBuilder(spec.className)
-                .addModifiers(KModifier.PUBLIC, KModifier.EXPECT)
+                .classBuilder(spec.className)
+                .addModifiers(KModifier.PUBLIC, KModifier.EXPECT, KModifier.VALUE)
                 .addAnnotation(AnnotationSpec.builder(KOMPAT_PREVIEW).build())
                 .primaryConstructor(
                     FunSpec
@@ -163,8 +163,8 @@ internal object ValueClassGenerator {
     ): TypeSpec {
         val builder =
             TypeSpec
-                .valueClassBuilder(spec.className)
-                .addModifiers(KModifier.PUBLIC, KModifier.ACTUAL)
+                .classBuilder(spec.className)
+                .addModifiers(KModifier.PUBLIC, KModifier.ACTUAL, KModifier.VALUE)
                 .addAnnotation(AnnotationSpec.builder(KOMPAT_PREVIEW).build())
                 .primaryConstructor(
                     FunSpec

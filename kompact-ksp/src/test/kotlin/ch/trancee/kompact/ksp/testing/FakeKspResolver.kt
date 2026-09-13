@@ -93,7 +93,7 @@ class FakeResolver(
 
     override fun getOwnerJvmClassName(declaration: KSFunctionDeclaration): String? = null
 
-    override fun getJvmCheckedException(declaration: KSFunctionDeclaration): Sequence<KSType> = emptySequence()
+    override fun getJvmCheckedException(function: KSFunctionDeclaration): Sequence<KSType> = emptySequence()
 
     override fun getJvmCheckedException(accessor: KSPropertyAccessor): Sequence<KSType> = emptySequence()
 

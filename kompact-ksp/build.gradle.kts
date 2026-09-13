@@ -67,13 +67,11 @@ kover {
 }
 
 // --- KSP processor: registered via ServiceLoader so KSP discovers it ---
+// The service file at src/main/resources/META-INF/services/ is already
+// included in the jar by default — no explicit from() needed (it caused
+// a duplicate-copy warning with DuplicatesStrategy.WARN).
 tasks.jar {
-    duplicatesStrategy = DuplicatesStrategy.WARN
-    from(
-        sourceSets.main
-            .get()
-            .resources.srcDirs,
-    )
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 // --- Sources JAR + Javadoc stub JAR for the JVM publication ---
