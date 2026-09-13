@@ -53,5 +53,5 @@ resolved; see "Verification" for the green gates.
 - `jvmTest` + `iosSimulatorArm64Test`: 26 tests, inspector 0 warnings.
 - `:kompact:generatePomFileForJvmPublication :kompact:generateMetadataFileForJvmPublication`
   → valid `pom-default.xml` (`ch.trancee.kompact:kompact-jvm:0.1.0-SNAPSHOT`,
-  Apache-2.0, `trancee`/Philipp Grosswiler, GitHub SCM) + Gradle module metadata.
+  Unlicense (public domain), `trancee`/Philipp Grosswiler, GitHub SCM) + Gradle module metadata.
 - `compileKotlinIosArm64` ✓; iOS test execution via simulator (green).
