@@ -117,10 +117,10 @@ extract_computed_release() {
 # Next SNAPSHOT is always a patch increment from the release version.
 extract_next_snap() {
   local release
-  release="$(extract_release)"
-  local major minor patch
-  IFS='.' read -r major minor patch <<<"$release"
-  echo "${major}.${minor}.$((patch + 1))-SNAPSHOT"
+  release="$(extract_computed_release)"
+  local major minor
+  IFS='.' read -r major minor _ <<<"$release"
+  echo "${major}.$((minor + 1)).0-SNAPSHOT"
 }
 
 # Generate (or prepend to) CHANGELOG.md for the computed release version.

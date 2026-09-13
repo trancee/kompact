@@ -15,6 +15,9 @@ name: Release Publish
 #   - Central Portal tokens and PGP key are GitHub Environment secrets
 #     (never in the repository). Credentials are passed as env vars to Gradle
 #     tasks that redact them in all log output (S1).
+#   - RELEASE_PAT is a repository-level secret (not env-level) because the
+#     `prepare` job has no `environment:` — it must be able to push the
+#     version-bump commit + tag to protected `main` using the admin PAT.
 
 on:
   pull_request_target:
