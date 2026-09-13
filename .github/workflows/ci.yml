@@ -87,19 +87,15 @@ jobs:
       # end-to-end without publishing to Maven Central.
       - name: Generate ephemeral PGP key
         run: |
-          gpg --batch --full-gen-key <<'EOF'
-          %no-protection
-          Key-Type: RSA
-          Key-Length: 2048
-          Subkey-Type: RSA
-          Subkey-Length: 2048
-          Name-Real: Kompact CI
-          Name-Email: ci@kompact.dev
-          Expiry-Date: 0
-          %commit
-          %echo done
-          EOF
-          echo "SIGNING_KEY_ID=$(gpg --list-secret-keys --with-colons ci@kompact.dev | awk -F: '/^sec:/ {print $5; exit}')" >> $GITHUB_ENV
+          # GPG 2.4+ (ubuntu-latest) requires --pinentry-mode loopback + --passphrase ""
+          # even in batch mode. --quick-gen-key USER-ID ALGO USAGE EXPIRE is the
+          # modern syntax (heredoc-based --full-gen-key with %no-protection is fragile
+          # on GPG 2.5+).
+          gpg --batch --passphrase "" --pinentry-mode loopback \
+            --quick-gen-key "Kompact CI <ci@kompact.dev>" rsa2048 sign 0
+          # Gradle signing plugin requires short key ID (8 hex chars), not the long
+          # (16 hex chars) form that --with-colons outputs.
+          echo "SIGNING_KEY_ID=$(gpg --list-secret-keys --with-colons ci@kompact.dev | awk -F: '/^sec:/ {print substr($5, length($5)-7)}')" >> $GITHUB_ENV
           echo "SIGNING_KEY=$(gpg --batch --armor --export-secret-keys ci@kompact.dev)" >> $GITHUB_ENV
           echo "SIGNING_PASSWORD=" >> $GITHUB_ENV
       - name: KSP Portal dry-run (checksums + bundle)
