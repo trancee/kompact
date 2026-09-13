@@ -42,10 +42,6 @@ ${LOG}
 5. Version is bumped to the next \`-SNAPSHOT\` and the release branch is deleted.
 EOF
 
-# Generate CHANGELOG.md from Conventional Commits since the last tag.
-# This file is committed to release/ongoing to give the PR a meaningful diff.
-.github/scripts/release/version-bump.sh changelog
-
 if git ls-remote --heads origin "${RELEASE_BRANCH}" | grep -q "${RELEASE_BRANCH}"; then
   echo "::group::Syncing release branch with main"
   git fetch origin "${RELEASE_BRANCH}:${RELEASE_BRANCH}"
@@ -53,7 +49,8 @@ if git ls-remote --heads origin "${RELEASE_BRANCH}" | grep -q "${RELEASE_BRANCH}
   git merge "origin/main" --ff-only
   git push origin "${RELEASE_BRANCH}"
 
-  # Regenerate CHANGELOG.md after merging from main (may have new commits).
+  # Generate CHANGELOG.md from Conventional Commits since the last tag.
+  # This file is committed to release/ongoing to give the PR a meaningful diff.
   .github/scripts/release/version-bump.sh changelog
 
   # If the branch is identical to main (no diff), commit CHANGELOG.md
@@ -81,6 +78,10 @@ if git ls-remote --heads origin "${RELEASE_BRANCH}" | grep -q "${RELEASE_BRANCH}
 else
   echo "::group::Creating initial release PR"
   git checkout -b "${RELEASE_BRANCH}"
+
+  # Generate CHANGELOG.md from Conventional Commits since the last tag.
+  .github/scripts/release/version-bump.sh changelog
+
   git add CHANGELOG.md
   git commit -m "docs(release): add CHANGELOG for v${VERSION}"
   git push origin "${RELEASE_BRANCH}"
