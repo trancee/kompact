@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [0.1.0] - 2026-09-13
 
+
 ### ✨ Features
 - feat: Kompact v1 — KMP bit-packing serializer, KSP processor, release automation, full docs (2571014)
 
