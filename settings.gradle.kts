@@ -18,3 +18,5 @@ rootProject.name = "kompact"
 
 include(":kompact")
 include(":kompact-ksp")
+
+includeBuild("build-logic")

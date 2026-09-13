@@ -17,12 +17,12 @@ All declarations are in the package `ch.trancee.kompact.runtime` unless noted.
 `@KompactModel`, `@KompactField`, and `@KompactPreview`.
 
 > **Generated API reference:** the complete hyperlinked KDoc for every public
-> declaration is rendered as HTML and committed under
-> [`kompact/docs/api/index.html`](../kompact/docs/api/index.html). The tables
+> declaration is rendered as GFM Markdown and committed under
+> [`kompact/docs/api/index.md`](../kompact/docs/api/index.md). The tables
 > below are the curated summary (signatures, one-line intent, and the cross
-> references to `architecture.md`); open the generated site for the full
+> references to `architecture.md`); open the generated reference for the full
 > per-member KDoc and parameter docs. Regenerate it locally with
-> `./gradlew :kompact:dokkaGeneratePublicationHtml`.
+> `./gradlew :kompact:dokkaGeneratePublicationMarkdown`.
 
 ---
 ## Common patterns

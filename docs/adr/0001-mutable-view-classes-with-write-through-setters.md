@@ -61,7 +61,7 @@ path. `val raw: ByteArray` remains the wire-format backing store; no copy is mad
   Getters remain checked (`readScalar(...).getOrThrow()`); callers needing validation
   should use `KompactWriter` for outbound construction or validate before calling
   setters.
-- **Klib ABI golden:** must be regenerated on macOS via `apiDump` (ticket 10 testing model).
+- **Klib ABI golden:** must be regenerated on macOS via `updateKotlinAbi` (ticket 10 testing model).
   Hand-editing the golden on Linux is a temporary workaround — CI on macOS will validate.
 
 ## Migration

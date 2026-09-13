@@ -14,8 +14,8 @@ working Kompact setup. Pick the guide that matches your goal.
 
 **Prerequisites.** All guides assume:
 
-- A working Kotlin Multiplatform toolchain (Kotlin 2.3.21, JDK 21).
-- `ch.trancee.kompact:kompact:0.1.0-SNAPSHOT` on the classpath. See
+- A working Kotlin Multiplatform toolchain (Kotlin 2.4.20, JDK 21).
+- `ch.trancee.kompact:kompact:0.2.0-SNAPSHOT` on the classpath. See
   [`consume-from-another-project.md`](consume-from-another-project.md) if
   you are not yet building against it.
 - Familiarity with the [getting started tutorial](../getting-started.md)

@@ -1,37 +1,31 @@
 @file:OptIn(
-    kotlinx.validation.ExperimentalBCVApi::class,
     org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class,
+    org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class,
 )
 
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
 import org.gradle.api.publish.maven.MavenPublication
-import org.gradle.api.tasks.bundling.Zip
-import java.io.ByteArrayOutputStream
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-import java.security.MessageDigest
-import java.util.Base64
 
 plugins {
     alias(libs.plugins.kmp)
-    alias(libs.plugins.bcv)
-    alias(libs.plugins.dokka)
+    alias(libs.plugins.agp)
     alias(libs.plugins.kover)
     alias(libs.plugins.kotlinPowerAssert)
-    `maven-publish`
-    `signing`
+    id("dokka-markdown")
+    id("portal-publish")
 }
 
 kotlin {
-    // Ticket 13: pin JVM target to 21 LTS so BCV (ASM 9.8 / v0.18.2) can parse the
+    // Pin JVM target to 21 LTS so the built-in ABI validation (ASM) can parse the
     // emitted class files on hosts running JDK 25 (without an explicit target,
-    // Kotlin 2.3.21 emits v65 for JVM and v66 for Android — both below v69).
+    // Kotlin 2.4.x emits v67 for JVM and v68 for Android).
+    android {
+        namespace = "ch.trancee.kompact"
+        compileSdk = 36
+        minSdk = 21
+        withJava()
+    }
     jvm {
-        // Ticket 13: pin JVM target to 21 LTS so BCV (ASM 9.8 / v0.18.2) can parse the
-        // emitted class files on hosts running JDK 25 (without an explicit target,
-        // Kotlin 2.3.21 emits v65 for JVM and v66 for Android — both below v69).
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         }
@@ -43,9 +37,9 @@ kotlin {
         val commonMain =
             getByName("commonMain") {
                 compilerOptions {
-                    // KT-61573: expect/actual value classes require the experimental
-                    // -Xexpect-actual-classes opt-in on Kotlin 2.3.x; this flag was
-                    // stabilized in Kotlin 2.4 but remains available here for 2.3.21.
+                    // KT-61573: expect/actual classes are in Beta in Kotlin 2.4.20.
+                    // The -Xexpect-actual-classes flag suppresses the Beta warning.
+                    // Keep this until the feature reaches Stable.
                     freeCompilerArgs.addAll("-Xexpect-actual-classes")
                 }
             }
@@ -56,6 +50,8 @@ kotlin {
                     implementation(kotlin("test"))
                 }
             }
+        // Shared JVM+Android source set: @JvmInline actuals + generated views
+        // that compile for both JVM and Android targets (agp.com.android.kotlin.multiplatform.library).
         val jvmMain = getByName("jvmMain")
         val jvmTest =
             getByName("jvmTest") {
@@ -71,13 +67,30 @@ kotlin {
         iosMain.dependsOn(commonMain)
         getByName("iosArm64Main") { dependsOn(iosMain) }
         getByName("iosSimulatorArm64Main") { dependsOn(iosMain) }
+        // jvmCommon: shared intermediate between commonMain and jvmMain/androidMain.
+        // Moved @JvmInline actuals + VehicleTelemetry here so both JVM and Android
+        // targets compile them. JvmCoveragePinning.java stays in jvmMain (JVM-only).
+        val jvmCommon = create("jvmCommon") {
+            dependsOn(commonMain)
+        }
+        jvmMain.dependsOn(jvmCommon)
+        getByName("androidMain") { dependsOn(jvmCommon) }
+    }
+
+    // Built-in ABI validation (KGP 2.1.0+): replaces BCV's apiValidation { klib { ... } }.
+    // In KGP 2.4.10, the klib { } block was removed — klib validation is now automatic
+    // for KMP projects (enabled by default when abiValidation is accessed).
+    // keepLocallyUnsupportedTargets defaults to true — macOS validates all targets
+    // for real (strict); Linux infers iOS klib but validates JVM + Android for real.
+    abiValidation {
+        keepLocallyUnsupportedTargets = true
     }
 }
 
 // --- SKIE (iOS/Swift interop improvements) ---
 // SKIE (co.touchlab.skie) provides KMP-to-Swift interop via a Gradle plugin
-// extension. SKIE 0.10.14 (latest) supports Kotlin up to 2.4.10; the project
-// runs Kotlin 2.3.21, which is within SKIE's supported range. SKIE is declared
+// extension. SKIE 0.10.14 (latest) supports Kotlin up to 2.4.20; the project
+// runs Kotlin 2.4.20, which is within SKIE's supported range. SKIE is declared
 // as `apply false` in the root build.gradle.kts and is NOT yet applied to
 // this module. When enabled, add `alias(libs.plugins.skie)` to this module's
 // plugins block and enable the desired features:
@@ -148,24 +161,11 @@ powerAssert {
         )
 }
 
-// Ticket 13: BCV 0.18.2 — lock the public ABI for common + each Kotlin/Native target.
-// strictValidation makes klibApiCheck fail on hosts that can't compile every
-// target (e.g. iOS klibs on Linux) instead of silently inferring the ABI —
-// which produces false greens. macOS validates all iOS targets for real;
-// Linux is expected to run jvmApiCheck only (see ci.yml / docs/ci.md).
-apiValidation {
-    klib {
-        enabled = true
-        strictValidation = true
-    }
-}
-
 // Exclude JVM-coverage-pinning scaffolding (JvmCoveragePinning.java) from the
 // published JVM JAR. It lives in jvmMain so KMP compiles it before the Kotlin
 // test sources that reflectively exercise @JvmInline getters (JaCoCo/Kover
 // tracks INVOKEVIRTUAL but not GETFIELD). It is package-private (excluded from
-// BCV ABI) and Kover-filtered — it must not ship in the Maven artifact.
-// (Ticket 10 cross-platform testing model: Kover 100 % line + branch gate.)
+// ABI) and Kover-filtered — it must not ship in the Maven artifact.
 tasks.named<Jar>("jvmJar") {
     exclude("ch/trancee/kompact/runtime/JvmCoveragePinning*.class")
     exclude("ch/trancee/kompact/runtime/JvmCoveragePinning*.java")
@@ -176,41 +176,51 @@ tasks.named<Jar>("jvmJar") {
 // Signing: PGP key injected via environment variables (never in source).
 // See the maven-central-publishing skill for the full workflow.
 
-// KGP creates jvmSourcesJar and auto-attaches it to the JVM publication.
-// We add commonMain sources to it so the sources JAR is complete for Central.
+// KGP auto-creates jvmSourcesJar and auto-attaches it to the JVM publication.
+// KGP already includes commonMain + jvmMain sources; we add jvmCommon as a safety net
+// (custom source set may not be auto-included by KGP's jvmSourcesJar).
+// Uses withGroovyBuilder to avoid type-cast issues with KGP's internal task type.
 val commonMainSource = kotlin.sourceSets.getByName("commonMain")
+val jvmCommonSource = kotlin.sourceSets.getByName("jvmCommon")
 afterEvaluate {
     val task = tasks.findByName("jvmSourcesJar")
     if (task != null) {
         task.withGroovyBuilder {
+            invokeMethod("setDuplicatesStrategy", DuplicatesStrategy.EXCLUDE)
             invokeMethod("from", commonMainSource.kotlin)
+            invokeMethod("from", jvmCommonSource.kotlin)
         }
     }
 }
 
 // Javadoc JAR for the JVM target — Central requires a Javadoc artifact for JVM publications.
-// Dokka 2.x generates HTML/GFM from KDoc and `dokkaGenerateHtml` runs correctly on Kotlin
-// Multiplatform + JDK 25 (verified on this host). Dokka 2.x has no Javadoc-*format* task
-// — the legacy dokkaJavadoc/dokkaGfm task names were removed/changed in 2.x — so the
-// published javadoc artifact remains a minimal README stub, which Maven Central accepts
-// for KMP projects. The full generated API reference is rendered as HTML into
-// docs/api (committed; see docs/api-reference.md) via dokkaGeneratePublicationHtml
-// below; the KDoc source is the single source of truth for the API.
+// Dokka 2.x generates GFM Markdown from KDoc via the dokka-markdown convention plugin
+// (producing dokkaGeneratePublicationMarkdown, verified on Kotlin 2.4.10). Dokka 2.x has
+// no Javadoc-*format* task — the legacy dokkaJavadoc/dokkaGfm task names were
+// removed/changed in 2.x — so the published javadoc artifact remains a minimal README
+// stub, which Maven Central accepts for KMP projects. The full generated API reference
+// is rendered as GFM Markdown into docs/api (committed; see docs/api-reference.md)
 val dokkaJavadocJar =
     tasks.register<Jar>("dokkaJavadocJar") {
         archiveClassifier.set("javadoc")
         from(rootProject.file("README.md"))
     }
 
-// Generated HTML API reference, committed under docs/api so the
+// Generated Markdown (GFM) API reference, committed under docs/api so the
 // api-reference.md pointer is always live. Regenerate with
-// `:kompact:dokkaGeneratePublicationHtml`.
-tasks.named<org.jetbrains.dokka.gradle.tasks.DokkaGeneratePublicationTask>("dokkaGeneratePublicationHtml") {
+// `:kompact:dokkaGeneratePublicationMarkdown`.
+// The `dokka-markdown` convention plugin (build-logic/src/main/kotlin/dokka-markdown.gradle.kts)
+// registers the Markdown format via DokkaFormatPlugin("markdown"), producing
+// dokkaGeneratePublicationMarkdown (V2 task). It also adds gfm-plugin +
+// gfm-template-processing-plugin dependencies.
+tasks.named<org.jetbrains.dokka.gradle.tasks.DokkaGeneratePublicationTask>("dokkaGeneratePublicationMarkdown") {
     outputDirectory.set(layout.projectDirectory.dir("docs/api"))
 }
 
-// POM metadata applied to every auto-created KMP publication (root + per-target).
-// publications holds Publication (supertype), so cast to MavenPublication for pom{} .
+// POM metadata: module-specific name + description here; common fields
+// (URL, license, developer, SCM) are configured by the portal-publish
+// convention plugin's afterEvaluate hook. The bundleDir repository is
+// also configured there.
 publishing {
     publications {
         all {
@@ -221,288 +231,27 @@ publishing {
                         "Zero-allocation bit-stream pack/unpack primitives and generated model views " +
                             "for Kotlin Multiplatform.",
                     )
-                    url.set("https://github.com/trancee/kompact")
-                    licenses {
-                        license {
-                            name.set("Apache License 2.0")
-                            url.set("https://www.apache.org/licenses/LICENSE-2.0")
-                            distribution.set("repo")
-                        }
-                    }
-                    developers {
-                        developer {
-                            id.set("trancee")
-                            name.set("Philipp Grosswiler")
-                            email.set("philipp.grosswiler@gmail.com")
-                        }
-                    }
-                    scm {
-                        url.set("https://github.com/trancee/kompact")
-                        connection.set("scm:git:git://github.com/trancee/kompact.git")
-                        developerConnection.set("scm:git:ssh://git@github.com/trancee/kompact.git")
-                    }
                 }
             }
         }
     }
-    repositories {
-        // Local staging directory — never touches Maven Central.
-        maven {
-            name = "bundleDir"
-            url =
-                layout.buildDirectory
-                    .dir("maven-layout")
-                    .get()
-                    .asFile
-                    .toURI()
-        }
-    }
 }
 
-// Attach the Dokka Javadoc JAR to the JVM publication and configure PGP signing.
+// Attach the Dokka Javadoc JAR to the JVM publication.
 // KGP auto-attaches jvmSourcesJar to the JVM publication; we only add dokkaJavadocJar.
 // KGP creates KMP publications during evaluation, so this runs after.
 afterEvaluate {
     publishing.publications.all {
-        if (this is MavenPublication && name == "jvm") {
+        if (this is MavenPublication && (name == "jvm" || name == "android")) {
             artifact(dokkaJavadocJar.get())
         }
     }
-
-    val signingKey = System.getenv("SIGNING_KEY")
-    if (signingKey != null && signingKey.isNotBlank()) {
-        signing {
-            useInMemoryPgpKeys(
-                System.getenv("SIGNING_KEY_ID"),
-                signingKey,
-                System.getenv("SIGNING_PASSWORD"),
-            )
-            sign(publishing.publications)
-        }
-    }
 }
 
-// --- Custom Central Portal Publisher API tasks ---
-// API: https://central.sonatype.com/api/v1/publisher
-// Auth: Bearer base64(portalTokenUsername:portalTokenPassword)
-// Mode: USER_MANAGED (default safe — validation does not auto-publish)
-
-val portalBuildDir = layout.buildDirectory.dir("portal")
-
-// Generate .md5, .sha1, .sha256, .sha512 for every published file (not for existing
-// checksums — those must never be signed or re-checksummed).
-tasks.register("generateChecksums") {
-    group = "publication"
-    description = "Generate MD5/SHA-1/SHA-256/SHA-512 checksums for all files in the Maven layout"
-    dependsOn("publishAllPublicationsToBundleDirRepository")
-    val mavenDir =
-        layout.buildDirectory
-            .get()
-            .dir("maven-layout")
-            .asFile
-    doLast {
-        if (!mavenDir.exists()) {
-            throw GradleException(
-                "Maven layout not found at ${mavenDir.absolutePath}. " +
-                    "Ensure publishAllPublicationsToBundleDirRepository succeeded.",
-            )
-        }
-        val checksumExts = setOf("md5", "sha1", "sha256", "sha512")
-        mavenDir.walkTopDown().forEach { file ->
-            if (file.isFile && file.extension !in checksumExts) {
-                val bytes = file.readBytes()
-                listOf("md5", "sha1", "sha256", "sha512").forEach { algo ->
-                    val digest = MessageDigest.getInstance(algo).digest(bytes)
-                    val hex = digest.joinToString("") { "%02x".format(it) }
-                    file.parentFile.resolve("${file.name}.$algo").writeText(hex)
-                }
-            }
-        }
-        logger.lifecycle("Checksums generated for all files in ${mavenDir.absolutePath}")
-    }
-}
-
-// Assemble a Maven-layout ZIP bundle (artifacts + .asc + checksums) for upload.
-tasks.register<Zip>("assembleCentralBundle") {
-    group = "publication"
-    description = "Assemble Maven-layout ZIP bundle for Central Portal upload"
-    archiveBaseName.set("kompact-portal-bundle")
-    archiveVersion.set("")
-    destinationDirectory.set(layout.buildDirectory)
-    from(layout.buildDirectory.dir("maven-layout"))
-    dependsOn("generateChecksums")
-}
-
-// Upload the bundle to the Sonatype Central Portal (USER_MANAGED staging).
-// Credentials: CENTRAL_PORTAL_TOKEN_USERNAME + CENTRAL_PORTAL_TOKEN_PASSWORD (env vars)
-// These are Portal user tokens, NOT the interactive account password.
-tasks.register("centralPortalDeploy") {
-    group = "publication"
-    description = "Upload bundle to Central Portal (USER_MANAGED) — requires CENTRAL_PORTAL_TOKEN_USERNAME/PASSWORD"
-    dependsOn("assembleCentralBundle")
-    doLast {
-        val tokenUsername = System.getenv("CENTRAL_PORTAL_TOKEN_USERNAME")
-        val tokenPassword = System.getenv("CENTRAL_PORTAL_TOKEN_PASSWORD")
-        if (tokenUsername.isNullOrBlank() || tokenPassword.isNullOrBlank()) {
-            throw GradleException(
-                "CENTRAL_PORTAL_TOKEN_USERNAME and CENTRAL_PORTAL_TOKEN_PASSWORD " +
-                    "environment variables are required.\n" +
-                    "Generate a token at https://central.sonatype.com/ → Account → User Tokens.",
-            )
-        }
-
-        val bundleFile =
-            layout.buildDirectory
-                .file("kompact-portal-bundle.zip")
-                .get()
-                .asFile
-        if (!bundleFile.exists()) {
-            throw GradleException("Bundle not found: ${bundleFile.absolutePath}")
-        }
-
-        val credentials =
-            Base64
-                .getEncoder()
-                .encodeToString("$tokenUsername:$tokenPassword".toByteArray())
-        val boundary = "----KompactPortal${System.currentTimeMillis()}"
-        val publishingType = System.getenv("CENTRAL_PORTAL_PUBLISHING_TYPE") ?: "USER_MANAGED"
-
-        val body =
-            ByteArrayOutputStream().use { out ->
-                out.write(("--$boundary\r\n").toByteArray())
-                out.write(
-                    (
-                        "Content-Disposition: form-data; name=\"bundle\"; " +
-                            "filename=\"${bundleFile.name}\"\r\n"
-                    ).toByteArray(),
-                )
-                out.write("Content-Type: application/octet-stream\r\n\r\n".toByteArray())
-                out.write(bundleFile.readBytes())
-                out.write("\r\n".toByteArray())
-                out.write(("--$boundary--\r\n".toByteArray()))
-                out.toByteArray()
-            }
-
-        val portalUrl =
-            URI.create(
-                "https://central.sonatype.com/api/v1/publisher/upload" +
-                    "?name=kompact-${project.version}&publishingType=$publishingType",
-            )
-        val client = HttpClient.newHttpClient()
-        val request =
-            HttpRequest
-                .newBuilder()
-                .uri(portalUrl)
-                .header("Authorization", "Bearer $credentials")
-                .header("Content-Type", "multipart/form-data; boundary=$boundary")
-                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
-                .build()
-
-        val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-
-        val portalOut = portalBuildDir.get().asFile
-        portalOut.mkdirs()
-        portalOut.resolve("deploy-response").writeText(response.body())
-
-        val responseBody = response.body().trim()
-        if (response.statusCode() == 201 && responseBody.isNotEmpty()) {
-            portalOut.resolve("deployment-id").writeText(responseBody)
-            logger.lifecycle("Central Portal deploy response (HTTP ${response.statusCode()}):")
-            logger.lifecycle("Deployment ID: $responseBody — track with: ./gradlew centralPortalStatus")
-        } else {
-            logger.lifecycle("Central Portal deploy failed (HTTP ${response.statusCode()}):")
-            logger.lifecycle(response.body())
-            throw GradleException("Portal deploy failed with HTTP ${response.statusCode()}: ${response.body()}")
-        }
-    }
-}
-
-// Check Central Portal deployment validation status by deployment ID.
-tasks.register("centralPortalStatus") {
-    group = "publication"
-    description = "Check Central Portal deployment validation status"
-    doLast {
-        val deploymentId =
-            System.getenv("CENTRAL_PORTAL_DEPLOYMENT_ID")
-                ?: run {
-                    val idFile = portalBuildDir.get().asFile.resolve("deployment-id")
-                    if (idFile.exists()) idFile.readText().trim() else null
-                }
-        if (deploymentId.isNullOrBlank()) {
-            throw GradleException(
-                "No deployment ID found. Set CENTRAL_PORTAL_DEPLOYMENT_ID env var or run centralPortalDeploy first.",
-            )
-        }
-
-        val tokenUsername = System.getenv("CENTRAL_PORTAL_TOKEN_USERNAME")
-        val tokenPassword = System.getenv("CENTRAL_PORTAL_TOKEN_PASSWORD")
-        if (tokenUsername.isNullOrBlank() || tokenPassword.isNullOrBlank()) {
-            throw GradleException(
-                "CENTRAL_PORTAL_TOKEN_USERNAME and CENTRAL_PORTAL_TOKEN_PASSWORD " +
-                    "environment variables are required.",
-            )
-        }
-
-        val credentials =
-            Base64
-                .getEncoder()
-                .encodeToString("$tokenUsername:$tokenPassword".toByteArray())
-        val client = HttpClient.newHttpClient()
-        val request =
-            HttpRequest
-                .newBuilder()
-                .uri(URI.create("https://central.sonatype.com/api/v1/publisher/status?id=$deploymentId"))
-                .header("Authorization", "Bearer $credentials")
-                .header("Accept", "application/json")
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build()
-        val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-        logger.lifecycle("Central Portal deployment status for $deploymentId (HTTP ${response.statusCode()}):")
-        logger.lifecycle(response.body())
-    }
-}
-
-// Publish a validated USER_MANAGED deployment (irreversible — coordinates go live).
-tasks.register("centralPortalPublish") {
-    group = "publication"
-    description = "Publish a VALIDATED Central Portal deployment (IRREVERSIBLE)"
-    doLast {
-        val deploymentId =
-            System.getenv("CENTRAL_PORTAL_DEPLOYMENT_ID")
-                ?: run {
-                    val idFile = portalBuildDir.get().asFile.resolve("deployment-id")
-                    if (idFile.exists()) idFile.readText().trim() else null
-                }
-        if (deploymentId.isNullOrBlank()) {
-            throw GradleException("No deployment ID found.")
-        }
-
-        val tokenUsername = System.getenv("CENTRAL_PORTAL_TOKEN_USERNAME")
-        val tokenPassword = System.getenv("CENTRAL_PORTAL_TOKEN_PASSWORD")
-        if (tokenUsername.isNullOrBlank() || tokenPassword.isNullOrBlank()) {
-            throw GradleException(
-                "CENTRAL_PORTAL_TOKEN_USERNAME and CENTRAL_PORTAL_TOKEN_PASSWORD " +
-                    "environment variables are required.",
-            )
-        }
-
-        val credentials =
-            Base64
-                .getEncoder()
-                .encodeToString("$tokenUsername:$tokenPassword".toByteArray())
-        val client = HttpClient.newHttpClient()
-        val request =
-            HttpRequest
-                .newBuilder()
-                .uri(URI.create("https://central.sonatype.com/api/v1/publisher/deployment/$deploymentId"))
-                .header("Authorization", "Bearer $credentials")
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build()
-        val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-        val responseBody = response.body().takeIf { it.isNotBlank() } ?: "(no body — expected for 204)"
-        logger.lifecycle("Central Portal publish response (HTTP ${response.statusCode()}): $responseBody")
-    }
-}
+// --- Central Portal Publisher API tasks ---
+// (portal-publish convention plugin in build-logic/ provides: generateChecksums,
+// assembleCentralBundle, centralPortalDeploy, centralPortalStatus, centralPortalPublish.
+// Publishing repository (bundleDir) and PGP signing are also configured there.)
 
 // F-002 boundary tests allocate 256 MiB buffers; give the JVM test fork headroom.
 // Power-Assert's expression diagram renderer needs additional headroom for
@@ -511,9 +260,9 @@ tasks.withType<Test>().configureEach {
     maxHeapSize = "4g"
 }
 
-// Ticket 13: align Java compilation target with Kotlin's JVM_21 so that
-// jvmTest Java sources compile consistently (KGP emits v61; the Java compiler
-// on JDK 25 defaults to v69 otherwise, triggering KGP's cross-task validation).
+// Align Java compilation target with Kotlin's JVM_21 to satisfy KGP's
+// cross-task validation (JDK 25 host defaults to v69 for Java, v68 for Kotlin
+// with Kotlin 2.4.20; both must match for ABI validation to parse class files).
 tasks.withType<JavaCompile>().configureEach {
     if (name.contains("JvmMain") || name.contains("JvmTest")) {
         sourceCompatibility = "21"

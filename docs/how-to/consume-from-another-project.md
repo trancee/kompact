@@ -4,9 +4,9 @@ Goal: add `ch.trancee.kompact:kompact` to a Kotlin or Kotlin
 Multiplatform project so you can call `KompactWriter`, `KompactRuntime`,
 and the typed result value classes.
 
-The Maven coordinates are `ch.trancee.kompact:kompact:0.1.0-SNAPSHOT`.
+The Maven coordinates are `ch.trancee.kompact:kompact:0.2.0-SNAPSHOT`.
 The artifact publishes per-target klibs (`-iosarm64`, `-iossimulatorarm64`)
-and a JVM jar via standard `maven-publish`.
+and an Android `aar` via standard `maven-publish`.
 
 ## 1. Install the snapshot locally
 
@@ -26,11 +26,11 @@ This produces the per-target artifacts under `~/.m2/repository/`.
 ```kotlin
 repositories {
     mavenCentral()
-    mavenLocal()    // for the 0.1.0-SNAPSHOT until first Central release
+    mavenLocal()    // for the 0.2.0-SNAPSHOT until first Central release
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.1.0-SNAPSHOT")
+    implementation("ch.trancee.kompact:kompact:0.2.0-SNAPSHOT")
 }
 ```
 
@@ -43,7 +43,7 @@ and the convenience `Kompact.Result` namespace lives in
 
 ```kotlin
 plugins {
-    kotlin("multiplatform") version "2.3.21"
+    kotlin("multiplatform") version "2.4.20"
 }
 
 kotlin {
@@ -54,7 +54,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.1.0-SNAPSHOT")
+                implementation("ch.trancee.kompact:kompact:0.2.0-SNAPSHOT")
             }
         }
     }
@@ -74,26 +74,33 @@ target-specific coordinates.
 ## 4. Android project (Gradle)
 
 ```kotlin
+plugins {
+    alias(libs.plugins.kotlinAndroid)  // or kotlin("multiplatform") version "2.4.20" + com.android.kotlin.multiplatform.library
+}
+
 android {
     namespace = "com.example.myapp"
-    compileSdk = 34
-    defaultConfig { minSdk = 24 }
+    compileSdk = 36
+    defaultConfig { minSdk = 21 }
 }
 
 repositories {
     google()
     mavenCentral()
-    mavenLocal()
+    mavenLocal()    // for the 0.2.0-SNAPSHOT until first Central release
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.1.0-SNAPSHOT")
+    implementation("ch.trancee.kompact:kompact:0.2.0-SNAPSHOT")
+    // or, for KMP: implementation("ch.trancee.kompact:kompact-android:0.2.0-SNAPSHOT")
 }
 ```
 
-Android consumes the JVM artifact. The runtime is plain Kotlin with
-no Android-specific dependencies, so the JVM jar runs unchanged on
-Android 24+.
+Android consumes the `kompact-android` AAR artifact (published via
+`com.android.kotlin.multiplatform.library`). The runtime is plain Kotlin with
+no Android-specific dependencies, so the AAR wraps the same compiled code
+with no additional Android framework coupling. `minSdk = 21` matches the
+library's own `minSdk`.
 
 ## 5. Version catalog (Gradle 7.4+)
 
@@ -101,7 +108,7 @@ For multi-module builds, pin the version in `gradle/libs.versions.toml`:
 
 ```toml
 [versions]
-kompact = "0.1.0-SNAPSHOT"
+kompact = "0.2.0-SNAPSHOT"
 
 [libraries]
 kompact = { module = "ch.trancee.kompact:kompact", version.ref = "kompact" }
@@ -162,7 +169,7 @@ value classes) are not preview API — no opt-in is needed for them.
 - **`mavenLocal()` not declared.** The snapshot lives in `~/.m2/`,
   not on Maven Central. Without `mavenLocal()` in your
   `repositories`, Gradle reports `Could not find
-  ch.trancee.kompact:kompact:0.1.0-SNAPSHOT`.
+  `ch.trancee.kompact:kompact:0.2.0-SNAPSHOT`.
 - **Wrong target coordinate on KMP.** Use
   `ch.trancee.kompact:kompact` (the root artifact), not
   `ch.trancee.kompact:kompact-jvm` or `kompact-iosarm64`. The

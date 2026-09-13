@@ -39,7 +39,7 @@ it in v1:
    `kompact.klib.api`), yet with no version prefix there is **no code path** that
    ever returns it — dead public surface that nonetheless forces a golden regen on
    macOS (klib goldens cannot be regenerated on Linux; strictValidation=true
-   makes `klibApiCheck`/`klibApiDump` fail on non-Apple hosts).
+   makes `checkKotlinAbi` fail on non-Apple hosts.
 
 ## Decision
 

@@ -211,8 +211,8 @@ and a real upgrade/compat story can be designed. See
   `VehicleTelemetry` example, the source-retained `@KompactModel` /
   `@KompactField` annotations, the full `commonTest` suite
   (round-trip, property-based, long-form, allocation-discipline),
-  CI gates (`spotlessCheck` + `apiCheck` on macOS for JVM + iOS klib;
-  `spotlessCheck` + `koverVerify` + `jvmTest` + `jvmApiCheck` on
+  CI gates (`spotlessCheck` + `checkKotlinAbi` on macOS for JVM + Android + iOS klib;
+  `spotlessCheck` + `koverVerify` + `jvmTest` + `checkKotlinAbi` + `bundleAndroidMainAar` on
   Linux)
   goldens in [`kompact/api/`](../kompact/api/).
 - **KSP code generator** (`kompact-ksp/`): the `@KompactModel` /
@@ -227,7 +227,8 @@ and a real upgrade/compat story can be designed. See
 - **Not yet released**: the Maven Central artifact. Publication is wired via
   standard `maven-publish` + `signing` + Dokka, with a custom Portal Publisher
   API task (`centralPortalDeploy`) for Central Portal upload (no third-party
-  publishing plugin). Coordinates `ch.trancee.kompact:kompact:0.1.0-SNAPSHOT`.
+  publishing plugin). Coordinates `ch.trancee.kompact:kompact:0.2.0-SNAPSHOT` and
+  `ch.trancee.kompact:kompact-ksp:0.2.0-SNAPSHOT`.
   No release has been cut — the Portal namespace, PGP key, and user token still
   require user authorization. Build from source or `./gradlew
   :kompact:publishToMavenLocal` to consume the snapshot.

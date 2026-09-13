@@ -1,18 +1,18 @@
 name: Regen Goldens
 
-# Regenerates the BCV ABI goldens (kompact.api + kompact.klib.api) on macOS.
+# Regenerates the KGP built-in ABI goldens (kompact.api + kompact.klib.api) on macOS.
 # macOS is the only host where ios klib ABI inference succeeds, so kompact.klib.api
 # can only be produced here. Non-Apple contributors invoke this workflow to refresh
-# the goldens (apiDump overwrites api/ in place), then commit the result. Manual
-# (workflow_dispatch) only — it does NOT run on every push; the apiCheck gate
+# the goldens (updateKotlinAbi overwrites api/ in place), then commit the result. Manual
+# (workflow_dispatch) only — it does NOT run on every push; the checkKotlinAbi gate
 # lives in ci.yml.
 
 on:
   workflow_dispatch:
     inputs:
       args:
-        description: 'Gradle task args to regenerate goldens (default: apiDump)'
-        default: ':kompact:apiDump'
+        description: 'Gradle task args to regenerate goldens (default: updateKotlinAbi)'
+        default: ':kompact:updateKotlinAbi'
         type: string
 
 permissions:

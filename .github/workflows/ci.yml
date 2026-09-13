@@ -1,11 +1,19 @@
 name: CI
 
-# Validates the public ABI goldens and runs the JVM test suite.
-# apiCheck (macOS) enforces both kompact.api (JVM) and kompact.klib.api (merged
-# ios klib) with strictValidation — iOS klibs can only be compiled on Apple
-# hosts, so the klib golden is only meaningfully validated on the macOS job.
-# On Linux, klibApiCheck fails (unsupported targets); the Linux job runs
-# jvmApiCheck + jvmTest only (fast JVM API gate before the macOS final gate).
+# Validates the public ABI goldens, runs the JVM/KSP test suites, verifies
+# Kover coverage thresholds, generates Markdown API docs, and performs a
+# dry-run of the Maven Central Portal bundle pipeline (with an ephemeral
+# PGP key) for the KSP processor module.
+#
+# ABI validation:
+#   - Built-in KGP checkKotlinAbi (replaces BCV apiCheck/apiDump).
+#   - macOS compiles all targets for real (strict).
+#   - Linux infers klib (keepLocallyUnsupportedTargets=true) but validates
+#     JVM + Android for real (ubuntu-latest ships the Android SDK).
+#
+# Dokka:
+#   - Uses dokkaGeneratePublicationMarkdown (GFM) via the dokka-markdown
+#     convention plugin (build-logic/). HTML output is no longer generated.
 
 on:
   push:
@@ -24,7 +32,7 @@ permissions:
 
 jobs:
   api-check:
-    name: apiCheck + spotlessCheck (macOS)
+    name: ABI + Markdown + spotless (macOS)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
@@ -33,18 +41,27 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
-      - run: ./gradlew spotlessCheck :kompact:apiCheck --no-daemon --rerun-tasks --no-build-cache --warning-mode all
-      # The committed rendered reference in kompact/docs/api/ must stay in sync
+      # Android SDK required for ABI check + dokka Markdown (which analyses
+      # compiled classes for all targets including Android).
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 36
+          build-tools: 36.0.0
+      - name: Set ANDROID_HOME
+        run: echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+      - run: ./gradlew spotlessCheck :kompact:checkKotlinAbi :kompact-ksp:checkKotlinAbi --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+      # The committed GFM Markdown reference in kompact/docs/api/ must stay in sync
       # with the KDoc in commonMain. Regenerate and fail if the committed tree
       # drifts (up-to-date checking means dokka only re-runs when KDoc changes).
       # macOS only: dokka analyses the iOS klibs, which can't be compiled on Linux.
-      - name: Verify generated Dokka reference is in sync
+      - name: Verify generated Dokka Markdown reference is in sync
         run: |
-          ./gradlew :kompact:dokkaGeneratePublicationHtml --no-daemon --console=plain
+          ./gradlew :kompact:dokkaGeneratePublicationMarkdown --no-daemon --console=plain
           git diff --exit-code -- kompact/docs/api/
 
   jvm-test:
-    name: jvmTest + jvmApiCheck + spotlessCheck + koverVerify (Linux)
+    name: JVM tests + Android assemble + KSP Portal dry-run (Linux)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -53,4 +70,39 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
-      - run: ./gradlew spotlessCheck :kompact:koverVerify :kompact:jvmTest :kompact:jvmApiCheck :kompact-ksp:test :kompact-ksp:koverVerify :kompact-ksp:apiCheck --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+      - run: |
+          ./gradlew \
+            spotlessCheck \
+            :kompact:checkKotlinAbi \
+            :kompact:jvmTest \
+            :kompact:koverVerify \
+            :kompact:bundleAndroidMainAar \
+            :kompact-ksp:checkKotlinAbi \
+            :kompact-ksp:test \
+            :kompact-ksp:koverVerify \
+            --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+
+      # KSP Portal dry-run: generate checksums + assemble bundle with an ephemeral
+      # PGP key (never real credentials). Verifies the full Portal pipeline works
+      # end-to-end without publishing to Maven Central.
+      - name: Generate ephemeral PGP key
+        run: |
+          gpg --batch --full-gen-key <<'EOF'
+          %no-protection
+          Key-Type: RSA
+          Key-Length: 2048
+          Subkey-Type: RSA
+          Subkey-Length: 2048
+          Name-Real: Kompact CI
+          Name-Email: ci@kompact.dev
+          Expiry-Date: 0
+          %commit
+          %echo done
+          EOF
+          echo "SIGNING_KEY_ID=$(gpg --list-secret-keys --with-colons ci@kompact.dev | awk -F: '/^sec:/ {print $5; exit}')" >> $GITHUB_ENV
+          echo "SIGNING_KEY=$(gpg --batch --armor --export-secret-keys ci@kompact.dev)" >> $GITHUB_ENV
+          echo "SIGNING_PASSWORD=" >> $GITHUB_ENV
+      - name: KSP Portal dry-run (checksums + bundle)
+        run: |
+          ./gradlew :kompact-ksp:generateChecksums :kompact-ksp:assembleCentralBundle --no-daemon --console=plain
+          test -f kompact-ksp/build/kompact-ksp-portal-bundle.zip && echo "Portal bundle OK"

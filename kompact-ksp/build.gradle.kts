@@ -1,30 +1,41 @@
 @file:OptIn(
-    kotlinx.validation.ExperimentalBCVApi::class,
+    org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class,
 )
 
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
+import org.gradle.api.publish.maven.MavenPublication
 
 plugins {
     alias(libs.plugins.kotlinJvm)
-    alias(libs.plugins.bcv)
-    alias(libs.plugins.dokka)
     alias(libs.plugins.kover)
+    id("dokka-markdown")
+    id("portal-publish")
+    // maven-publish is also applied by portal-publish convention plugin, but
+    // listed here to ensure KGP's kotlin("jvm") publication auto-creation
+    // detects it during plugins{} block processing (convention plugin
+    // application can be too late for KGP's PluginManager listener).
     `maven-publish`
-    signing
 }
 
 kotlin {
+    // KSP 2.3.12 pairs with Kotlin 2.4.20 (per Kotlin docs). The KSP processor
+    // loads into the consumer's Kotlin compile daemon; JVM 17 bytecode ensures
+    // compatibility with consumers on JDK 17+ (the KSP plugin rejects jvmTarget=21
+    // when the consumer runs JDK 17).
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
+
+    // Built-in ABI validation (KGP 2.1.0+) — validates the JVM public API surface.
+    abiValidation {}
 }
 
-// Align Java compilation target with Kotlin's JVM_21 to satisfy KGP's
-// cross-task validation (JDK 25 host defaults to v69 for Java, v65 for Kotlin;
-// both must match — Ticket 13 constraint).
+// Align Java compilation target with Kotlin's JVM_17 to satisfy KGP's
+// cross-task validation (JDK 25 host defaults to v69 for Java, v67 for Kotlin
+// with KGP 2.4.10; both must match for ABI validation to parse class files).
 tasks.withType<JavaCompile>().configureEach {
-    sourceCompatibility = "21"
-    targetCompatibility = "21"
+    sourceCompatibility = "17"
+    targetCompatibility = "17"
 }
 
 // --- Dependencies ---
@@ -65,39 +76,42 @@ tasks.jar {
     )
 }
 
+// --- Sources JAR + Javadoc stub JAR for the JVM publication ---
+// KGP's kotlin("jvm") does NOT auto-create a sources JAR (unlike KMP jvmTarget).
+// Central Portal requires both artifacts for JVM publications.
+val jvmSourcesJar =
+    tasks.register<Jar>("jvmSourcesJar") {
+        archiveClassifier.set("sources")
+        from(sourceSets.main.get().allSource)
+    }
+
+val dokkaJavadocJar =
+    tasks.register<Jar>("dokkaJavadocJar") {
+        archiveClassifier.set("javadoc")
+        from(rootProject.file("README.md"))
+    }
+
 // --- Maven Central Portal publishing ---
+// The portal-publish convention plugin applies maven-publish + signing,
+// configures the bundleDir repository, and applies common POM metadata
+// (URL, license, developer, SCM) via afterEvaluate. KGP's kotlin("jvm")
+// may not auto-create a JVM publication when maven-publish is applied via
+// convention plugin, so we create it explicitly from the "java" component.
 publishing {
     publications {
-        all {
-            if (this is MavenPublication) {
-                pom {
-                    name.set("Kompact KSP")
-                    description.set(
-                        "KSP processor for Kompact @KompactModel schemas — " +
-                            "generates value-class views with zero-alloc bit-stream reads.",
-                    )
-                    url.set("https://github.com/trancee/kompact")
-                    licenses {
-                        license {
-                            name.set("Apache License 2.0")
-                            url.set("https://www.apache.org/licenses/LICENSE-2.0")
-                            distribution.set("repo")
-                        }
-                    }
-                    developers {
-                        developer {
-                            id.set("trancee")
-                            name.set("Philipp Grosswiler")
-                            email.set("philipp.grosswiler@gmail.com")
-                        }
-                    }
-                    scm {
-                        url.set("https://github.com/trancee/kompact")
-                        connection.set("scm:git:git://github.com/trancee/kompact.git")
-                        developerConnection.set("scm:git:ssh://git@github.com/trancee/kompact.git")
-                    }
-                }
+        create<MavenPublication>("jvm") {
+            from(components["java"])
+            artifact(jvmSourcesJar.get())
+            artifact(dokkaJavadocJar.get())
+            pom {
+                name.set("Kompact KSP")
+                description.set(
+                    "KSP processor for Kompact @KompactModel schemas — " +
+                        "generates value-class views with zero-alloc bit-stream reads.",
+                )
             }
         }
     }
+    // bundleDir repository + common POM fields are configured by the
+    // portal-publish convention plugin.
 }

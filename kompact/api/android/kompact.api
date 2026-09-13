@@ -1,0 +1,375 @@
+public final class ch/trancee/kompact/Kompact {
+	public static final field INSTANCE Lch/trancee/kompact/Kompact;
+}
+
+public final class ch/trancee/kompact/Kompact$Result {
+	public static final field INSTANCE Lch/trancee/kompact/Kompact$Result;
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactField : java/lang/annotation/Annotation {
+	public abstract fun bitOffset ()I
+	public abstract fun bitWidth ()I
+	public abstract fun defaultValue ()Ljava/lang/String;
+	public abstract fun enumWidth ()I
+	public abstract fun isNested ()Z
+	public abstract fun lengthPrefixWidth ()I
+	public abstract fun repeatCountWidth ()I
+	public abstract fun signed ()Z
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactModel : java/lang/annotation/Annotation {
+}
+
+public abstract interface annotation class ch/trancee/kompact/annotations/KompactPreview : java/lang/annotation/Annotation {
+}
+
+public final class ch/trancee/kompact/generated/VehicleTelemetry {
+	public static final field Companion Lch/trancee/kompact/generated/VehicleTelemetry$Companion;
+	public static final synthetic fun box-impl ([B)Lch/trancee/kompact/generated/VehicleTelemetry;
+	public static fun constructor-impl ([B)[B
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl ([BLjava/lang/Object;)Z
+	public static final fun equals-impl0 ([B[B)Z
+	public static final fun getBatteryStatus-impl ([B)I
+	public final fun getRaw ()[B
+	public static final fun getSpeed-impl ([B)I
+	public fun hashCode ()I
+	public static fun hashCode-impl ([B)I
+	public static final fun isMalfunctioning-impl ([B)Z
+	public static final fun setBatteryStatus-impl ([BI)V
+	public static final fun setMalfunctioning-impl ([BZ)V
+	public static final fun setSpeed-impl ([BI)V
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl ([B)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()[B
+}
+
+public final class ch/trancee/kompact/generated/VehicleTelemetry$Companion {
+	public final fun create-UmxqB8U (IIZ)[B
+}
+
+public final class ch/trancee/kompact/runtime/BooleanResult {
+	public static final field Companion Lch/trancee/kompact/runtime/BooleanResult$Companion;
+	public static final synthetic fun box-impl (J)Lch/trancee/kompact/runtime/BooleanResult;
+	public static fun constructor-impl (J)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public static final fun getError-impl (J)Lch/trancee/kompact/runtime/KompactDecodeError;
+	public static final fun getOrThrow-impl (J)Z
+	public final fun getPacked ()J
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public static final fun isFailure-impl (J)Z
+	public static final fun isSuccess-impl (J)Z
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class ch/trancee/kompact/runtime/BooleanResult$Companion {
+	public final fun failure-3EDgK9s (Lch/trancee/kompact/runtime/KompactDecodeError;)J
+	public final fun success-3EDgK9s (Z)J
+}
+
+public final class ch/trancee/kompact/runtime/ByteResult {
+	public static final field Companion Lch/trancee/kompact/runtime/ByteResult$Companion;
+	public static final synthetic fun box-impl (J)Lch/trancee/kompact/runtime/ByteResult;
+	public static fun constructor-impl (J)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public static final fun getError-impl (J)Lch/trancee/kompact/runtime/KompactDecodeError;
+	public static final fun getOrThrow-impl (J)B
+	public final fun getPacked ()J
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public static final fun isFailure-impl (J)Z
+	public static final fun isSuccess-impl (J)Z
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class ch/trancee/kompact/runtime/ByteResult$Companion {
+	public final fun failure-jr9cdlI (Lch/trancee/kompact/runtime/KompactDecodeError;)J
+	public final fun success-jr9cdlI (B)J
+}
+
+public final class ch/trancee/kompact/runtime/DoubleResult {
+	public static final field Companion Lch/trancee/kompact/runtime/DoubleResult$Companion;
+	public static final synthetic fun box-impl (J)Lch/trancee/kompact/runtime/DoubleResult;
+	public static fun constructor-impl (J)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public static final fun getError-impl (J)Lch/trancee/kompact/runtime/KompactDecodeError;
+	public static final fun getOrThrow-impl (J)D
+	public final fun getPacked ()J
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public static final fun isFailure-impl (J)Z
+	public static final fun isSuccess-impl (J)Z
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class ch/trancee/kompact/runtime/DoubleResult$Companion {
+	public final fun failure-kdlLBpc (Lch/trancee/kompact/runtime/KompactDecodeError;)J
+	public final fun success-kdlLBpc (D)J
+}
+
+public final class ch/trancee/kompact/runtime/FloatResult {
+	public static final field Companion Lch/trancee/kompact/runtime/FloatResult$Companion;
+	public static final synthetic fun box-impl (J)Lch/trancee/kompact/runtime/FloatResult;
+	public static fun constructor-impl (J)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public static final fun getError-impl (J)Lch/trancee/kompact/runtime/KompactDecodeError;
+	public static final fun getOrThrow-impl (J)F
+	public final fun getPacked ()J
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public static final fun isFailure-impl (J)Z
+	public static final fun isSuccess-impl (J)Z
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class ch/trancee/kompact/runtime/FloatResult$Companion {
+	public final fun failure-X9588y8 (Lch/trancee/kompact/runtime/KompactDecodeError;)J
+	public final fun success-X9588y8 (F)J
+}
+
+public final class ch/trancee/kompact/runtime/IntResult {
+	public static final field Companion Lch/trancee/kompact/runtime/IntResult$Companion;
+	public static final synthetic fun box-impl (J)Lch/trancee/kompact/runtime/IntResult;
+	public static fun constructor-impl (J)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public static final fun getError-impl (J)Lch/trancee/kompact/runtime/KompactDecodeError;
+	public static final fun getOrThrow-impl (J)I
+	public final fun getPacked ()J
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public static final fun isFailure-impl (J)Z
+	public static final fun isSuccess-impl (J)Z
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class ch/trancee/kompact/runtime/IntResult$Companion {
+	public final fun failure-kRpIk-E (Lch/trancee/kompact/runtime/KompactDecodeError;)J
+	public final fun success-kRpIk-E (I)J
+}
+
+public abstract class ch/trancee/kompact/runtime/KompactDecodeError {
+}
+
+public final class ch/trancee/kompact/runtime/KompactDecodeError$BadLengthPrefix : ch/trancee/kompact/runtime/KompactDecodeError {
+	public static final field INSTANCE Lch/trancee/kompact/runtime/KompactDecodeError$BadLengthPrefix;
+}
+
+public final class ch/trancee/kompact/runtime/KompactDecodeError$BoundsError : ch/trancee/kompact/runtime/KompactDecodeError {
+	public static final field INSTANCE Lch/trancee/kompact/runtime/KompactDecodeError$BoundsError;
+}
+
+public final class ch/trancee/kompact/runtime/KompactDecodeError$TruncatedNested : ch/trancee/kompact/runtime/KompactDecodeError {
+	public static final field INSTANCE Lch/trancee/kompact/runtime/KompactDecodeError$TruncatedNested;
+}
+
+public final class ch/trancee/kompact/runtime/KompactDecodeError$UnknownEnumCode : ch/trancee/kompact/runtime/KompactDecodeError {
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Lch/trancee/kompact/runtime/KompactDecodeError$UnknownEnumCode;
+	public static synthetic fun copy$default (Lch/trancee/kompact/runtime/KompactDecodeError$UnknownEnumCode;IILjava/lang/Object;)Lch/trancee/kompact/runtime/KompactDecodeError$UnknownEnumCode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getRawCode ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class ch/trancee/kompact/runtime/KompactDecodeException : java/lang/RuntimeException {
+	public fun <init> (Lch/trancee/kompact/runtime/KompactDecodeError;)V
+	public final fun getError ()Lch/trancee/kompact/runtime/KompactDecodeError;
+}
+
+public final class ch/trancee/kompact/runtime/KompactFraming {
+	public static final field INSTANCE Lch/trancee/kompact/runtime/KompactFraming;
+	public static final field INVALID_LENGTH_PREFIX I
+	public final fun getVALID_PREFIX_WIDTHS ()Ljava/util/Set;
+	public final fun readLengthPrefix ([BII)I
+	public final fun readLengthPrefixOrThrow ([BII)I
+	public final fun readNested-uvoxsNM ([BII)J
+	public final fun readNestedOrThrow ([BII)Lkotlin/Pair;
+	public final fun writeLengthPrefix ([BIII)V
+}
+
+public final class ch/trancee/kompact/runtime/KompactResultExtensionsKt {
+	public static final fun getOrElse-04PP264 (JLkotlin/jvm/functions/Function1;)I
+	public static final fun getOrElse-8pLS_AI (JLkotlin/jvm/functions/Function1;)J
+	public static final fun getOrElse-9uUfFUU (JLkotlin/jvm/functions/Function1;)Lkotlin/Pair;
+	public static final fun getOrElse-ADvfuPU (JLkotlin/jvm/functions/Function1;)S
+	public static final fun getOrElse-H3jYHY4 (JLkotlin/jvm/functions/Function1;)B
+	public static final fun getOrElse-KHew9tA (JLkotlin/jvm/functions/Function1;)Z
+	public static final fun getOrElse-KRgI0Dk (JLkotlin/jvm/functions/Function1;)F
+	public static final fun getOrElse-Qr0ZSjM (JLkotlin/jvm/functions/Function1;)D
+	public static final fun map-04PP264 (JLkotlin/jvm/functions/Function1;)J
+	public static final fun map-8pLS_AI (JLkotlin/jvm/functions/Function1;)J
+	public static final fun map-9uUfFUU (JLkotlin/jvm/functions/Function1;)J
+	public static final fun map-ADvfuPU (JLkotlin/jvm/functions/Function1;)J
+	public static final fun map-H3jYHY4 (JLkotlin/jvm/functions/Function1;)J
+	public static final fun map-KHew9tA (JLkotlin/jvm/functions/Function1;)J
+	public static final fun map-KRgI0Dk (JLkotlin/jvm/functions/Function1;)J
+	public static final fun map-Qr0ZSjM (JLkotlin/jvm/functions/Function1;)J
+}
+
+public final class ch/trancee/kompact/runtime/KompactRuntime {
+	public static final field INSTANCE Lch/trancee/kompact/runtime/KompactRuntime;
+	public final fun fits ([BII)Z
+	public final fun readBits ([BII)I
+	public final fun readBitsBoolean ([BI)Z
+	public final fun readBitsLong ([BII)J
+	public final fun readBool-8-YI_fo ([BI)J
+	public final fun readBoolOrThrow ([BI)Z
+	public final fun readDouble-HEcpYgM ([BI)J
+	public final fun readDoubleOrThrow ([BI)D
+	public final fun readFloat-jORRDc0 ([BI)J
+	public final fun readFloatOrThrow ([BI)F
+	public final fun readScalar-Sza6B_M ([BII)J
+	public final fun readScalarAsLong-x9C6wVU ([BII)J
+	public final fun readScalarAsLongOrThrow-W6vtYLY ([BII)J
+	public final fun readScalarOrThrow-W6vtYLY ([BII)I
+	public final fun writeBits ([BIII)V
+	public final fun writeBitsBoolean ([BIZ)V
+	public final fun writeBitsLong ([BIIJ)V
+}
+
+public final class ch/trancee/kompact/runtime/KompactWriter {
+	public static final field Companion Lch/trancee/kompact/runtime/KompactWriter$Companion;
+	public fun <init> ()V
+	public final fun build ()[B
+	public final fun writeBits (II)V
+	public final fun writeBitsLong (IJ)V
+	public final fun writeBlob (I[B)V
+	public final fun writeBool (Z)V
+	public final fun writeNested (ILkotlin/jvm/functions/Function1;)V
+	public static synthetic fun writeNested$default (Lch/trancee/kompact/runtime/KompactWriter;ILkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun writeRepeated (IILkotlin/jvm/functions/Function1;)V
+	public static synthetic fun writeRepeated$default (Lch/trancee/kompact/runtime/KompactWriter;IILkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun writeScalar-jGvHgOk (IJ)V
+	public final fun writeString (ILjava/lang/String;)V
+}
+
+public final class ch/trancee/kompact/runtime/KompactWriter$Companion {
+}
+
+public final class ch/trancee/kompact/runtime/LongResult {
+	public static final field Companion Lch/trancee/kompact/runtime/LongResult$Companion;
+	public static final synthetic fun box-impl (J)Lch/trancee/kompact/runtime/LongResult;
+	public static fun constructor-impl (J)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public static final fun getError-impl (J)Lch/trancee/kompact/runtime/KompactDecodeError;
+	public static final fun getOrThrow-impl (J)J
+	public final fun getPacked ()J
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public static final fun isFailure-impl (J)Z
+	public static final fun isSuccess-impl (J)Z
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class ch/trancee/kompact/runtime/LongResult$Companion {
+	public final fun failure-cFSl1BI (Lch/trancee/kompact/runtime/KompactDecodeError;)J
+	public final fun success-cFSl1BI (J)J
+}
+
+public final class ch/trancee/kompact/runtime/NestedRegionResult {
+	public static final field Companion Lch/trancee/kompact/runtime/NestedRegionResult$Companion;
+	public static final synthetic fun box-impl (J)Lch/trancee/kompact/runtime/NestedRegionResult;
+	public static fun constructor-impl (J)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public static final fun getBitLength-impl (J)I
+	public static final fun getError-impl (J)Lch/trancee/kompact/runtime/KompactDecodeError;
+	public static final fun getOrThrow-impl (J)Lkotlin/Pair;
+	public final fun getPacked ()J
+	public static final fun getStartBit-impl (J)I
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public static final fun isFailure-impl (J)Z
+	public static final fun isSuccess-impl (J)Z
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class ch/trancee/kompact/runtime/NestedRegionResult$Companion {
+	public final fun failure-cKn3BhA (Lch/trancee/kompact/runtime/KompactDecodeError;)J
+	public final fun success-Q-eM5V4 (II)J
+}
+
+public final class ch/trancee/kompact/runtime/ScalarType {
+	public static final field Companion Lch/trancee/kompact/runtime/ScalarType$Companion;
+	public static final synthetic fun box-impl (I)Lch/trancee/kompact/runtime/ScalarType;
+	public static fun constructor-impl (I)I
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (ILjava/lang/Object;)Z
+	public static final fun equals-impl0 (II)Z
+	public static final fun getBitWidth-impl (I)I
+	public final fun getPacked ()I
+	public static final fun getSigned-impl (I)Z
+	public fun hashCode ()I
+	public static fun hashCode-impl (I)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (I)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()I
+}
+
+public final class ch/trancee/kompact/runtime/ScalarType$Companion {
+	public final fun getBOOL-DNq2C88 ()I
+	public final fun getINT_16-DNq2C88 ()I
+	public final fun getINT_32-DNq2C88 ()I
+	public final fun getINT_64-DNq2C88 ()I
+	public final fun getINT_8-DNq2C88 ()I
+	public final fun getUINT_16-DNq2C88 ()I
+	public final fun getUINT_32-DNq2C88 ()I
+	public final fun getUINT_64-DNq2C88 ()I
+	public final fun getUINT_8-DNq2C88 ()I
+	public final fun of-nauCYzU (IZ)I
+}
+
+public final class ch/trancee/kompact/runtime/ShortResult {
+	public static final field Companion Lch/trancee/kompact/runtime/ShortResult$Companion;
+	public static final synthetic fun box-impl (J)Lch/trancee/kompact/runtime/ShortResult;
+	public static fun constructor-impl (J)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public static final fun getError-impl (J)Lch/trancee/kompact/runtime/KompactDecodeError;
+	public static final fun getOrThrow-impl (J)S
+	public final fun getPacked ()J
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public static final fun isFailure-impl (J)Z
+	public static final fun isSuccess-impl (J)Z
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class ch/trancee/kompact/runtime/ShortResult$Companion {
+	public final fun failure-9iWuYEQ (Lch/trancee/kompact/runtime/KompactDecodeError;)J
+	public final fun success-9iWuYEQ (S)J
+}
+
