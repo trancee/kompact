@@ -39,5 +39,7 @@ jobs:
 
       - name: Sync or create release branch + PR
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: .github/scripts/release/manage-release-pr.sh
+        # RELEASE_PAT must be a repository-level secret (not just an
+        # environment secret) because this workflow runs without `environment:`.
