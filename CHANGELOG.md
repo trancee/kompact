@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Merge branch 'main' of https://github.com/trancee/kompact (994c5e5)
 
 
+### 📦 Other
+- fix(ksp): correct KSP 2.x service file path for provider discovery (5d34fdd)
+- Merge branch 'main' of https://github.com/trancee/kompact (994c5e5)
+
+
 
 
 ### ✨ Features
