@@ -60,7 +60,9 @@ afterEvaluate {
 
 // --- PGP signing (conditional on env vars) ---
 // See .env.example for the required variables. Signing only activates when
-// SIGNING_KEY is present — CI uses an ephemeral PGP key for dry-run verification.
+// SIGNING_KEY is present. SIGNING_KEY_ID must be the 8-char short key ID
+// (last 8 hex chars of the fingerprint); Gradle rejects 16-char IDs without
+// an 0x prefix.
 afterEvaluate {
     val signingKey = System.getenv("SIGNING_KEY")
     if (!signingKey.isNullOrBlank()) {

@@ -240,11 +240,28 @@ publishing {
 // Attach the Dokka Javadoc JAR to the JVM publication.
 // KGP auto-attaches jvmSourcesJar to the JVM publication; we only add dokkaJavadocJar.
 // KGP creates KMP publications during evaluation, so this runs after.
+//
+// The signing plugin (configured in portal-publish.gradle.kts) also runs an
+// afterEvaluate that calls sign(publishing.publications). Because convention-
+// plugin afterEvaluate callbacks fire before this block, the signing plugin does
+// not see dokkaJavadocJar when it wires up task dependencies. On Gradle 9.x
+// this triggers strict "implicit dependency" validation: publishAndroidPublication
+// picks up the .asc produced by signJvmPublication without declaring a dependency.
+// Fix: explicitly wire publish-to-bundleDir tasks to depend on all sign tasks
+// so every .asc output exists before any publish task runs.
+@Suppress("unused")
 afterEvaluate {
     publishing.publications.all {
         if (this is MavenPublication && (name == "jvm" || name == "android")) {
             artifact(dokkaJavadocJar.get())
         }
+    }
+    // Gradle 9.x strict task-dependency validation for shared artifacts.
+    val signTasks = tasks.matching { it.name.startsWith("sign") }
+    tasks.matching {
+        it.name.startsWith("publish") && it.name.contains("ToBundleDirRepository")
+    }.configureEach {
+        dependsOn(signTasks)
     }
 }
 
