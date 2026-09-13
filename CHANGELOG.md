@@ -4,7 +4,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.1.2] - 2026-09-13
+## [0.1.3] - 2026-09-13
+
+### 📦 Other
+- fix(ksp): compile against KSP 2.3.10 for cross-version compatibility (826578c)
+
 
 ### 📦 Other
 - fix(ksp): correct KSP 2.x service file path for provider discovery (5d34fdd)
