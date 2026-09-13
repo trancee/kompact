@@ -1,0 +1,184 @@
+name: Release Publish
+
+# Triggered when the "Release PR" (release/ongoing → main, labelled `release`)
+# is merged. Executes the full release: version bump, quality gates, tag,
+# build + sign, deploy to Central Portal, publish, and next-SNAPSHOT bump.
+#
+# The actual deploy/publish steps require manual approval via the `release`
+# GitHub Environment — the maintainer reviews the release PR body (changelog)
+# and clicks **Approve** on the environment gate.
+#
+# Security:
+#   - This workflow uses `pull_request_target` so it runs the trusted workflow
+#     code from the base branch (main), not the PR head. The `if` guard
+#     restricts execution to PRs with the `release` label that were merged.
+#   - Central Portal tokens and PGP key are GitHub Environment secrets
+#     (never in the repository). Credentials are passed as env vars to Gradle
+#     tasks that redact them in all log output (S1).
+
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: |
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'release')
+    runs-on: ubuntu-latest
+    outputs:
+      release_version: ${{ steps.version.outputs.release }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 36
+          build-tools: 36.0.0
+
+      - name: Set ANDROID_HOME
+        run: echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+      - name: Bump version to release
+        run: .github/scripts/release/version-bump.sh bump-release
+
+      - name: Generate CHANGELOG.md
+        run: .github/scripts/release/version-bump.sh changelog
+
+      - name: Extract version
+        id: version
+        run: |
+          echo "release=$(.github/scripts/release/version-bump.sh extract-release)" >> "$GITHUB_OUTPUT"
+
+      - name: Run quality gates
+        run: |
+          ./gradlew spotlessCheck \
+            :kompact:checkKotlinAbi \
+            :kompact:jvmTest \
+            :kompact:koverVerify \
+            :kompact:bundleAndroidMainAar \
+            :kompact-ksp:checkKotlinAbi \
+            :kompact-ksp:test \
+            :kompact-ksp:koverVerify \
+            --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+
+      - name: Commit version bump + tag
+        if: ${{ success() }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -am "release: ${{ steps.version.outputs.release }}"
+          git tag "v${{ steps.version.outputs.release }}"
+          git push origin main --tags
+
+  deploy:
+    needs: prepare
+    if: needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: "v${{ needs.prepare.outputs.release_version }}"
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Build + sign + assemble bundles
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          ./gradlew \
+            :kompact:publishAllPublicationsToBundleDirRepository \
+            :kompact:generateChecksums \
+            :kompact:assembleCentralBundle \
+            :kompact-ksp:publishAllPublicationsToBundleDirRepository \
+            :kompact-ksp:generateChecksums \
+            :kompact-ksp:assembleCentralBundle \
+            --no-daemon --console=plain
+
+      - name: Deploy to Central Portal
+        env:
+          CENTRAL_PORTAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_PORTAL_TOKEN_USERNAME }}
+          CENTRAL_PORTAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_PORTAL_TOKEN_PASSWORD }}
+        run: |
+          ./gradlew :kompact:centralPortalDeploy \
+            :kompact-ksp:centralPortalDeploy \
+            --no-daemon --console=plain
+
+      - name: Wait for validation + check status
+        env:
+          CENTRAL_PORTAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_PORTAL_TOKEN_USERNAME }}
+          CENTRAL_PORTAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_PORTAL_TOKEN_PASSWORD }}
+        run: |
+          echo "Polling Central Portal for validation status..."
+          SUCCESS=0
+          for i in $(seq 1 12); do
+            echo "  Attempt $i/12..."
+            set +e
+            ./gradlew :kompact:centralPortalStatus \
+              :kompact-ksp:centralPortalStatus \
+              --no-daemon --console=plain 2>&1 | tee /tmp/portal-status.txt
+            STATUS=$?
+            set -e
+            if [ $STATUS -eq 0 ]; then
+              echo "  ✅ Portal validation succeeded."
+              SUCCESS=1
+              break
+            fi
+            if grep -qiE 'validation failed' /tmp/portal-status.txt; then
+              echo "  ❌ Portal validation failed — check output above."
+              exit 1
+            fi
+            echo "  ⏳ Not ready yet, waiting 30s..."
+            sleep 30
+          done
+
+          if [ "$SUCCESS" -ne 1 ]; then
+            echo "  ❌ Max retries (12) exhausted — check Central Portal dashboard."
+            exit 1
+          fi
+
+      - name: Publish to Central Portal
+        env:
+          CENTRAL_PORTAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_PORTAL_TOKEN_USERNAME }}
+          CENTRAL_PORTAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_PORTAL_TOKEN_PASSWORD }}
+        run: |
+          ./gradlew :kompact:centralPortalPublish \
+            :kompact-ksp:centralPortalPublish \
+            --no-daemon --console=plain
+
+      - name: Bump to next SNAPSHOT + commit + delete release branch
+        if: ${{ success() }}
+        run: |
+          # deploy job checked out the release tag (detached HEAD).
+          # Bump to next SNAPSHOT in this detached state, then push to main.
+          NEXT="$(.github/scripts/release/version-bump.sh extract-next-snap)"
+          .github/scripts/release/version-bump.sh bump-next-snap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): bump to next SNAPSHOT ${NEXT}"
+          git push origin HEAD:main
+          git push origin --delete release/ongoing

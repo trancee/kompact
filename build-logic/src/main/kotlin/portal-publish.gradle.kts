@@ -217,7 +217,9 @@ tasks.register("centralPortalDeploy") {
 }
 
 // Check Central Portal deployment validation status by deployment ID.
-// NOTE: not exercised in CI (requires real credentials + prior deploy).
+// Parses the JSON "state" field and fails if the deployment is not yet
+// VALIDATED — this makes the status task usable in CI poll loops.
+// NOTE: not exercised in CI without real credentials + prior deploy.
 tasks.register("centralPortalStatus") {
     group = "publication"
     description = "Check Central Portal deployment validation status (requires prior deploy)"
@@ -234,8 +236,33 @@ tasks.register("centralPortalStatus") {
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build()
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-        logger.lifecycle("Central Portal deployment status for $deploymentId (HTTP ${response.statusCode()}):")
-        logger.lifecycle("Response body redacted — check Central Portal dashboard for details.")
+
+        // Parse the JSON "state" field — do NOT log the full response body (S1).
+        val responseBody = response.body()
+        val stateMatch = Regex("\"state\"\\s*:\\s*\"([^\"]+)\"").find(responseBody)
+        val state = stateMatch?.groupValues?.get(1)
+
+        logger.lifecycle("Central Portal status (HTTP ${response.statusCode()}):")
+        when {
+            state == null -> {
+                logger.lifecycle("  ⚠️ Could not parse state — check Central Portal dashboard.")
+                throw GradleException("Could not determine Portal deployment state.")
+            }
+
+            state == "VALIDATED" || state == "PUBLISHED" -> {
+                logger.lifecycle("  ✅ State: $state — deployment is ready.")
+            }
+
+            state == "FAILED" -> {
+                logger.lifecycle("  ❌ State: $state — deployment validation failed.")
+                throw GradleException("Portal deployment validation FAILED — check Central Portal dashboard.")
+            }
+
+            else -> {
+                logger.lifecycle("  ⏳ State: $state — not ready yet.")
+                throw GradleException("Portal deployment not ready (state=$state). Retrying...")
+            }
+        }
     }
 }
 
@@ -256,7 +283,11 @@ tasks.register("centralPortalPublish") {
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build()
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-        logger.lifecycle("Central Portal publish response (HTTP ${response.statusCode()}):")
-        logger.lifecycle("Response body redacted — check Central Portal dashboard for details.")
+        logger.lifecycle("Central Portal publish (HTTP ${response.statusCode()}):")
+        if (response.statusCode() !in 200..299) {
+            logger.lifecycle("  ❌ Publish failed.")
+            throw GradleException("Portal publish failed with HTTP ${response.statusCode()}")
+        }
+        logger.lifecycle("  ✅ Publish succeeded — artifact is now on Maven Central.")
     }
 }
