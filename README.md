@@ -145,12 +145,13 @@ bleCharacteristic.value = tel.raw
 stable and exercised by the `commonTest` suite. Publication is wired via
 standard `maven-publish` + `signing` + Dokka with a custom Central Portal
 Publisher API task (`centralPortalDeploy`, staging to `USER_MANAGED`). Maven
-coordinates `ch.trancee.kompact:kompact`, license Apache-2.0, but **no
+coordinates `ch.trancee.kompact:kompact`, license Unlicense (public domain),
+but **no
 release has been cut to Maven Central yet** — the Portal namespace, PGP key,
 and user token still require user authorization. Build from source or
 `./gradlew :kompact:publishToMavenLocal` and consume the local snapshot.
 
 ## License
 
-Apache License 2.0. See [`build.gradle.kts`](kompact/build.gradle.kts) for the
-full publication metadata.
+This is free and unencumbered software released into the public domain.
+See [`LICENSE`](LICENSE) for the full license text.

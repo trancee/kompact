@@ -38,7 +38,7 @@
   - `kompact-*-sources.jar` (sources for all targets)
   - `kompact-jvm-0.1.0-javadoc.jar` (JVM Javadoc — README.md content, per KMP/JDK25 Dokka V1/V2 incompatibility)
   - `kompact-0.1.0-kotlin-tooling-metadata.json` (root)
-- POMs and required metadata: POMs generated for `jvm`, `iosArm64`, `iosSimulatorArm64`, `kotlinMultiplatform` publications. All include: name, description, URL, Apache 2.0 license, developer (trancee/Philipp Grosswiler), SCM (git, github.com/trancee/kompact).
+- POMs and required metadata: POMs generated for `jvm`, `iosArm64`, `iosSimulatorArm64`, `kotlinMultiplatform` publications. All include: name, description, URL, **Unlicense** (public domain), developer (trancee/Philipp Grosswiler), SCM (git, github.com/trancee/kompact).
 - Sources artifacts: `jvmSourcesJar` (configured via KGP + common sources added via Groovy interop). Verified: `sourceArtifacts: true` in inspection.
 - Javadoc artifacts: `dokkaJavadocJar` task (`dokkaJavadocJar-0.1.0.jar`). Verified: `javadoc_files: true` in inspection.
 - PGP fingerprint and signature verification: **SIGNED** — all artifacts have `.asc` detached signatures (20 signature files across 4 publications). Signing uses in-memory PGP keys from env vars. Verified by successful `signJvmPublication`, `signIosArm64Publication`, `signIosSimulatorArm64Publication`, `signKotlinMultiplatformPublication` tasks.

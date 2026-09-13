@@ -36,8 +36,8 @@ afterEvaluate {
                 url.set("https://github.com/trancee/kompact")
                 licenses {
                     license {
-                        name.set("Apache License 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                        name.set("The Unlicense")
+                        url.set("https://unlicense.org")
                         distribution.set("repo")
                     }
                 }
