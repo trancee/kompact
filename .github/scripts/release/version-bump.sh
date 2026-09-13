@@ -60,9 +60,13 @@ _get_bump_type() {
 
   # Breaking change: any commit with "!" after type, or BREAKING CHANGE footer.
   # %b (body) is included above so the BREAKING CHANGE footer is visible.
-  if echo "$commits" | grep -qE '^(feat|fix|perf|refactor|build|chore|ci|style|test|docs)!:|BREAKING[ -]CHANGE'; then
+  # Use heredocs instead of echo|pipe|grep to avoid SIGPIPE (Broken pipe)
+  # with `set -o pipefail`: when grep -q exits early, echo gets SIGPIPE (141),
+  # which makes the pipeline non-zero, causing the if-condition to fail even
+  # when a match exists.
+  if grep -qE '^(feat|fix|perf|refactor|build|chore|ci|style|test|docs)!:|BREAKING[ -]CHANGE' <<< "$commits"; then
     echo "major"
-  elif echo "$commits" | grep -qE '^feat(:|[:(])'; then
+  elif grep -qE '^feat(:|[:(])' <<< "$commits"; then
     echo "minor"
   else
     echo "patch"
