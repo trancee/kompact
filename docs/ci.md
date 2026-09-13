@@ -274,20 +274,25 @@ The `release` GitHub Environment and its secrets are pre-configured:
 | `SIGNING_KEY_ID` | Environment secret (`release`) | Short 8-char PGP key ID |
 | `SIGNING_PASSWORD` | Environment secret (`release`) | PGP key passphrase |
 | **Required reviewer** | `release` environment | `trancee` must approve the `deploy` job |
-| `RELEASE_PAT` | Environment secret (`release`) | Personal Access Token (classic) from `trancee` with `public_repo` scope — required for `git push` to protected `main` |
+| `RELEASE_PAT` | Repository secret | Personal Access Token (classic) from `trancee` with `public_repo` scope — required for `git push` to protected `main`. Must be a **repo-level** secret (not env-level) because the `prepare` job and `release-pr.yml` don't use the `release` environment. The `deploy` job (which does use `release`) can read repo-level secrets. |
 
 All secrets are synced from `.env` (which is git-ignored). To re-sync:
 
 ```bash
 # .env must contain: CENTRAL_PORTAL_TOKEN_USERNAME, CENTRAL_PORTAL_TOKEN_PASSWORD,
 # SIGNING_KEY, SIGNING_KEY_ID (16-char long), SIGNING_PASSWORD, RELEASE_PAT
+
+# Set repo-level secret (release-pr.yml + prepare job):
+gh secret set RELEASE_PAT --repo trancee/kompact --body "$RELEASE_PAT"
+
+# Set environment-level secrets (deploy job):
 python3 -c "
 import os, subprocess
 env = {}
 for line in open('.env'):
     if '=' in line and not line.startswith('#'):
         k,v = line.strip().split('=',1); env[k]=v
-for k in ['CENTRAL_PORTAL_TOKEN_USERNAME','CENTRAL_PORTAL_TOKEN_PASSWORD','SIGNING_KEY','SIGNING_PASSWORD','RELEASE_PAT']:
+for k in ['CENTRAL_PORTAL_TOKEN_USERNAME','CENTRAL_PORTAL_TOKEN_PASSWORD','SIGNING_KEY','SIGNING_PASSWORD']:
     subprocess.run(['gh','secret','set',k,'--env','release','--body',env[k]])
 subprocess.run(['gh','secret','set','SIGNING_KEY_ID','--env','release','--body',env['SIGNING_KEY_ID'][-8:]])
 "
