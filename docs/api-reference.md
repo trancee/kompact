@@ -274,6 +274,21 @@ See [architecture — runtime error encoding](architecture.md#runtime-error-enco
 for the `LongResult` sentinel band and the
 `DoubleResult` NaN-payload layout.
 
+> **`LongResult` representable range (important)**  
+> Because every 64-bit pattern is a valid `Long`, success and failure cannot be
+> distinguished without reserving a sentinel band.  
+> `LongResult` treats the closed range  
+> `Long.MIN_VALUE .. Long.MIN_VALUE + (1L shl 58) - 1`  
+> (bit 63 set, bits 62..58 clear) as the **failure sentinel**.  
+> Those values are **not representable as success**. The first representable
+> negative success value is `Long.MIN_VALUE + (1L shl 58)`.  
+>  
+> This is a deliberate trade-off of packing a typed result into a single `Long`
+> with zero allocation. Realistic application values almost never land in the
+> band; if your domain legitimately needs values in that range, prefer a
+> different encoding or a non-result path. Full rationale lives in
+> [architecture.md § Runtime error encoding](architecture.md#runtime-error-encoding).
+
 ---
 
 ## NestedRegionResult
@@ -282,7 +297,7 @@ A typed result for parse-forward nested-region reads. Like the scalar
 result classes, it wraps a single `Long` and is zero-alloc.
 
 | Member | Description |
-| --- | --- | --- |
+| --- | --- |
 | `isSuccess: Boolean` | `true` iff a valid region was found. |
 | `isFailure: Boolean` | `true` iff the prefix was bad or the region truncated. |
 | `error: KompactDecodeError?` | The decoded error on failure, `null` on success. |
@@ -319,94 +334,61 @@ produces one.
 | `UnknownEnumCode(rawCode: Int)` | An enum ordinal decoded to a value outside the declared set. |
 
 `KompactDecodeException(error: KompactDecodeError)` is the only
-exception thrown by Kompact, and only by `getOrThrow()` / `readOrThrow()`
-recovery calls. It is not used on the success path.
+exception thrown by Kompact, and only by `getOrThrow()` / the `*OrThrow`
+accessors on the failure path.
 
 ---
 
 ## Extension functions
 
-`getOrElse` and `map` extensions on each result value class, specialized
-per type so no boxing occurs on the success path. These mirror
-`stdlib`'s `Result<T>.getOrElse` / `Result<T>.map` but are typed to the
-concrete result class — there is no generic `Result<T>` here.
+Each result class provides the same pair of recovery helpers. The full
+signatures (all 14) are listed below so the concrete return types are
+visible without a placeholder.
 
-Extensions exist for all seven scalar result classes plus
-`NestedRegionResult`. The table shows the shape for each type; the
-parameterized type matches the class's decoded primitive (`Byte`,
-`Short`, `Int`, `Long`, `Float`, `Double`, `Boolean`) or `NestedRegion`
-for `NestedRegionResult`.
-
-| Extension | Signature (shape) | Description |
-| --- | --- | --- |
-| `ByteResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Byte): Byte` | |
-| `ByteResult.map` | `map(transform: (Byte) -> Byte): ByteResult` | |
-| `ShortResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Short): Short` | |
-| `ShortResult.map` | `map(transform: (Short) -> Short): ShortResult` | |
-| `IntResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Int): Int` | Returns the decoded value on success; invokes `fallback(error)` on failure. |
-| `IntResult.map` | `map(transform: (Int) -> Int): IntResult` | Transforms the success value on success; returns the result unchanged on failure. |
-| `LongResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Long): Long` | |
-| `LongResult.map` | `map(transform: (Long) -> Long): LongResult` | |
-| `FloatResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Float): Float` | |
-| `FloatResult.map` | `map(transform: (Float) -> Float): FloatResult` | |
-| `DoubleResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Double): Double` | |
-| `DoubleResult.map` | `map(transform: (Double) -> Double): DoubleResult` | |
-| `BooleanResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> Boolean): Boolean` | |
-| `BooleanResult.map` | `map(transform: (Boolean) -> Boolean): BooleanResult` | |
-| `NestedRegionResult.getOrElse` | `getOrElse(fallback: (KompactDecodeError) -> NestedRegion): NestedRegion` | |
-| `NestedRegionResult.map` | `map(transform: (NestedRegion) -> NestedRegion): NestedRegionResult` | |
+| Extension | On | Signature | Description |
+| --- | --- | --- | --- |
+| `getOrElse` | `ByteResult` | `getOrElse(default: Byte): Byte` | Value on success, `default` on failure. |
+| `getOrElse` | `ShortResult` | `getOrElse(default: Short): Short` | Value on success, `default` on failure. |
+| `getOrElse` | `IntResult` | `getOrElse(default: Int): Int` | Value on success, `default` on failure. |
+| `getOrElse` | `LongResult` | `getOrElse(default: Long): Long` | Value on success, `default` on failure. |
+| `getOrElse` | `FloatResult` | `getOrElse(default: Float): Float` | Value on success, `default` on failure. |
+| `getOrElse` | `DoubleResult` | `getOrElse(default: Double): Double` | Value on success, `default` on failure. |
+| `getOrElse` | `BooleanResult` | `getOrElse(default: Boolean): Boolean` | Value on success, `default` on failure. |
+| `map` | `ByteResult` | `map(transform: (Byte) -> Byte): ByteResult` | Applies `transform` on success; propagates failure. |
+| `map` | `ShortResult` | `map(transform: (Short) -> Short): ShortResult` | Applies `transform` on success; propagates failure. |
+| `map` | `IntResult` | `map(transform: (Int) -> Int): IntResult` | Applies `transform` on success; propagates failure. |
+| `map` | `LongResult` | `map(transform: (Long) -> Long): LongResult` | Applies `transform` on success; propagates failure. |
+| `map` | `FloatResult` | `map(transform: (Float) -> Float): FloatResult` | Applies `transform` on success; propagates failure. |
+| `map` | `DoubleResult` | `map(transform: (Double) -> Double): DoubleResult` | Applies `transform` on success; propagates failure. |
+| `map` | `BooleanResult` | `map(transform: (Boolean) -> Boolean): BooleanResult` | Applies `transform` on success; propagates failure. |
 
 ---
 
-## Kompact.Result namespace
+## `Kompact.Result` namespace
 
-A top-level convenience object (`ch.trancee.kompact.Kompact`) that
-re-exports all seven result value classes under one import path, so a
-consumer can write `import ch.trancee.kompact.Kompact` and reference
-`Kompact.Result.Int`, `Kompact.Result.Boolean`, etc. without naming each
-type individually. This is purely a re-export — the seven top-level
-declarations in `ch.trancee.kompact.runtime` remain the canonical
-definitions.
+`ch.trancee.kompact.Kompact.Result` re-exports the seven result value
+classes under a single import path for convenience:
 
-| Alias | Re-exports |
-| --- | --- |
-| `Kompact.Result.Byte` | `ByteResult` |
-| `Kompact.Result.Short` | `ShortResult` |
-| `Kompact.Result.Int` | `IntResult` |
-| `Kompact.Result.Long` | `LongResult` |
-| `Kompact.Result.Float` | `FloatResult` |
-| `Kompact.Result.Double` | `DoubleResult` |
-| `Kompact.Result.Boolean` | `BooleanResult` |
+```kotlin
+import ch.trancee.kompact.Kompact.Result.IntResult
+import ch.trancee.kompact.Kompact.Result.LongResult
+// …
+```
 
 ---
 
 ## Annotations
 
-Source-retained (`AnnotationRetention.SOURCE`); **not** present at runtime.
-They document the layout and drive a `KompactProcessor` (KSP) code
-generator — the processor ships in the `kompact-ksp/` module and
-generates value-class view bodies from compile-time-validated field
-layouts (see [`architecture.md`](architecture.md#codegen-output-reference)
-for the emitted shape). See
-[`KompactFieldV1SurfaceTest`](../kompact/src/commonTest/kotlin/ch/trancee/kompact/runtime/KompactFieldV1SurfaceTest.kt)
-for the compile-time contract pinned by the test suite.
+The annotation surface is gated by `@KompactPreview` (opt-in). These
+annotations will drive the future KSP processor; today they are
+source-retained markers on the hand-written `VehicleTelemetry` example
+and any hand-written models.
 
-All annotations carry `@KompactPreview` and require opt-in (`@OptIn(KompactPreview::class)`).
-
-| Annotation | Target | Members |
+| Annotation | Package | Description |
 | --- | --- | --- |
-| `@KompactModel` | `CLASS` | — |
-| `@KompactField` | `PROPERTY` | `bitOffset: Int`, `bitWidth: Int`, `signed: Boolean = false`, `lengthPrefixWidth: Int = 8`, `isNested: Boolean = false`, `repeatCountWidth: Int = 8`, `enumWidth: Int = 0`, `defaultValue: String = ""` |
-
-`@KompactField` is the v1 schema metadata. `bitOffset` is zero-based
-and LSB-first; `bitWidth` is in `1..64` (use `32` for a 32-bit field).
-`signed` controls two's-complement sign extension on read. The default
-member values keep a plain `@KompactField(bitOffset, bitWidth)` scalar
-declaration valid.
-
-`@KompactPreview` is the API-preview opt-in marker (`@RequiresOptIn`,
-`Level.WARNING`, targets `CLASS`/`FUNCTION`/`PROPERTY`). Generated
-declarations carry it via `@file:OptIn(KompactPreview::class)`.
+| `@KompactPreview` | `ch.trancee.kompact.annotations` | Opt-in marker for the pre-stable annotation + codegen surface. |
+| `@KompactModel` | `ch.trancee.kompact.annotations` | Marks a value class as a Kompact model (future KSP input). |
+| `@KompactField` | `ch.trancee.kompact.annotations` | Declares a field's bit layout (`bitOffset`, `bitWidth`, `signed`, length/repeat prefix widths, nested flag, default). |
 
 ---
 
@@ -431,8 +413,8 @@ A 16-bit frame with this layout (LSB-first):
 | Member | Signature | Description |
 | --- | --- | --- |
 | `raw` | `val raw: ByteArray` | The backing wire-format buffer. Pass this directly to a BLE characteristic for transmission. |
-| `batteryStatus` | `var batteryStatus: Int` | 4 bits at offset 0. Getter calls `readScalar(...).getOrThrow()`; setter writes bits in-place via `writeBits`. |
-| `speed` | `var speed: Int` | 10 bits at offset 4. Getter calls `readScalar(...).getOrThrow()`; setter writes bits in-place via `writeBits`. |
+| `batteryStatus` | `var batteryStatus: Int` | 4 bits at offset 0. Getter calls `readScalar(...).getOrThrow()`; setter writes the low 4 bits in-place via `writeBits` (**no range check**). |
+| `speed` | `var speed: Int` | 10 bits at offset 4. Getter calls `readScalar(...).getOrThrow()`; setter writes the low 10 bits in-place via `writeBits` (**no range check**). |
 | `isMalfunctioning` | `var isMalfunctioning: Boolean` | 1 bit at offset 14. Getter calls `readBool(...).getOrThrow()`; setter writes a single bit in-place via `writeBitsBoolean`. |
 | `Companion.create` | `create(batteryStatus: Int, speed: Int, isMalfunctioning: Boolean): VehicleTelemetry` | Factory that encodes the three fields into a fresh 2-byte `ByteArray` via `KompactWriter` and wraps it. Use this for outbound frames. |
 
@@ -444,6 +426,17 @@ in-place — no copy, no allocation. Two `VehicleTelemetry` instances wrapping
 the same `raw` buffer will observe each other's writes. Pass `tel.raw`
 directly to a BLE characteristic for transmission. Full workflow:
 [`README.md`](../README.md#creating-and-modifying-frames).
+
+**Setters are unchecked bit writes.**  
+Getters use the checked path (`readScalar` / `readBool` + `getOrThrow()`).  
+Setters call the raw primitives (`writeBits` / `writeBitsBoolean`) and perform
+**no range validation**. Writing a value that does not fit the declared width
+(e.g. `tel.speed = 2000` into a 10-bit field) silently stores the low *N* bits.
+This mirrors the raw `KompactRuntime.writeBits` contract and keeps the
+write-through path allocation-free.  
+If you need validation, check the value before the assignment or construct the
+frame with `KompactWriter` / `VehicleTelemetry.create(...)`.  
+See also [ADR-0001](adr/0001-mutable-view-classes-with-write-through-setters.md).
 
 ---
 
