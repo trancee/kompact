@@ -73,12 +73,26 @@ _get_bump_type() {
   fi
 }
 
-# Compute the release version from the current SNAPSHOT version and
-# Conventional Commits since the last tag.
-# Example: 0.2.0-SNAPSHOT + "feat:" commits → 0.3.0
+# Compute the release version from the last release tag + Conventional Commits
+# since that tag. The base version comes from the tag (e.g. v0.1.0 → 0.1.0),
+# NOT from the current SNAPSHOT — the SNAPSHOT already incorporates the bump
+# from the previous release, so basing on it would double-count.
+# Example: tag v0.1.0 + "feat:" commit → 0.2.0 (not 0.3.0)
 compute_release_version() {
-  local base bump major minor patch
-  base="$(extract_release)"
+  local base bump major minor patch last_tag
+
+  # Prefer the last release tag for the base version. Falls back to
+  # stripping -SNAPSHOT from build.gradle.kts when git is unavailable.
+  if git rev-parse --git-dir >/dev/null 2>&1; then
+    last_tag="$(git describe --tags --match 'v[0-9]*.*' --abbrev=0 2>/dev/null || true)"
+    if [ -n "$last_tag" ]; then
+      base="${last_tag#v}"  # Strip 'v' prefix, e.g. v0.1.0 → 0.1.0
+    else
+      base="$(extract_release)"
+    fi
+  else
+    base="$(extract_release)"
+  fi
 
   # Parse major.minor.patch
   IFS='.' read -r major minor patch <<<"$base"
