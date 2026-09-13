@@ -53,6 +53,13 @@ _get_bump_type() {
     commits="$(git log --oneline --pretty=format:'%s%n%b' 2>/dev/null || true)"
   fi
 
+  # Filter out release-process commits (any (release) scope or release: prefix)
+  # so they don't affect version bumps or changelog entries. These commits are
+  # infrastructure/process changes (e.g. "feat(release): add workflow_dispatch",
+  # "chore(release): bump to SNAPSHOT", "fix(release): update regex") and should
+  # not trigger version increments or appear in the changelog.
+  commits="$(grep -vE '^(release:|[^()]*\(release\):)' <<< "$commits" || true)"
+
   if [ -z "$commits" ]; then
     echo "patch"
     return
@@ -158,8 +165,8 @@ generate_changelog() {
     commits="$(git log --oneline --pretty=format:'%s (%h)' 2>/dev/null || true)"
   fi
 
-  # Filter out release/version-bump noise.
-  raw_entries="$(echo "$commits" | grep -vE '^(release:|chore\(release\):)' || true)"
+  # Filter out release-process noise: any (release) scope or release: prefix.
+  raw_entries="$(echo "$commits" | grep -vE '^(release:|[^()]*\(release\):)' || true)"
 
   # Group by Conventional Commit type.
   local feat fix breaking other
