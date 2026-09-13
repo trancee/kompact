@@ -274,23 +274,39 @@ The `release` GitHub Environment and its secrets are pre-configured:
 | `SIGNING_KEY_ID` | Environment secret (`release`) | Short 8-char PGP key ID |
 | `SIGNING_PASSWORD` | Environment secret (`release`) | PGP key passphrase |
 | **Required reviewer** | `release` environment | `trancee` must approve the `deploy` job |
+| `RELEASE_PAT` | Environment secret (`release`) | Personal Access Token (classic) from `trancee` with `public_repo` scope — required for `git push` to protected `main` |
 
 All secrets are synced from `.env` (which is git-ignored). To re-sync:
 
 ```bash
 # .env must contain: CENTRAL_PORTAL_TOKEN_USERNAME, CENTRAL_PORTAL_TOKEN_PASSWORD,
-# SIGNING_KEY, SIGNING_KEY_ID (16-char long), SIGNING_PASSWORD
+# SIGNING_KEY, SIGNING_KEY_ID (16-char long), SIGNING_PASSWORD, RELEASE_PAT
 python3 -c "
 import os, subprocess
 env = {}
 for line in open('.env'):
     if '=' in line and not line.startswith('#'):
         k,v = line.strip().split('=',1); env[k]=v
-for k in ['CENTRAL_PORTAL_TOKEN_USERNAME','CENTRAL_PORTAL_TOKEN_PASSWORD','SIGNING_KEY','SIGNING_PASSWORD']:
+for k in ['CENTRAL_PORTAL_TOKEN_USERNAME','CENTRAL_PORTAL_TOKEN_PASSWORD','SIGNING_KEY','SIGNING_PASSWORD','RELEASE_PAT']:
     subprocess.run(['gh','secret','set',k,'--env','release','--body',env[k]])
 subprocess.run(['gh','secret','set','SIGNING_KEY_ID','--env','release','--body',env['SIGNING_KEY_ID'][-8:]])
 "
 ```
+
+### Branch protection
+
+The `main` branch is protected with:
+- **Required status checks:** the `CI` workflow must pass
+- **Required pull request reviews:** 1 approving review, stale reviews dismissed
+- **No force pushes, no deletions**
+- **`enforce_admins` disabled** — repo admins bypass all restrictions
+
+The `release-publish.yml` workflow pushes version-bump commits and tags directly to
+`main` using a **PAT** (`RELEASE_PAT`) from the repo owner, not the default
+`GITHUB_TOKEN`. The default `GITHUB_TOKEN` authenticates as `github-actions[bot]`
+(a Bot type), which cannot be added as a bypass actor on a personal-account
+repository. The admin PAT satisfies `enforce_admins: false`, allowing the release
+workflow to push without going through a PR.
 
 ### Failure recovery
 
