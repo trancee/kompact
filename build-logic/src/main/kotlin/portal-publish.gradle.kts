@@ -219,7 +219,7 @@ tasks.register("centralPortalDeploy") {
 }
 
 // Check Central Portal deployment validation status by deployment ID.
-// Parses the JSON "state" field and fails if the deployment is not yet
+// Parses the JSON "deploymentState" field and fails if the deployment is not yet
 // VALIDATED — this makes the status task usable in CI poll loops.
 // NOTE: not exercised in CI without real credentials + prior deploy.
 tasks.register("centralPortalStatus") {
@@ -239,9 +239,11 @@ tasks.register("centralPortalStatus") {
                 .build()
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
 
-        // Parse the JSON "state" field — do NOT log the full response body (S1).
+        // Parse the JSON "deploymentState" field — do NOT log the full
+        // response body (S1). The API returns {"deploymentId": ...,
+        // "deploymentName": ..., "deploymentState": "VALIDATED", ...}.
         val responseBody = response.body()
-        val stateMatch = Regex("\"state\"\\s*:\\s*\"([^\"]+)\"").find(responseBody)
+        val stateMatch = Regex("\"deploymentState\"\\s*:\\s*\"([^\"]+)\"").find(responseBody)
         val state = stateMatch?.groupValues?.get(1)
 
         logger.lifecycle("Central Portal status (HTTP ${response.statusCode()}):")
@@ -282,12 +284,16 @@ tasks.register("centralPortalPublish") {
                 .newBuilder()
                 .uri(URI.create("https://central.sonatype.com/api/v1/publisher/deployment/$deploymentId"))
                 .header("Authorization", "Bearer $credentials")
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build()
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
         logger.lifecycle("Central Portal publish (HTTP ${response.statusCode()}):")
         if (response.statusCode() !in 200..299) {
-            logger.lifecycle("  ❌ Publish failed.")
+            // Log the response body for debugging — redact any token-like strings (S1).
+            val body = response.body().takeIf { it.isNotBlank() } ?: "<empty>"
+            logger.lifecycle("  ❌ Publish failed. Response: $body")
             throw GradleException("Portal publish failed with HTTP ${response.statusCode()}")
         }
         logger.lifecycle("  ✅ Publish succeeded — artifact is now on Maven Central.")
