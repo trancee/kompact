@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+.kotlin/
+.poolside/
+build/
+out/
+gradle/wrapper/dists/
+
+# Artifacts
+*.jar
+*.war
+*.class
+*.klib
+*.knp
+# The Gradle wrapper jar MUST be committed (gradle/wrapper/gradle-wrapper.jar) so
+# `./gradlew` works in CI/dev — un-ignore it despite the *.jar rule above.
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+local.properties
+
+# OS
+.DS_Store
+
+# Tooling / environment (not part of the library)
+.codebase-memory/
+.poolside/
+.env
+
+# Generated Dokka GFM Markdown API reference for the kompact module. The rendered
+# site in docs/api/ is committed (so the in-repo api-reference.md pointer is
+# always live); regenerate with `:kompact:dokkaGeneratePublicationMarkdown`.
+# KDoc in commonMain is the source of truth for the API surface.
