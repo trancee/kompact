@@ -96,7 +96,12 @@ jobs:
           # Gradle signing plugin requires short key ID (8 hex chars), not the long
           # (16 hex chars) form that --with-colons outputs.
           echo "SIGNING_KEY_ID=$(gpg --list-secret-keys --with-colons ci@kompact.dev | awk -F: '/^sec:/ {print substr($5, length($5)-7)}')" >> $GITHUB_ENV
-          echo "SIGNING_KEY=$(gpg --batch --armor --export-secret-keys ci@kompact.dev)" >> $GITHUB_ENV
+          # SIGNING_KEY is multi-line (ASCII-armored PGP) — must use GitHub Actions'
+          # multi-line env syntax (key<<DELIMITER\nvalue\nDELIMITER) so the env file
+          # parser doesn't choke on embedded newlines in the PGP block.
+          echo "SIGNING_KEY<<EOF" >> $GITHUB_ENV
+          gpg --batch --armor --export-secret-keys ci@kompact.dev >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
           echo "SIGNING_PASSWORD=" >> $GITHUB_ENV
       - name: KSP Portal dry-run (checksums + bundle)
         run: |
