@@ -18,10 +18,12 @@ plugins {
 }
 
 kotlin {
-    // KSP 2.3.12 pairs with Kotlin 2.4.20 (per Kotlin docs). The KSP processor
-    // loads into the consumer's Kotlin compile daemon; JVM 17 bytecode ensures
-    // compatibility with consumers on JDK 17+ (the KSP plugin rejects jvmTarget=21
-    // when the consumer runs JDK 17).
+    // KSP 2.3.10 pairs with Kotlin 2.4.20 (per Kotlin docs — KSP version track diverges
+    // from Kotlin's; `ksp = "2.4.20"` will NOT resolve). Compiled against the lowest
+    // supported KSP 2.3.x so the binary-compatible validate$default call works for
+    // all consumers on KSP 2.3.10–2.3.12+. The KSP processor loads into the consumer's
+    // Kotlin compile daemon; JVM 17 bytecode ensures compatibility with consumers on
+    // JDK 17+ (the KSP plugin rejects jvmTarget=21 when the consumer runs JDK 17).
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }

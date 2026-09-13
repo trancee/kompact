@@ -39,7 +39,7 @@ internal class KompactSymbolProcessor(
         val declarations =
             symbols
                 .filterIsInstance<KSClassDeclaration>()
-                .filter { it.validate(enableNewFeatures = true) }
+                .filter { it.validate { _, _ -> true } }
                 .toList()
 
         if (declarations.isEmpty()) return emptyList()
