@@ -12,7 +12,7 @@ plugins {
 
 allprojects {
     group = "ch.trancee.kompact"
-    version = "0.1.3"
+    version = "0.2.0-SNAPSHOT"
 }
 
 // Spotless: ktlint-based formatting for all Kotlin source and Gradle Kotlin DSL files.
