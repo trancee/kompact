@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 
 ### 📦 Other
+- fix(ksp): compile against KSP 2.3.10 for cross-version compatibility (826578c)
+
+
+### 📦 Other
 - fix(ksp): correct KSP 2.x service file path for provider discovery (5d34fdd)
 - Merge branch 'main' of https://github.com/trancee/kompact (994c5e5)
 
