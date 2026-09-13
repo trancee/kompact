@@ -14,7 +14,7 @@
 #
 # Usage:
 #   version-bump.sh extract-release   # print computed release version
-#   version-bump.sh extract-next-snap # print next SNAPSHOT (always patch+1)
+#   version-bump.sh extract-next-snap # print next SNAPSHOT (minor+1 from release)
 #   version-bump.sh bump-release      # -SNAPSHOT -> computed release in build.gradle.kts
 #   version-bump.sh bump-next-snap    # release -> next -SNAPSHOT in build.gradle.kts
 #   version-bump.sh changelog         # generate/update CHANGELOG.md for release

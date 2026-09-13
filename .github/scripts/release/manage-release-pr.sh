@@ -44,21 +44,21 @@ EOF
 
 if git ls-remote --heads origin "${RELEASE_BRANCH}" | grep -q "${RELEASE_BRANCH}"; then
   echo "::group::Syncing release branch with main"
-  git fetch origin "${RELEASE_BRANCH}:${RELEASE_BRANCH}"
+  git fetch origin "${RELEASE_BRANCH}"
   git checkout "${RELEASE_BRANCH}"
-  git merge "origin/main" --ff-only
-  git push origin "${RELEASE_BRANCH}"
+  # Reset to origin/main (discards stale CHANGELOG commit) then regenerate.
+  git reset --hard origin/main
 
   # Generate CHANGELOG.md from Conventional Commits since the last tag.
   # This file is committed to release/ongoing to give the PR a meaningful diff.
   .github/scripts/release/version-bump.sh changelog
 
-  # If the branch is identical to main (no diff), commit CHANGELOG.md
-  # so GitHub can render the PR with reviewable content.
-  if ! git diff --quiet "origin/main"; then
+  # If the CHANGELOG differs from main, commit and push (force, since we
+  # reset the branch above).
+  if ! git diff --quiet; then
     git add CHANGELOG.md
     git commit -m "docs(release): add CHANGELOG for v${VERSION}"
-    git push origin "${RELEASE_BRANCH}"
+    git push origin "${RELEASE_BRANCH}" --force-with-lease
   fi
 
   PR_NUMBER="$(gh pr list --head "${RELEASE_BRANCH}" --base main --state open --label release --json number --template '{{range .}}{{.number}}{{end}}')"
