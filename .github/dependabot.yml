@@ -9,3 +9,20 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    ignore:
+      # kotlin-gradle-plugin is a transitive dependency of the kotlin-dsl
+      # convention plugin (used in build-logic/). Its version is determined by
+      # the Gradle runtime (Kotlin 2.4.0 bundled with Gradle 9.7.1), not by
+      # the project's version catalog (Kotlin 2.4.20). It cannot be overridden
+      # without upgrading Gradle.
+      #
+      # Dependabot's updater cannot resolve this transitive dependency in the
+      # Gradle snapshot, causing it to report dependency_not_found and mark
+      # the entire 'gradle' group as "no dependencies match".
+      #
+      # Security: CVE-2026-53914 (Kotlin build cache unsafe deserialization,
+      # fixed in 2.4.20) affects the bundled 2.4.0, but the attack vector is
+      # mitigated in CI via --no-build-cache and the main project already
+      # uses Kotlin 2.4.20. Remove this ignore once a Gradle version bundling
+      # Kotlin 2.4.20+ is available.
+      - dependency-name: "org.jetbrains.kotlin:kotlin-gradle-plugin"
