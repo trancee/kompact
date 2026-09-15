@@ -4,7 +4,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.1.3] - 2026-09-13
+## [0.1.4] - 2026-09-15
+
+### 📦 Other
+- chore(deps): bump ksp from 2.3.10 to 2.3.12 (#45) (29d963f)
+- fix(deps): ignore kotlin-gradle-plugin in Dependabot config (dbaf3fd)
+- fix(ci): use packages input for setup-android@v4 on macOS (b398167)
+- fix(ksp): restore 100% kover coverage after round-safety refactor (f6ae98e)
+- fix(ksp): round-safety + KMP expect/actual split via kompact.generate mode (b11a1b4)
+
 
 ### 📦 Other
 - fix(ksp): compile against KSP 2.3.10 for cross-version compatibility (826578c)
