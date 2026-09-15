@@ -43,11 +43,14 @@ jobs:
           cache: gradle
       # Android SDK required for ABI check + dokka Markdown (which analyses
       # compiled classes for all targets including Android).
+      # v4 of setup-android uses the `packages` input (not api-level/build-tools
+      # which were removed). The `tools` package is deprecated; installing only
+      # platform-tools here. AGP downloads platforms;android-36 and
+      # build-tools;36.0.0 on-demand during the build.
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
-          api-level: 36
-          build-tools: 36.0.0
+          packages: "platform-tools"
       - name: Set ANDROID_HOME
         run: echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
       - run: ./gradlew spotlessCheck :kompact:checkKotlinAbi :kompact-ksp:checkKotlinAbi --no-daemon --rerun-tasks --no-build-cache --warning-mode all
