@@ -3,9 +3,11 @@ package ch.trancee.kompact.ksp
 import ch.trancee.kompact.ksp.testing.FakeCodeGenerator
 import ch.trancee.kompact.ksp.testing.FakeKSAnnotation
 import ch.trancee.kompact.ksp.testing.FakeKSClassDeclaration
+import ch.trancee.kompact.ksp.testing.FakeKSPLogger
 import ch.trancee.kompact.ksp.testing.FakeKSPropertyDeclaration
 import ch.trancee.kompact.ksp.testing.FakeResolver
 import ch.trancee.kompact.ksp.testing.buildModelDeclaration
+import ch.trancee.kompact.ksp.testing.createTestEnvironment
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -15,6 +17,20 @@ import kotlin.test.assertTrue
  * warning behaviour, and the return value of [SymbolProcessor.process].
  */
 class KompactSymbolProcessorFlowTest {
+    @Test
+    fun process_emptyResolver_returnsEmptyListImmediately() {
+        val (processor, codeGen, _) = createTestSetup()
+
+        // No @KompactModel symbols at all — process() should short-circuit
+        // before entering the forEach loop.
+        val resolver = FakeResolver(emptyList())
+
+        val result = processor.process(resolver)
+
+        assertEquals(0, result.size)
+        assertTrue(codeGen.generatedFiles.isEmpty())
+    }
+
     @Test
     fun process_modelWithNoFields_logsWarningAndSkipsFiles() {
         val (processor, codeGen, logger) = createTestSetup()
@@ -306,5 +322,77 @@ class KompactSymbolProcessorFlowTest {
 
         assertTrue(logger.warnings.any { it.contains("has no @KompactField fields") })
         assertTrue(codeGen.generatedFiles.isEmpty())
+    }
+
+    @Test
+    fun process_modelWithNullQualifiedName_defersSymbol() {
+        val (processor, codeGen, _) = createTestSetup()
+
+        // A declaration with a null qualifiedName cannot be tracked in
+        // processedSymbols, so it must be deferred (returned) rather than
+        // attempted — processModel would NPE on the null package.
+        val model =
+            FakeKSClassDeclaration(
+                simpleNameStr = "NoQualifiedModel",
+                packageNameStr = "ch.trancee.test",
+                properties =
+                    listOf(
+                        FakeKSPropertyDeclaration(
+                            "field",
+                            "ch.trancee.test",
+                            "Int",
+                            declAnnotations =
+                                listOf(
+                                    FakeKSAnnotation(
+                                        "ch.trancee.kompact.annotations.KompactField",
+                                        mapOf("bitOffset" to 0, "bitWidth" to 16),
+                                    ),
+                                ),
+                        ),
+                    ),
+                declAnnotations =
+                    listOf(FakeKSAnnotation("ch.trancee.kompact.annotations.KompactModel")),
+                nullQualifiedName = true,
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        val result = processor.process(resolver)
+
+        assertEquals(1, result.size)
+        assertEquals(model, result[0])
+        assertTrue(codeGen.generatedFiles.isEmpty())
+    }
+
+    @Test
+    fun process_duplicateFileInSeparateProcessor_warnsAndContinues() {
+        // When a second processor instance (fresh processedSymbols set) re-processes
+        // the same model, the FakeCodeGenerator(throwOnDuplicate=true) throws
+        // FileAlreadyExistsException from createNewFile. The writeFile catch
+        // should swallow it, log a warning, and NOT defer the symbol.
+        val logger = FakeKSPLogger()
+        val codeGen = FakeCodeGenerator(throwOnDuplicate = true)
+
+        val model =
+            buildModelDeclaration(
+                className = "DuplicateModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        val env1 = createTestEnvironment(codeGenerator = codeGen, logger = logger)
+        val processor1 = KompactSymbolProcessorProvider().create(env1)
+        processor1.process(resolver)
+
+        // Fresh processor — does NOT know about DuplicateModel, so it will try
+        // to write the same file. FakeCodeGenerator throws FileAlreadyExistsException.
+        val env2 = createTestEnvironment(codeGenerator = codeGen, logger = logger)
+        val processor2 = KompactSymbolProcessorProvider().create(env2)
+        val result = processor2.process(resolver)
+
+        // The FileAlreadyExistsException was caught inside writeFile, so the
+        // symbol was NOT deferred — processModel completed successfully.
+        assertEquals(0, result.size)
+        assertTrue(logger.warnings.any { it.contains("already exists") })
     }
 }

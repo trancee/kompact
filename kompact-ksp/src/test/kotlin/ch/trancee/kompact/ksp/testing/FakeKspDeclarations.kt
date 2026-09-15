@@ -111,7 +111,8 @@ class FakeKSClassDeclaration(
     packageNameStr: String,
     private val properties: List<KSPropertyDeclaration> = emptyList(),
     declAnnotations: List<KSAnnotation> = emptyList(),
-) : FakeKSDeclaration(simpleNameStr, packageNameStr, declAnnotations),
+    nullQualifiedName: Boolean = false,
+) : FakeKSDeclaration(simpleNameStr, packageNameStr, declAnnotations, nullQualifiedName),
     KSClassDeclaration {
     override val classKind: ClassKind = ClassKind.CLASS
     override val primaryConstructor: KSFunctionDeclaration? = null

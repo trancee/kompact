@@ -83,12 +83,12 @@ internal class KompactSymbolProcessor(
         val deferred = mutableListOf<KSAnnotated>()
 
         declarations.forEach { declaration ->
-            val key =
-                declaration.qualifiedName?.asString() ?: run {
-                    // No qualified name — defer for next round when it may be resolved
-                    deferred.add(declaration)
-                    return@forEach
-                }
+            val key: String? = declaration.qualifiedName?.asString()
+            if (key == null) {
+                // No qualified name — defer for next round when it may be resolved
+                deferred.add(declaration)
+                return@forEach
+            }
 
             if (key in processedSymbols) {
                 // Already processed in a previous round — skip, don't re-queue
