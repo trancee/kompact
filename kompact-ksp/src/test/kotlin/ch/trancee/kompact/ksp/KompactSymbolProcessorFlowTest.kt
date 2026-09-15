@@ -212,7 +212,7 @@ class KompactSymbolProcessorFlowTest {
     }
 
     @Test
-    fun process_validModel_returnsProcessedDeclarations() {
+    fun process_validModel_returnsEmptyListWhenProcessed() {
         val (processor, _, _) = createTestSetup()
 
         val model =
@@ -225,11 +225,39 @@ class KompactSymbolProcessorFlowTest {
 
         val result = processor.process(resolver)
 
-        assertEquals(1, result.size)
+        // After processing, all symbols are consumed — return empty (not the
+        // processed declarations). Only un-processed symbols get deferred.
+        assertEquals(0, result.size)
     }
 
     @Test
-    fun process_whenWriteFileThrows_logsError() {
+    fun process_secondRound_doesNotReprocessOrCrash() {
+        val (processor, codeGen, logger) = createTestSetup()
+
+        val model =
+            buildModelDeclaration(
+                className = "RoundModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        // Round 1 — processes the symbol
+        val result1 = processor.process(resolver)
+        assertEquals(0, result1.size)
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.RoundModelGen.kt"))
+        val filesAfterRound1 = codeGen.generatedFiles.size
+
+        // Round 2 (KSP re-queueing the same symbols) — must not crash with
+        // FileAlreadyExistsException; must not duplicate files.
+        val result2 = processor.process(resolver)
+        assertEquals(0, result2.size)
+        assertEquals(filesAfterRound1, codeGen.generatedFiles.size)
+        assertTrue(logger.warnings.none { it.contains("already exists") })
+    }
+
+    @Test
+    fun process_whenWriteFileThrows_defersSymbol() {
         val (processor, _, logger) = createTestSetup(codeGen = FakeCodeGenerator(throwOnWrite = true))
 
         val model =
@@ -240,12 +268,10 @@ class KompactSymbolProcessorFlowTest {
             )
         val resolver = FakeResolver(listOf(model))
 
-        processor.process(resolver)
-
-        assertTrue(
-            logger.errors.any { it.contains("failed to process") },
-            "Expected error log when writeFile throws",
-        )
+        // The symbol should be deferred (returned) so KSP can retry
+        val result = processor.process(resolver)
+        assertEquals(1, result.size)
+        assertTrue(logger.errors.any { it.contains("failed to process") })
     }
 
     @Test

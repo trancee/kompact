@@ -11,6 +11,7 @@ import com.google.devtools.ksp.symbol.Location
 import com.google.devtools.ksp.symbol.NonExistLocation
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
+import java.nio.file.FileAlreadyExistsException
 
 // ------------------------------------------------------------------
 // KSName
@@ -82,6 +83,7 @@ class FakeKSPLogger : KSPLogger {
 
 class FakeCodeGenerator(
     private val throwOnWrite: Boolean = false,
+    private val throwOnDuplicate: Boolean = false,
 ) : CodeGenerator {
     val generatedFiles: MutableMap<String, String> = mutableMapOf()
 
@@ -92,6 +94,11 @@ class FakeCodeGenerator(
         extensionName: String,
     ): OutputStream {
         val key = "$packageName.$fileName.$extensionName"
+        if (throwOnDuplicate && generatedFiles.containsKey(key)) {
+            throw FileAlreadyExistsException(
+                "FakeKsp: file $key already exists",
+            )
+        }
         val baos = ByteArrayOutputStream()
         return object : OutputStream() {
             override fun write(b: Int) {

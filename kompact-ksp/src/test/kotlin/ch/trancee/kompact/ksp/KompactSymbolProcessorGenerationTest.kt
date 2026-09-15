@@ -43,8 +43,8 @@ class KompactSymbolProcessorGenerationTest {
         processor.process(resolver)
 
         assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.MyModelGen.kt"))
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.jvm.MyModelGenJvm.kt"))
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.ios.MyModelGenIos.kt"))
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.MyModelGenJvm.kt"))
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.MyModelGenIos.kt"))
     }
 
     @Test
@@ -83,7 +83,7 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        val jvmContent = codeGen.generatedFiles["ch.trancee.test.jvm.MyModelGenJvm.kt"]!!
+        val jvmContent = codeGen.generatedFiles["ch.trancee.test.MyModelGenJvm.kt"]!!
         assertTrue(jvmContent.contains("package ch.trancee.test"))
         assertTrue(jvmContent.contains("@JvmInline"))
         assertTrue(jvmContent.contains("actual value class MyModel"))
@@ -106,7 +106,7 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        val iosContent = codeGen.generatedFiles["ch.trancee.test.ios.MyModelGenIos.kt"]!!
+        val iosContent = codeGen.generatedFiles["ch.trancee.test.MyModelGenIos.kt"]!!
         assertTrue(iosContent.contains("package ch.trancee.test"))
         assertTrue(iosContent.contains("actual value class MyModel"))
         assertTrue(iosContent.contains("actual var"))
@@ -126,7 +126,7 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        val jvmContent = codeGen.generatedFiles["ch.trancee.test.jvm.BoolModelGenJvm.kt"]!!
+        val jvmContent = codeGen.generatedFiles["ch.trancee.test.BoolModelGenJvm.kt"]!!
         assertTrue(jvmContent.contains("readBitsBoolean"))
         assertTrue(jvmContent.contains("writeBitsBoolean"))
     }
@@ -145,7 +145,7 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        val jvmContent = codeGen.generatedFiles["ch.trancee.test.jvm.LongModelGenJvm.kt"]!!
+        val jvmContent = codeGen.generatedFiles["ch.trancee.test.LongModelGenJvm.kt"]!!
         assertTrue(jvmContent.contains("readBitsLong"))
         assertTrue(jvmContent.contains("writeBitsLong"))
     }
@@ -164,7 +164,7 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        val jvmContent = codeGen.generatedFiles["ch.trancee.test.jvm.FloatModelGenJvm.kt"]!!
+        val jvmContent = codeGen.generatedFiles["ch.trancee.test.FloatModelGenJvm.kt"]!!
         assertTrue(jvmContent.contains("Float.fromBits"))
         assertTrue(jvmContent.contains("readBitsLong"))
     }
@@ -183,8 +183,74 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        val jvmContent = codeGen.generatedFiles["ch.trancee.test.jvm.DoubleModelGenJvm.kt"]!!
+        val jvmContent = codeGen.generatedFiles["ch.trancee.test.DoubleModelGenJvm.kt"]!!
         assertTrue(jvmContent.contains("Double.fromBits"))
         assertTrue(jvmContent.contains("readBitsLong"))
+    }
+
+    @Test
+    fun process_generateModeCommon_emitsOnlyExpectFile() {
+        val (processor, codeGen, _) = createTestSetup(mode = "common")
+
+        val model =
+            buildModelDeclaration(
+                className = "ModeModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.ModeModelGen.kt"))
+        assertTrue(codeGen.generatedFiles["ch.trancee.test.ModeModelGen.kt"]!!.contains("expect"))
+        assertTrue(
+            codeGen.generatedFiles.size == 1,
+            "Common mode should emit only 1 file, got ${codeGen.generatedFiles.size}",
+        )
+    }
+
+    @Test
+    fun process_generateModeJvm_emitsOnlyJvmActualFile() {
+        val (processor, codeGen, _) = createTestSetup(mode = "jvm")
+
+        val model =
+            buildModelDeclaration(
+                className = "ModeModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.ModeModelGenJvm.kt"))
+        assertTrue(codeGen.generatedFiles["ch.trancee.test.ModeModelGenJvm.kt"]!!.contains("@JvmInline"))
+        assertTrue(
+            codeGen.generatedFiles.size == 1,
+            "JVM mode should emit only 1 file, got ${codeGen.generatedFiles.size}",
+        )
+    }
+
+    @Test
+    fun process_generateModeIos_emitsOnlyIosActualFile() {
+        val (processor, codeGen, _) = createTestSetup(mode = "ios")
+
+        val model =
+            buildModelDeclaration(
+                className = "ModeModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.ModeModelGenIos.kt"))
+        assertTrue(codeGen.generatedFiles["ch.trancee.test.ModeModelGenIos.kt"]!!.contains("actual"))
+        assertTrue(
+            codeGen.generatedFiles.size == 1,
+            "IOS mode should emit only 1 file, got ${codeGen.generatedFiles.size}",
+        )
     }
 }

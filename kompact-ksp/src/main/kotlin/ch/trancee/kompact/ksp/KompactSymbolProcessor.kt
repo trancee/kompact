@@ -14,10 +14,38 @@ import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
-import com.google.devtools.ksp.validate
+import java.nio.file.FileAlreadyExistsException
 
 private const val KOMPAT_MODEL_FQN = "ch.trancee.kompact.annotations.KompactModel"
 private const val KOMPAT_FIELD_FQN = "ch.trancee.kompact.annotations.KompactField"
+
+/**
+ * Generator mode controlled by the consumer's KSP Gradle configuration via
+ * `ksp { arg("kompact.generate", "<mode>") }` or per-source-set variants
+ * (`kspCommonMainMetadata`, `kspJvm`, `kspIos`, etc.).
+ *
+ * - "common" — generate only the `expect` declaration (for kspCommonMainMetadata)
+ * - "jvm"   — generate only the `@JvmInline actual` (for kspJvm / kspAndroid)
+ * - "ios"   — generate only the plain `actual` (for kspIos)
+ * - "all"   — generate all three (default; for non-KMP consumers or single-source)
+ */
+internal enum class KompactGenerateMode {
+    COMMON,
+    JVM,
+    IOS,
+    ALL,
+    ;
+
+    companion object {
+        fun fromOption(raw: String?): KompactGenerateMode =
+            when (raw) {
+                "common" -> COMMON
+                "jvm" -> JVM
+                "ios" -> IOS
+                else -> ALL
+            }
+    }
+}
 
 /**
  * Core processing logic: finds `@KompactModel`-annotated value classes,
@@ -26,6 +54,12 @@ private const val KOMPAT_FIELD_FQN = "ch.trancee.kompact.annotations.KompactFiel
  *
  * The pure validation and generation logic lives in the `model` and `gen`
  * sub-packages — this class only handles KSP symbol resolution and file output.
+ *
+ * Round-safety: KSP may invoke [process] multiple times. In early rounds,
+ * expect declarations may not be fully resolved (actuals don't exist yet),
+ * so [getDeclaredProperties] can return partial results. We track processed
+ * symbols by qualified name to avoid re-creating files, and we return only
+ * un-processed symbols so KSP can re-queue them for a later round.
  */
 @OptIn(KspExperimental::class)
 internal class KompactSymbolProcessor(
@@ -33,29 +67,50 @@ internal class KompactSymbolProcessor(
 ) : SymbolProcessor {
     private val codeGenerator: CodeGenerator = environment.codeGenerator
     private val logger: KSPLogger = environment.logger
+    private val generateMode: KompactGenerateMode =
+        KompactGenerateMode.fromOption(environment.options["kompact.generate"])
+    private val processedSymbols: MutableSet<String> = mutableSetOf()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         val symbols = resolver.getSymbolsWithAnnotation(KOMPAT_MODEL_FQN, false)
         val declarations =
             symbols
                 .filterIsInstance<KSClassDeclaration>()
-                .filter { it.validate { _, _ -> true } }
                 .toList()
 
         if (declarations.isEmpty()) return emptyList()
 
+        val deferred = mutableListOf<KSAnnotated>()
+
         declarations.forEach { declaration ->
+            val key =
+                declaration.qualifiedName?.asString() ?: run {
+                    // No qualified name — defer for next round when it may be resolved
+                    deferred.add(declaration)
+                    return@forEach
+                }
+
+            if (key in processedSymbols) {
+                // Already processed in a previous round — skip, don't re-queue
+                return@forEach
+            }
+
             try {
                 processModel(declaration)
+                processedSymbols.add(key)
             } catch (e: Exception) {
                 logger.error(
                     "KompactKSP: failed to process ${declaration.simpleName}: ${e.message}",
                     declaration,
                 )
+                // Defer for re-processing in the next round
+                deferred.add(declaration)
             }
         }
 
-        return declarations
+        // Return only deferred (un-processed) symbols — NOT the processed ones.
+        // KSP will re-offer deferred symbols in the next processing round.
+        return deferred
     }
 
     private fun processModel(declaration: KSClassDeclaration) {
@@ -80,29 +135,57 @@ internal class KompactSymbolProcessor(
         val spec = ModelSpec(packageName, className, fields)
         logger.info(
             "KompactKSP: processing $className (${fields.size} fields, " +
-                "${spec.totalBits} bits, ${spec.minBufferSize} bytes)",
+                "${spec.totalBits} bits, ${spec.minBufferSize} bytes) " +
+                "[mode=$generateMode]",
         )
 
-        // Generate expect value class (commonMain) with shared encode function
-        writeFile(
-            packageName = packageName,
-            fileName = "${className}Gen",
-            content = ValueClassGenerator.generateExpect(spec),
-        )
+        when (generateMode) {
+            KompactGenerateMode.COMMON -> {
+                // Generate expect value class only (kspCommonMainMetadata → commonMain)
+                writeFile(
+                    packageName = packageName,
+                    fileName = "${className}Gen",
+                    content = ValueClassGenerator.generateExpect(spec),
+                )
+            }
 
-        // Generate @JvmInline actual (jvmMain)
-        writeFile(
-            packageName = "$packageName.jvm",
-            fileName = "${className}GenJvm",
-            content = ValueClassGenerator.generateJvmActual(spec),
-        )
+            KompactGenerateMode.JVM -> {
+                // Generate @JvmInline actual only (kspJvm/kspAndroid → jvmMain/androidMain)
+                writeFile(
+                    packageName = packageName,
+                    fileName = "${className}GenJvm",
+                    content = ValueClassGenerator.generateJvmActual(spec),
+                )
+            }
 
-        // Generate plain actual (iosMain)
-        writeFile(
-            packageName = "$packageName.ios",
-            fileName = "${className}GenIos",
-            content = ValueClassGenerator.generateIosActual(spec),
-        )
+            KompactGenerateMode.IOS -> {
+                // Generate plain actual only (kspIos → iosMain)
+                writeFile(
+                    packageName = packageName,
+                    fileName = "${className}GenIos",
+                    content = ValueClassGenerator.generateIosActual(spec),
+                )
+            }
+
+            KompactGenerateMode.ALL -> {
+                // Generate expect + both actuals (default for non-KMP consumers)
+                writeFile(
+                    packageName = packageName,
+                    fileName = "${className}Gen",
+                    content = ValueClassGenerator.generateExpect(spec),
+                )
+                writeFile(
+                    packageName = packageName,
+                    fileName = "${className}GenJvm",
+                    content = ValueClassGenerator.generateJvmActual(spec),
+                )
+                writeFile(
+                    packageName = packageName,
+                    fileName = "${className}GenIos",
+                    content = ValueClassGenerator.generateIosActual(spec),
+                )
+            }
+        }
     }
 
     /**
@@ -150,13 +233,21 @@ internal class KompactSymbolProcessor(
         fileName: String,
         content: String,
     ) {
-        val outputStream =
-            codeGenerator.createNewFile(
-                dependencies = Dependencies(true),
-                packageName = packageName,
-                fileName = fileName,
+        try {
+            val outputStream =
+                codeGenerator.createNewFile(
+                    dependencies = Dependencies(true),
+                    packageName = packageName,
+                    fileName = fileName,
+                )
+            outputStream.write(content.toByteArray(Charsets.UTF_8))
+            outputStream.close()
+        } catch (e: FileAlreadyExistsException) {
+            // File already generated in a previous round — expected when KSP
+            // re-queues symbols. The existing file is correct; skip silently.
+            logger.warn(
+                "KompactKSP: $packageName.$fileName already exists — skipping (re-queued round).",
             )
-        outputStream.write(content.toByteArray(Charsets.UTF_8))
-        outputStream.close()
+        }
     }
 }
