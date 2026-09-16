@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 
 ### 📦 Other
+- fix(ksp): emit model raw backing field as primary-constructor val (defect #3) (#48) (3c24aa3)
+
+
+### 📦 Other
 - Merge branch 'main' of https://github.com/trancee/kompact (143ee28)
 - fix(ci): use packages input for setup-android@v4 in release-publish workflow (ce203a3)
 - chore(deps): bump ksp from 2.3.10 to 2.3.12 (#45) (29d963f)
