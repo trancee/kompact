@@ -4,6 +4,7 @@ import ch.trancee.kompact.ksp.model.KompactFieldInfo
 import ch.trancee.kompact.ksp.model.ModelSpec
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ValueClassGeneratorTest {
@@ -481,6 +482,51 @@ class ValueClassGeneratorTest {
         assertTrue(
             error.message?.contains("MyCustomType") == true,
             "Expected error mentioning MyCustomType, got: ${error.message}",
+        )
+    }
+    // --- defect #3 regression: `raw` must be a primary-constructor backing `val`,
+    //     NOT a separate body property. kotlinpoet promotes the PropertySpec to a
+    //     ctor `val` only when it carries an initializer("raw") and shares the
+    //     constructor parameter name (see kotlinpoet "Constructors" docs). This is
+    //     forbidden in `expect` classes, so the expect form keeps `raw` as an
+    //     abstract body property and pqcble hand-writes its expect declaration. ---
+
+    @Test
+    fun `jvm actual emits raw as a constructor backing val (defect #3)`() {
+        val output = ValueClassGenerator.generateJvmActual(vehicleTelemetrySpec())
+        assertTrue(
+            output.contains("public actual val raw: ByteArray,"),
+            "jvm actual must declare `raw` as a primary-constructor `val` (trailing comma), got:\n$output",
+        )
+        assertFalse(
+            output.contains("public actual val raw: ByteArray\n"),
+            "jvm actual must NOT redeclare `raw` as a separate body property, got:\n$output",
+        )
+    }
+
+    @Test
+    fun `ios actual emits raw as a constructor backing val (defect #3)`() {
+        val output = ValueClassGenerator.generateIosActual(vehicleTelemetrySpec())
+        assertTrue(
+            output.contains("public actual val raw: ByteArray,"),
+            "ios actual must declare `raw` as a primary-constructor `val`, got:\n$output",
+        )
+        assertFalse(
+            output.contains("public actual val raw: ByteArray\n"),
+            "ios actual must NOT redeclare `raw` as a separate body property, got:\n$output",
+        )
+    }
+
+    @Test
+    fun `expect emits raw without the invalid actual modifier (defect #3)`() {
+        val output = ValueClassGenerator.generateExpect(vehicleTelemetrySpec())
+        assertTrue(
+            output.contains("public val raw: ByteArray"),
+            "expect must declare `public val raw`, got:\n$output",
+        )
+        assertFalse(
+            output.contains("actual val raw"),
+            "expect value class must not carry `actual` on the backing property, got:\n$output",
         )
     }
 }
