@@ -128,7 +128,6 @@ internal object ValueClassGenerator {
         builder.addProperty(
             PropertySpec
                 .builder("raw", BYTE_ARRAY_TYPE, KModifier.PUBLIC)
-                .addModifiers(KModifier.ACTUAL)
                 .build(),
         )
 
@@ -179,8 +178,8 @@ internal object ValueClassGenerator {
 
         builder.addProperty(
             PropertySpec
-                .builder("raw", BYTE_ARRAY_TYPE, KModifier.PUBLIC)
-                .addModifiers(KModifier.ACTUAL)
+                .builder("raw", BYTE_ARRAY_TYPE, KModifier.PUBLIC, KModifier.ACTUAL)
+                .initializer("raw")
                 .build(),
         )
 
