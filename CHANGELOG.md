@@ -4,7 +4,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.1.4] - 2026-09-15
+## [0.1.5] - 2026-09-16
+
+### 📦 Other
+- fix(ksp): emit model raw backing field as primary-constructor val (defect #3) (#48) (3c24aa3)
+
 
 ### 📦 Other
 - Merge branch 'main' of https://github.com/trancee/kompact (143ee28)
