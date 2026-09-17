@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - fix: mark generated value-class companion object as 'actual' (#51) (5639d1a)
 
 
+### 🐛 Fixes
+- fix: mark generated value-class companion object as 'actual' (#51) (5639d1a)
+
+
 ### 📦 Other
 - fix(ksp): emit model raw backing field as primary-constructor val (defect #3) (#48) (3c24aa3)
 
