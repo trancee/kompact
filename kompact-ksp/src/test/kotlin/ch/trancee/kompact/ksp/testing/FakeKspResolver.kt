@@ -138,7 +138,7 @@ fun createTestEnvironment(
 ): SymbolProcessorEnvironment =
     SymbolProcessorEnvironment(
         options = options,
-        kotlinVersion = KotlinVersion(2, 3, 21),
+        kotlinVersion = KotlinVersion(2, 4, 20),
         codeGenerator = codeGenerator,
         logger = logger,
     )

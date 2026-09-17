@@ -10,6 +10,7 @@ import ch.trancee.kompact.ksp.testing.buildModelDeclaration
 import ch.trancee.kompact.ksp.testing.createTestEnvironment
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
@@ -73,6 +74,45 @@ class KompactSymbolProcessorFlowTest {
         processor.process(resolver)
 
         assertTrue(logger.errors.any { it.contains("overlap") })
+    }
+
+    @Test
+    fun process_modelWithInvalidLayout_doesNotDeferAndReportsSpecificError() {
+        val (processor, codeGen, logger) = createTestSetup()
+
+        // Overlapping fields → deterministic IllegalArgumentException from
+        // requireValidLayout (ValueClassGenerator). This is a schema violation
+        // that won't resolve on retry, so it must NOT be re-queued.
+        val model =
+            buildModelDeclaration(
+                className = "BadModel",
+                packageName = "ch.trancee.test",
+                fields =
+                    listOf(
+                        Triple("a", "Int", 0 to 16),
+                        Triple("b", "Int", 8 to 4),
+                    ),
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        val result = processor.process(resolver)
+
+        // H2: deterministic layout errors must NOT be deferred — returning
+        // them causes KSP to re-offer them next round, producing repeated
+        // identical error spam instead of a single fail-closed report.
+        assertEquals(0, result.size, "deterministic layout error must not be deferred")
+        // The diagnostic must name the specific problem at the misconfig,
+        // not bury it under the generic "failed to process" wrapper (S4:
+        // observable, localised).
+        assertTrue(
+            logger.errors.any { it.contains("invalid layout for BadModel") },
+            "expected a specific layout error, got: ${logger.errors}",
+        )
+        assertTrue(
+            logger.errors.none { it.contains("failed to process") },
+            "deterministic layout error must not use the transient-error prefix",
+        )
+        assertTrue(codeGen.generatedFiles.isEmpty())
     }
 
     @Test
@@ -359,7 +399,7 @@ class KompactSymbolProcessorFlowTest {
         val result = processor.process(resolver)
 
         assertEquals(1, result.size)
-        assertEquals(model, result[0])
+        assertSame(model, result[0])
         assertTrue(codeGen.generatedFiles.isEmpty())
     }
 

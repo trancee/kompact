@@ -1,9 +1,12 @@
 package ch.trancee.kompact.ksp
 
+import ch.trancee.kompact.ksp.testing.FakeKSFile
 import ch.trancee.kompact.ksp.testing.FakeResolver
 import ch.trancee.kompact.ksp.testing.buildModelDeclaration
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -252,5 +255,68 @@ class KompactSymbolProcessorGenerationTest {
             codeGen.generatedFiles.size == 1,
             "IOS mode should emit only 1 file, got ${codeGen.generatedFiles.size}",
         )
+    }
+
+    @Test
+    fun process_generateModeAll_emitsThreeFiles() {
+        val (processor, codeGen, _) = createTestSetup(mode = "all")
+
+        val model =
+            buildModelDeclaration(
+                className = "AllModeModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.AllModeModelGen.kt"))
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.AllModeModelGenJvm.kt"))
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.AllModeModelGenIos.kt"))
+        assertEquals(3, codeGen.generatedFiles.size, "Explicit 'all' must emit exactly 3 files")
+    }
+
+    @Test
+    fun create_withUnknownGenerateMode_failsClosed() {
+        // S3 (fail-closed) + D1 (no speculative fallback): an unrecognized,
+        // non-null kompact.generate value is a misconfiguration, not a
+        // silent fall-back to 'all' (which would mis-route expect/actuals
+        // for a KMP consumer and produce a non-local compile error).
+        val ex =
+            assertFailsWith<IllegalArgumentException> {
+                createTestSetup(mode = "cmomn")
+            }
+
+        // The diagnostic must name the option and the offending value so the
+        // failure is localised to the misconfig site (S4: observable).
+        assertTrue(ex.message!!.contains("kompact.generate"), "should name the option: ${ex.message}")
+        assertTrue(ex.message!!.contains("cmomn"), "should echo the bad value: ${ex.message}")
+    }
+
+    @Test
+    fun process_validModel_emitsIsolatingDependencies() {
+        val (processor, codeGen, _) = createTestSetup()
+
+        val srcFile = FakeKSFile("IsoModel.kt", "ch.trancee.test")
+        val model =
+            buildModelDeclaration(
+                className = "IsoModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+                containingFile = srcFile,
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        // Spec #13(d): per-schema views are *isolating* — regenerated only when the
+        // model's own source file changes — not aggregating (Dependencies(true)),
+        // which forces a full recompile when *any* source changes. The
+        // KompactAnnotations stub is the only aggregating output, and it is
+        // hand-authored (not emitted by this processor).
+        val expectDeps = codeGen.generatedDependencies["ch.trancee.test.IsoModelGen.kt"]!!
+        assertFalse(expectDeps.isAggregating, "per-schema view must be isolating, not aggregating")
+        assertEquals(listOf(srcFile), expectDeps.originatingFiles)
     }
 }

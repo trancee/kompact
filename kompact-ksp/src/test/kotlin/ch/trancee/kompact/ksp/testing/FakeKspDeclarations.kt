@@ -1,4 +1,4 @@
-@file:Suppress("DEPRECATION")
+@file:Suppress("DEPRECATION") // FakeKS* implements KSP 2.x symbol interfaces that still expose deprecated members.
 
 package ch.trancee.kompact.ksp.testing
 
@@ -38,6 +38,7 @@ open class FakeKSDeclaration(
     internal val packageNameStr: String,
     private val declAnnotations: List<KSAnnotation> = emptyList(),
     private val nullQualifiedName: Boolean = false,
+    private val containingFileOverride: KSFile? = null,
 ) : KSDeclaration {
     override val simpleName: KSName = FakeKSName(simpleNameStr)
     override val qualifiedName: KSName? =
@@ -49,7 +50,7 @@ open class FakeKSDeclaration(
     override val typeParameters: List<KSTypeParameter> = emptyList()
     override val packageName: KSName = FakeKSName(packageNameStr)
     override val parentDeclaration: KSDeclaration? = null
-    override val containingFile: KSFile? = null
+    override val containingFile: KSFile? = containingFileOverride
     override val docString: String? = null
 
     // KSExpectActual
@@ -112,7 +113,8 @@ class FakeKSClassDeclaration(
     private val properties: List<KSPropertyDeclaration> = emptyList(),
     declAnnotations: List<KSAnnotation> = emptyList(),
     nullQualifiedName: Boolean = false,
-) : FakeKSDeclaration(simpleNameStr, packageNameStr, declAnnotations, nullQualifiedName),
+    containingFile: KSFile? = null,
+) : FakeKSDeclaration(simpleNameStr, packageNameStr, declAnnotations, nullQualifiedName, containingFile),
     KSClassDeclaration {
     override val classKind: ClassKind = ClassKind.CLASS
     override val primaryConstructor: KSFunctionDeclaration? = null
