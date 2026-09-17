@@ -29,7 +29,7 @@ Resolve by primary-source research (current Kotlin 2.x / KSP 2.x):
 
 ## Answer
 
-Resolved by a research subagent against current primary sources (Kotlin 2.x / KSP 2.x); findings in [`research/kmp-publication-wiring.md`](research/kmp-publication-wiring.md), folded below. This is the non-blocking deferred detail from Ticket 12 — the spec was already locked; this removes the last implementer-facing open question.
+Resolved by a research subagent against current primary sources (Kotlin 2.x / KSP 2.x); findings in [`research/kmp-publication-wiring.md`](../research/kmp-publication-wiring.md), folded below. This is the non-blocking deferred detail from Ticket 12 — the spec was already locked; this removes the last implementer-facing open question.
 
 **Versions (docs last-modified / Maven Central, 2026-09-02):** KSP **2.3.11** (GitHub Releases 2026-08-03; the Maven-Central `symbol-processing-api` marker lags at 2.3.9 — consume KSP via the `com.google.devtools.ksp` Gradle **plugin**, not the API artifact, which lags). `binary-compatibility-validator` **0.18.0** stable on Maven Central (README references 0.18.1). `com.vanniktech.maven.publish` **0.37.0**.
 
@@ -58,5 +58,5 @@ Informed by 02 + 12. **Non-blocking**: spec already locked (Tickets 01–12); th
 
 ## Comments
 
-- Research subagent `KmpPubResearch` executed the research; findings written to [`research/kmp-publication-wiring.md`](research/kmp-publication-wiring.md), verified against primary sources (Kotlin KMP publishing guide, KSP quickstart + KSP-with-KMP, google/ksp README + issue #567 + `CodeGenerator.kt`, kotlinx-binary-compatibility-validator README + KLibSupport, vanniktech/gradle-maven-publish, search.maven.org Solr API). 2026-09-02.
+- Research subagent `KmpPubResearch` executed the research; findings written to [`research/kmp-publication-wiring.md`](../research/kmp-publication-wiring.md), verified against primary sources (Kotlin KMP publishing guide, KSP quickstart + KSP-with-KMP, google/ksp README + issue #567 + `CodeGenerator.kt`, kotlinx-binary-compatibility-validator README + KLibSupport, vanniktech/gradle-maven-publish, search.maven.org Solr API). 2026-09-02.
 - Folded into `map.md` §Decisions-so-far + the "Open work item" paragraph (now RESOLVED).
