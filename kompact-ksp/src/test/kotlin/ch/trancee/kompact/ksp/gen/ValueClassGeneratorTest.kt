@@ -101,6 +101,32 @@ class ValueClassGeneratorTest {
     }
 
     @Test
+    fun `jvm actual companion object is marked actual`() {
+        val spec = vehicleTelemetrySpec()
+        val output = ValueClassGenerator.generateJvmActual(spec)
+
+        assertTrue(
+            output.contains("actual companion object"),
+            "Companion object in JVM actual must be marked 'actual'. " +
+                "Regression guard: kommut emitted the companion without the 'actual' modifier, " +
+                "which kotlinc rejects for nested declarations in actual value classes. Got:\n$output",
+        )
+    }
+
+    @Test
+    fun `ios actual companion object is marked actual`() {
+        val spec = vehicleTelemetrySpec()
+        val output = ValueClassGenerator.generateIosActual(spec)
+
+        assertTrue(
+            output.contains("actual companion object"),
+            "Companion object in iOS actual must be marked 'actual'. " +
+                "Regression guard: kommut emitted the companion without the 'actual' modifier, " +
+                "which kotlinc rejects for nested declarations in actual value classes. Got:\n$output",
+        )
+    }
+
+    @Test
     fun `jvm actual has write-through setters`() {
         val spec = vehicleTelemetrySpec()
         val output = ValueClassGenerator.generateJvmActual(spec)
