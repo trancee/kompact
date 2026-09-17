@@ -211,11 +211,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 "
 
-  # Prepend: header + new section + existing content (minus header).
+  # Prepend: fresh header + new section + leftover sections.
+  #
+  # Idempotency (M1): re-running `changelog` for the SAME version must REPLACE
+  # the prior section for that version, not duplicate it. We drop the preamble
+  # (it is rebuilt verbatim from $header above, so it can never drift) and strip
+  # any section whose header is `## [${version}]` — that header line plus its
+  # body up to the next `## ` section or EOF — before splicing in the freshly
+  # built $section. Without this, N runs multiply the same release notes.
+  #
+  # NOTE: this fix prevents future duplication, but it replaces only the
+  # *current* version's section. A CHANGELOG already corrupted by the
+  # pre-fix generator (e.g. a triplicated `## [0.1.6]` block) requires a
+  # one-time release-ops rebuild: run `changelog` once per historical tag so
+  # each `## [X.Y.Z]` section is regenerated and collapses from N copies to one.
   local existing=""
   if [ -f "$changelog_file" ]; then
-    # Strip existing header to avoid duplication.
-    existing="$(sed '1,/^## /d' "$changelog_file" 2>/dev/null || true)"
+    existing="$(awk -v target="## [${version}]" '
+      /^## / { started = 1 }
+      !started { next }
+      index($0, target) == 1 { skip = 1; next }
+      /^## / { skip = 0 }
+      !skip { print }
+    ' "$changelog_file" 2>/dev/null || true)"
   fi
 
   printf '%s%s\n%s\n' "$header" "$section" "$existing" > "$changelog_file"
