@@ -9,6 +9,7 @@ timestamp + 12-bit temperature + 4-bit humidity + 4-bit battery + 4-bit
 status) and verifying it round-trips.
 See the bundled [`VehicleTelemetry`](../api-reference.md#vehicletelemetry-example-model)
 for the full pattern.
+
 ## 1. Lay out the bits
 
 Pick a schema, then write the bit layout table. LSB-first packing:
@@ -229,7 +230,7 @@ reference implementation. In production, the `@KompactModel` / `@KompactField`
 annotations are consumed by the **KSP processor** (`kompact-ksp`),
 which generates the `expect`/`actual` value-class stubs, the `create()`
 factories, and the getter/setter bodies automatically from your
-annotation metadata alone. See [ADR-0003](adr/0003-kmp-consumer-enablement.md)
+annotation metadata alone. See [ADR-0003](../adr/0003-kmp-consumer-enablement.md)
 for the publication pipeline.
 
 ### Applying the processor
@@ -262,6 +263,56 @@ dependencies {
     kspCommonMainMetadata("ch.trancee.kompact:kompact-ksp:0.2.0-SNAPSHOT")
 }
 ```
+
+### Selecting the generation mode (`kompact.generate`)
+
+The processor emits up to one file per model: an `expect value class`
+(commonMain), a `@JvmInline actual value class` (jvmMain/androidMain), and a
+plain `actual value class` (iosMain). Which of these the processor writes in a
+given KSP invocation is selected by the **`kompact.generate`** processor option.
+Pass it as a module-level KSP argument:
+
+```kotlin
+ksp {
+    arg("kompact.generate", "all")   // one of: common | jvm | ios | all
+}
+```
+
+| `kompact.generate` value | Emits | Source-set fit |
+| --- | --- | --- |
+| `common` | `expect value class` only | `commonMain` (shared by all targets) |
+| `jvm` | `@JvmInline actual value class` only | `jvmMain` / `androidMain` |
+| `ios` | plain `actual value class` only | `iosMain` |
+| _(omitted)_ / `all` | all three files above | non-KMP or single-source builds |
+
+For a **Kotlin Multiplatform** module, route generated sources into the
+matching source set with KSP's per-source-set dependency configurations
+(`kspCommonMainMetadata`, `kspJvm`, `kspIosArm64`, …). These controls decide
+*where* generated code lands — `common` files into `commonMain`, `jvm` files
+into `jvmMain`/`androidMain`, `ios` files into `iosMain` — but they do **not**
+set the `kompact.generate` value; that stays module-wide (the `ksp { arg(…) }`
+block above applies to every target).
+
+```kotlin
+dependencies {
+    add("kspCommonMainMetadata", "ch.trancee.kompact:kompact-ksp:<version>")
+    add("kspJvm", "ch.trancee.kompact:kompact-ksp:<version>")
+    add("kspIosArm64", "ch.trancee.kompact:kompact-ksp:<version>")
+}
+// Select which file set the processor emits for this module:
+ksp {
+    arg("kompact.generate", "all")   // default when omitted
+}
+```
+
+If `kompact.generate` is omitted, the processor defaults to `all` (generates
+every file) — convenient for non-KMP modules and single-source builds. An
+**unrecognised** value (e.g. a typo like `"cmomn"`) **fails the build**: the
+processor throws `IllegalArgumentException` naming the illegal value and the
+accepted set `common | jvm | ios | all`, rather than silently mis-routing
+expect/actual stubs into the wrong source set. See
+[`ADR-0003`](../adr/0003-kmp-consumer-enablement.md) for the full Android +
+publication wiring.
 
 ### What the processor generates
 

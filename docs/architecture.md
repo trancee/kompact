@@ -77,7 +77,10 @@ The writer is allowed to allocate (it grows a buffer), the framing
 helpers are allowed to return `null` and let the caller allocate a
 typed error, and the `getOrThrow()` recovery call is allowed to throw
 `KompactDecodeException`. Zero-alloc is a property of the most-
-frequently-executed read sequence, not a global invariant.
+frequently-executed read sequence, not a global invariant. The
+measurement methodology and the precise contract boundaries (direct vs.
+boxed call shapes, negative controls, platform-specific detectors) are
+developed in [Allocation and boxing measurement across Android and iOS](research/allocation-boxing-measurement.md).
 
 ## Runtime error encoding
 
@@ -277,3 +280,7 @@ Note that the hand-written setters are intentionally unchecked (raw
 `writeBits`); only the getters go through the typed result path. See
 the VehicleTelemetry section in [api-reference.md](api-reference.md#vehicletelemetry-example-model)
 and [ADR-0001](adr/0001-mutable-view-classes-with-write-through-setters.md).
+
+The KSP/KMP code-generation strategy — processing the common schema once across Android/JVM
+and iOS targets, incremental processing, build-cache reuse, and the C-header extension path —
+is developed in [KSP common-schema generation across targets](research/ksp-kmp-generation.md).

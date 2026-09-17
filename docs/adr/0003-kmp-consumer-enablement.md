@@ -16,7 +16,8 @@ AGP 9.4.0). Three gaps blocked adoption:
 2. `:kompact-ksp` had POM metadata but no Portal pipeline, no signing, no
    checksums — the `@KompactModel` codegen was unavailable to any consumer.
 3. Kotlin toolchain mismatch: kompact was pinned to Kotlin 2.3.21 / KSP 2.3.12;
-   pqcble runs Kotlin 2.4.20 / AGP 9.4.0.
+   pqcble runs Kotlin 2.4.20 / AGP 9.4.0. (Pre-decision baseline — resolved
+   by §F below, where kompact is aligned to Kotlin 2.4.20 to match pqcble.)
 
 Since no Maven Central release has been cut, all changes are pre-release —
 public ABI can change freely without a MAJOR bump.

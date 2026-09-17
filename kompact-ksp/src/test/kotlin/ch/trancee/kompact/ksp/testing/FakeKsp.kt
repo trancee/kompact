@@ -81,11 +81,20 @@ class FakeKSPLogger : KSPLogger {
 // CodeGenerator
 // ------------------------------------------------------------------
 
+/** Snapshot of a [Dependencies] handed to [FakeCodeGenerator.createNewFile]. */
+data class RecordedDependencies(
+    val isAggregating: Boolean,
+    val originatingFiles: List<KSFile>,
+)
+
 class FakeCodeGenerator(
     private val throwOnWrite: Boolean = false,
     private val throwOnDuplicate: Boolean = false,
 ) : CodeGenerator {
     val generatedFiles: MutableMap<String, String> = mutableMapOf()
+
+    /** Captures the Dependencies handed to [createNewFile] per generated file. */
+    val generatedDependencies: MutableMap<String, RecordedDependencies> = mutableMapOf()
 
     override fun createNewFile(
         dependencies: Dependencies,
@@ -94,6 +103,11 @@ class FakeCodeGenerator(
         extensionName: String,
     ): OutputStream {
         val key = "$packageName.$fileName.$extensionName"
+        generatedDependencies[key] =
+            RecordedDependencies(
+                isAggregating = dependencies.aggregating,
+                originatingFiles = dependencies.originatingFiles,
+            )
         if (throwOnDuplicate && generatedFiles.containsKey(key)) {
             throw FileAlreadyExistsException(
                 "FakeKsp: file $key already exists",

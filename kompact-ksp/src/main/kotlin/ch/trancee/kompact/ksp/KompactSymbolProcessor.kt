@@ -39,10 +39,20 @@ internal enum class KompactGenerateMode {
     companion object {
         fun fromOption(raw: String?): KompactGenerateMode =
             when (raw) {
+                null -> ALL
+
+                // missing arg ⇒ backward-compatible default for non-KMP consumers
                 "common" -> COMMON
+
                 "jvm" -> JVM
+
                 "ios" -> IOS
-                else -> ALL
+
+                "all" -> ALL
+
+                else -> throw IllegalArgumentException(
+                    "Unknown kompact.generate mode '$raw' — expected one of: common, jvm, ios, all",
+                )
             }
     }
 }
@@ -98,7 +108,20 @@ internal class KompactSymbolProcessor(
             try {
                 processModel(declaration)
                 processedSymbols.add(key)
+            } catch (e: IllegalArgumentException) {
+                // Deterministic schema/layout/type error (overlapping fields,
+                // unsupported types, invalid widths). Retrying the same input
+                // across KSP rounds cannot fix it, so we must NOT defer it —
+                // deferring would only repeat the identical error every round.
+                // Report a specific, non-generic diagnostic attributed to the
+                // declaration so it localises to the schema (S3/S4 fail closed).
+                logger.error(
+                    "KompactKSP: invalid layout for ${declaration.simpleName}: ${e.message}",
+                    declaration,
+                )
             } catch (e: Exception) {
+                // Transient / resolution-timing error — KSP may re-offer the
+                // symbol with more resolved types in a later round, so defer.
                 logger.error(
                     "KompactKSP: failed to process ${declaration.simpleName}: ${e.message}",
                     declaration,
@@ -143,6 +166,7 @@ internal class KompactSymbolProcessor(
             KompactGenerateMode.COMMON -> {
                 // Generate expect value class only (kspCommonMainMetadata → commonMain)
                 writeFile(
+                    declaration = declaration,
                     packageName = packageName,
                     fileName = "${className}Gen",
                     content = ValueClassGenerator.generateExpect(spec),
@@ -152,6 +176,7 @@ internal class KompactSymbolProcessor(
             KompactGenerateMode.JVM -> {
                 // Generate @JvmInline actual only (kspJvm/kspAndroid → jvmMain/androidMain)
                 writeFile(
+                    declaration = declaration,
                     packageName = packageName,
                     fileName = "${className}GenJvm",
                     content = ValueClassGenerator.generateJvmActual(spec),
@@ -161,6 +186,7 @@ internal class KompactSymbolProcessor(
             KompactGenerateMode.IOS -> {
                 // Generate plain actual only (kspIos → iosMain)
                 writeFile(
+                    declaration = declaration,
                     packageName = packageName,
                     fileName = "${className}GenIos",
                     content = ValueClassGenerator.generateIosActual(spec),
@@ -170,16 +196,19 @@ internal class KompactSymbolProcessor(
             KompactGenerateMode.ALL -> {
                 // Generate expect + both actuals (default for non-KMP consumers)
                 writeFile(
+                    declaration = declaration,
                     packageName = packageName,
                     fileName = "${className}Gen",
                     content = ValueClassGenerator.generateExpect(spec),
                 )
                 writeFile(
+                    declaration = declaration,
                     packageName = packageName,
                     fileName = "${className}GenJvm",
                     content = ValueClassGenerator.generateJvmActual(spec),
                 )
                 writeFile(
+                    declaration = declaration,
                     packageName = packageName,
                     fileName = "${className}GenIos",
                     content = ValueClassGenerator.generateIosActual(spec),
@@ -229,19 +258,32 @@ internal class KompactSymbolProcessor(
     }
 
     private fun writeFile(
+        declaration: KSClassDeclaration,
         packageName: String,
         fileName: String,
         content: String,
     ) {
         try {
-            val outputStream =
-                codeGenerator.createNewFile(
-                    dependencies = Dependencies(true),
+            // Spec #13(d): per-schema views are *isolating* — regenerated only when
+            // the model's own source file changes — so Gradle incremental
+            // compilation + build cache invalidate precisely. The
+            // KompactAnnotations stub is the only aggregating output, and it is
+            // hand-authored (not emitted here). For the (synthetic, no-source)
+            // edge we fall back to aggregating to stay conservative and never
+            // skip a needed regeneration.
+            val inputs = listOfNotNull(declaration.containingFile)
+            val dependencies =
+                if (inputs.isEmpty()) {
+                    Dependencies(true)
+                } else {
+                    Dependencies(false, *inputs.toTypedArray())
+                }
+            codeGenerator
+                .createNewFile(
+                    dependencies = dependencies,
                     packageName = packageName,
                     fileName = fileName,
-                )
-            outputStream.write(content.toByteArray(Charsets.UTF_8))
-            outputStream.close()
+                ).use { it.write(content.toByteArray(Charsets.UTF_8)) }
         } catch (e: FileAlreadyExistsException) {
             // File already generated in a previous round — expected when KSP
             // re-queues symbols. The existing file is correct; skip silently.

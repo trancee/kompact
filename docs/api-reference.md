@@ -25,6 +25,7 @@ All declarations are in the package `ch.trancee.kompact.runtime` unless noted.
 > `./gradlew :kompact:dokkaGeneratePublicationMarkdown`.
 
 ---
+
 ## Common patterns
 
 The full API tables are below. This section shows the three shapes

@@ -401,14 +401,14 @@ then commit the updated `*.api` files.
 
 | Topic | Doc |
 |---|---|
-| Write then read a frame end-to-end | [`docs/getting-started.md`](getting-started.md) |
-| Define your own model (hand-written or KSP) | [`docs/how-to/define-message.md`](how-to/define-message.md) |
-| Strings, blobs, nested, repeated (long-form payloads) | [`docs/how-to/long-form-payloads.md`](how-to/long-form-payloads.md) |
-| Recover from bad buffers without throwing | [`docs/how-to/handle-decode-errors.md`](how-to/handle-decode-errors.md) |
-| BLE send/receive integration | [`docs/how-to/integrate-ble.md`](how-to/integrate-ble.md) |
-| Consume from a separate project | [`docs/how-to/consume-from-another-project.md`](how-to/consume-from-another-project.md) |
-| Exact API signatures | [`docs/api-reference.md`](api-reference.md) |
-| Wire format, error encoding, value-class layout | [`docs/architecture.md`](architecture.md) |
-| KSP codegen internals | [`docs/research/ksp-kmp-generation.md`](research/ksp-kmp-generation.md) |
-| ABI validation, release automation | [`docs/ci.md`](ci.md) |
-| Design decisions | [`docs/adr/`](adr/) (4 ADRs) |
+| Write then read a frame end-to-end | [`docs/getting-started.md`](../getting-started.md) |
+| Define your own model (hand-written or KSP) | [`docs/how-to/define-message.md`](../how-to/define-message.md) |
+| Strings, blobs, nested, repeated (long-form payloads) | [`docs/how-to/long-form-payloads.md`](../how-to/long-form-payloads.md) |
+| Recover from bad buffers without throwing | [`docs/how-to/handle-decode-errors.md`](../how-to/handle-decode-errors.md) |
+| BLE send/receive integration | [`docs/how-to/integrate-ble.md`](../how-to/integrate-ble.md) |
+| Consume from a separate project | [`docs/how-to/consume-from-another-project.md`](../how-to/consume-from-another-project.md) |
+| Exact API signatures | [`docs/api-reference.md`](../api-reference.md) |
+| Wire format, error encoding, value-class layout | [`docs/architecture.md`](../architecture.md) |
+| KSP codegen internals | [`docs/research/ksp-kmp-generation.md`](../research/ksp-kmp-generation.md) |
+| ABI validation, release automation | [`docs/ci.md`](../ci.md) |
+| Design decisions | [`docs/adr/`](../adr/) (4 ADRs) |

@@ -21,6 +21,19 @@ one-paragraph pitch, then pick the doc that matches your task:
 | Run the CI gates / regenerate the goldens | [`ci.md`](ci.md) |
 | Read the original product brief | [`../PROMPT.md`](../PROMPT.md) |
 
+## Explanation — design rationale & measurement
+
+Background on *why* Kompact is shaped this way. The architecture guide covers
+the wire format, zero-allocation reads, value-class layout, and framing; the
+two notes below are deeper justification for the code-generation strategy and
+the performance budget:
+
+| Topic | Read |
+| --- | --- |
+| Wire format, zero-alloc, value-class layout, framing, error encoding | [`architecture.md`](architecture.md) |
+| KSP codegen strategy (process common schema once; incremental / cache / C headers) | [`research/ksp-kmp-generation.md`](research/ksp-kmp-generation.md) |
+| Allocation & boxing measurement; the precise zero-alloc contract | [`research/allocation-boxing-measurement.md`](research/allocation-boxing-measurement.md) |
+
 ## For library contributors
 
 The locked implementation spec is the source of truth for design
@@ -42,13 +55,13 @@ coding agents should operate here:
   clean cutover, commit conventions, review checklist).
 - [`../CONSTITUTION.md`](../CONSTITUTION.md) — the R/X/D/O normative
   policy. Priority: `CONSTITUTION > AGENTS > scoped docs/ADRs`.
-- [`domain.md`](domain.md) — domain documentation
+- [`domain.md`](agents/domain.md) — domain documentation
   conventions.
-- [`issue-tracker.md`](issue-tracker.md) — how spec
+- [`issue-tracker.md`](agents/issue-tracker.md) — how spec
   tickets and issues are recorded.
-- [`triage-labels.md`](triage-labels.md) — the canonical
+- [`triage-labels.md`](agents/triage-labels.md) — the canonical
   triage label set.
-- [`agent-quick-start.md`](agent-quick-start.md) — a
+- [`agent-quick-start.md`](agents/agent-quick-start.md) — a
   2-minute reference for working with the Kompact library: setup,
   core API, gotchas, and CI gates.
 

@@ -1,5 +1,7 @@
 package ch.trancee.kompact.ksp.testing
 
+import com.google.devtools.ksp.symbol.KSFile
+
 // ------------------------------------------------------------------
 // Model declaration builders — construct FakeKSClassDeclaration instances
 // with the @KompactModel / @KompactField annotations used by tests.
@@ -9,6 +11,7 @@ fun buildModelDeclaration(
     className: String,
     packageName: String,
     fields: List<Triple<String, String, Pair<Int, Int>>>,
+    containingFile: KSFile? = null,
 ): FakeKSClassDeclaration {
     val props =
         fields.map { (name, kotlinType, offsets) ->
@@ -36,6 +39,7 @@ fun buildModelDeclaration(
         packageNameStr = packageName,
         properties = props,
         declAnnotations = listOf(FakeKSAnnotation("ch.trancee.kompact.annotations.KompactModel")),
+        containingFile = containingFile,
     )
 }
 
@@ -50,6 +54,7 @@ fun buildModelDeclarationWithAllArgs(
     className: String,
     packageName: String,
     fields: List<Triple<String, String, Pair<Int, Int>>>,
+    containingFile: KSFile? = null,
 ): FakeKSClassDeclaration {
     val props =
         fields.map { (name, kotlinType, offsets) ->
@@ -83,5 +88,6 @@ fun buildModelDeclarationWithAllArgs(
         packageNameStr = packageName,
         properties = props,
         declAnnotations = listOf(FakeKSAnnotation("ch.trancee.kompact.annotations.KompactModel")),
+        containingFile = containingFile,
     )
 }
