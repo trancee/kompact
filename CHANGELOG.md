@@ -4,7 +4,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.1.5] - 2026-09-16
+## [0.1.6] - 2026-09-17
+
+### 🐛 Fixes
+- fix: mark generated value-class companion object as 'actual' (#51) (5639d1a)
+
 
 ### 📦 Other
 - fix(ksp): emit model raw backing field as primary-constructor val (defect #3) (#48) (3c24aa3)
