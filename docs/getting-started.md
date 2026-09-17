@@ -112,7 +112,8 @@ if (speed.isFailure) {
 ```
 
 This pattern (no exception on the hot path) is what the API is shaped
-for — see [`docs/architecture.md`](architecture.md) for the why.
+for — see [the rationale](architecture.md).
+
 ## Step 4 — add a length-prefixed string, a blob, a nested record, a repeated field
 
 Fixed-width scalars are the first half of the wire. The other half

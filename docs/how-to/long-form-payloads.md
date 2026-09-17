@@ -19,7 +19,7 @@ import ch.trancee.kompact.runtime.KompactWriter
 
 val w = KompactWriter()
 w.writeString(countWidth = 8, value = "hello")  // 1-byte count + "hello"
-// 1 byte for "hello" is fine; countWidth = 8 limits strings to 255 UTF-8 bytes
+// 1-byte count; countWidth = 8 allows up to 255 UTF-8 bytes
 val bytes = w.build()                            // 6 bytes
 ```
 

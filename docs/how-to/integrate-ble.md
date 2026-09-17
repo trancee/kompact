@@ -118,10 +118,9 @@ Kompact's value class holds a reference to the same `ByteArray` you
 handed it. Setters write through to the same buffer. This is the
 contract:
 
-- `VehicleTelemetry(raw).raw === raw` (the JVM/iOS runtime treats
-  this as an `===` reference; on iOS with `@JvmInline`-less value
-  classes the equality is structural, but the underlying buffer is
-  shared).
+- `VehicleTelemetry(raw).raw` is the exact `ByteArray` you passed in,
+  not a defensive copy. Mutating `raw` later mutates the frame, and
+  vice-versa.
 - After `tel.speed = 30`, the original `raw` array is updated —
   any other code that holds a reference to `raw` sees the new value.
 - The buffer is **not** defensively copied. If you need an isolated
