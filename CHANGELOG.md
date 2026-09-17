@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.7] - 2026-09-17
+
+### 🐛 Fixes
+- fix: KSP option handling, release-script idempotency, and docs link/anchor audit (#54) (0494cc1)
+
 ## [0.1.6] - 2026-09-17
 
 ### 🐛 Fixes
