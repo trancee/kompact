@@ -200,6 +200,7 @@ internal object ValueClassGenerator {
             builder.addType(
                 TypeSpec
                     .companionObjectBuilder()
+                    .addModifiers(KModifier.ACTUAL)
                     .addFunction(
                         FunSpec
                             .builder("create")
