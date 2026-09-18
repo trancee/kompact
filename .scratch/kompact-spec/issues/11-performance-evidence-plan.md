@@ -16,7 +16,7 @@ Decides:
 
 ## Question (research subagent)
 
-Ticket 10 locked the **what** of zero-alloc verification (a CI gate that fails the build on regression; per-platform allocation profiling; the alloc counter as `expect/actual` per ticket 03; test ABI locked via `binary-compatibility-validator`). This ticket gathered the **exact how** — re-derived from primary sources; the reference `docs/research` perf note is ignored. Resolved by a research subagent (`PerfEvidenceResearch`), findings written to [research/perf-evidence-plan.md](research/perf-evidence-plan.md), then **verified by source check**.
+Ticket 10 locked the **what** of zero-alloc verification (a CI gate that fails the build on regression; per-platform allocation profiling; the alloc counter as `expect/actual` per ticket 03; test ABI locked via `binary-compatibility-validator`). This ticket gathered the **exact how** — re-derived from primary sources; the reference `docs/research` perf note is ignored. Resolved by a research subagent (`PerfEvidenceResearch`), findings written to [research/perf-evidence-plan.md](../research/perf-evidence-plan.md), then **verified by source check**.
 
 ## Answer
 
