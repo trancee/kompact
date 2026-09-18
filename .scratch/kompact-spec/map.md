@@ -65,3 +65,30 @@ All gating decisions are made (tickets 01–12). The Destination spec is locked 
   Amendment notes appended to
   [ticket 07](issues/07-write-builder-interface.md) and
   [ticket 07-vehicletelemetry-alignment](../kompact-ergonomics/issues/07-vehicletelemetry-alignment.md).
+
+## Proposed amendments (under review)
+
+These **do not override** any decided ticket yet. They are `Status: proposed`
+(ADRs) or `needs-triage` (tickets) pending maintainer ratification — raised by
+the external code review captured in [ticket 16](issues/16-grok-review-synthesis.md).
+No code is gated on them until accepted:
+
+- **ADR-0005** — relax zero-allocation on the *failure* path (collapse the seven
+  `*Result` types into a tiered result); **revisits decided**
+  [ticket 08](issues/08-runtime-error-model.md) (zero-alloc on both success and
+  failure). See [`docs/adr/0005`](../../docs/adr/0005-relax-fail-path-zero-alloc.md).
+- **ADR-0006** — immutable value-class views by default (opt-in mutable scratch);
+  **supersedes** [`ADR-0001`](../../docs/adr/0001-mutable-view-classes-with-write-through-setters.md)
+  and revisits [ticket 07](issues/07-write-builder-interface.md). See
+  [`docs/adr/0006`](../../docs/adr/0006-immutable-default-models.md).
+- **[ticket 17](issues/17-fast-path-bit-reading.md)** — specialize the scalar read/write bit-primitive hot paths
+  (single-byte / two-byte / byte-aligned fast paths; unchecked codegen surface);
+  gated on [ticket 11](issues/11-performance-evidence-plan.md)'s harness.
+- **Ticket 16** — full triage mapping of the external review's 6 headline
+  proposals; the remaining proposals (declarative layout DSL, writer reuse,
+  stabilization / C-spec / fuzz infra, arbitrary framing widths) map to existing
+  open tickets 02/04/05/07/10/11/12/14 rather than new artifacts.
+
+> Source-of-truth note: `docs/research/*` are reference material, not binding
+> decisions and must not be inherited (per `map.md` Notes). The review quotes
+> them only for context; ratify via the ADRs/tickets above instead.
