@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.8] - 2026-09-18
+
+### 📦 Other
+- docs(adr): triage external code review into ADRs and spec tickets (#56) (87dfe9a)
+
 ## [0.1.7] - 2026-09-17
 
 ### 🐛 Fixes
