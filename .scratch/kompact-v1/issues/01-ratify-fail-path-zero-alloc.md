@@ -15,7 +15,7 @@ Decides:
 Should Kompact v1.0 **retain zero-allocation on the failure path** (the current
 kompact-spec ticket 08 contract: seven packed-`Long` `*Result` value classes
 that never allocate on success *or* failure), or **relax it** per
-[ADR-0005](../../../docs/adr/0005-relax-fail-path-zero-alloc.md) to a tiered result
+ADR-0005 (proposed; [PR #56](https://github.com/trancee/kompact/pull/56)) to a tiered result
 where only the **success** path is zero-alloc and failures allocate a richer
 `DecodeError(value, offset, kind, rawCode)`?
 
@@ -24,7 +24,7 @@ and the v1.0 ABI golden. It **blocks** the scaffold/ABI-golden step.
 
 ## Context
 
-- [ADR-0005](../../../docs/adr/0005-relax-fail-path-zero-alloc.md) (proposed): relax
+- ADR-0005 (proposed; [PR #56](https://github.com/trancee/kompact/pull/56)): relax
   failure-path zero-alloc to simplify the seven result types; keep zero-alloc on
   success only.
 - kompact-spec [ticket 08](../../kompact-spec/issues/08-runtime-error-model.md):
