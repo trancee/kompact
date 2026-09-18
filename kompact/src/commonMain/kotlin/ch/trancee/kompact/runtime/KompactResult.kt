@@ -270,3 +270,39 @@ public expect value class DoubleResult(
         public fun failure(error: KompactDecodeError): DoubleResult
     }
 }
+
+// === ADR-0005 — opt-in diagnostics tier (allocates; NOT the zero-alloc hot path) ===
+
+/**
+ * Full diagnostic on the opt-in `decodeFull` path (ADR-0005 §2). Allocated only
+ * on the rare failure path, and only when the caller explicitly requests
+ * diagnostics — the `readScalar` hot path is unaffected (Ticket 03/10).
+ *
+ * - [error]: the typed `KompactDecodeError` kind.
+ * - [offset]: byte index of the failure (`bitOffset ushr 3`).
+ * - [rawCode]: the raw enum ordinal for `UnknownEnumCode`, else 0.
+ */
+public data class DetailedDecodeError(
+    public val error: KompactDecodeError,
+    public val offset: Int,
+    public val rawCode: Int,
+)
+
+/**
+ * Opt-in diagnostics result (ADR-0005 §2). Holds either a success [value] or a
+ * [DetailedDecodeError]; unlike the packed `*Result` value classes it is a plain
+ * class and therefore allocates — use it only for diagnostics/recovery, never on
+ * the read hot path ([KompactRuntime.readScalar]).
+ *
+ * Constructed only from `decodeFull` ([KompactRuntime]); the constructor is
+ * `internal` so external callers cannot create an inconsistent (value+error)
+ * instance.
+ */
+public class DetailedResult<T> internal constructor(
+    public val value: T?,
+    public val error: DetailedDecodeError?,
+) {
+    public val isSuccess: Boolean get() = error == null
+
+    public val isFailure: Boolean get() = error != null
+}

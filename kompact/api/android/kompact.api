@@ -96,6 +96,28 @@ public final class ch/trancee/kompact/runtime/ByteResult$Companion {
 	public final fun success-jr9cdlI (B)J
 }
 
+public final class ch/trancee/kompact/runtime/DetailedDecodeError {
+	public fun <init> (Lch/trancee/kompact/runtime/KompactDecodeError;II)V
+	public final fun component1 ()Lch/trancee/kompact/runtime/KompactDecodeError;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun copy (Lch/trancee/kompact/runtime/KompactDecodeError;II)Lch/trancee/kompact/runtime/DetailedDecodeError;
+	public static synthetic fun copy$default (Lch/trancee/kompact/runtime/DetailedDecodeError;Lch/trancee/kompact/runtime/KompactDecodeError;IIILjava/lang/Object;)Lch/trancee/kompact/runtime/DetailedDecodeError;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Lch/trancee/kompact/runtime/KompactDecodeError;
+	public final fun getOffset ()I
+	public final fun getRawCode ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class ch/trancee/kompact/runtime/DetailedResult {
+	public final fun getError ()Lch/trancee/kompact/runtime/DetailedDecodeError;
+	public final fun getValue ()Ljava/lang/Object;
+	public final fun isFailure ()Z
+	public final fun isSuccess ()Z
+}
+
 public final class ch/trancee/kompact/runtime/DoubleResult {
 	public static final field Companion Lch/trancee/kompact/runtime/DoubleResult$Companion;
 	public static final synthetic fun box-impl (J)Lch/trancee/kompact/runtime/DoubleResult;
@@ -231,6 +253,11 @@ public final class ch/trancee/kompact/runtime/KompactResultExtensionsKt {
 
 public final class ch/trancee/kompact/runtime/KompactRuntime {
 	public static final field INSTANCE Lch/trancee/kompact/runtime/KompactRuntime;
+	public final fun decodeFullBoolean ([BI)Lch/trancee/kompact/runtime/DetailedResult;
+	public final fun decodeFullDouble ([BI)Lch/trancee/kompact/runtime/DetailedResult;
+	public final fun decodeFullFloat ([BI)Lch/trancee/kompact/runtime/DetailedResult;
+	public final fun decodeFullInt-W6vtYLY ([BII)Lch/trancee/kompact/runtime/DetailedResult;
+	public final fun decodeFullLong-W6vtYLY ([BII)Lch/trancee/kompact/runtime/DetailedResult;
 	public final fun fits ([BII)Z
 	public final fun readBits ([BII)I
 	public final fun readBitsBoolean ([BI)Z
