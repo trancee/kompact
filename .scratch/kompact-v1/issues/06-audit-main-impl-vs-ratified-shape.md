@@ -1,6 +1,6 @@
 ---
 Type: research
-Status: needs-triage
+Status: resolved
 Labels:
   - wayfinder:research
   - scope:impl
@@ -8,13 +8,14 @@ Blocked by:
   - "05 verify/lock v1.0 baseline"
 Decides:
   - "whether main's v1 impl matches the ratified shape (ADR-0005/0006/0003)"
+Resolved by:
+  - "source-level audit of kompact/ + committed ABI golden (see Resolution)"
 ---
 
 ## Question
 
-Does the v1 implementation already in `main` (from `feat/laguna`, released
-0.1.0–0.1.7; now `0.2.0-SNAPSHOT`) match the shape just ratified by tickets
-01–03?
+Does the v1 implementation already in `main` match the shape just ratified by
+tickets 01–03?
 
 - [01](01-ratify-fail-path-zero-alloc.md): **tiered results** — zero-alloc on the
   read **success** path, allocating `DecodeError(value, offset, kind, rawCode)` on
@@ -24,23 +25,56 @@ Does the v1 implementation already in `main` (from `feat/laguna`, released
 - [03](03-arbitrate-framing-prefix-widths.md): **fixed-width LE** {8,16,32}
   framing (ticket 05 — unchanged).
 
-## Acceptance
+## Resolution
 
-- For each facet above: state `main`'s **current** shape vs the **ratified**
-  shape (source-level, with the file/region).
-- State whether the committed `kompact/api/*.api` golden already encodes the
-  current shape (so the ABI surface is pinned to something).
-- Outcome is one of:
-  - **(a) match** — `main` already implements the ratified shape; baseline is
-    locked for v1.0; this ticket closes, map destination reached.
-  - **(b) mismatch** — create a follow-on implementation ticket to refactor
-    `main` to the ratified shape (a pre-1.0 MAJOR on the read-API/view API), and
-    flag it here.
+**Outcome (b) — MISMATCH.** The v1 baseline in `main` is green + ABI-locked
+(see [ticket 05](05-scaffold-v1-modules-and-abi-golden.md)), but its **current
+shape does not match the ratified v1 shape** on results + views; framing matches.
 
-## Notes
+### Results (01 / ADR-0005) — MISMATCH
 
-- **Blocked by ticket 05** (needs the verified-green baseline as its starting
-  point) — do not claim until 05 is resolved (it is).
-- Code-reading investigation (AFK); not a human decision. The answer determines
-  whether v1.0 can ship from the current `main` baseline or needs one more
-  implementation pass first.
+`main` implements **ticket 08**, not ADR-0005. Evidence:
+
+- `kompact/src/commonMain/kotlin/ch/trancee/kompact/runtime/KompactResult.kt`
+  defines the **7 packed-`Long` result value classes** — `ByteResult`, `ShortResult`,
+  `IntResult`, `FloatResult`, `BooleanResult`, `LongResult`, `DoubleResult` (+
+  `NestedRegionResult`) — each packing success + error into one `Long` via
+  `encodeSmallFailure` / `encodeLongFailure` / `encodeDoubleFailure` +
+  `decode*Error` helpers.
+- `kompact/src/commonMain/kotlin/ch/trancee/kompact/runtime/KompactResultExtensions.kt`
+  adds **per-type `getOrElse`/`map` on all seven** ("getOrElse / map extensions on
+  the seven result value classes").
+- Committed ABI golden confirms the 7 packed value classes:
+  `kompact/api/jvm/kompact.api` (`ByteResult`…`DoubleResult`, `box-impl (J)`) and
+  `kompact/api/kompact.klib.api` (`final value class …/BooleanResult` …).
+- → **No** tiered/single result type and **no** `getOrDefault`; failures are
+  still packed into the `Long`, not allocated as a `DecodeError`. **Refactor to
+  ADR-0005 required.**
+
+### Views (02 / ADR-0006) — MISMATCH
+
+`main` implements **ADR-0001**, not ADR-0006. Evidence:
+
+- Generated `kompact/src/jvmCommon/kotlin/generated/VehicleTelemetry.kt`
+  exposes `public actual var batteryStatus: Int`, `var speed: Int`,
+  `var isMalfunctioning: Boolean` — `var` write-through (reads use
+  `KompactRuntime.readScalar(raw, …, ScalarType.of(…)).getOrThrow()`).
+- `kompact-ksp/src/main/kotlin/ch/trancee/kompact/ksp/gen/ValueClassGenerator.kt`
+  comment at line 37: `- \`var\` with write-through setters (ADR-0001)`; lines
+  356/382: "Per-type in-place write call builders for value-class setters (ADR-0001
+  write-through)".
+- → **No** immutable-by-default + opt-in `Mutable*`. **Refactor to ADR-0006
+  (codegen + ABI) required.**
+
+### Framing (03) — MATCH
+
+`main` keeps ticket 05 fixed-width LE {8,16,32} length prefixes — the ratified
+decision (reject the change). No refactor.
+
+### Conclusion
+
+v1.0 **cannot ship from current `main` as-is**: the ratified shape (01/02) is
+not implemented; collapsing the 7 result types → tiered + mutable `var` views →
+immutable is a **pre-1.0 Major** refactor of the read-API + codegen, with a full
+ABI-golden re-lock + re-green of the gates. This graduates to
+[ticket 07](07-decide-v1-shape-resolution.md).

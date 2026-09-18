@@ -46,13 +46,15 @@ windows Native targets are out of scope.
   - **02 — accept ADR-0006:** immutable-by-default views (`val` + builder), opt-in `Mutable*`; supersedes ADR-0001. [ticket 02](issues/02-ratify-immutable-default-models.md)
   - **03 — reject framing-width change:** keep ticket 05 fixed-width LE {8,16,32} prefixes (wire-incompatible MAJOR for marginal gain; preserves skip-unknown-field evolution). [ticket 03](issues/03-arbitrate-framing-prefix-widths.md)
 - **First takeable agent step = verify/lock the v1.0 baseline in `main`** (module layout + committed ABI goldens + green gates): ticket 05 **RESOLVED** — `:kompact:checkKotlinAbi` + `:kompact-ksp` ABI/kover/tests **BUILD SUCCESSFUL (exit 0)** on this branch.
-- **[Audit main impl vs ratified shape](issues/06-audit-main-impl-vs-ratified-shape.md) — follow-on:** does `main` (0.1.x) already ship the ratified shape (ADR-0005 tiered results, ADR-0006 immutable views) or need a pre-1.0 refactor?
+- **[Audit main impl vs ratified shape](issues/06-audit-main-impl-vs-ratified-shape.md) — MISMATCH (resolved):** `main` ships ticket-08 packed-`Long` results (7 types) + ADR-0001 `var` write-through views — **not** the ratified ADR-0005/0006 shape; framing matches (ticket 05). v1.0 cannot ship from `main` as-is → pre-1.0 Major refactor required.
+- **[Decide v1.0 shape-resolution path](issues/07-decide-v1-shape-resolution.md) — NEW frontier (grilling/HITL):** refactor `main` to the ratified shape (a) vs revert 01/02 (b) vs split v1.0/v1.1 (c).
 
 ## Not yet specified (fog)
 
 - v1.0 version number + release window.
 - Precise zero-alloc CI-gate harness details for the v1 build (see kompact-spec tickets 10/11).
 - Exact Maven Central coordinates + signing infra (see kompact-spec ticket 14).
+- If (a): the v1.0 refactor implementation effort itself (a separate wayfinder; out of this planning map's scope).
 
 ## Out of scope
 
@@ -61,10 +63,16 @@ windows Native targets are out of scope.
 - Separate Android library target.
 - Arbitrary / LEB128 framing widths in v1 — **REJECTED** (ticket 03); v1 keeps ticket 05 fixed-width LE. Stays deferred.
 - Greenfield scaffolding `:kompact` / `:kompact-ksp` from scratch — the v1 baseline already lives in `main` (see research 04); ticket 05 verifies/locks it.
+- Executing the v1.0 refactor itself — a follow-on *implementation* effort (only begun if ticket 07 chooses (a)).
 
 ## Frontier
 
-- **[06 — audit main impl vs ratified shape](issues/06-audit-main-impl-vs-ratified-shape.md)** — research, **OPEN** (new frontier, unblocked). Determines whether v1.0 ships from the current `main` baseline or needs one pre-1.0 refactor pass.
-- 01 / 02 / 03 / 04 / 05 — **resolved**.
+- **[07 — decide v1.0 shape-resolution (refactor vs revert vs split)](issues/07-decide-v1-shape-resolution.md)** — grilling (HITL), **OPEN** (new frontier). 01–06 resolved. Opens the v1.0 shipping decision.
+- 01 / 02 / 03 / 04 / 05 / 06 — **resolved**.
 
-> The v1.0 *baseline* is verified green + ABI-locked and the v1 *shape* is finalized, so the planning destination is substantively reached. Ticket 06 is the one discovered follow-on: does `main`'s current impl match the ratified shape? If **(a)** match — v1.0 is ready to ship; if **(b)** mismatch — a follow-on implementation wayfinder is started from that finding.
+> The planning destination is **reached**: the Kompact-v1.0 baseline is verified
+> green + ABI-locked (`main`, released 0.1.x), the v1 read-API/view/framing
+> **shape is finalized** (tickets 01–03), and the one-discovered obstacle — that
+> `main`'s current impl predates the ratified shape — is **filed as ticket 07**.
+> The v1.0 *refactor* (if ticket 07 chooses (a)) is a separate implementation
+> effort, deliberately out of this planning map's scope.
