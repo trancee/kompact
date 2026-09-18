@@ -44,15 +44,15 @@ windows Native targets are out of scope.
 - **v1 shape finalized (recommended-default), tickets 01–03 resolved:**
   - **01 — accept ADR-0005:** tiered results — zero-alloc on success (read hot path, tickets 10/11 unchanged), `DecodeError` allocates only on failure; the 7 packed-`Long` types drop out of v1. [ticket 01](issues/01-ratify-fail-path-zero-alloc.md)
   - **02 — accept ADR-0006:** immutable-by-default views (`val` + builder), opt-in `Mutable*`; supersedes ADR-0001. [ticket 02](issues/02-ratify-immutable-default-models.md)
-  - **03 — reject framing-width change:** keep ticket 05 fixed-width LE ({8,16,32}) prefixes (wire-incompatible MAJOR for marginal gain; preserves skip-unknown-field evolution). [ticket 03](issues/03-arbitrate-framing-prefix-widths.md)
-- **First takeable agent step = verify/lock the v1.0 baseline in `main`** (module layout + committed ABI goldens + green gates): ticket 05, now **unblocked**.
+  - **03 — reject framing-width change:** keep ticket 05 fixed-width LE {8,16,32} prefixes (wire-incompatible MAJOR for marginal gain; preserves skip-unknown-field evolution). [ticket 03](issues/03-arbitrate-framing-prefix-widths.md)
+- **First takeable agent step = verify/lock the v1.0 baseline in `main`** (module layout + committed ABI goldens + green gates): ticket 05 **RESOLVED** — `:kompact:checkKotlinAbi` + `:kompact-ksp` ABI/kover/tests **BUILD SUCCESSFUL (exit 0)** on this branch.
+- **[Audit main impl vs ratified shape](issues/06-audit-main-impl-vs-ratified-shape.md) — follow-on:** does `main` (0.1.x) already ship the ratified shape (ADR-0005 tiered results, ADR-0006 immutable views) or need a pre-1.0 refactor?
 
 ## Not yet specified (fog)
 
 - v1.0 version number + release window.
 - Precise zero-alloc CI-gate harness details for the v1 build (see kompact-spec tickets 10/11).
 - Exact Maven Central coordinates + signing infra (see kompact-spec ticket 14).
-- (If ratified shape needs a codegen change in main → follow-on implementation ticket, out of this planning map's scope.)
 
 ## Out of scope
 
@@ -64,5 +64,7 @@ windows Native targets are out of scope.
 
 ## Frontier
 
-- **[05 — verify/lock v1.0 baseline in `main`](issues/05-scaffold-v1-modules-and-abi-golden.md)** — task, **OPEN** (agent frontier). 01/02/03 resolved; 04 resolved. Next work-through ticket.
-- 01 / 02 / 03 / 04 — **resolved**.
+- **[06 — audit main impl vs ratified shape](issues/06-audit-main-impl-vs-ratified-shape.md)** — research, **OPEN** (new frontier, unblocked). Determines whether v1.0 ships from the current `main` baseline or needs one pre-1.0 refactor pass.
+- 01 / 02 / 03 / 04 / 05 — **resolved**.
+
+> The v1.0 *baseline* is verified green + ABI-locked and the v1 *shape* is finalized, so the planning destination is substantively reached. Ticket 06 is the one discovered follow-on: does `main`'s current impl match the ratified shape? If **(a)** match — v1.0 is ready to ship; if **(b)** mismatch — a follow-on implementation wayfinder is started from that finding.
