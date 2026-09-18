@@ -1,6 +1,6 @@
 ---
 Type: map
-Status: active
+Status: resolved
 Labels:
   - wayfinder:map
 ---
@@ -47,14 +47,13 @@ windows Native targets are out of scope.
   - **03 — reject framing-width change:** keep ticket 05 fixed-width LE {8,16,32} prefixes (wire-incompatible MAJOR for marginal gain; preserves skip-unknown-field evolution). [ticket 03](issues/03-arbitrate-framing-prefix-widths.md)
 - **First takeable agent step = verify/lock the v1.0 baseline in `main`** (module layout + committed ABI goldens + green gates): ticket 05 **RESOLVED** — `:kompact:checkKotlinAbi` + `:kompact-ksp` ABI/kover/tests **BUILD SUCCESSFUL (exit 0)** on this branch.
 - **[Audit main impl vs ratified shape](issues/06-audit-main-impl-vs-ratified-shape.md) — MISMATCH (resolved):** `main` ships ticket-08 packed-`Long` results (7 types) + ADR-0001 `var` write-through views — **not** the ratified ADR-0005/0006 shape; framing matches (ticket 05). v1.0 cannot ship from `main` as-is → pre-1.0 Major refactor required.
-- **[Decide v1.0 shape-resolution path](issues/07-decide-v1-shape-resolution.md) — NEW frontier (grilling/HITL):** refactor `main` to the ratified shape (a) vs revert 01/02 (b) vs split v1.0/v1.1 (c).
+- **[Decide v1.0 shape-resolution path](issues/07-decide-v1-shape-resolution.md) — (a) refactor `main` to the ratified shape (confirmed):** chosen; v1.0 ships the ratified shape; `main` is pre-1.0 (`0.2.0-SNAPSHOT`, no v1.0 tag) so the Major ABI change is cheap.
 
 ## Not yet specified (fog)
 
 - v1.0 version number + release window.
 - Precise zero-alloc CI-gate harness details for the v1 build (see kompact-spec tickets 10/11).
 - Exact Maven Central coordinates + signing infra (see kompact-spec ticket 14).
-- If (a): the v1.0 refactor implementation effort itself (a separate wayfinder; out of this planning map's scope).
 
 ## Out of scope
 
@@ -63,16 +62,21 @@ windows Native targets are out of scope.
 - Separate Android library target.
 - Arbitrary / LEB128 framing widths in v1 — **REJECTED** (ticket 03); v1 keeps ticket 05 fixed-width LE. Stays deferred.
 - Greenfield scaffolding `:kompact` / `:kompact-ksp` from scratch — the v1 baseline already lives in `main` (see research 04); ticket 05 verifies/locks it.
-- Executing the v1.0 refactor itself — a follow-on *implementation* effort (only begun if ticket 07 chooses (a)).
+- **Executing the v1.0 refactor itself** — a follow-on *implementation* effort (ticket 07 chose (a)); chartered as a separate wayfinder, out of this planning map's scope.
 
 ## Frontier
 
-- **[07 — decide v1.0 shape-resolution (refactor vs revert vs split)](issues/07-decide-v1-shape-resolution.md)** — grilling (HITL), **OPEN** (new frontier). 01–06 resolved. Opens the v1.0 shipping decision.
-- 01 / 02 / 03 / 04 / 05 / 06 — **resolved**.
+- **All tickets 01–07 — resolved.** Planning destination reached: v1.0 baseline verified green + ABI-locked, v1 shape finalized, and the shipping path chosen (refactor `main` to the ratified shape).
 
-> The planning destination is **reached**: the Kompact-v1.0 baseline is verified
-> green + ABI-locked (`main`, released 0.1.x), the v1 read-API/view/framing
-> **shape is finalized** (tickets 01–03), and the one-discovered obstacle — that
-> `main`'s current impl predates the ratified shape — is **filed as ticket 07**.
-> The v1.0 *refactor* (if ticket 07 chooses (a)) is a separate implementation
-> effort, deliberately out of this planning map's scope.
+> The planning map is **complete**. The Kompact v1.0 **implementation refactor**
+> (collapse result types to tiered + immutable views + re-lock ABI + re-green
+> gates) is a follow-on wayfinder effort, to be chartered now that ticket 07
+> chose (a).
+
+## Follow-on
+
+- **Kompact v1.0 refactor** — new wayfinder effort (destination: refactor `main`
+  to the ratified v1 shape and re-lock the ABI). Its first fork is the
+  **tiered-result zero-alloc design question** (can the success path stay
+  zero-alloc while collapsing/collapsing-the-failure-encoding of the 7 result
+  types) — to be resolved before TDD the result-type collapse.

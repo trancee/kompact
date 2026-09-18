@@ -1,6 +1,6 @@
 ---
 Type: grilling
-Status: needs-triage
+Status: resolved
 Labels:
   - wayfinder:grilling
   - scope:release
@@ -51,10 +51,20 @@ Choose the v1.0 shape-resolution path:
 - **(c)** → ADR-0005/0006 deferred to v1.1; ticket 05 baseline stands; new v1.1
   planning ticket.
 
-## Notes
+## Resolution
 
-- This is a **maintainer decision** (effort / scope / timeline / v1 positioning) —
-  not a code change by this ticket.
-- If (a), the refactor is a substantial implementation effort (result-type collapse
-  + codegen change + ABI golden re-lock + full re-test) and is launched as a
-  **separate wayfinder effort**, not folded into this planning map.
+**Decision: (a)** — refactor `main` to the ratified v1 shape. Confirmed by the
+maintainer (standing "a=recommended" path). v1.0 will ship ADR-0005 (tiered
+results) + ADR-0006 (immutable views) + ADR-0003 (fixed-width LE framing); `main`
+is pre-1.0 (`0.2.0-SNAPSHOT`, no v1.0 tag exists), so the Major ABI change is
+cheap.
+
+**Follow-on:** the Kompact v1.0 **refactor** is a separate, multi-session
+*implementation* effort (result-type collapse + `var`→`val`+builder codegen +
+ABI golden re-lock + full re-green of `checkKotlinAbi`/`kover`/`test`), to be
+chartered as its own wayfinder. Its first barrier is the
+**tiered-result zero-alloc design question** — before any TDD of the result-type
+collapse.
+
+This planning map is **complete** (destination reached: baseline green + ABI-locked,
+v1 shape finalized, shipping path chosen).
