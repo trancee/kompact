@@ -59,16 +59,26 @@ internal fun encodeErrorKind(error: KompactDecodeError): Int =
         is KompactDecodeError.UnknownEnumCode -> ERROR_UNKNOWN_ENUM
     }
 
-internal fun decodeErrorFromSmallBits(packed: Long): KompactDecodeError {
-    val kind = ((packed ushr RESULT_ERROR_KIND_SHIFT) and 0x7L).toInt()
-    val rawCode = ((packed ushr RESULT_RAW_ENUM_SHIFT) and 0xFFFL).toInt()
-    return when (kind) {
+/**
+ * Shared kind->case mapping for the failure path (ADR-0005 simplification).
+ * Reconstructs the [KompactDecodeError] from a decoded [kind] and [rawCode];
+ * an unrecognized kind falls back to [KompactDecodeError.BoundsError]. The
+ * per-shape `*Bits` decoders below extract kind/rawCode from their distinct
+ * packed-Long layouts and delegate here, so the case mapping cannot drift.
+ */
+internal fun decodeError(kind: Int, rawCode: Int): KompactDecodeError =
+    when (kind) {
         ERROR_BOUNDS -> KompactDecodeError.BoundsError
         ERROR_BAD_LENGTH -> KompactDecodeError.BadLengthPrefix
         ERROR_TRUNCATED -> KompactDecodeError.TruncatedNested
         ERROR_UNKNOWN_ENUM -> KompactDecodeError.UnknownEnumCode(rawCode)
         else -> KompactDecodeError.BoundsError
     }
+
+internal fun decodeErrorFromSmallBits(packed: Long): KompactDecodeError {
+    val kind = ((packed ushr RESULT_ERROR_KIND_SHIFT) and 0x7L).toInt()
+    val rawCode = ((packed ushr RESULT_RAW_ENUM_SHIFT) and 0xFFFL).toInt()
+    return decodeError(kind, rawCode)
 }
 
 internal fun encodeSmallSuccess(value: Long): Long = RESULT_OK_FLAG or (value and RESULT_VALUE_MASK)
@@ -90,13 +100,7 @@ internal fun encodeLongFailure(error: KompactDecodeError): Long {
 internal fun decodeLongError(packed: Long): KompactDecodeError {
     val kind = (packed and 0x7L).toInt()
     val rawCode = ((packed ushr 3) and 0xFFL).toInt()
-    return when (kind) {
-        ERROR_BOUNDS -> KompactDecodeError.BoundsError
-        ERROR_BAD_LENGTH -> KompactDecodeError.BadLengthPrefix
-        ERROR_TRUNCATED -> KompactDecodeError.TruncatedNested
-        ERROR_UNKNOWN_ENUM -> KompactDecodeError.UnknownEnumCode(rawCode)
-        else -> KompactDecodeError.BoundsError
-    }
+    return decodeError(kind, rawCode)
 }
 
 internal fun isDoubleFailure(packed: Long): Boolean {
@@ -115,13 +119,7 @@ internal fun decodeDoubleError(packed: Long): KompactDecodeError {
     val payload = (packed and DOUBLE_ERROR_PAYLOAD_MASK).toInt()
     val kind = payload - 1
     val rawCode = ((packed ushr 4) and 0xFFL).toInt()
-    return when (kind) {
-        ERROR_BOUNDS -> KompactDecodeError.BoundsError
-        ERROR_BAD_LENGTH -> KompactDecodeError.BadLengthPrefix
-        ERROR_TRUNCATED -> KompactDecodeError.TruncatedNested
-        ERROR_UNKNOWN_ENUM -> KompactDecodeError.UnknownEnumCode(rawCode)
-        else -> KompactDecodeError.BoundsError
-    }
+    return decodeError(kind, rawCode)
 }
 
 internal fun encodeDoubleSuccess(value: Double): Long = if (value.isNaN()) DOUBLE_NAN_CANONICAL else value.toBits()
