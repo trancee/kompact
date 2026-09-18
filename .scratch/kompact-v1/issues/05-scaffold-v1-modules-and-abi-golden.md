@@ -1,50 +1,42 @@
 ---
 Type: task
-Status: needs-triage
+Status: ready-for-agent
 Labels:
   - wayfinder:task
   - scope:build
 Blocked by:
-  - "01 ratify fail-path zero-alloc (ADR-0005 vs ticket 08)"
-  - "02 ratify immutable-by-default models (ADR-0006 vs ADR-0001)"
-  - "03 arbitrate framing prefix widths (vs ticket 05)"
+  - "none (tickets 01/02/03 resolved → v1 shape finalized)"
 Decides:
   - "v1.0 baseline module layout + ABI golden locked in main"
 ---
 
 ## Question
 
-**Reframed by [research 04](../research/04-remote-branch-inspection.md):** the
-v1.0 implementation already exists in `main` (`:kompact` + `:kompact-ksp`,
-committed ABI goldens, CI gates, released as 0.1.0–0.1.7). So this is **not**
-greenfield scaffolding — it is **verifying and locking the existing v1.0
-baseline** so the locked spec ships against a stable, checked-in ABI.
-
-Once the three blocking ratifications are decided, confirm the v1.0 baseline in
-`main` is locked and green:
+Verify and lock the **existing** v1.0 baseline in `main` (the implementation was
+already integrated from `feat/laguna` and released as 0.1.0–0.1.7; `main` is now
+`0.2.0-SNAPSHOT`). Now that the v1 shape is finalized (tickets 01/02/03 resolved),
+confirm the baseline that the locked spec ships against is stable and green.
 
 ## Acceptance
 
-- Module layout present and matches kompact-spec
+- Module layout present in `main` matches kompact-spec
   [ticket 12](../../kompact-spec/issues/12-module-split-and-publication.md):
-  `:kompact` (KMP runtime, JVM + `iosArm64` + `iosSimulatorArm64`) + `:kompact-ksp`
-  (JVM-only processor).
+  `:kompact` (JVM + `iosArm64` + `iosSimulatorArm64`) + `:kompact-ksp` (JVM-only).
 - `binary-compatibility-validator` goldens are **committed** for v1.0 and
-  **unchanged green** on `main`: `./gradlew :kompact:checkKotlinAbi
-  :kompact-ksp:checkKotlinAbi` exits 0.
-- v1 merge gates green on the baseline: `koverVerify*` 100%,
-  `:kompact-ksp:test` (zero-alloc assertions, tickets 10/11), CI gate task.
-- **Alignment:** verify against `main` (where `feat/laguna` was integrated and
-  released) — **not** against stale branches `feat/kompact-v1` /
-  `feat/minimax` / `prototype/*`.
+  `checkKotlinAbi` green on the v1 shape:
+  `./gradlew :kompact:checkKotlinAbi :kompact-ksp:checkKotlinAbi` exits 0
+  (locally: JVM + kompact-ksp; klib iosArm64 ABI gate is CI-only / needs the iOS
+  toolchain — verified via CI, not local).
+- v1 merge gates green on the baseline: `:kompact-ksp:koverVerifyJvm` 100%,
+  `:kompact-ksp:test` passing (zero-alloc assertions, tickets 10/11).
+- **Alignment:** verified against `main` (where `feat/laguna` was integrated and
+  released) — **not** against stale branches.
 
 ## Notes
 
-- **Blocked** by [01](01-ratify-fail-path-zero-alloc.md),
-  [02](02-ratify-immutable-default-models.md),
-  [03](03-arbitrate-framing-prefix-widths.md) — the ABI golden is meaningless
-  until the read-API result shape, view mutability, and framing format are
-  finalized. Do **not** claim this until those are resolved.
-- If the ratifications change the shape (e.g. ADR-0005 collapses the result
-  types), the ABI golden may need an intentional MAJOR bump — a ticket-05
-  sub-decision, not a chart decision.
+- The v1 shape is now finalized by tickets 01 (tiered results) + 02 (immutable
+  views) + 03 (fixed-width LE framing) — all resolved on the recommended-default
+  path. This ticket is **unblocked** and is the current agent frontier.
+- If the ratified shape requires a codegen change in `main` (e.g. immutable
+  views / tiered results), that becomes a follow-on implementation ticket —
+  scoped to the v1 build, out of this planning map's scope.

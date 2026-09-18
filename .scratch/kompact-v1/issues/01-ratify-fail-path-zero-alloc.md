@@ -1,6 +1,6 @@
 ---
 Type: grilling
-Status: needs-triage
+Status: resolved
 Labels:
   - wayfinder:grilling
   - scope:architecture
@@ -41,3 +41,20 @@ and the v1.0 ABI golden. It **blocks** the scaffold/ABI-golden step.
   and keep ticket 08).
 - Decision points to the concrete result-type API v1 will ship.
 - This ticket closed; the scaffold ticket can be claimed.
+
+## Resolution
+
+**Accept ADR-0005** (recommended-default path; standing "a=recommended" instruction;
+veto invited on the next turn). v1.0 scalar-read result API is **tiered**:
+zero-alloc on the **success** path (per tickets 10/11, unchanged); on failure,
+allocate a richer `DecodeError(value, offset, kind, rawCode)`. The seven
+packed-`Long` `*Result` value classes — and their fragile encodings (`LongResult`
+sentinel band removing a `Long.MIN_VALUE…+2^58-1` range; `DoubleResult` NaN-payload
+canonicalization) — are removed from the v1 public surface.
+
+Rationale: decode errors are not the hot path (BLE decode failures are rare; the
+hot path is scalar reads, which stay zero-alloc). The packing schemes are clever
+but fragile and ABI-fragile. Pre-1.0 MAJOR on the read API is cheap, so locking
+the simplified shape now for v1 is the point. The ADR-0005 file (proposed, on
+PR #56) will be marked accepted on merge; codegen + result types updated in
+ticket 05 / the v1 build.

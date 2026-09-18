@@ -1,6 +1,6 @@
 ---
 Type: grilling
-Status: needs-triage
+Status: resolved
 Labels:
   - wayfinder:grilling
   - scope:api
@@ -14,7 +14,7 @@ Decides:
 
 Should v1.0 value-class views be **immutable by default** (`val` + builder/copy,
 superseding [ADR-0001](../../../docs/adr/0001-mutable-view-classes-with-write-through-setters.md)
-per ADR-0006 (proposed; [PR #56](https://github.com/trancee/kompact/pull/56)), or **remain
+per ADR-0006 (proposed; [PR #56](https://github.com/trancee/kompact/pull/56))), or **remain
 mutable write-through setters** as today?
 
 A yes reverts a ratified decision (ADR-0001). It changes the generated view shape
@@ -35,3 +35,14 @@ and the v1.0 ABI golden, so it **blocks** the scaffold step.
 - Decision recorded (accept ADR-0006 / supersede ADR-0001, or keep ADR-0001).
 - Decision pins the v1 view mutability contract for codegen.
 - This ticket closed; the scaffold ticket can be claimed.
+
+## Resolution
+
+**Accept ADR-0006** (recommended-default; veto invited). v1.0 value-class views are
+**immutable by default** (`val` + `copy`-style builder); mutable access is opt-in
+via an explicit `Mutable*` scratch type. This realigns v1 with PROMPT.md §1 ("Fields
+exposed as val") and supersedes [ADR-0001](../../../docs/adr/0001-mutable-view-classes-with-write-through-setters.md).
+The write path allocates per edited frame — acceptable because writes are not the
+zero-alloc read hot path. Codegen emits immutable views + opt-in `Mutable*`; docs
+(`integrate-ble` shared-buffer contract + VehicleTelemetry table) updated in the
+v1 build.
