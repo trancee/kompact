@@ -12,10 +12,11 @@ import ch.trancee.kompact.runtime.LongResult
  * `Result` re-exports the five specialized typed-result value classes
  * under one import path — `Kompact.Result.Int`, `Kompact.Result.Boolean`, … —
  * so a newcomer can `import ch.trancee.kompact.Kompact` instead of naming all
- * five result types. Byte/Short are subsumed by `Int` (width resolved via
- * ScalarType at read time — readScalar already returns IntResult for 8/16-bit
- * fields); this is purely a one-stop re-export (additive; zero-alloc on the
- * success path).
+ * five result types. There is no `Byte`/`Short` result type — 8- and 16-bit
+ * reads are decoded by `readScalar`, which returns `IntResult` (width and
+ * signedness come from `ScalarType`). Each result is a zero-alloc `@JvmInline`
+ * over a packed `Long` on success and failure; see `architecture.md` §
+ * "Zero-allocation reads" and `api-reference.md` § "Typed result value classes".
  *
  * See `KompactResult.kt` for the packed-Long encodings of each result kind.
  */

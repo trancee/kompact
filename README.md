@@ -112,9 +112,9 @@ bleCharacteristic.value = tel.raw
 ## What's in this repo
 
 - **`:kompact`** — the KMP runtime: bit primitives, a forward-only writer, framing
-  helpers, and seven zero-alloc typed result value classes (`ByteResult`,
-  `ShortResult`, `IntResult`, `LongResult`, `FloatResult`, `DoubleResult`,
-  `BooleanResult`).
+  helpers, and five zero-alloc scalar result value classes (`IntResult`,
+  `LongResult`, `FloatResult`, `DoubleResult`, `BooleanResult`) — 8/16-bit widths
+  decode into `IntResult` via `ScalarType` (no `Byte`/`Short` result type).
 - **`:kompact-ksp`** — the KSP annotation processor (`@KompactModel` /
   `@KompactField`) that generates value-class view bodies from
   compile-time-validated field layouts. Apply it with `ksp` in a consumer

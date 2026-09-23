@@ -224,7 +224,7 @@ to a typed `BadLengthPrefix` error.
 
 ## Typed result value classes
 
-Seven specialized result types — one per scalar kind. Each wraps a
+Five specialized scalar result types — one per value shape. Each wraps a
 single `Long` so it is **zero-alloc on both the JVM and iOS** on success
 and failure. There is no generic `KompactDecodeResult<T>`; the
 specialized types let the success-path primitives stay unboxed.
@@ -335,6 +335,39 @@ produces one.
 `KompactDecodeException(error: KompactDecodeError)` is the only
 exception thrown by Kompact, and only by `getOrThrow()` / the `*OrThrow`
 accessors on the failure path.
+
+---
+
+## Two-tier diagnostics (`decodeFull*`)
+
+[ADR-0005](adr/0005-relax-fail-path-zero-alloc.md) §2 makes diagnostics an
+**opt-in** tier that may allocate, so the zero-alloc `readScalar` / `readBool`
+/ `readFloat` / `readDouble` / `readScalarAsLong` hot path stays untouched.
+Each `decodeFull*` wraps one zero-alloc checked accessor and returns a
+`DetailedResult<T>`:
+
+| Function | Wraps | Returns | Failure payload |
+| --- | --- | --- | --- |
+| `decodeFullInt(raw, bitOffset, type)` | `readScalar` | `DetailedResult<Int>` | `DetailedDecodeError` |
+| `decodeFullLong(raw, bitOffset, type)` | `readScalarAsLong` | `DetailedResult<Long>` | `DetailedDecodeError` |
+| `decodeFullFloat(raw, bitOffset)` | `readFloat` | `DetailedResult<Float>` | `DetailedDecodeError` |
+| `decodeFullDouble(raw, bitOffset)` | `readDouble` | `DetailedResult<Double>` | `DetailedDecodeError` |
+| `decodeFullBoolean(raw, bitOffset)` | `readBool` | `DetailedResult<Boolean>` | `DetailedDecodeError` |
+
+On success, `value` holds the decoded scalar and `error` is `null`. On failure
+(currently `BoundsError` — the read-side bounds check), `value` is `null` and
+`error` carries a `DetailedDecodeError(error, offset, rawCode)`:
+
+- `error` — the `KompactDecodeError` kind (e.g. `BoundsError`).
+- `offset` — the **byte** index of the failure (`bitOffset ushr 3`).
+- `rawCode` — the raw enum code (only non-zero for `UnknownEnumCode`, which is
+  produced by hand-written enum checks in generated views, not by the scalar
+  reads here).
+
+`DetailedResult<T>` is a plain class (not a value class) and therefore
+**allocates on both paths** — use it only when you need offsets/errors; the
+`readScalar*` accessors and `*OrThrow` variants are the zero-alloc path.
+`isSuccess`/`isFailure` mirror the scalar result classes.
 
 ---
 
