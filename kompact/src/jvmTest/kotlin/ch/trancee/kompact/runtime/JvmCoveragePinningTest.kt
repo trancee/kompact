@@ -18,18 +18,6 @@ import kotlin.test.assertTrue
  */
 class JvmCoveragePinningTest {
     @Test
-    fun byteResult_getPacked_covered() {
-        val r = JvmCoveragePinning.boxByte(JvmCoveragePinning.smallSuccess(42L))
-        assertEquals(JvmCoveragePinning.smallSuccess(42L), JvmCoveragePinning.getBytePacked(r))
-    }
-
-    @Test
-    fun shortResult_getPacked_covered() {
-        val r = JvmCoveragePinning.boxShort(JvmCoveragePinning.smallSuccess(100L))
-        assertEquals(JvmCoveragePinning.smallSuccess(100L), JvmCoveragePinning.getShortPacked(r))
-    }
-
-    @Test
     fun intResult_getPacked_covered() {
         val r = JvmCoveragePinning.boxInt(JvmCoveragePinning.smallSuccess(7L))
         assertEquals(JvmCoveragePinning.smallSuccess(7L), JvmCoveragePinning.getIntPacked(r))
@@ -121,16 +109,6 @@ class JvmCoveragePinningTest {
     }
 
     @Test
-    fun shortResult_getOrThrow_failurePathFromJava() {
-        try {
-            JvmCoveragePinning.callShortGetOrThrow(JvmCoveragePinning.smallFailure())
-            throw AssertionError("Expected KompactDecodeException")
-        } catch (e: java.lang.reflect.InvocationTargetException) {
-            assertTrue(e.cause is KompactDecodeException)
-        }
-    }
-
-    @Test
     fun longResult_getOrThrow_failurePathFromJava() {
         try {
             JvmCoveragePinning.callLongGetOrThrow(JvmCoveragePinning.longFailure())
@@ -138,5 +116,18 @@ class JvmCoveragePinningTest {
         } catch (e: java.lang.reflect.InvocationTargetException) {
             assertTrue(e.cause is KompactDecodeException)
         }
+    }
+
+    @Test
+    fun detailedError_unknownEnumCode_propagatesRawCode() {
+        // decodeFull* only surface BoundsError, so detailedError's UnknownEnumCode
+        // arm is unreachable via the public API; drive it here via reflection
+        // (mirrors callLongGetOrThrow) and assert the rawCode + byte offset.
+        val err = JvmCoveragePinning.callDetailedErrorWithUnknownEnumCode(0x0BAD, 0x42)
+        assertEquals(0x0BAD, err.rawCode)
+        assertEquals(0x42 ushr 3, err.offset)
+        val kind = err.error
+        assertTrue(kind is KompactDecodeError.UnknownEnumCode)
+        assertEquals(0x0BAD, kind.rawCode)
     }
 }

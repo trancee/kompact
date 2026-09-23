@@ -3,7 +3,7 @@ package ch.trancee.kompact.runtime
 // ====================================================================
 // Ticket 08 — packed-Long encoding constants & shared helpers
 //
-// ≤32-bit result types (Byte/Short/Int/Float/Boolean) use a single
+// ≤32-bit result types (Int/Float/Boolean; Byte/Short widen to Int) use a single
 // packed-Long layout:
 //   [ ok(bit63) | errorKind(bits 62..60) | rawEnumCode(bits 59..48) | value(bits 47..0) ]
 //
@@ -139,42 +139,16 @@ internal fun throwDecodeErrorFromDouble(packed: Long): Nothing = throw KompactDe
 // ====================================================================
 // Ticket 08 — result value class declarations (expect)
 //
-// 7 specialized result types — one per scalar kind. No generic T.
-// Each wraps a single Long, zero-alloc on both JVM (@JvmInline) and
-// Kotlin/Native (value class).
+// Five specialized result types — one per value shape:
+//   IntResult     (≤32-bit integer; Byte/Short widen to Int via ScalarType
+//                  width at read time — readScalar already returns IntResult),
+//   LongResult    (64-bit integer, sentinel-band encoding),
+//   FloatResult   (32-bit float, NaN-canonical success),
+//   DoubleResult  (64-bit float, reserved quiet-NaN payload for errors),
+//   BooleanResult (single bit).
+// No generic T. Each wraps a single Long, zero-alloc on both JVM
+// (@JvmInline) and Kotlin/Native (value class).
 // ====================================================================
-
-public expect value class ByteResult(
-    public val packed: Long,
-) {
-    public val isSuccess: Boolean
-    public val isFailure: Boolean
-    public val error: KompactDecodeError?
-
-    public fun getOrThrow(): Byte
-
-    public companion object {
-        public fun success(value: Byte): ByteResult
-
-        public fun failure(error: KompactDecodeError): ByteResult
-    }
-}
-
-public expect value class ShortResult(
-    public val packed: Long,
-) {
-    public val isSuccess: Boolean
-    public val isFailure: Boolean
-    public val error: KompactDecodeError?
-
-    public fun getOrThrow(): Short
-
-    public companion object {
-        public fun success(value: Short): ShortResult
-
-        public fun failure(error: KompactDecodeError): ShortResult
-    }
-}
 
 public expect value class IntResult(
     public val packed: Long,

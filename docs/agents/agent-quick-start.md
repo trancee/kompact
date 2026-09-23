@@ -44,7 +44,7 @@ kompact/                        the runtime library (KMP: JVM + Android + iOS)
 ├── src/commonMain/kotlin/…/generated/VehicleTelemetry.kt  ← example model (expect/actual)
 ├── src/jvmCommon/kotlin/…/         ← @JvmInline actuals (shared by JVM + Android)
 ├── src/iosMain/kotlin/…/           ← plain value class actuals
-└── api/kompact.api                 ← committed ABI golden
+└── api/                              ← committed ABI goldens (jvm/ + android/ + kompact.klib.api)
 kompact-ksp/                    the KSP code generator
 ├── src/main/kotlin/…/gen/ValueClassGenerator.kt  ← generates expect/actual from annotations
 └── api/kompact-ksp.api             ← committed KSP ABI golden

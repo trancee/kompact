@@ -62,16 +62,6 @@ class JvmCoveragePinning {
     // ── Boxed value-class instances via reflection (box-impl has '-' in name) ─
     // Each overload avoids runtime type-checking branches.
 
-    public static ByteResult boxByte(long packed) throws Exception {
-        Method m = ByteResult.class.getMethod("box-impl", long.class);
-        return (ByteResult) m.invoke(null, packed);
-    }
-
-    public static ShortResult boxShort(long packed) throws Exception {
-        Method m = ShortResult.class.getMethod("box-impl", long.class);
-        return (ShortResult) m.invoke(null, packed);
-    }
-
     public static IntResult boxInt(long packed) throws Exception {
         Method m = IntResult.class.getMethod("box-impl", long.class);
         return (IntResult) m.invoke(null, packed);
@@ -115,14 +105,6 @@ class JvmCoveragePinning {
     // ── INVOKEVIRTUAL getPacked() on every @JvmInline value class ───────────
     // Each method calls getPacked() (an instance method → INVOKEVIRTUAL).
     // Returns the raw packed long so the caller can assert on it.
-
-    public static long getBytePacked(ByteResult r) {
-        return r.getPacked();  // INVOKEVIRTUAL
-    }
-
-    public static long getShortPacked(ShortResult r) {
-        return r.getPacked();  // INVOKEVIRTUAL
-    }
 
     public static long getIntPacked(IntResult r) {
         return r.getPacked();  // INVOKEVIRTUAL
@@ -209,19 +191,28 @@ class JvmCoveragePinning {
         return new long[]{mappedOk, mappedBad};
     }
 
-    // ── ShortResult / LongResult.getOrThrow-impl via reflection ────────────
+    // ── LongResult.getOrThrow-impl via reflection ────────────
     // Name contains '-', use reflection.
     // On failure path, getOrThrow-impl throws KompactDecodeException, which
     // Method.invoke wraps in InvocationTargetException. The caller (Kotlin
     // test) catches it and verifies the cause type.
 
-    public static short callShortGetOrThrow(long packed) throws Exception {
-        Method m = ShortResult.class.getMethod("getOrThrow-impl", long.class);
-        return (short) m.invoke(null, packed);
-    }
-
     public static long callLongGetOrThrow(long packed) throws Exception {
         Method m = LongResult.class.getMethod("getOrThrow-impl", long.class);
         return (long) m.invoke(null, packed);
+    }
+
+    // ── KompactRuntime.detailedError (private) — UnknownEnumCode arm ────────
+    // decodeFull* only surface BoundsError, so detailedError's
+    // `if (error is UnknownEnumCode) error.rawCode` arm is otherwise unreachable
+    // from the public API. This pin drives the private helper (via reflection,
+    // as callLongGetOrThrow does for getOrThrow-impl) and the Kotlin caller
+    // asserts rawCode + byte-offset propagation.
+    public static DetailedDecodeError callDetailedErrorWithUnknownEnumCode(int rawCode, int bitOffset) throws Exception {
+        KompactDecodeError err = new KompactDecodeError.UnknownEnumCode(rawCode);
+        Method m = KompactRuntime.class.getDeclaredMethod("detailedError",
+            KompactDecodeError.class, int.class);
+        m.setAccessible(true);
+        return (DetailedDecodeError) m.invoke(KompactRuntime.INSTANCE, err, bitOffset);
     }
 }

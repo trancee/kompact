@@ -1,6 +1,8 @@
 # ADR-0005 — Relax zero-allocation on the failure path
 
-- **Status:** proposed
+- **Status:** proposed (Byte/Short collapse shipped on `feat/v1-refactor-ratified-shape`:
+  `ByteResult`/`ShortResult` dropped, 5 scalar result types remain; Float/Double
+  NaN-tag unification deferred to Y3 — see `.scratch/kompact-v1-refactor/map.md`)
 - **Tags:** api, perf, bc-break
 - **Superseded by:** none
 - **Reconsiders:** [ticket 08 — runtime error model](../../.scratch/kompact-spec/issues/08-runtime-error-model.md) (the accepted consequence: result value classes are zero-alloc on *both* success and failure, byte offset not on the fast path)

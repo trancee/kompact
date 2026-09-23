@@ -61,7 +61,7 @@ are wrappers over a single `Long`. On the JVM, `@JvmInline value class`
 over a primitive `Long` is stored as the `Long` itself — no object
 header, no heap allocation. On Kotlin/Native, a `value class` over a
 primitive `Long` is an inline value with the same property. So
-`ByteResult`, `ShortResult`, `IntResult`, `LongResult`, `FloatResult`,
+`IntResult`, `LongResult`, `FloatResult`,
 `DoubleResult`, and `BooleanResult` cost exactly the same
 as a `Long` would, on both platforms, on both the success and
 failure paths.
@@ -88,7 +88,7 @@ Each typed result class packs both the decoded value and an error
 state into a single `Long` so the success-path read returns a
 `Long`-shaped value with no branching, no allocation, and no throw.
 
-### ≤32-bit result types (ByteResult, ShortResult, IntResult, FloatResult, BooleanResult)
+### ≤32-bit result types (IntResult, FloatResult, BooleanResult)
 
 A single packed `Long` layout:
 
