@@ -49,10 +49,17 @@ depend on:
      ok/error discriminator), zero-alloc on success;
    - `decodeFull(raw, …): DetailedResult<T>` — opt-in, may allocate a
      `DecodeError(value, offset, kind, rawCode)` on failure.
-3. **Collapse the seven types.** Move toward one platform value class per value
-   *shape* (a ≤32-bit integer result, a 64-bit integer result, a float result,
-     a boolean result), generated from a single template to kill `expect`/`actual`
-   drift.
+3. **Collapse toward per-shape value classes** (a ≤32-bit integer result, a 64-bit
+   integer result, a float result, a boolean result), generated from a single
+   template to kill `expect`/`actual` drift. `ByteResult`/`ShortResult` collapse
+   onto `IntResult` (shipped in Y2a); `IntResult`/`LongResult`/`FloatResult`/
+   `DoubleResult`/`BooleanResult` remain.
+4. **Float/Double encoding stays distinct (Y3, decided A).** `FloatResult` already
+   uses the ≤32-bit packed-Long (int) shape; `DoubleResult` keeps NaN-payload
+   tagging, the only zero-alloc encoding for 64-bit. Unifying into one NaN scheme
+   is a breaking encoding change with no allocation win (each is already
+   zero-alloc on success+failure), so rejected — template/drift reduction is met
+   by one codegen template over the result-shape classes, not by an encoding swap.
 
 This reverts the specific ticket-08 consequence that *error info is packed into
 the same zero-alloc `Long`*, in favor of "success stays zero-alloc; failure may

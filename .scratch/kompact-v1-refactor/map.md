@@ -34,8 +34,15 @@ Refactor `main`'s v1 baseline to the ratified v1.0 shape and re-lock ABI + gates
   are subsumed by `IntResult` via `ScalarType` (`readScalar` already returned
   `IntResult` for 8/16-bit reads; only the type names are removed, no accessor
   returned them). Five scalar result types remain
-  (`IntResult`/`LongResult`/`FloatResult`/`DoubleResult`/`BooleanResult`);
-  see Frontier (Y3) for the still-open Float/Double unification.
+  (`IntResult`/`LongResult`/`FloatResult`/`DoubleResult`/`BooleanResult`).
+- **Float/Double encoding (Y3, decided A):** keep distinct encodings. `FloatResult`
+  already rides the ≤32-bit packed-Long (int) shape (32 bits fit the value field;
+  the `ok` bit never collides with the failure band); `DoubleResult` keeps
+  NaN-payload tagging — the only zero-alloc option for 64-bit (sentinel band
+  mandatory: every `Long` is a valid `Double`). Folding both into one NaN scheme is
+  a breaking encoding change with no allocation win (both already zero-alloc on
+  success+failure), so rejected. Template/drift reduction is still met by one
+  codegen template over the 5 (4-shape) classes — no encoding swap required.
 - two-tier `decodeFull*` for all scalar shapes: done, green.
 - failure-kind mapping unified into internal `decodeError(kind, rawCode)`: done,
   green (no public/ABI change).
@@ -65,14 +72,6 @@ Refactor `main`'s v1 baseline to the ratified v1.0 shape and re-lock ABI + gates
 
 ## Frontier (next material decision — needs maintainer call)
 
-- **(Y3) Unify Float/Double NaN-tagging onto the ≤32-bit-int result shape**
-  (ADR-0005 §2.3) — the only remaining `*Result` value-shape fork. `ByteResult`/
-  `ShortResult` collapsed onto `IntResult` (Y2a, done). `FloatResult`/`DoubleResult`
-  still use distinct encodings: `FloatResult` ≤32-bit packed-Long,
-  `DoubleResult` NaN-payload. Decision point: keep distinct (current — zero-alloc
-  on both shapes) vs. collapse `Float`/`Double` success through the shared int
-  shape (changes Float NaN canonicalization + Double failure-payload scheme —
-  a compat/semantics change). **Deferred per G1; resolves before ADR-0006.**
 - **(Z) ADR-0006 codegen refactor** (view `var`→`val`+builder+opt-in `Mutable*`)
   — separate ADR; gated on the result-type surface being settled (decide Y3
   first).
