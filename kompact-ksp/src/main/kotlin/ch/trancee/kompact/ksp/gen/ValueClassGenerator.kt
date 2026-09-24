@@ -349,42 +349,8 @@ internal object ValueClassGenerator {
             "Double" to { f -> CodeBlock.of("w.writeBitsLong(64, %L.toRawBits())", f.name) },
         )
 
-    /**
-     * Per-type in-place write call builders for value-class setters (ADR-0001
-     * write-through). Uses `writeBits` / `writeBitsBoolean` / `writeBitsLong`
-     * (random-access, not the sequential KompactWriter methods).
-     */
-    private val WRITE_CALL_BUILDERS: Map<String, (KompactFieldInfo) -> CodeBlock> =
-        mapOf(
-            "Boolean" to { f ->
-                CodeBlock.of("%T.writeBitsBoolean(raw, %L, value)", KOMPAT_RUNTIME, f.bitOffset)
-            },
-            "Int" to { f ->
-                CodeBlock.of("%T.writeBits(raw, %L, %L, value)", KOMPAT_RUNTIME, f.bitOffset, f.bitWidth)
-            },
-            "Long" to { f ->
-                CodeBlock.of("%T.writeBitsLong(raw, %L, %L, value)", KOMPAT_RUNTIME, f.bitOffset, f.bitWidth)
-            },
-            "Float" to { f ->
-                CodeBlock.of("%T.writeBitsLong(raw, %L, 32, value.toRawBits().toLong())", KOMPAT_RUNTIME, f.bitOffset)
-            },
-            "Double" to { f ->
-                CodeBlock.of("%T.writeBitsLong(raw, %L, 64, value.toRawBits())", KOMPAT_RUNTIME, f.bitOffset)
-            },
-        )
-
     /** Raw read call — `readBits` / `readBitsBoolean` / `readBitsLong` (no bounds check; the processor proved bounds at compile time, Ticket 06). */
     private fun readCall(f: KompactFieldInfo): CodeBlock = READ_CALL_BUILDERS.getValue(f.kotlinType)(f)
-
-    /**
-     * In-place write call for value-class setters.
-     *
-     * Retained for the opt-in `Mutable<ClassName>` escape hatch (ADR-0006 D3,
-     * slice 3). The default view is `val` (ADR-0006 D1) and no longer emits a
-     * setter, so this is currently uncalled — wire it up when generating the
-     * `Mutable*` sibling.
-     */
-    private fun writeCall(f: KompactFieldInfo): CodeBlock = WRITE_CALL_BUILDERS.getValue(f.kotlinType)(f)
 
     /** Sequential write call for the `encodeXxx` helper. */
     private fun encodeWriteCall(f: KompactFieldInfo): CodeBlock = ENCODE_CALL_BUILDERS.getValue(f.kotlinType)(f)
