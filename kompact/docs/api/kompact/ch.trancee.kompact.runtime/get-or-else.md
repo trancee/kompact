@@ -3,10 +3,6 @@
 # getOrElse
 
 [common]\
-inline fun [ByteResult](-byte-result/index.md).[getOrElse](get-or-else.md)(fallback: ([KompactDecodeError](-kompact-decode-error/index.md)) -&gt; [Byte](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte/index.html)): [Byte](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte/index.html)
-
-inline fun [ShortResult](-short-result/index.md).[getOrElse](get-or-else.md)(fallback: ([KompactDecodeError](-kompact-decode-error/index.md)) -&gt; [Short](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-short/index.html)): [Short](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-short/index.html)
-
 inline fun [IntResult](-int-result/index.md).[getOrElse](get-or-else.md)(fallback: ([KompactDecodeError](-kompact-decode-error/index.md)) -&gt; [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
 
 inline fun [LongResult](-long-result/index.md).[getOrElse](get-or-else.md)(fallback: ([KompactDecodeError](-kompact-decode-error/index.md)) -&gt; [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)): [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)
