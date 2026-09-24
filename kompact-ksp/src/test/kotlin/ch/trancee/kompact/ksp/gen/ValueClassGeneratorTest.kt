@@ -127,17 +127,25 @@ class ValueClassGeneratorTest {
     }
 
     @Test
-    fun `jvm actual has write-through setters`() {
+    fun `jvm actual default view is immutable (val, no write-through setter)`() {
         val spec = vehicleTelemetrySpec()
         val output = ValueClassGenerator.generateJvmActual(spec)
 
         assertTrue(
-            output.contains("writeBitsBoolean"),
-            "Expected writeBitsBoolean in setter body, got:\n$output",
+            output.contains("val batteryStatus"),
+            "Default view must declare `val` properties, got:\n$output",
         )
-        assertTrue(
-            output.contains("writeBits(raw, 0, 4, value)"),
-            "Expected writeBits call in batteryStatus setter, got:\n$output",
+        assertFalse(
+            output.contains("writeBitsBoolean"),
+            "Default view must NOT emit a Boolean write-through setter, got:\n$output",
+        )
+        assertFalse(
+            output.contains("writeBits(raw"),
+            "Default view must NOT emit an Int write-through setter, got:\n$output",
+        )
+        assertFalse(
+            output.contains("set(value)"),
+            "Default view must NOT declare a setter, got:\n$output",
         )
     }
 

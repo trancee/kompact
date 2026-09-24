@@ -90,9 +90,10 @@ class KompactSymbolProcessorGenerationTest {
         assertTrue(jvmContent.contains("package ch.trancee.test"))
         assertTrue(jvmContent.contains("@JvmInline"))
         assertTrue(jvmContent.contains("actual value class MyModel"))
-        assertTrue(jvmContent.contains("actual var"))
+        assertTrue(jvmContent.contains("actual val"))
         assertTrue(jvmContent.contains("readBits"))
-        assertTrue(jvmContent.contains("writeBits"))
+        assertFalse(jvmContent.contains("set(value)"))
+        assertTrue(jvmContent.contains("encodeMyModel"))
     }
 
     @Test
@@ -112,7 +113,30 @@ class KompactSymbolProcessorGenerationTest {
         val iosContent = codeGen.generatedFiles["ch.trancee.test.MyModelGenIos.kt"]!!
         assertTrue(iosContent.contains("package ch.trancee.test"))
         assertTrue(iosContent.contains("actual value class MyModel"))
-        assertTrue(iosContent.contains("actual var"))
+        assertTrue(iosContent.contains("actual val"))
+    }
+
+    @Test
+    fun process_defaultView_emitsValReadOnly() {
+        val (processor, codeGen, _) = createTestSetup()
+
+        val model =
+            buildModelDeclaration(
+                className = "MyModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        val jvm = codeGen.generatedFiles["ch.trancee.test.MyModelGenJvm.kt"]!!
+        val ios = codeGen.generatedFiles["ch.trancee.test.MyModelGenIos.kt"]!!
+        // ADR-0006 D1/D4: the default view is immutable — `val`, no write-through setter.
+        assertTrue(jvm.contains("actual val"))
+        assertTrue(ios.contains("actual val"))
+        assertFalse(jvm.contains("var "))
+        assertFalse(jvm.contains("set(value)"))
     }
 
     @Test
@@ -131,7 +155,6 @@ class KompactSymbolProcessorGenerationTest {
 
         val jvmContent = codeGen.generatedFiles["ch.trancee.test.BoolModelGenJvm.kt"]!!
         assertTrue(jvmContent.contains("readBitsBoolean"))
-        assertTrue(jvmContent.contains("writeBitsBoolean"))
     }
 
     @Test
@@ -150,7 +173,6 @@ class KompactSymbolProcessorGenerationTest {
 
         val jvmContent = codeGen.generatedFiles["ch.trancee.test.LongModelGenJvm.kt"]!!
         assertTrue(jvmContent.contains("readBitsLong"))
-        assertTrue(jvmContent.contains("writeBitsLong"))
     }
 
     @Test

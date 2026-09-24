@@ -34,7 +34,8 @@ private val BYTE_ARRAY_TYPE = ClassName("kotlin", "ByteArray")
  * - getter bodies use the **raw** `readBits` / `readBitsBoolean` path —
  *   not the checked `readScalar` / `readBool` — because the processor
  *   proves bounds at compile time (Ticket 06).
- * - `var` with write-through setters (ADR-0001)
+ * - `val` by default (immutable view; ADR-0006); write-through `var` setters
+ *   move to the opt-in `Mutable*` sibling
  * - A shared `internal encodeXxx()` function generates the wire buffer
  *   via `KompactWriter`; the companion `create()` delegates to it.
  */
@@ -234,7 +235,7 @@ internal object ValueClassGenerator {
         PropertySpec
             .builder(f.name, f.kotlinType.resolveTypeName(), KModifier.PUBLIC)
             .addAnnotation(buildFieldAnnotation(f))
-            .mutable(true)
+            .mutable(false)
             .build()
 
     private fun buildActualProperty(f: KompactFieldInfo): PropertySpec {
@@ -242,17 +243,13 @@ internal object ValueClassGenerator {
         return PropertySpec
             .builder(f.name, f.kotlinType.resolveTypeName(), KModifier.PUBLIC, KModifier.ACTUAL)
             .addAnnotation(buildFieldAnnotation(f))
-            .mutable(true)
+            // ADR-0006 D1: views are immutable by default — `val`, no write-through setter.
+            // The opt-in `Mutable<ClassName>` sibling re-enables mutation (slice 3).
+            .mutable(false)
             .getter(
                 FunSpec
                     .getterBuilder()
                     .addStatement("return %L", readCall(f))
-                    .build(),
-            ).setter(
-                FunSpec
-                    .setterBuilder()
-                    .addParameter("value", f.kotlinType.resolveTypeName())
-                    .addStatement("%L", writeCall(f))
                     .build(),
             ).build()
     }
@@ -379,7 +376,14 @@ internal object ValueClassGenerator {
     /** Raw read call — `readBits` / `readBitsBoolean` / `readBitsLong` (no bounds check; the processor proved bounds at compile time, Ticket 06). */
     private fun readCall(f: KompactFieldInfo): CodeBlock = READ_CALL_BUILDERS.getValue(f.kotlinType)(f)
 
-    /** In-place write call for value-class setters (ADR-0001 write-through). */
+    /**
+     * In-place write call for value-class setters.
+     *
+     * Retained for the opt-in `Mutable<ClassName>` escape hatch (ADR-0006 D3,
+     * slice 3). The default view is `val` (ADR-0006 D1) and no longer emits a
+     * setter, so this is currently uncalled — wire it up when generating the
+     * `Mutable*` sibling.
+     */
     private fun writeCall(f: KompactFieldInfo): CodeBlock = WRITE_CALL_BUILDERS.getValue(f.kotlinType)(f)
 
     /** Sequential write call for the `encodeXxx` helper. */
