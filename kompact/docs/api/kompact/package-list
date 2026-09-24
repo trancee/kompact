@@ -11,6 +11,7 @@ $dokka.location:ch.trancee.kompact.annotations/KompactField/lengthPrefixWidth/#/
 $dokka.location:ch.trancee.kompact.annotations/KompactField/repeatCountWidth/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/repeat-count-width.md
 $dokka.location:ch.trancee.kompact.annotations/KompactField/signed/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/signed.md
 $dokka.location:ch.trancee.kompact.annotations/KompactModel///PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-model/index.md
+$dokka.location:ch.trancee.kompact.annotations/KompactModel/mutable/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-model/mutable.md
 $dokka.location:ch.trancee.kompact.annotations/KompactPreview///PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-preview/index.md
 $dokka.location:ch.trancee.kompact.generated////PointingToDeclaration/kompact/ch.trancee.kompact.generated/index.md
 $dokka.location:ch.trancee.kompact.generated/VehicleTelemetry.Companion///PointingToDeclaration/kompact/ch.trancee.kompact.generated/-vehicle-telemetry/-companion/index.md

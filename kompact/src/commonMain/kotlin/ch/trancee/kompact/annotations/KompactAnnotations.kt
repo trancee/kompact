@@ -13,7 +13,9 @@ package ch.trancee.kompact.annotations
 @KompactPreview
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.SOURCE)
-public annotation class KompactModel
+public annotation class KompactModel(
+    public val mutable: Boolean = false,
+)
 
 /**
  * Documents a property's bit position and width in the packed `ByteArray`.

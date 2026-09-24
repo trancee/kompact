@@ -39,6 +39,22 @@ class ValueClassGeneratorTest {
                 ),
         )
 
+    /** Spec covering every supported scalar type (Boolean, Int, Long, Float, Double) — used by the mutable-sibling tests so all `WRITE_CALL_BUILDERS` branches are exercised (kover 100%). */
+    private fun allTypesSpec(mutable: Boolean = false): ModelSpec =
+        ModelSpec(
+            packageName = "ch.trancee.kompact.generated",
+            className = "AllTypes",
+            fields =
+                listOf(
+                    field("flag", 0, 1, "Boolean"),
+                    field("count", 1, 16, "Int", signed = true),
+                    field("total", 17, 64, "Long", signed = true),
+                    field("ratio", 81, 32, "Float"),
+                    field("average", 113, 64, "Double"),
+                ),
+            mutable = mutable,
+        )
+
     // --- expect output tests ---
 
     @Test
@@ -169,6 +185,48 @@ class ValueClassGeneratorTest {
         assertFalse(
             output.contains("set(value)"),
             "Default view stays val (no setter), got:\n$output",
+        )
+    }
+
+    @Test
+    fun `generate with mutable model emits Mutable sibling with write-through var setters`() {
+        val spec = allTypesSpec(mutable = true)
+        val expectOut = ValueClassGenerator.generateExpect(spec)
+        val jvmOut = ValueClassGenerator.generateJvmActual(spec)
+        val iosOut = ValueClassGenerator.generateIosActual(spec)
+
+        // Default immutable view is unchanged (val + copy).
+        assertTrue(expectOut.contains("expect value class AllTypes"))
+        assertTrue(expectOut.contains("fun copy("))
+
+        // ADR-0006 D3: opt-in Mutable<Model> escape hatch with write-through vars.
+        assertTrue(
+            expectOut.contains("expect value class MutableAllTypes"),
+            "mutable=true must emit a Mutable<ClassName> sibling (ADR-0006 D3), got:\n$expectOut",
+        )
+        assertTrue(
+            expectOut.contains("var "),
+            "Mutable sibling expect members must be var, got:\n$expectOut",
+        )
+        assertTrue(
+            jvmOut.contains("actual value class MutableAllTypes"),
+            "jvm actual must declare the Mutable sibling, got:\n$jvmOut",
+        )
+        assertTrue(
+            jvmOut.contains("actual var "),
+            "Mutable sibling jvm members must be var, got:\n$jvmOut",
+        )
+        assertTrue(
+            jvmOut.contains("set(`value`)"),
+            "Mutable sibling must wire a setter, got:\n$jvmOut",
+        )
+        assertTrue(
+            jvmOut.contains("writeBits"),
+            "Mutable sibling setter must delegate to KompactRuntime.writeBits, got:\n$jvmOut",
+        )
+        assertTrue(
+            iosOut.contains("actual value class MutableAllTypes"),
+            "ios actual must declare the Mutable sibling, got:\n$iosOut",
         )
     }
 

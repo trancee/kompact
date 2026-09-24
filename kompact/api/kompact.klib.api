@@ -28,7 +28,10 @@ open annotation class ch.trancee.kompact.annotations/KompactField : kotlin/Annot
 }
 
 open annotation class ch.trancee.kompact.annotations/KompactModel : kotlin/Annotation { // ch.trancee.kompact.annotations/KompactModel|null[0]
-    constructor <init>() // ch.trancee.kompact.annotations/KompactModel.<init>|<init>(){}[0]
+    constructor <init>(kotlin/Boolean = ...) // ch.trancee.kompact.annotations/KompactModel.<init>|<init>(kotlin.Boolean){}[0]
+
+    final val mutable // ch.trancee.kompact.annotations/KompactModel.mutable|{}mutable[0]
+        final fun <get-mutable>(): kotlin/Boolean // ch.trancee.kompact.annotations/KompactModel.mutable.<get-mutable>|<get-mutable>(){}[0]
 }
 
 open annotation class ch.trancee.kompact.annotations/KompactPreview : kotlin/Annotation { // ch.trancee.kompact.annotations/KompactPreview|null[0]

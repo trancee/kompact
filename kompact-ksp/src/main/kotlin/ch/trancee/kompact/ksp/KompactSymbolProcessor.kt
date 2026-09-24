@@ -155,7 +155,8 @@ internal class KompactSymbolProcessor(
             return
         }
 
-        val spec = ModelSpec(packageName, className, fields)
+        val specMutable = modelAnnotationMutable(declaration)
+        val spec = ModelSpec(packageName, className, fields, specMutable)
         logger.info(
             "KompactKSP: processing $className (${fields.size} fields, " +
                 "${spec.totalBits} bits, ${spec.minBufferSize} bytes) " +
@@ -250,6 +251,36 @@ internal class KompactSymbolProcessor(
             enumWidth = (args["enumWidth"] as? Int) ?: 0,
             defaultValue = (args["defaultValue"] as? String) ?: "",
         )
+    }
+
+    /**
+     * Reads the optional `mutable` flag from the class-level `@KompactModel`
+     * annotation, used to opt into the write-through `Mutable<Model>` sibling.
+     *
+     * Mirrors [parseField]: FQN lookup against `@KompactModel` + argument
+     * extraction via `filter { name != null } / associate { name!! }`.
+     * `processModel` is only invoked for `@KompactModel`-annotated declarations —
+     * `getSymbolsWithAnnotation` guarantees a matching annotation whose type
+     * resolves to a non-null qualified name — so the lookup is non-failing and
+     * the nullable argument members are unwrapped without nullable safe-call
+     * chains (which would create untestable "not found" branches).
+     */
+    private fun modelAnnotationMutable(declaration: KSClassDeclaration): Boolean {
+        val annotation =
+            declaration.annotations
+                .first {
+                    it.annotationType
+                        .resolve()
+                        .declaration.qualifiedName!!
+                        .asString() == KOMPAT_MODEL_FQN
+                }
+
+        val args =
+            annotation.arguments
+                .filter { it.name != null }
+                .associate { it.name!!.asString() to it.value }
+
+        return (args["mutable"] as? Boolean) ?: false
     }
 
     private fun resolveTypeName(prop: KSPropertyDeclaration): String {

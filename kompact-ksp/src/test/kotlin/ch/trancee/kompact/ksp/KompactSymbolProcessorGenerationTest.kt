@@ -1,6 +1,9 @@
 package ch.trancee.kompact.ksp
 
+import ch.trancee.kompact.ksp.testing.FakeKSAnnotation
+import ch.trancee.kompact.ksp.testing.FakeKSClassDeclaration
 import ch.trancee.kompact.ksp.testing.FakeKSFile
+import ch.trancee.kompact.ksp.testing.FakeKSPropertyDeclaration
 import ch.trancee.kompact.ksp.testing.FakeResolver
 import ch.trancee.kompact.ksp.testing.buildModelDeclaration
 import kotlin.test.Test
@@ -114,6 +117,75 @@ class KompactSymbolProcessorGenerationTest {
         assertTrue(iosContent.contains("package ch.trancee.test"))
         assertTrue(iosContent.contains("actual value class MyModel"))
         assertTrue(iosContent.contains("actual val"))
+    }
+
+    @Test
+    fun process_mutableModel_emitsMutableSiblingWithVarSetters() {
+        val (processor, codeGen, _) = createTestSetup()
+
+        val model =
+            buildModelDeclaration(
+                className = "MyModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+                mutable = true,
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        // ADR-0006 D3: mutable=true emits a write-through Mutable<Model> sibling.
+        val jvm = codeGen.generatedFiles["ch.trancee.test.MyModelGenJvm.kt"]!!
+        assertTrue(jvm.contains("MutableMyModel"), "mutable=true must emit a Mutable sibling")
+        assertTrue(jvm.contains("actual var "), "Mutable sibling must expose var")
+        assertTrue(jvm.contains("writeBits"), "Mutable sibling setter must delegate to writeBits")
+        assertTrue(jvm.contains("set(`value`)"), "Mutable sibling must wire a setter")
+        // The default immutable view is still present alongside the escape hatch.
+        assertTrue(jvm.contains("actual val"), "default view must remain val")
+        assertTrue(jvm.contains("fun copy("), "default view must still provide copy")
+    }
+
+    @Test
+    fun process_modelWithPositionalKompactModelArg_ignoresUnnamedArg() {
+        val (processor, codeGen, _) = createTestSetup()
+
+        // @KompactModel(true) — a positional (unnamed) argument. Argument parsing
+        // is named-only (same as @KompactField in parseField): unnamed args are
+        // filtered out by `filter { name != null }`, so the model stays immutable.
+        // This also exercises the class-level @KompactModel lookup's filter
+        // false-branch (a null-name argument is discarded, not matched).
+        val model =
+            FakeKSClassDeclaration(
+                simpleNameStr = "PosModel",
+                packageNameStr = "ch.trancee.test",
+                properties =
+                    listOf(
+                        FakeKSPropertyDeclaration(
+                            "field",
+                            "ch.trancee.test",
+                            "Int",
+                            declAnnotations =
+                                listOf(
+                                    FakeKSAnnotation(
+                                        "ch.trancee.kompact.annotations.KompactField",
+                                        mapOf("bitOffset" to 0, "bitWidth" to 16),
+                                    ),
+                                ),
+                        ),
+                    ),
+                declAnnotations =
+                    listOf(FakeKSAnnotation("ch.trancee.kompact.annotations.KompactModel", nullNameArgValue = true)),
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        val jvm = codeGen.generatedFiles["ch.trancee.test.PosModelGenJvm.kt"]!!
+        assertFalse(
+            jvm.contains("MutablePosModel"),
+            "unnamed @KompactModel args are skipped (named-only), so mutable stays false",
+        )
+        assertTrue(jvm.contains("fun copy("), "default immutable view still emits copy")
     }
 
     @Test
