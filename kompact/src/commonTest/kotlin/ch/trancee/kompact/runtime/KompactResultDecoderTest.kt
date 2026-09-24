@@ -17,24 +17,6 @@ class KompactResultDecoderTest {
     // --- decodeErrorFromSmallBits else branch (kind 4-7 → BoundsError) ---
 
     @Test
-    fun byteResult_constructedWithUnknownErrorKind_decodesAsBoundsError() {
-        // Small-result layout: bit 63 = ok flag (0 = failure), bits 62..60 = kind.
-        // Set kind = 4 (an unknown kind): 4L shl 60 = 0x4_0000_0000_0000_0000
-        val unknownPacked = 4L shl RESULT_ERROR_KIND_SHIFT
-        val r = ByteResult(unknownPacked)
-        assertEquals(false, r.isSuccess)
-        assertEquals(KompactDecodeError.BoundsError, r.error)
-    }
-
-    @Test
-    fun shortResult_constructedWithUnknownErrorKind_decodesAsBoundsError() {
-        val unknownPacked = 5L shl RESULT_ERROR_KIND_SHIFT
-        val r = ShortResult(unknownPacked)
-        assertEquals(false, r.isSuccess)
-        assertEquals(KompactDecodeError.BoundsError, r.error)
-    }
-
-    @Test
     fun intResult_constructedWithUnknownErrorKind_decodesAsBoundsError() {
         val unknownPacked = 6L shl RESULT_ERROR_KIND_SHIFT
         val r = IntResult(unknownPacked)
@@ -97,15 +79,7 @@ class KompactResultDecoderTest {
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
 
-    // --- throwDecodeErrorFromSmallBits / Long / Double ---
-
-    @Test
-    fun byteResult_unknownKind_getOrThrow_throwsBoundsError() {
-        val unknownPacked = 4L shl RESULT_ERROR_KIND_SHIFT
-        val r = ByteResult(unknownPacked)
-        val ex = assertFailsWith<KompactDecodeException> { r.getOrThrow() }
-        assertEquals(KompactDecodeError.BoundsError, ex.error)
-    }
+    // --- throwDecodeErrorFromLong / Double ---
 
     @Test
     fun longResult_unknownKind_getOrThrow_throwsBoundsError() {

@@ -31,13 +31,12 @@ on the latest macOS runner with JDK 21 (Temurin) + Android SDK (API 36).
 `checkKotlinAbi` compares the committed KGP built-in ABI goldens against
 the freshly-inferred ABIs with `keepLocallyUnsupportedTargets = true`:
 
-- `kompact/api/kompact.api` — the JVM bytecode ABI (compiled from the
-  current source for the JVM + Android targets).
+- `kompact/api/jvm/kompact.api` — the JVM bytecode ABI (compiled from the
+  current source for the JVM target).
+- `kompact/api/android/kompact.api` — the Android bytecode ABI.
 - `kompact/api/kompact.klib.api` — the merged iOS klib ABI (the union
   of `iosArm64` and `iosSimulatorArm64`, compiled and dumped only on
   Apple hosts).
-- `kompact/api/jvm/kompact.api` — per-variant ABI dump (built-in ABI
-  validation creates this for each target).
 - `kompact-ksp/api/kompact-ksp.api` — the KSP processor JVM ABI.
 
 `spotlessCheck` enforces ktlint formatting across all Kotlin and

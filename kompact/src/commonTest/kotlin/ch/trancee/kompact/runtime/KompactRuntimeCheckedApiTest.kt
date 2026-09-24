@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
  *
  *  - the five `…OrThrow` wrappers (return the decoded value, or throw
  *    `KompactDecodeException(BoundsError)` when the buffer overruns),
- *  - `getOrElse` / `map` extensions on the typed results (`IntResult`, `ByteResult`, `ShortResult`, `LongResult`, `FloatResult`, `DoubleResult`, `BooleanResult`, `NestedRegionResult`),
+ *  - `getOrElse` / `map` extensions on the typed results (`IntResult`, `LongResult`, `FloatResult`, `DoubleResult`, `BooleanResult`, `NestedRegionResult`),
  *  - the typed nested framing: `readNested`, `readNestedOrThrow`,
  *    `readLengthPrefixOrThrow`, and `NestedRegionResult`'s success/failure shape.
  *
@@ -186,17 +186,6 @@ class KompactRuntimeCheckedApiTest {
         assertEquals(1.0, doubleOk.getOrElse { 0.0 }, 0.0)
         val doubleBad = KompactRuntime.readDouble(byteArrayOf(), 0)
         assertEquals(0.0, doubleBad.getOrElse { 0.0 })
-
-        // ByteResult: no checked accessor returns ByteResult (api-reference), so
-        // construct directly to pin success/failure wiring.
-        val byteOk = ByteResult.success(0xAB.toByte())
-        assertEquals(0xAB.toByte(), byteOk.getOrElse { 0 })
-        val byteMapped = byteOk.map { (it + 1).toByte() }
-        assertTrue(byteMapped.isSuccess)
-        assertEquals(0xAC.toByte(), byteMapped.getOrThrow())
-        val byteBad = ByteResult.failure(KompactDecodeError.BoundsError)
-        assertEquals(0, byteBad.getOrElse { 0 })
-        assertTrue(byteBad.map { (it + 1).toByte() }.isFailure)
     }
 
     // ---- readNested / readNestedOrThrow / readLengthPrefixOrThrow / NestedRegionResult ----

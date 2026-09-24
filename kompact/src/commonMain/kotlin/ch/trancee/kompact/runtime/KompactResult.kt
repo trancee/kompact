@@ -3,7 +3,7 @@ package ch.trancee.kompact.runtime
 // ====================================================================
 // Ticket 08 — packed-Long encoding constants & shared helpers
 //
-// ≤32-bit result types (Byte/Short/Int/Float/Boolean) use a single
+// ≤32-bit result types (Int/Float/Boolean; Byte/Short widen to Int) use a single
 // packed-Long layout:
 //   [ ok(bit63) | errorKind(bits 62..60) | rawEnumCode(bits 59..48) | value(bits 47..0) ]
 //
@@ -59,16 +59,26 @@ internal fun encodeErrorKind(error: KompactDecodeError): Int =
         is KompactDecodeError.UnknownEnumCode -> ERROR_UNKNOWN_ENUM
     }
 
-internal fun decodeErrorFromSmallBits(packed: Long): KompactDecodeError {
-    val kind = ((packed ushr RESULT_ERROR_KIND_SHIFT) and 0x7L).toInt()
-    val rawCode = ((packed ushr RESULT_RAW_ENUM_SHIFT) and 0xFFFL).toInt()
-    return when (kind) {
+/**
+ * Shared kind->case mapping for the failure path (ADR-0005 simplification).
+ * Reconstructs the [KompactDecodeError] from a decoded [kind] and [rawCode];
+ * an unrecognized kind falls back to [KompactDecodeError.BoundsError]. The
+ * per-shape `*Bits` decoders below extract kind/rawCode from their distinct
+ * packed-Long layouts and delegate here, so the case mapping cannot drift.
+ */
+internal fun decodeError(kind: Int, rawCode: Int): KompactDecodeError =
+    when (kind) {
         ERROR_BOUNDS -> KompactDecodeError.BoundsError
         ERROR_BAD_LENGTH -> KompactDecodeError.BadLengthPrefix
         ERROR_TRUNCATED -> KompactDecodeError.TruncatedNested
         ERROR_UNKNOWN_ENUM -> KompactDecodeError.UnknownEnumCode(rawCode)
         else -> KompactDecodeError.BoundsError
     }
+
+internal fun decodeErrorFromSmallBits(packed: Long): KompactDecodeError {
+    val kind = ((packed ushr RESULT_ERROR_KIND_SHIFT) and 0x7L).toInt()
+    val rawCode = ((packed ushr RESULT_RAW_ENUM_SHIFT) and 0xFFFL).toInt()
+    return decodeError(kind, rawCode)
 }
 
 internal fun encodeSmallSuccess(value: Long): Long = RESULT_OK_FLAG or (value and RESULT_VALUE_MASK)
@@ -90,13 +100,7 @@ internal fun encodeLongFailure(error: KompactDecodeError): Long {
 internal fun decodeLongError(packed: Long): KompactDecodeError {
     val kind = (packed and 0x7L).toInt()
     val rawCode = ((packed ushr 3) and 0xFFL).toInt()
-    return when (kind) {
-        ERROR_BOUNDS -> KompactDecodeError.BoundsError
-        ERROR_BAD_LENGTH -> KompactDecodeError.BadLengthPrefix
-        ERROR_TRUNCATED -> KompactDecodeError.TruncatedNested
-        ERROR_UNKNOWN_ENUM -> KompactDecodeError.UnknownEnumCode(rawCode)
-        else -> KompactDecodeError.BoundsError
-    }
+    return decodeError(kind, rawCode)
 }
 
 internal fun isDoubleFailure(packed: Long): Boolean {
@@ -115,13 +119,7 @@ internal fun decodeDoubleError(packed: Long): KompactDecodeError {
     val payload = (packed and DOUBLE_ERROR_PAYLOAD_MASK).toInt()
     val kind = payload - 1
     val rawCode = ((packed ushr 4) and 0xFFL).toInt()
-    return when (kind) {
-        ERROR_BOUNDS -> KompactDecodeError.BoundsError
-        ERROR_BAD_LENGTH -> KompactDecodeError.BadLengthPrefix
-        ERROR_TRUNCATED -> KompactDecodeError.TruncatedNested
-        ERROR_UNKNOWN_ENUM -> KompactDecodeError.UnknownEnumCode(rawCode)
-        else -> KompactDecodeError.BoundsError
-    }
+    return decodeError(kind, rawCode)
 }
 
 internal fun encodeDoubleSuccess(value: Double): Long = if (value.isNaN()) DOUBLE_NAN_CANONICAL else value.toBits()
@@ -141,42 +139,16 @@ internal fun throwDecodeErrorFromDouble(packed: Long): Nothing = throw KompactDe
 // ====================================================================
 // Ticket 08 — result value class declarations (expect)
 //
-// 7 specialized result types — one per scalar kind. No generic T.
-// Each wraps a single Long, zero-alloc on both JVM (@JvmInline) and
-// Kotlin/Native (value class).
+// Five specialized result types — one per value shape:
+//   IntResult     (≤32-bit integer; Byte/Short widen to Int via ScalarType
+//                  width at read time — readScalar already returns IntResult),
+//   LongResult    (64-bit integer, sentinel-band encoding),
+//   FloatResult   (32-bit float, NaN-canonical success),
+//   DoubleResult  (64-bit float, reserved quiet-NaN payload for errors),
+//   BooleanResult (single bit).
+// No generic T. Each wraps a single Long, zero-alloc on both JVM
+// (@JvmInline) and Kotlin/Native (value class).
 // ====================================================================
-
-public expect value class ByteResult(
-    public val packed: Long,
-) {
-    public val isSuccess: Boolean
-    public val isFailure: Boolean
-    public val error: KompactDecodeError?
-
-    public fun getOrThrow(): Byte
-
-    public companion object {
-        public fun success(value: Byte): ByteResult
-
-        public fun failure(error: KompactDecodeError): ByteResult
-    }
-}
-
-public expect value class ShortResult(
-    public val packed: Long,
-) {
-    public val isSuccess: Boolean
-    public val isFailure: Boolean
-    public val error: KompactDecodeError?
-
-    public fun getOrThrow(): Short
-
-    public companion object {
-        public fun success(value: Short): ShortResult
-
-        public fun failure(error: KompactDecodeError): ShortResult
-    }
-}
 
 public expect value class IntResult(
     public val packed: Long,
@@ -269,4 +241,40 @@ public expect value class DoubleResult(
 
         public fun failure(error: KompactDecodeError): DoubleResult
     }
+}
+
+// === ADR-0005 — opt-in diagnostics tier (allocates; NOT the zero-alloc hot path) ===
+
+/**
+ * Full diagnostic on the opt-in `decodeFull` path (ADR-0005 §2). Allocated only
+ * on the rare failure path, and only when the caller explicitly requests
+ * diagnostics — the `readScalar` hot path is unaffected (Ticket 03/10).
+ *
+ * - [error]: the typed `KompactDecodeError` kind.
+ * - [offset]: byte index of the failure (`bitOffset ushr 3`).
+ * - [rawCode]: the raw enum ordinal for `UnknownEnumCode`, else 0.
+ */
+public data class DetailedDecodeError(
+    public val error: KompactDecodeError,
+    public val offset: Int,
+    public val rawCode: Int,
+)
+
+/**
+ * Opt-in diagnostics result (ADR-0005 §2). Holds either a success [value] or a
+ * [DetailedDecodeError]; unlike the packed `*Result` value classes it is a plain
+ * class and therefore allocates — use it only for diagnostics/recovery, never on
+ * the read hot path ([KompactRuntime.readScalar]).
+ *
+ * Constructed only from `decodeFull` ([KompactRuntime]); the constructor is
+ * `internal` so external callers cannot create an inconsistent (value+error)
+ * instance.
+ */
+public class DetailedResult<T> internal constructor(
+    public val value: T?,
+    public val error: DetailedDecodeError?,
+) {
+    public val isSuccess: Boolean get() = error == null
+
+    public val isFailure: Boolean get() = error != null
 }

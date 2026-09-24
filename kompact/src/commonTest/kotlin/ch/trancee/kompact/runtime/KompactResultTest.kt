@@ -39,110 +39,7 @@ class KompactResultTest {
         assertNotEquals(KompactDecodeError.UnknownEnumCode(5), KompactDecodeError.UnknownEnumCode(6))
     }
 
-    // === ByteResult — representative ≤32-bit packed-Long type ===
-
-    @Test
-    fun byteResult_success_positiveValue() {
-        val r = ByteResult.success(0x7F)
-        assertTrue(r.isSuccess)
-        assertFalse(r.isFailure)
-        assertNull(r.error)
-        assertEquals(0x7F, r.getOrThrow())
-    }
-
-    @Test
-    fun byteResult_success_negativeValue() {
-        val r = ByteResult.success(-1)
-        assertTrue(r.isSuccess)
-        assertEquals(-1, r.getOrThrow())
-    }
-
-    @Test
-    fun byteResult_success_maxByte() {
-        val r = ByteResult.success(Byte.MAX_VALUE)
-        assertTrue(r.isSuccess)
-        assertEquals(Byte.MAX_VALUE, r.getOrThrow())
-    }
-
-    @Test
-    fun byteResult_success_minByte() {
-        val r = ByteResult.success(Byte.MIN_VALUE)
-        assertTrue(r.isSuccess)
-        assertEquals(Byte.MIN_VALUE, r.getOrThrow())
-    }
-
-    @Test
-    fun byteResult_roundTrip_allSignedBytes() {
-        for (b in Byte.MIN_VALUE..Byte.MAX_VALUE) {
-            val r = ByteResult.success(b.toByte())
-            assertTrue(r.isSuccess, "byte=$b")
-            assertEquals(b.toByte(), r.getOrThrow(), "byte=$b")
-        }
-    }
-
-    @Test
-    fun byteResult_failure_boundsError() {
-        val r = ByteResult.failure(KompactDecodeError.BoundsError)
-        assertFalse(r.isSuccess)
-        assertTrue(r.isFailure)
-        assertEquals(KompactDecodeError.BoundsError, r.error)
-    }
-
-    @Test
-    fun byteResult_failure_badLengthPrefix() {
-        val r = ByteResult.failure(KompactDecodeError.BadLengthPrefix)
-        assertFalse(r.isSuccess)
-        assertEquals(KompactDecodeError.BadLengthPrefix, r.error)
-    }
-
-    @Test
-    fun byteResult_failure_truncatedNested() {
-        val r = ByteResult.failure(KompactDecodeError.TruncatedNested)
-        assertEquals(KompactDecodeError.TruncatedNested, r.error)
-    }
-
-    @Test
-    fun byteResult_failure_unknownEnumCode_preservesRawCode() {
-        val r = ByteResult.failure(KompactDecodeError.UnknownEnumCode(17))
-        assertEquals(KompactDecodeError.UnknownEnumCode(17), r.error)
-    }
-
-    @Test
-    fun byteResult_getOrThrow_throwsOnFailure() {
-        val r = ByteResult.failure(KompactDecodeError.BoundsError)
-        assertFailsWith<KompactDecodeException> { r.getOrThrow() }
-    }
-
-    @Test
-    fun byteResult_equality() {
-        assertEquals(ByteResult.success(42), ByteResult.success(42))
-        assertEquals(
-            ByteResult.failure(KompactDecodeError.BoundsError),
-            ByteResult.failure(KompactDecodeError.BoundsError),
-        )
-        assertNotEquals(ByteResult.success(42), ByteResult.failure(KompactDecodeError.BoundsError))
-    }
-
-    // === ShortResult ===
-
-    @Test
-    fun shortResult_roundTrip() {
-        val values: List<Short> = listOf(0, 1, -1, 1000, -1000, Short.MAX_VALUE, Short.MIN_VALUE)
-        for (v in values) {
-            val r = ShortResult.success(v)
-            assertTrue(r.isSuccess, "value=$v")
-            assertEquals(v, r.getOrThrow(), "value=$v")
-        }
-    }
-
-    @Test
-    fun shortResult_failure() {
-        val r = ShortResult.failure(KompactDecodeError.BadLengthPrefix)
-        assertFalse(r.isSuccess)
-        assertEquals(KompactDecodeError.BadLengthPrefix, r.error)
-    }
-
-    // === IntResult ===
+    // === IntResult — ≤32-bit integer shape (Byte/Short widen to Int) ===
 
     @Test
     fun intResult_roundTrip() {
@@ -158,6 +55,33 @@ class KompactResultTest {
     fun intResult_failure_unknownEnumCode() {
         val r = IntResult.failure(KompactDecodeError.UnknownEnumCode(255))
         assertEquals(KompactDecodeError.UnknownEnumCode(255), r.error)
+    }
+
+    // === ADR-0005 ≤32-bit-int shape: IntResult is the single ≤32-bit result.
+    //
+    // The collapse unifies Byte/Short/Int onto one value class (IntResult),
+    // with width/sign resolved at read time via ScalarType (readScalar already
+    // returns IntResult for 8/16/32-bit fields). This pins the contract that
+    // must survive the removal of ByteResult/ShortResult: IntResult lossless
+    // round-trips the full Byte and Short value ranges.
+
+    @Test
+    fun intResult_coversFullByteRange() {
+        for (b in Byte.MIN_VALUE.toInt()..Byte.MAX_VALUE.toInt()) {
+            val r = IntResult.success(b)
+            assertTrue(r.isSuccess, "byte=$b")
+            assertEquals(b, r.getOrThrow(), "byte=$b")
+        }
+    }
+
+    @Test
+    fun intResult_coversShortRange() {
+        val values = listOf(Short.MIN_VALUE.toInt(), -1000, -1, 0, 1, 1000, Short.MAX_VALUE.toInt())
+        for (s in values) {
+            val r = IntResult.success(s)
+            assertTrue(r.isSuccess, "short=$s")
+            assertEquals(s, r.getOrThrow(), "short=$s")
+        }
     }
 
     // === FloatResult ===

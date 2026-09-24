@@ -3,10 +3,6 @@
 # map
 
 [common]\
-inline fun [ByteResult](-byte-result/index.md).[map](map.md)(transform: ([Byte](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte/index.html)) -&gt; [Byte](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte/index.html)): [ByteResult](-byte-result/index.md)
-
-inline fun [ShortResult](-short-result/index.md).[map](map.md)(transform: ([Short](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-short/index.html)) -&gt; [Short](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-short/index.html)): [ShortResult](-short-result/index.md)
-
 inline fun [IntResult](-int-result/index.md).[map](map.md)(transform: ([Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)) -&gt; [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)): [IntResult](-int-result/index.md)
 
 inline fun [LongResult](-long-result/index.md).[map](map.md)(transform: ([Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)) -&gt; [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)): [LongResult](-long-result/index.md)

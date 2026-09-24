@@ -224,15 +224,13 @@ to a typed `BadLengthPrefix` error.
 
 ## Typed result value classes
 
-Seven specialized result types — one per scalar kind. Each wraps a
+Five specialized scalar result types — one per value shape. Each wraps a
 single `Long` so it is **zero-alloc on both the JVM and iOS** on success
 and failure. There is no generic `KompactDecodeResult<T>`; the
 specialized types let the success-path primitives stay unboxed.
 
 | Class | Underlying type | Encoding | Used by |
 | --- | --- | --- | --- |
-| `ByteResult` | `Long` (packed) | ≤32-bit packed-Long (see below) | Declared; no checked accessor returns it — use `readScalar` with `ScalarType.UINT_8`. |
-| `ShortResult` | `Long` (packed) | ≤32-bit packed-Long (see below) | Declared; no checked accessor returns it — use `readScalar` with `ScalarType.UINT_16`. |
 | `IntResult` | `Long` (packed) | ≤32-bit packed-Long (see below) | `readScalar` |
 | `LongResult` | `Long` (sentinel band) | `Long.MIN_VALUE .. Long.MIN_VALUE + (1L shl 58) - 1` is the failure sentinel (see [architecture](architecture.md#runtime-error-encoding)). | `readScalarAsLong` |
 | `FloatResult` | `Long` (packed) | ≤32-bit packed-Long (see below) | `readFloat` |
@@ -247,16 +245,16 @@ type of `getOrThrow()` varies by class — see the table below.
 | `isSuccess: Boolean` | `true` iff the result carries a decoded value. |
 | `isFailure: Boolean` | `true` iff the result carries an error. |
 | `error: KompactDecodeError?` | The decoded error on failure, `null` on success. |
-| `getOrThrow(): <see table>` | Returns the decoded primitive on success; throws `KompactDecodeException` on failure. The **only** call that can allocate / throw on the failure path. Return type is `Byte` for `ByteResult`, `Short` for `ShortResult`, `Int` for `IntResult`, `Long` for `LongResult`, `Float` for `FloatResult`, `Double` for `DoubleResult`, `Boolean` for `BooleanResult`, and `NestedRegion` (`Pair<Int, Int>`) for `NestedRegionResult`. |
+| `getOrThrow(): <see table>` | Returns the decoded primitive on success; throws `KompactDecodeException` on failure. The **only** call that can allocate / throw on the failure path. Return type is `Int` for `IntResult`, `Long` for `LongResult`, `Float` for `FloatResult`, `Double` for `DoubleResult`, `Boolean` for `BooleanResult`, and `NestedRegion` (`Pair<Int, Int>`) for `NestedRegionResult`. |
 
 Each result class also has a `Companion`:
 
 | Member | Description |
 | --- | --- |
-| `success(value: <see table>): <ResultClass>` | Packs a value into a success result. The `value` parameter type matches `getOrThrow()`: `Byte` for `ByteResult`, `Short` for `ShortResult`, `Int` for `IntResult`, `Long` for `LongResult`, `Float` for `FloatResult`, `Double` for `DoubleResult`, `Boolean` for `BooleanResult`. `NestedRegionResult.success(startBit: Int, bitLength: Int)` takes the two region coordinates instead. |
+| `success(value: <see table>): <ResultClass>` | Packs a value into a success result. The `value` parameter type matches `getOrThrow()`: `Int` for `IntResult`, `Long` for `LongResult`, `Float` for `FloatResult`, `Double` for `DoubleResult`, `Boolean` for `BooleanResult`. `NestedRegionResult.success(startBit: Int, bitLength: Int)` takes the two region coordinates instead. |
 | `failure(error: KompactDecodeError): <ResultClass>` | Packs a `KompactDecodeError` into a failure result. |
 
-#### ≤32-bit packed-Long encoding (ByteResult, ShortResult, IntResult, FloatResult, BooleanResult)
+#### ≤32-bit packed-Long encoding (IntResult, FloatResult, BooleanResult)
 
 ```
 [ ok(bit63) | errorKind(bits 62..60) | rawEnumCode(bits 59..48) | value(bits 47..0) ]
@@ -340,23 +338,52 @@ accessors on the failure path.
 
 ---
 
+## Two-tier diagnostics (`decodeFull*`)
+
+[ADR-0005](adr/0005-relax-fail-path-zero-alloc.md) §2 makes diagnostics an
+**opt-in** tier that may allocate, so the zero-alloc `readScalar` / `readBool`
+/ `readFloat` / `readDouble` / `readScalarAsLong` hot path stays untouched.
+Each `decodeFull*` wraps one zero-alloc checked accessor and returns a
+`DetailedResult<T>`:
+
+| Function | Wraps | Returns | Failure payload |
+| --- | --- | --- | --- |
+| `decodeFullInt(raw, bitOffset, type)` | `readScalar` | `DetailedResult<Int>` | `DetailedDecodeError` |
+| `decodeFullLong(raw, bitOffset, type)` | `readScalarAsLong` | `DetailedResult<Long>` | `DetailedDecodeError` |
+| `decodeFullFloat(raw, bitOffset)` | `readFloat` | `DetailedResult<Float>` | `DetailedDecodeError` |
+| `decodeFullDouble(raw, bitOffset)` | `readDouble` | `DetailedResult<Double>` | `DetailedDecodeError` |
+| `decodeFullBoolean(raw, bitOffset)` | `readBool` | `DetailedResult<Boolean>` | `DetailedDecodeError` |
+
+On success, `value` holds the decoded scalar and `error` is `null`. On failure
+(currently `BoundsError` — the read-side bounds check), `value` is `null` and
+`error` carries a `DetailedDecodeError(error, offset, rawCode)`:
+
+- `error` — the `KompactDecodeError` kind (e.g. `BoundsError`).
+- `offset` — the **byte** index of the failure (`bitOffset ushr 3`).
+- `rawCode` — the raw enum code (only non-zero for `UnknownEnumCode`, which is
+  produced by hand-written enum checks in generated views, not by the scalar
+  reads here).
+
+`DetailedResult<T>` is a plain class (not a value class) and therefore
+**allocates on both paths** — use it only when you need offsets/errors; the
+`readScalar*` accessors and `*OrThrow` variants are the zero-alloc path.
+`isSuccess`/`isFailure` mirror the scalar result classes.
+
+---
+
 ## Extension functions
 
 Each result class provides the same pair of recovery helpers. The full
-signatures (all 16) are listed below so the concrete return types are
+signatures (all 12) are listed below so the concrete return types are
 visible without a placeholder.
 
 | Extension | On | Signature | Description |
 | --- | --- | --- | --- |
-| `getOrElse` | `ByteResult` | `getOrElse(fallback: (KompactDecodeError) -> Byte): Byte` | Value on success, `fallback(error)` on failure. |
-| `getOrElse` | `ShortResult` | `getOrElse(fallback: (KompactDecodeError) -> Short): Short` | Value on success, `fallback(error)` on failure. |
 | `getOrElse` | `IntResult` | `getOrElse(fallback: (KompactDecodeError) -> Int): Int` | Value on success, `fallback(error)` on failure. |
 | `getOrElse` | `LongResult` | `getOrElse(fallback: (KompactDecodeError) -> Long): Long` | Value on success, `fallback(error)` on failure. |
 | `getOrElse` | `FloatResult` | `getOrElse(fallback: (KompactDecodeError) -> Float): Float` | Value on success, `fallback(error)` on failure. |
 | `getOrElse` | `DoubleResult` | `getOrElse(fallback: (KompactDecodeError) -> Double): Double` | Value on success, `fallback(error)` on failure. |
 | `getOrElse` | `BooleanResult` | `getOrElse(fallback: (KompactDecodeError) -> Boolean): Boolean` | Value on success, `fallback(error)` on failure. |
-| `map` | `ByteResult` | `map(transform: (Byte) -> Byte): ByteResult` | Applies `transform` on success; propagates failure. |
-| `map` | `ShortResult` | `map(transform: (Short) -> Short): ShortResult` | Applies `transform` on success; propagates failure. |
 | `map` | `IntResult` | `map(transform: (Int) -> Int): IntResult` | Applies `transform` on success; propagates failure. |
 | `map` | `LongResult` | `map(transform: (Long) -> Long): LongResult` | Applies `transform` on success; propagates failure. |
 | `map` | `FloatResult` | `map(transform: (Float) -> Float): FloatResult` | Applies `transform` on success; propagates failure. |
@@ -369,7 +396,7 @@ visible without a placeholder.
 
 ## `Kompact.Result` namespace
 
-`ch.trancee.kompact.Kompact.Result` type-aliases the seven result value
+`ch.trancee.kompact.Kompact.Result` type-aliases the five result value
 classes under a single import path for convenience:
 
 ```kotlin
@@ -380,8 +407,6 @@ import ch.trancee.kompact.Kompact.Result.Long
 
 | Alias | Resolves to |
 | --- | --- |
-| `Kompact.Result.Byte` | `ByteResult` |
-| `Kompact.Result.Short` | `ShortResult` |
 | `Kompact.Result.Int` | `IntResult` |
 | `Kompact.Result.Long` | `LongResult` |
 | `Kompact.Result.Float` | `FloatResult` |

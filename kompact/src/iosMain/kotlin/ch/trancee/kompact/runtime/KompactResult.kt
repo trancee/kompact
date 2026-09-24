@@ -4,50 +4,6 @@ package ch.trancee.kompact.runtime
 // Same encoding logic as JVM; value classes over primitive Long are
 // zero-alloc on Kotlin/Native (inline value).
 
-public actual value class ByteResult(
-    public actual val packed: Long,
-) {
-    public actual val isSuccess: Boolean get() = (packed and RESULT_OK_FLAG) != 0L
-    public actual val isFailure: Boolean get() = (packed and RESULT_OK_FLAG) == 0L
-    public actual val error: KompactDecodeError? get() =
-        if (isSuccess) null else decodeErrorFromSmallBits(packed)
-
-    public actual fun getOrThrow(): Byte =
-        if (isSuccess) {
-            (packed and RESULT_VALUE_MASK).toByte()
-        } else {
-            throwDecodeErrorFromSmallBits(packed)
-        }
-
-    public actual companion object {
-        public actual fun success(value: Byte): ByteResult = ByteResult(encodeSmallSuccess(value.toLong()))
-
-        public actual fun failure(error: KompactDecodeError): ByteResult = ByteResult(encodeSmallFailure(error))
-    }
-}
-
-public actual value class ShortResult(
-    public actual val packed: Long,
-) {
-    public actual val isSuccess: Boolean get() = (packed and RESULT_OK_FLAG) != 0L
-    public actual val isFailure: Boolean get() = (packed and RESULT_OK_FLAG) == 0L
-    public actual val error: KompactDecodeError? get() =
-        if (isSuccess) null else decodeErrorFromSmallBits(packed)
-
-    public actual fun getOrThrow(): Short =
-        if (isSuccess) {
-            (packed and RESULT_VALUE_MASK).toShort()
-        } else {
-            throwDecodeErrorFromSmallBits(packed)
-        }
-
-    public actual companion object {
-        public actual fun success(value: Short): ShortResult = ShortResult(encodeSmallSuccess(value.toLong()))
-
-        public actual fun failure(error: KompactDecodeError): ShortResult = ShortResult(encodeSmallFailure(error))
-    }
-}
-
 public actual value class IntResult(
     public actual val packed: Long,
 ) {

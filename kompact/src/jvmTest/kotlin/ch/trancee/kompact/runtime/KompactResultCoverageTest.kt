@@ -2,7 +2,6 @@ package ch.trancee.kompact.runtime
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -31,18 +30,6 @@ class KompactResultCoverageTest {
     private fun callGetPackedInt(value: Any): Int = value.javaClass.getMethod("getPacked").invoke(value) as Int
 
     // --- getPacked on every result type (covers synthetic backing-field getter) ---
-
-    @Test
-    fun byteResult_packedRoundTrips() {
-        val r = ByteResult.success(0xAB.toByte())
-        assertEquals(encodeSmallSuccess(0xAB.toByte().toLong()), callGetPacked(r))
-    }
-
-    @Test
-    fun shortResult_packedRoundTrips() {
-        val r = ShortResult.success(1000)
-        assertEquals(encodeSmallSuccess(1000L), callGetPacked(r))
-    }
 
     @Test
     fun intResult_packedRoundTrips() {
@@ -127,8 +114,6 @@ class KompactResultCoverageTest {
 
     @Test
     fun allResultTypes_isFailureFalseAndErrorNullOnSuccess() {
-        assertFalse(ByteResult.success(0).isFailure)
-        assertFalse(ShortResult.success(0).isFailure)
         assertFalse(IntResult.success(0).isFailure)
         assertFalse(FloatResult.success(0f).isFailure)
         assertFalse(BooleanResult.success(false).isFailure)
@@ -136,8 +121,6 @@ class KompactResultCoverageTest {
         assertFalse(DoubleResult.success(0.0).isFailure)
         assertFalse(NestedRegionResult.success(0, 0).isFailure)
 
-        assertNull(ByteResult.success(0).error)
-        assertNull(ShortResult.success(0).error)
         assertNull(IntResult.success(0).error)
         assertNull(FloatResult.success(0f).error)
         assertNull(BooleanResult.success(false).error)
@@ -146,13 +129,7 @@ class KompactResultCoverageTest {
         assertNull(NestedRegionResult.success(0, 0).error)
     }
 
-    // --- isFailure = true on failure (ShortResult was missing this) ---
-
-    @Test
-    fun shortResult_isFailureTrueOnFailure() {
-        val r = ShortResult.failure(KompactDecodeError.BoundsError)
-        assertTrue(r.isFailure)
-    }
+    // --- isFailure = true on failure ---
 
     @Test
     fun floatResult_isFailureTrueOnFailure() {
@@ -160,21 +137,4 @@ class KompactResultCoverageTest {
         assertTrue(r.isFailure)
     }
 
-    // --- ShortResult.getOrThrow on failure (covered the throw path) ---
-
-    @Test
-    fun shortResult_getOrThrow_throwsOnFailure() {
-        val r = ShortResult.failure(KompactDecodeError.BoundsError)
-        val ex = assertFailsWith<KompactDecodeException> { r.getOrThrow() }
-        assertEquals(KompactDecodeError.BoundsError, ex.error)
-    }
-
-    // --- ByteResult.getOrThrow on failure (verify throwDecodeErrorFromSmallBits) ---
-
-    @Test
-    fun byteResult_getOrThrow_throwsOnFailure() {
-        val r = ByteResult.failure(KompactDecodeError.UnknownEnumCode(42))
-        val ex = assertFailsWith<KompactDecodeException> { r.getOrThrow() }
-        assertEquals(KompactDecodeError.UnknownEnumCode(42), ex.error)
-    }
 }

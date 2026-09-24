@@ -1,12 +1,10 @@
 package ch.trancee.kompact
 
 import ch.trancee.kompact.runtime.BooleanResult
-import ch.trancee.kompact.runtime.ByteResult
 import ch.trancee.kompact.runtime.DoubleResult
 import ch.trancee.kompact.runtime.FloatResult
 import ch.trancee.kompact.runtime.IntResult
 import ch.trancee.kompact.runtime.LongResult
-import ch.trancee.kompact.runtime.ShortResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -22,7 +20,7 @@ class KompactApiTest {
     fun kompactObjectsInitialize() {
         // Accessing the object singletons triggers <clinit> on both Kompact
         // and Kompact.Result. Typealiases are erased at runtime, so merely
-        // using Kompact.Result.Byte as a type does not trigger initialization;
+        // using Kompact.Result.Int as a type does not trigger initialization;
         // we must read the object reference itself.
         val kompactRef: Kompact = Kompact
         val resultRef: Kompact.Result = Kompact.Result
@@ -36,15 +34,9 @@ class KompactApiTest {
     fun kompactResultTypeAliases_resolveToResultTypes() {
         // Every Kompact.Result.* alias must resolve to its specialized result
         // value class and round-trip a typed value. Pinned here so a refactor
-        // that drops or mis-binds any alias (api-reference.md lists seven)
+        // that drops or mis-binds any alias (api-reference.md lists five)
         // breaks the build — typealiases are erased at runtime, so usage is the
         // only proof that the alias resolves to the right result shape.
-        val byteResult: Kompact.Result.Byte = ByteResult.success(42)
-        assertEquals(42, byteResult.getOrThrow())
-
-        val shortResult: Kompact.Result.Short = ShortResult.success(1000)
-        assertEquals(1000, shortResult.getOrThrow())
-
         val intResult: Kompact.Result.Int = IntResult.success(7)
         assertEquals(7, intResult.getOrThrow())
 
