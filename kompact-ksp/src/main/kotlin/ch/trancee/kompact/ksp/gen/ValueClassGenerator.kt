@@ -8,6 +8,7 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
@@ -36,6 +37,9 @@ private val BYTE_ARRAY_TYPE = ClassName("kotlin", "ByteArray")
  *   proves bounds at compile time (Ticket 06).
  * - `val` by default (immutable view; ADR-0006); write-through `var` setters
  *   move to the opt-in `Mutable*` sibling
+ * - `copy(field = this.field, ...)` builder for immutable field edits (ADR-0006 D2);
+ *   re-encodes the (possibly overridden) values via `encode<ClassName>()` into a
+ *   fresh `raw` buffer, preserving all other bits
  * - A shared `internal encodeXxx()` function generates the wire buffer
  *   via `KompactWriter`; the companion `create()` delegates to it.
  */
@@ -150,6 +154,8 @@ internal object ValueClassGenerator {
             )
         }
 
+        builder.addFunction(buildCopyFunction(spec))
+
         spec.fields.forEach { f ->
             builder.addProperty(buildExpectProperty(f))
         }
@@ -219,6 +225,8 @@ internal object ValueClassGenerator {
                     ).build(),
             )
         }
+
+        builder.addFunction(buildCopyFunction(spec, KModifier.PUBLIC, KModifier.ACTUAL))
 
         spec.fields.forEach { f ->
             builder.addProperty(buildActualProperty(f))
@@ -294,6 +302,39 @@ internal object ValueClassGenerator {
     private fun buildEncodeCall(spec: ModelSpec): String {
         val args = spec.fields.sortedBy { it.bitOffset }.joinToString { it.name }
         return "encode${spec.className}($args)"
+    }
+
+    /**
+     * `copy(field = this.field, ...)` member for the immutable default view
+     * (ADR-0006 D2). Re-encodes the (possibly overridden) field values into a
+     * fresh buffer via `encode<ClassName>()` and wraps it, preserving all other
+     * bits. On `expect`, it is an abstract member; `actual`s get the body that
+     * delegates to [buildEncodeCall].
+     */
+    private fun buildCopyFunction(
+        spec: ModelSpec,
+        vararg modifiers: KModifier,
+    ): FunSpec {
+        val className = ClassName(spec.packageName, spec.className)
+        val params = spec.fields.sortedBy { it.bitOffset }
+        return FunSpec
+            .builder("copy")
+            .addModifiers(*modifiers)
+            .apply {
+                params.forEach { f ->
+                    addParameter(
+                        ParameterSpec
+                            .builder(f.name, f.kotlinType.resolveTypeName())
+                            .defaultValue(CodeBlock.of("this.%L", f.name))
+                            .build(),
+                    )
+                }
+            }.returns(className)
+            .apply {
+                if (KModifier.ACTUAL in modifiers) {
+                    addStatement("return %T(%L)", className, buildEncodeCall(spec))
+                }
+            }.build()
     }
 
     // ------------------------------------------------------------------

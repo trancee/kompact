@@ -150,6 +150,29 @@ class ValueClassGeneratorTest {
     }
 
     @Test
+    fun `jvm actual default view emits copy builder delegating to encode`() {
+        val spec = vehicleTelemetrySpec()
+        val output = ValueClassGenerator.generateJvmActual(spec)
+
+        assertTrue(
+            output.contains("fun copy("),
+            "Default view must provide a copy(...) builder (ADR-0006 D2), got:\n$output",
+        )
+        assertTrue(
+            output.contains("batteryStatus: Int = this.batteryStatus"),
+            "copy param must default to the current field value, got:\n$output",
+        )
+        assertTrue(
+            output.contains("VehicleTelemetry(encodeVehicleTelemetry("),
+            "copy must wrap a fresh raw buffer via encode, got:\n$output",
+        )
+        assertFalse(
+            output.contains("set(value)"),
+            "Default view stays val (no setter), got:\n$output",
+        )
+    }
+
+    @Test
     fun `jvm actual uses raw readBits for Int fields`() {
         val spec = vehicleTelemetrySpec()
         val output = ValueClassGenerator.generateJvmActual(spec)
