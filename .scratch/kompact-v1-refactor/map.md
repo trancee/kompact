@@ -72,18 +72,23 @@ Refactor `main`'s v1 baseline to the ratified v1.0 shape and re-lock ABI + gates
 
 ## Frontier (next material decision — needs maintainer call)
 
-- **(Z) ADR-0006 codegen refactor** (view `var`→`val`+builder+opt-in `Mutable*`)
-  — separate ADR; gated on the result-type surface being settled (decide Y3
-  first).
-- **Original `$code-review` directive** — pending; the runtime-result surface is
-  now stable at 5 scalar types, so the external code-review pass can proceed
-  against a settled ABI.
-- **Push `feat/v1-refactor-ratified-shape` + `wayfinder/kompact-v1` + open tracker PR(s)**
-  — blocked on approval (never push protected default / without approval).
+- **(Z) ADR-0006 codegen refactor** (`var`→`val` + builder + opt-in `Mutable*`)
+  — Y3 settled (decided A) and the result surface is stable (5 scalar types), so
+  ADR-0006 is now **planned** (no longer deferred). Ordered TDD plan + gating
+  decisions live in `.scratch/kompact-spec/issues/18-adr-0006-codegen-plan.md`.
+  Blocked on three human-only decisions:
+  (D1) accept removing write-through setters from the default view (source/MAJOR break),
+  (D2) builder shape (`copy(...)` vs a `Builder` DSL),
+  (D3) opt-in flag (`@KompactModel mutable: Boolean = false` vs a separate annotation).
+- **Original `$code-review` directive** — delivered: two-axis (Standards + Spec)
+  review over `5a78cc4..HEAD` (0 functional bugs; 4 HARD doc gaps closed; Judgement
+  smells deferred). Re-runnable over the `main` baseline on request.
+- **Merge PR #60** (`feat/v1-refactor-ratified-shape`) — blocked on explicit approval
+  (AGATES: no merge without approval). Branch is green at `b1b6cc8`.
 
 ## Out of scope (this wayfinder)
 
-- Pushing `feat/v1-refactor-ratified-shape` (awaiting approval).
+- Merge of `feat/v1-refactor-ratified-shape` onto `main` (awaiting explicit approval).
 - Changing the wire format (ticket 05 framing — ratified, keep).
 - C emission / extra Native targets / watchOS (v1 scope — see
   `.scratch/kompact-v1/map.md`).
