@@ -26,3 +26,19 @@ updates:
       # uses Kotlin 2.4.20. Remove this ignore once a Gradle version bundling
       # Kotlin 2.4.20+ is available.
       - dependency-name: "org.jetbrains.kotlin:kotlin-gradle-plugin"
+
+      # org.freemarker:freemarker is a transitive of the kover 0.9.9 Gradle
+      # plugin's buildscript classpath (kover-features-jvm ->
+      # intellij-coverage-reporter -> coverage-report -> freemarker, resolved
+      # here as 2.3.32, within Dependabot's affected advisory range
+      # [2.2.0, 2.3.34]; no patched version is listed). Dependabot's gradle
+      # updater cannot resolve buildscript transitives nested inside a
+      # plugin's classpath, so it reports dependency_not_found and fails the
+      # Dependabot job — the same class of failure as the
+      # kotlin-gradle-plugin ignore above.
+      #
+      # freemarker runs only at build time (kover's coverage-report templating
+      # over JetBrains' own templates, no untrusted input); it cannot be
+      # excluded from a plugin's runtime classpath without overriding kover.
+      # Revisit when bumping kover (newer kover drops freemarker).
+      - dependency-name: "org.freemarker:freemarker"
