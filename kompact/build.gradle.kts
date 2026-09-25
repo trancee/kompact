@@ -4,12 +4,12 @@
 )
 
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
+import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 import org.gradle.api.publish.maven.MavenPublication
 
 plugins {
     alias(libs.plugins.kmp)
     alias(libs.plugins.agp)
-    alias(libs.plugins.kover)
     alias(libs.plugins.kotlinPowerAssert)
     id("dokka-markdown")
     id("portal-publish")
@@ -115,7 +115,9 @@ kotlin {
 // scaffolding (see JvmCoveragePinning.java), not production logic. The JVM TI
 // agent tracks INVOKEVIRTUAL (synthetic @JvmInline getters), not GETFIELD, so
 // the Java scaffolding forces method-level coverage.
-kover {
+apply(plugin = "org.jetbrains.kotlinx.kover")
+
+extensions.configure<KoverProjectExtension>("kover") {
     reports {
         filters {
             excludes {
@@ -127,7 +129,7 @@ kover {
                 onCheck.set(true)
             }
             html {
-                onCheck.set(true)
+                onCheck.set(false)
             }
         }
         verify {
