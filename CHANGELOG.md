@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-09-25
+
+### ✨ Features
+- feat(ksp+kompact): add androidNativeArm64 target + kompact.generate=androidArm64 mode (#63) (6a8009a)
+
+### 📦 Other
+- fix(kover): exclude vulnerable freemarker transitive from plugin classpath (#66) (6c6af6f)
+- fix(dependabot): ignore unresolved freemarker buildscript transitive (#64) (10015ee)
+
 ## [0.2.0] - 2026-09-25
 
 ### ✨ Features
