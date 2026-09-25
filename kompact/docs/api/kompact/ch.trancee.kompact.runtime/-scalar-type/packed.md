@@ -2,9 +2,9 @@
 
 # packed
 
-[common, ios, jvmCommon]\
+[common, jvmCommon, native]\
 [common]\
 expect val [packed](packed.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
 
-[ios, jvmCommon]\
+[jvmCommon, native]\
 actual val [packed](packed.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)

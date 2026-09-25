@@ -34,9 +34,11 @@ the freshly-inferred ABIs with `keepLocallyUnsupportedTargets = true`:
 - `kompact/api/jvm/kompact.api` — the JVM bytecode ABI (compiled from the
   current source for the JVM target).
 - `kompact/api/android/kompact.api` — the Android bytecode ABI.
-- `kompact/api/kompact.klib.api` — the merged iOS klib ABI (the union
-  of `iosArm64` and `iosSimulatorArm64`, compiled and dumped only on
-  Apple hosts).
+- `kompact/api/kompact.klib.api` — the merged klib ABI (the union of
+  `iosArm64`, `iosSimulatorArm64`, and `androidNativeArm64`). iOS targets are
+  compiled and dumped only on Apple hosts; `androidNativeArm64` compiles via
+  Kotlin/Native's bundled Android sysroot on macOS or Linux (no NDK required
+  for this pure-Kotlin target).
 - `kompact-ksp/api/kompact-ksp.api` — the KSP processor JVM ABI.
 
 `spotlessCheck` enforces ktlint formatting across all Kotlin and
@@ -180,7 +182,8 @@ supported way to get the iOS golden updated from a non-Mac host.
 
 The CI uses JDK 21 (Temurin) and Kotlin 2.4.20. The `:kompact` module
 is a Kotlin Multiplatform project targeting `jvm` (JVM 21), `android`
-(Android library via AGP 9.4.0), `iosArm64`, and `iosSimulatorArm64`.
+(Android library via AGP 9.4.0), `androidNativeArm64`, `iosArm64`, and
+`iosSimulatorArm64`.
 KGP auto-creates the per-target publications via `maven-publish`;
 `ch.trancee.kompact:kompact` is staged for Maven Central Portal via a
 custom Portal Publisher API task (`centralPortalDeploy`, no

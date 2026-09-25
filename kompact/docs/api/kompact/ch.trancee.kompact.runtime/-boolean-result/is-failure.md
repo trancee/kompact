@@ -2,9 +2,9 @@
 
 # isFailure
 
-[common, ios, jvmCommon]\
+[common, jvmCommon, native]\
 [common]\
 expect val [isFailure](is-failure.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)
 
-[ios, jvmCommon]\
+[jvmCommon, native]\
 actual val [isFailure](is-failure.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)

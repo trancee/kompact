@@ -2,9 +2,9 @@
 
 # isMalfunctioning
 
-[common, ios, jvmCommon]\
+[common, jvmCommon, native]\
 [common]\
 expect val [isMalfunctioning](is-malfunctioning.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)
 
-[ios, jvmCommon]\
+[jvmCommon, native]\
 actual val [isMalfunctioning](is-malfunctioning.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)

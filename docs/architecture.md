@@ -142,7 +142,8 @@ platform actuals diverge:
 
 - `jvmMain`: `@JvmInline actual value class …` — required by the
   language for value classes over a primitive `Long` on the JVM.
-- `iosMain` (shared by `iosArm64` and `iosSimulatorArm64`): plain
+- `nativeMain` (shared by `iosArm64`, `iosSimulatorArm64`, and
+  `androidNativeArm64`): plain
   `actual value class …` — Kotlin/Native represents the same
   over-primitive-Long shape as an inline value automatically.
 

@@ -256,11 +256,12 @@ plugins {
 kotlin {
     jvm()
     iosArm64()
+    androidNativeArm64()
 
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.2.0-SNAPSHOT")
+                implementation("ch.trancee.kompact:kompact:0.3.0-SNAPSHOT")
             }
         }
     }
@@ -270,7 +271,7 @@ dependencies {
     // Use kspCommonMainMetadata so generated sources land in the
     // common source set shared by all KMP targets (not per-target).
     // The processor generates expect/actual stubs from your annotations.
-    kspCommonMainMetadata("ch.trancee.kompact:kompact-ksp:0.2.0-SNAPSHOT")
+    kspCommonMainMetadata("ch.trancee.kompact:kompact-ksp:0.3.0-SNAPSHOT")
 }
 ```
 

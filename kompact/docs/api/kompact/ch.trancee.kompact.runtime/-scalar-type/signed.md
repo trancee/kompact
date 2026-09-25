@@ -2,9 +2,9 @@
 
 # signed
 
-[common, ios, jvmCommon]\
+[common, jvmCommon, native]\
 [common]\
 expect val [signed](signed.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)
 
-[ios, jvmCommon]\
+[jvmCommon, native]\
 actual val [signed](signed.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)

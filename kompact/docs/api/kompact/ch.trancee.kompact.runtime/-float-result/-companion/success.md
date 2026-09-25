@@ -2,9 +2,9 @@
 
 # success
 
-[common, ios, jvmCommon]\
+[common, jvmCommon, native]\
 [common]\
 expect fun [success](success.md)(value: [Float](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html)): [FloatResult](../index.md)
 
-[ios, jvmCommon]\
+[jvmCommon, native]\
 actual fun [success](success.md)(value: [Float](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html)): [FloatResult](../index.md)

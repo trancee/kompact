@@ -126,8 +126,10 @@ bleCharacteristic.value = tel.raw
   `@KompactField`) that generates value-class view bodies from
   compile-time-validated field layouts. Apply it with `ksp` in a consumer
   build to generate `@KompactModel` view classes.
-- **Targets**: `jvm` (JVM 21), `iosArm64`, `iosSimulatorArm64`. Android consumes
-  the `jvm` artifact.
+- **Targets**: `jvm` (JVM 21), `androidNativeArm64`, `iosArm64`, `iosSimulatorArm64`.
+  Android JVM consumers use the `jvm` artifact; Android native ARM64 consumers
+  use the `androidNativeArm64` klib — see
+  [consume from another project](docs/how-to/consume-from-another-project.md).
 
 ## Where to go next
 

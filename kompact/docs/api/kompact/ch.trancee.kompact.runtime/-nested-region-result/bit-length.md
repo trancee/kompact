@@ -2,9 +2,9 @@
 
 # bitLength
 
-[common, ios, jvmCommon]\
+[common, jvmCommon, native]\
 [common]\
 expect val [bitLength](bit-length.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
 
-[ios, jvmCommon]\
+[jvmCommon, native]\
 actual val [bitLength](bit-length.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)

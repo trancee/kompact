@@ -4,8 +4,8 @@ Goal: add `ch.trancee.kompact:kompact` to a Kotlin or Kotlin
 Multiplatform project so you can call `KompactWriter`, `KompactRuntime`,
 and the typed result value classes.
 
-The Maven coordinates are `ch.trancee.kompact:kompact:0.2.0-SNAPSHOT`.
-The artifact publishes per-target klibs (`-iosarm64`, `-iossimulatorarm64`)
+The Maven coordinates are `ch.trancee.kompact:kompact:0.3.0-SNAPSHOT`.
+The artifact publishes per-target klibs (`-iosarm64`, `-iossimulatorarm64`, `-androidarm64`)
 and an Android `aar` via standard `maven-publish`.
 
 ## 1. Install the snapshot locally
@@ -26,11 +26,11 @@ This produces the per-target artifacts under `~/.m2/repository/`.
 ```kotlin
 repositories {
     mavenCentral()
-    mavenLocal()    // for the 0.2.0-SNAPSHOT until first Central release
+    mavenLocal()    // for the 0.3.0-SNAPSHOT until first Central release
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.2.0-SNAPSHOT")
+    implementation("ch.trancee.kompact:kompact:0.3.0-SNAPSHOT")
 }
 ```
 
@@ -50,11 +50,12 @@ kotlin {
     jvm()
     iosArm64()
     iosSimulatorArm64()
+    androidNativeArm64()
 
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.2.0-SNAPSHOT")
+                implementation("ch.trancee.kompact:kompact:0.3.0-SNAPSHOT")
             }
         }
     }
@@ -67,7 +68,8 @@ repositories {
 ```
 
 The KMP artifact publishes a metadata `.module` file that resolves
-the JVM jar for `jvm`, the iOS klib for `iosArm64`, and the iOS klib
+the JVM jar for `jvm`, the `androidNativeArm64` klib for
+`androidNativeArm64`, the iOS klib for `iosArm64`, and the iOS klib
 for `iosSimulatorArm64` automatically. You do not need to specify
 target-specific coordinates.
 
@@ -87,12 +89,12 @@ android {
 repositories {
     google()
     mavenCentral()
-    mavenLocal()    // for the 0.2.0-SNAPSHOT until first Central release
+    mavenLocal()    // for the 0.3.0-SNAPSHOT until first Central release
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.2.0-SNAPSHOT")
-    // or, for KMP: implementation("ch.trancee.kompact:kompact-android:0.2.0-SNAPSHOT")
+    implementation("ch.trancee.kompact:kompact:0.3.0-SNAPSHOT")
+    // or, for KMP: implementation("ch.trancee.kompact:kompact-android:0.3.0-SNAPSHOT")
 }
 ```
 
@@ -108,7 +110,7 @@ For multi-module builds, pin the version in `gradle/libs.versions.toml`:
 
 ```toml
 [versions]
-kompact = "0.2.0-SNAPSHOT"
+kompact = "0.3.0-SNAPSHOT"
 
 [libraries]
 kompact = { module = "ch.trancee.kompact:kompact", version.ref = "kompact" }
@@ -169,7 +171,7 @@ value classes) are not preview API — no opt-in is needed for them.
 - **`mavenLocal()` not declared.** The snapshot lives in `~/.m2/`,
   not on Maven Central. Without `mavenLocal()` in your
   `repositories`, Gradle reports `Could not find
-  `ch.trancee.kompact:kompact:0.2.0-SNAPSHOT`.
+  `ch.trancee.kompact:kompact:0.3.0-SNAPSHOT`.
 - **Wrong target coordinate on KMP.** Use
   `ch.trancee.kompact:kompact` (the root artifact), not
   `ch.trancee.kompact:kompact-jvm` or `kompact-iosarm64`. The

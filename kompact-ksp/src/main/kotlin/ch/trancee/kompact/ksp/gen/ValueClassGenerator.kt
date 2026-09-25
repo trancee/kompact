@@ -115,6 +115,22 @@ internal object ValueClassGenerator {
             .toString()
     }
 
+    /**
+     * Generates the plain `actual value class` for androidNativeArm64Main.
+     * Kotlin/Native has no `@JvmInline`, so this shares the plain-actual body
+     * (`buildActual(isJvm=false)`) with [generateIosActual]; only the FileSpec
+     * name differs so generated output is distinguishable per target.
+     */
+    fun generateAndroidArm64Actual(spec: ModelSpec): String {
+        requireValidLayout(spec)
+        return com.squareup.kotlinpoet.FileSpec
+            .builder(spec.packageName, "${spec.className}AndroidArm64Actual")
+            .addType(buildActual(spec, isJvm = false))
+            .apply { if (spec.mutable) addType(buildMutableActual(spec, isJvm = false)) }
+            .build()
+            .toString()
+    }
+
     // ------------------------------------------------------------------
     // TypeSpec builders
     // ------------------------------------------------------------------
