@@ -209,6 +209,18 @@ class KompactSymbolProcessorGenerationTest {
         assertTrue(ios.contains("actual val"))
         assertFalse(jvm.contains("var "))
         assertFalse(jvm.contains("set(value)"))
+        // ADR-0006 D2/D3: the immutable default view still carries copy(...) so
+        // callers can derive an updated frame.
+        assertTrue(jvm.contains("fun copy("), "default view must still provide copy")
+        // KMP forbids default arguments on `actual` declarations (defaults live
+        // in the `expect` only); the actual copy must not carry `= this.x`
+        // defaults. This also locks the buildCopyFunction root-cause fix
+        // (ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS) surfaced by the VehicleTelemetry
+        // example mirror.
+        assertFalse(
+            jvm.contains("field: Int = this.field"),
+            "actual copy must not carry default arguments (KMP: defaults live in the expect only)",
+        )
     }
 
     @Test

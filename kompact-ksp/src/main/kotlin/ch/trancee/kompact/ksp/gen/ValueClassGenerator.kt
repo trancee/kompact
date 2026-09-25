@@ -389,12 +389,18 @@ internal object ValueClassGenerator {
             .addModifiers(*modifiers)
             .apply {
                 params.forEach { f ->
-                    addParameter(
+                    val param =
                         ParameterSpec
                             .builder(f.name, f.kotlinType.resolveTypeName())
-                            .defaultValue(CodeBlock.of("this.%L", f.name))
-                            .build(),
-                    )
+                    // KMP: `actual` declarations cannot carry default arguments
+                    // — those live in the `expect` only. Defaults are emitted on
+                    // the expect copy and omitted for the actual so the
+                    // generated JVM/iOS actual declarations compile
+                    // (ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS).
+                    if (KModifier.ACTUAL !in modifiers) {
+                        param.defaultValue(CodeBlock.of("this.%L", f.name))
+                    }
+                    addParameter(param.build())
                 }
             }.returns(className)
             .apply {

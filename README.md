@@ -67,10 +67,14 @@ val tel = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctionin
 // tel.raw is the 2-byte wire buffer: [0xA5, 0x40]
 ```
 
-Modify a field in-place — the setter writes directly to the backing `ByteArray`:
+Modify a field without copying — opt into the `MutableVehicleTelemetry`
+sibling, whose `var` setter writes directly to the shared `ByteArray`:
 
 ```kotlin
-tel.speed = 30
+import ch.trancee.kompact.generated.MutableVehicleTelemetry
+
+val mutable = MutableVehicleTelemetry(tel.raw)
+mutable.speed = 30
 // tel.raw is now updated; no new allocation
 ```
 
@@ -88,9 +92,11 @@ val speed = tel.speed      // 30
 val flag  = tel.isMalfunctioning  // true
 ```
 
-Setters work because the `ByteArray` is a mutable reference shared by the
-value class. You read one field, modify one field, and transmit the same
-buffer — no intermediate objects, no copy.
+The default view is immutable (`val` fields + a `copy(...)` builder). Mutation
+goes through the opt-in `MutableVehicleTelemetry` sibling: wrap an existing
+`raw` buffer with `MutableVehicleTelemetry(raw)` and its `var` setters write in
+place to the backing array. You read one field, modify one field, and transmit
+the same buffer — no intermediate objects, no copy.
 
 **Quick reference** — all four operations in one snippet:
 
@@ -101,8 +107,9 @@ val raw: ByteArray = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMa
 // 2. Construct from raw bytes (e.g. received from BLE)
 val tel = VehicleTelemetry(raw)
 
-// 3. Overwrite a field in-place (writes directly to the backing buffer)
-tel.speed = 30
+// 3. Overwrite a field in-place (Mutable sibling, writes to the backing buffer)
+val mutable = MutableVehicleTelemetry(raw)
+mutable.speed = 30
 
 // 4. Get the raw bytes again — no copy
 bleCharacteristic.value = tel.raw

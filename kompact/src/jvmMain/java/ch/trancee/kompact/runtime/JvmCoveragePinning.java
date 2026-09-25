@@ -1,6 +1,7 @@
 package ch.trancee.kompact.runtime;
 
 import ch.trancee.kompact.Kompact;
+import ch.trancee.kompact.generated.MutableVehicleTelemetry;
 import ch.trancee.kompact.generated.VehicleTelemetry;
 import java.lang.reflect.Method;
 import kotlin.Unit;
@@ -102,6 +103,11 @@ class JvmCoveragePinning {
         return (VehicleTelemetry) m.invoke(null, raw);
     }
 
+    public static MutableVehicleTelemetry boxMutableVehicleTelemetry(byte[] raw) throws Exception {
+        Method m = MutableVehicleTelemetry.class.getMethod("box-impl", byte[].class);
+        return (MutableVehicleTelemetry) m.invoke(null, raw);
+    }
+
     // ── INVOKEVIRTUAL getPacked() on every @JvmInline value class ───────────
     // Each method calls getPacked() (an instance method → INVOKEVIRTUAL).
     // Returns the raw packed long so the caller can assert on it.
@@ -138,6 +144,10 @@ class JvmCoveragePinning {
 
     public static byte[] getVehicleRaw(VehicleTelemetry vt) {
         return vt.getRaw();  // INVOKEVIRTUAL
+    }
+
+    public static byte[] getMutableVehicleRaw(MutableVehicleTelemetry mvt) {
+        return mvt.getRaw();  // INVOKEVIRTUAL
     }
 
     // ── Kompact / Kompact.Result class initialisation (<clinit> → <init>) ─

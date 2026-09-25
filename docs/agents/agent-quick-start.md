@@ -238,9 +238,9 @@ public expect value class SensorFrame(public val raw: ByteArray) {
     public companion object {
         public fun create(status: Int, battery: Int, temperature: Int): SensorFrame
     }
-    @KompactField(bitOffset = 0,  bitWidth = 4)  public var status: Int
-    @KompactField(bitOffset = 4,  bitWidth = 4)  public var battery: Int
-    @KompactField(bitOffset = 8,  bitWidth = 12, signed = true) public var temperature: Int
+    @KompactField(bitOffset = 0,  bitWidth = 4)  public val status: Int
+    @KompactField(bitOffset = 4,  bitWidth = 4)  public val battery: Int
+    @KompactField(bitOffset = 8,  bitWidth = 12, signed = true) public val temperature: Int
 }
 ```
 
@@ -254,10 +254,9 @@ public actual value class SensorFrame(public actual val raw: ByteArray) {
             SensorFrame(encodeSensorFrame(status, battery, temperature))
     }
     @KompactField(bitOffset = 0, bitWidth = 4)
-    public actual var status: Int
+    public actual val status: Int
         get() = KompactRuntime.readScalar(raw, 0, ScalarType.of(4, false)).getOrThrow()
-        set(v) { KompactRuntime.writeBits(raw, 0, 4, v) }
-    // … battery, temperature similarly
+    // … battery, temperature similarly (val readers; opt-in Mutable sibling for writes)
 }
 ```
 
@@ -292,18 +291,20 @@ public expect value class SensorFrame(public val raw: ByteArray) {
     public companion object {
         public fun create(status: Int, battery: Int, temperature: Int): SensorFrame
     }
-    @KompactField(bitOffset = 0,  bitWidth = 4)  public var status: Int
-    @KompactField(bitOffset = 4,  bitWidth = 4)  public var battery: Int
-    @KompactField(bitOffset = 8,  bitWidth = 12, signed = true) public var temperature: Int
+    @KompactField(bitOffset = 0,  bitWidth = 4)  public val status: Int
+    @KompactField(bitOffset = 4,  bitWidth = 4)  public val battery: Int
+    @KompactField(bitOffset = 8,  bitWidth = 12, signed = true) public val temperature: Int
 }
 ```
 
 The processor emits three files: `<Name>.kt` (commonMain),
 `<Name>JvmActual.kt` (jvmMain), `<Name>IosActual.kt` (iosMain).
-Generated getters use the **raw** `readBits` / `readBitsBoolean`
-(zero-alloc, no bounds check) because the processor proves bounds at
-compile time. Setters are write-through via `writeBits` /
-`writeBitsBoolean`.
+The default view's fields are `val` (read-only); generated getters use
+the **raw** `readBits` / `readBitsBoolean` path (zero-alloc, no bounds
+check) because the processor proves bounds at compile time. Write-through
+`var` setters live on the opt-in `Mutable<Name>` sibling emitted when
+`@KompactModel(mutable = true)`, via `writeBits` / `writeBitsBoolean`
+(see [ADR-0006](../../docs/adr/0006-immutable-default-models.md)).
 
 **Supported field types:** `Boolean`, `Int`, `Long`, `Float`, `Double`.
 Variable-length types (`String`, `ByteArray`, nested, repeated) are

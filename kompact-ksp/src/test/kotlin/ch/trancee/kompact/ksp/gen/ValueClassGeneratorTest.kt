@@ -174,9 +174,9 @@ class ValueClassGeneratorTest {
             output.contains("fun copy("),
             "Default view must provide a copy(...) builder (ADR-0006 D2), got:\n$output",
         )
-        assertTrue(
+        assertFalse(
             output.contains("batteryStatus: Int = this.batteryStatus"),
-            "copy param must default to the current field value, got:\n$output",
+            "actual copy must not carry default arguments (KMP keeps defaults in the expect only), got:\n$output",
         )
         assertTrue(
             output.contains("VehicleTelemetry(encodeVehicleTelemetry("),
@@ -185,6 +185,21 @@ class ValueClassGeneratorTest {
         assertFalse(
             output.contains("set(value)"),
             "Default view stays val (no setter), got:\n$output",
+        )
+    }
+
+    @Test
+    fun `expect default view copy carries field defaults for callers`() {
+        val spec = vehicleTelemetrySpec()
+        val output = ValueClassGenerator.generateExpect(spec)
+
+        // KMP: default arguments live on the `expect` only — `actual`
+        // declarations cannot carry them. The expect copy defaults each
+        // parameter to the current field value so callers can do
+        // `frame.copy(speed = 30)` while the actual copy body stays default-free.
+        assertTrue(
+            output.contains("batteryStatus: Int = this.batteryStatus"),
+            "expect copy must default params to current field values, got:\n$output",
         )
     }
 
