@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-09-25
+
+### ✨ Features
+- feat(ksp+kompact): ADR-0006 — immutable default views + opt-in Mutable sibling (slices 1-5) (#61) (737d5c0)
+
+### 📦 Other
+- refactor(runtime): collapse Byte/Short onto IntResult (≤32-bit-int value shape) (#60) (598948b)
+- wayfinder: Kompact v1.0 implementation plan + v1-shape decisions (ADR-0005/0006/0003) (#58) (c6a4280)
+- chore(deps): bump com.android.kotlin.multiplatform.library (#59) (8f81095)
+- docs(adr): triage external code review into ADRs and spec tickets (#56) (87dfe9a)
+
 ## [0.1.7] - 2026-09-17
 
 ### 🐛 Fixes
