@@ -39,6 +39,22 @@ class ValueClassGeneratorTest {
                 ),
         )
 
+    /** Spec covering every supported scalar type (Boolean, Int, Long, Float, Double) — used by the mutable-sibling tests so all `WRITE_CALL_BUILDERS` branches are exercised (kover 100%). */
+    private fun allTypesSpec(mutable: Boolean = false): ModelSpec =
+        ModelSpec(
+            packageName = "ch.trancee.kompact.generated",
+            className = "AllTypes",
+            fields =
+                listOf(
+                    field("flag", 0, 1, "Boolean"),
+                    field("count", 1, 16, "Int", signed = true),
+                    field("total", 17, 64, "Long", signed = true),
+                    field("ratio", 81, 32, "Float"),
+                    field("average", 113, 64, "Double"),
+                ),
+            mutable = mutable,
+        )
+
     // --- expect output tests ---
 
     @Test
@@ -127,17 +143,105 @@ class ValueClassGeneratorTest {
     }
 
     @Test
-    fun `jvm actual has write-through setters`() {
+    fun `jvm actual default view is immutable (val, no write-through setter)`() {
         val spec = vehicleTelemetrySpec()
         val output = ValueClassGenerator.generateJvmActual(spec)
 
         assertTrue(
+            output.contains("val batteryStatus"),
+            "Default view must declare `val` properties, got:\n$output",
+        )
+        assertFalse(
             output.contains("writeBitsBoolean"),
-            "Expected writeBitsBoolean in setter body, got:\n$output",
+            "Default view must NOT emit a Boolean write-through setter, got:\n$output",
+        )
+        assertFalse(
+            output.contains("writeBits(raw"),
+            "Default view must NOT emit an Int write-through setter, got:\n$output",
+        )
+        assertFalse(
+            output.contains("set(value)"),
+            "Default view must NOT declare a setter, got:\n$output",
+        )
+    }
+
+    @Test
+    fun `jvm actual default view emits copy builder delegating to encode`() {
+        val spec = vehicleTelemetrySpec()
+        val output = ValueClassGenerator.generateJvmActual(spec)
+
+        assertTrue(
+            output.contains("fun copy("),
+            "Default view must provide a copy(...) builder (ADR-0006 D2), got:\n$output",
+        )
+        assertFalse(
+            output.contains("batteryStatus: Int = this.batteryStatus"),
+            "actual copy must not carry default arguments (KMP keeps defaults in the expect only), got:\n$output",
         )
         assertTrue(
-            output.contains("writeBits(raw, 0, 4, value)"),
-            "Expected writeBits call in batteryStatus setter, got:\n$output",
+            output.contains("VehicleTelemetry(encodeVehicleTelemetry("),
+            "copy must wrap a fresh raw buffer via encode, got:\n$output",
+        )
+        assertFalse(
+            output.contains("set(value)"),
+            "Default view stays val (no setter), got:\n$output",
+        )
+    }
+
+    @Test
+    fun `expect default view copy carries field defaults for callers`() {
+        val spec = vehicleTelemetrySpec()
+        val output = ValueClassGenerator.generateExpect(spec)
+
+        // KMP: default arguments live on the `expect` only — `actual`
+        // declarations cannot carry them. The expect copy defaults each
+        // parameter to the current field value so callers can do
+        // `frame.copy(speed = 30)` while the actual copy body stays default-free.
+        assertTrue(
+            output.contains("batteryStatus: Int = this.batteryStatus"),
+            "expect copy must default params to current field values, got:\n$output",
+        )
+    }
+
+    @Test
+    fun `generate with mutable model emits Mutable sibling with write-through var setters`() {
+        val spec = allTypesSpec(mutable = true)
+        val expectOut = ValueClassGenerator.generateExpect(spec)
+        val jvmOut = ValueClassGenerator.generateJvmActual(spec)
+        val iosOut = ValueClassGenerator.generateIosActual(spec)
+
+        // Default immutable view is unchanged (val + copy).
+        assertTrue(expectOut.contains("expect value class AllTypes"))
+        assertTrue(expectOut.contains("fun copy("))
+
+        // ADR-0006 D3: opt-in Mutable<Model> escape hatch with write-through vars.
+        assertTrue(
+            expectOut.contains("expect value class MutableAllTypes"),
+            "mutable=true must emit a Mutable<ClassName> sibling (ADR-0006 D3), got:\n$expectOut",
+        )
+        assertTrue(
+            expectOut.contains("var "),
+            "Mutable sibling expect members must be var, got:\n$expectOut",
+        )
+        assertTrue(
+            jvmOut.contains("actual value class MutableAllTypes"),
+            "jvm actual must declare the Mutable sibling, got:\n$jvmOut",
+        )
+        assertTrue(
+            jvmOut.contains("actual var "),
+            "Mutable sibling jvm members must be var, got:\n$jvmOut",
+        )
+        assertTrue(
+            jvmOut.contains("set(`value`)"),
+            "Mutable sibling must wire a setter, got:\n$jvmOut",
+        )
+        assertTrue(
+            jvmOut.contains("writeBits"),
+            "Mutable sibling setter must delegate to KompactRuntime.writeBits, got:\n$jvmOut",
+        )
+        assertTrue(
+            iosOut.contains("actual value class MutableAllTypes"),
+            "ios actual must declare the Mutable sibling, got:\n$iosOut",
         )
     }
 

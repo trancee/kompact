@@ -130,11 +130,29 @@ class VehicleTelemetryTest {
         assertContentEquals(byteArrayOf(0x00, 0x00), tel.raw)
     }
 
-    // === var setters ===
+    // === copy() builder (ADR-0006 D2) ===
+
+    @Test
+    fun copy_overridesOnlySpecifiedFields() {
+        val tel = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
+
+        val modified = tel.copy(speed = 30) // override one field, preserve the rest
+
+        assertEquals(5, modified.batteryStatus) // preserved
+        assertEquals(30, modified.speed) // overridden
+        assertEquals(true, modified.isMalfunctioning) // preserved
+        // copy allocates a fresh buffer; the original frame is untouched
+        assertEquals(0xA5, tel.raw[0].toInt() and 0xFF)
+        assertEquals(0x40, tel.raw[1].toInt() and 0xFF)
+    }
+
+    // === MutableVehicleTelemetry write-through setters (opt-in, ADR-0006 D3) ===
+    // The default view is immutable (val); mutation goes through the
+    // MutableVehicleTelemetry sibling, which writes fields in place on `raw`.
 
     @Test
     fun batteryStatusSetter_writesLowNibbleWithoutAffectingSpeed() {
-        val tel = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
+        val tel = MutableVehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
         tel.batteryStatus = 3
 
         assertEquals(3, tel.batteryStatus)
@@ -145,7 +163,7 @@ class VehicleTelemetryTest {
 
     @Test
     fun speedSetter_writesTenBitField() {
-        val tel = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
+        val tel = MutableVehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
         tel.speed = 1023 // max 10-bit value
 
         assertEquals(1023, tel.speed)
@@ -155,7 +173,7 @@ class VehicleTelemetryTest {
 
     @Test
     fun isMalfunctioningSetter_clearsAndSetsBit() {
-        val tel = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
+        val tel = MutableVehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
         tel.isMalfunctioning = false
 
         assertEquals(false, tel.isMalfunctioning)
@@ -164,7 +182,7 @@ class VehicleTelemetryTest {
 
     @Test
     fun modifyAfterCreate_preservesUnchangedFields() {
-        val tel = VehicleTelemetry.create(batteryStatus = 7, speed = 500, isMalfunctioning = false)
+        val tel = MutableVehicleTelemetry.create(batteryStatus = 7, speed = 500, isMalfunctioning = false)
         tel.speed = 25
 
         assertEquals(7, tel.batteryStatus)
@@ -172,21 +190,23 @@ class VehicleTelemetryTest {
         assertEquals(false, tel.isMalfunctioning)
     }
 
-    // === BLE workflow: receive → modify → retransmit ===
+    // === BLE workflow: receive (immutable decode) → modify (Mutable sibling) → retransmit ===
 
     @Test
     fun bleWorkflow_modifyOneFieldAndReadRaw() {
-        // Simulate receiving a frame from a BLE characteristic
+        // Simulate receiving a frame from a BLE characteristic (immutable decode)
         val received = VehicleTelemetry(byteArrayOf(0xA5.toByte(), 0x40.toByte()))
         assertEquals(5, received.batteryStatus)
         assertEquals(10, received.speed)
         assertEquals(true, received.isMalfunctioning)
 
-        // Modify a field in-place
-        received.speed = 30
+        // Modify a field in place by wrapping the same backing buffer in the
+        // opt-in Mutable sibling (no allocation, re-send the same bytes).
+        val mutable = MutableVehicleTelemetry(received.raw)
+        mutable.speed = 30
 
         // Read raw bytes for retransmission — already in wire format
-        val bytesToSend = received.raw
+        val bytesToSend = mutable.raw
         assertEquals(2, bytesToSend.size)
 
         // Verify the modified frame decodes correctly
@@ -194,5 +214,24 @@ class VehicleTelemetryTest {
         assertEquals(5, reDecoded.batteryStatus)
         assertEquals(30, reDecoded.speed)
         assertEquals(true, reDecoded.isMalfunctioning)
+    }
+
+    // === MutableVehicleTelemetry F-001 guard + raw accessor ===
+    // The immutable view's require-guard failure branch is covered by
+    // constructorRejectsTruncatedBuffer above; the Mutable sibling enforces the
+    // same precondition and must fail fast on a truncated buffer too.
+
+    @Test
+    fun mutableConstructorRejectsTruncatedBuffer() {
+        assertFailsWith<IllegalArgumentException> { MutableVehicleTelemetry(ByteArray(0)) }
+        assertFailsWith<IllegalArgumentException> { MutableVehicleTelemetry(ByteArray(1)) }
+    }
+
+    @Test
+    fun mutableRawBufferIsReadable() {
+        val mutable = MutableVehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
+
+        assertEquals(2, mutable.raw.size)
+        assertContentEquals(byteArrayOf(0xA5.toByte(), 0x40.toByte()), mutable.raw)
     }
 }

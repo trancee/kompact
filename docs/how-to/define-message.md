@@ -64,11 +64,18 @@ public expect value class SensorFrame(public val raw: ByteArray) {
         ): SensorFrame
     }
 
-    @KompactField(bitOffset = 0,  bitWidth = 4)  public var status: Int
-    @KompactField(bitOffset = 4,  bitWidth = 4)  public var battery: Int
-    @KompactField(bitOffset = 8,  bitWidth = 12) public var temperature: Int
-    @KompactField(bitOffset = 20, bitWidth = 12) public var timestamp: Int
+    @KompactField(bitOffset = 0,  bitWidth = 4)  public val status: Int
+    @KompactField(bitOffset = 4,  bitWidth = 4)  public val battery: Int
+    @KompactField(bitOffset = 8,  bitWidth = 12) public val temperature: Int
+    @KompactField(bitOffset = 20, bitWidth = 12) public val timestamp: Int
 }
+
+> **Default view is read-only.** Fields are `val`; there are no setters.
+> In-place mutation is opt-in: set `mutable = true` on the schema's
+> `@KompactModel`, which emits a `MutableSensorFrame` sibling whose `var`
+> fields write through to the same `raw` buffer. See
+> [ADR-0006](../../docs/adr/0006-immutable-default-models.md)
+> and the bundled `VehicleTelemetry` / `MutableVehicleTelemetry` pair.
 
 /** Shared encoder used by the platform `create` actuals. */
 internal fun encodeSensorFrame(
@@ -119,21 +126,17 @@ public actual value class SensorFrame(public actual val raw: ByteArray) {
         )
     }
 
-    public actual var status: Int
+    public actual val status: Int
         get() = KompactRuntime.readScalar(raw, 0, ScalarType.of(4,  signed = false)).getOrThrow()
-        set(value) { KompactRuntime.writeBits(raw, 0, 4, value) }
 
-    public actual var battery: Int
+    public actual val battery: Int
         get() = KompactRuntime.readScalar(raw, 4, ScalarType.of(4,  signed = false)).getOrThrow()
-        set(value) { KompactRuntime.writeBits(raw, 4, 4, value) }
 
-    public actual var temperature: Int
+    public actual val temperature: Int
         get() = KompactRuntime.readScalar(raw, 8, ScalarType.of(12, signed = true)).getOrThrow()
-        set(value) { KompactRuntime.writeBitsLong(raw, 8, 12, value.toLong()) }
 
-    public actual var timestamp: Int
+    public actual val timestamp: Int
         get() = KompactRuntime.readScalar(raw, 20, ScalarType.of(12, signed = false)).getOrThrow()
-        set(value) { KompactRuntime.writeBitsLong(raw, 20, 12, value.toLong()) }
 
     init {
         require(raw.size >= 4) { "SensorFrame needs 4 bytes; got ${raw.size}" }
@@ -171,11 +174,18 @@ val received = SensorFrame(bleCharacteristic.value)
 println("status=${received.status} battery=${received.battery} " +
         "temp=${received.temperature} ts=${received.timestamp}")
 
-// Mutate in place — no copy, no allocation
-received.battery = 7
+// For zero-alloc in-place writes, opt into the MutableSensorFrame
+// sibling (emitted when the schema is annotated @KompactModel(mutable = true)):
+val mutable = MutableSensorFrame(received.raw)
+mutable.battery = 7
 // Send the same buffer back over BLE:
 bleCharacteristic.value = received.raw
 ```
+
+`MutableSensorFrame` is the write-through companion to the read-only
+default view — same `raw` buffer, `var` setters that write each bit-field
+in place. See [ADR-0006](adr/0006-immutable-default-models.md) and the
+bundled `MutableVehicleTelemetry` for the full pattern.
 
 **Sanity check.** `frame.raw.size == 4` and the same value class
 re-rendered produces the same bytes. If you change a `bitOffset` or
@@ -330,8 +340,10 @@ The generated getters use the **raw** `KompactRuntime.readBits` /
 `readBitsBoolean` path (not the checked `readScalar`/`readBool`),
 because the processor proves bounds at compile time — see the
 [codegen output reference](../architecture.md#codegen-output-reference)
-for the full shape. Setters are write-through (`writeBits` /
-`writeBitsBoolean`) just like the hand-written example.
+for the full shape. The default view's fields are `val` (read-only); write-
+through `var` setters live on the opt-in `Mutable<Model>` sibling emitted
+when `@KompactModel(mutable = true)` — `writeBits` /
+`writeBitsBoolean`, just like the hand-written example.
 
 **Supported types.** The processor handles `Boolean`, `Int`, `Long`,
 `Float`, `Double`. Variable-length types (`String`, `ByteArray`, nested
@@ -360,16 +372,19 @@ public expect value class SensorFrame(public val raw: ByteArray) {
         ): SensorFrame
     }
 
-    @KompactField(bitOffset = 0,  bitWidth = 4)  public var status: Int
-    @KompactField(bitOffset = 4,  bitWidth = 4)  public var battery: Int
-    @KompactField(bitOffset = 8,  bitWidth = 12, signed = true) public var temperature: Int
-    @KompactField(bitOffset = 20, bitWidth = 12) public var timestamp: Int
+    @KompactField(bitOffset = 0,  bitWidth = 4)  public val status: Int
+    @KompactField(bitOffset = 4,  bitWidth = 4)  public val battery: Int
+    @KompactField(bitOffset = 8,  bitWidth = 12, signed = true) public val temperature: Int
+    @KompactField(bitOffset = 20, bitWidth = 12) public val timestamp: Int
 }
 ```
 
 The `expect` declaration is all you write — the `create()` bodies,
 the `@JvmInline actual` (JVM), the plain `actual` (iOS), and every
-getter/setter body are generated. The processor validates the layout
+getter body are generated. To also emit the opt-in write-through
+`Mutable<Model>` sibling, set `mutable = true` on the schema's
+`@KompactModel` (the processor then generates the matching
+`MutableSensorFrame` with `var` setters). The processor also validates the layout
 at compile time (overlapping fields, invalid widths, bad prefix
 widths) and fails the build on violations.
 

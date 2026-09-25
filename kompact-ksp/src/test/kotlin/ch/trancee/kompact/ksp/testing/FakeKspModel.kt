@@ -11,6 +11,7 @@ fun buildModelDeclaration(
     className: String,
     packageName: String,
     fields: List<Triple<String, String, Pair<Int, Int>>>,
+    mutable: Boolean = false,
     containingFile: KSFile? = null,
 ): FakeKSClassDeclaration {
     val props =
@@ -38,7 +39,13 @@ fun buildModelDeclaration(
         simpleNameStr = className,
         packageNameStr = packageName,
         properties = props,
-        declAnnotations = listOf(FakeKSAnnotation("ch.trancee.kompact.annotations.KompactModel")),
+        declAnnotations =
+            listOf(
+                FakeKSAnnotation(
+                    typeFqn = "ch.trancee.kompact.annotations.KompactModel",
+                    args = if (mutable) mapOf("mutable" to true) else emptyMap(),
+                ),
+            ),
         containingFile = containingFile,
     )
 }
@@ -54,6 +61,7 @@ fun buildModelDeclarationWithAllArgs(
     className: String,
     packageName: String,
     fields: List<Triple<String, String, Pair<Int, Int>>>,
+    mutable: Boolean = false,
     containingFile: KSFile? = null,
 ): FakeKSClassDeclaration {
     val props =
@@ -87,7 +95,13 @@ fun buildModelDeclarationWithAllArgs(
         simpleNameStr = className,
         packageNameStr = packageName,
         properties = props,
-        declAnnotations = listOf(FakeKSAnnotation("ch.trancee.kompact.annotations.KompactModel")),
+        declAnnotations =
+            listOf(
+                FakeKSAnnotation(
+                    typeFqn = "ch.trancee.kompact.annotations.KompactModel",
+                    args = if (mutable) mapOf("mutable" to true) else emptyMap(),
+                ),
+            ),
         containingFile = containingFile,
     )
 }

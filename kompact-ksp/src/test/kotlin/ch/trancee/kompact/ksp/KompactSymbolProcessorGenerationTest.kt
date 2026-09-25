@@ -1,6 +1,9 @@
 package ch.trancee.kompact.ksp
 
+import ch.trancee.kompact.ksp.testing.FakeKSAnnotation
+import ch.trancee.kompact.ksp.testing.FakeKSClassDeclaration
 import ch.trancee.kompact.ksp.testing.FakeKSFile
+import ch.trancee.kompact.ksp.testing.FakeKSPropertyDeclaration
 import ch.trancee.kompact.ksp.testing.FakeResolver
 import ch.trancee.kompact.ksp.testing.buildModelDeclaration
 import kotlin.test.Test
@@ -90,9 +93,10 @@ class KompactSymbolProcessorGenerationTest {
         assertTrue(jvmContent.contains("package ch.trancee.test"))
         assertTrue(jvmContent.contains("@JvmInline"))
         assertTrue(jvmContent.contains("actual value class MyModel"))
-        assertTrue(jvmContent.contains("actual var"))
+        assertTrue(jvmContent.contains("actual val"))
         assertTrue(jvmContent.contains("readBits"))
-        assertTrue(jvmContent.contains("writeBits"))
+        assertFalse(jvmContent.contains("set(value)"))
+        assertTrue(jvmContent.contains("encodeMyModel"))
     }
 
     @Test
@@ -112,7 +116,111 @@ class KompactSymbolProcessorGenerationTest {
         val iosContent = codeGen.generatedFiles["ch.trancee.test.MyModelGenIos.kt"]!!
         assertTrue(iosContent.contains("package ch.trancee.test"))
         assertTrue(iosContent.contains("actual value class MyModel"))
-        assertTrue(iosContent.contains("actual var"))
+        assertTrue(iosContent.contains("actual val"))
+    }
+
+    @Test
+    fun process_mutableModel_emitsMutableSiblingWithVarSetters() {
+        val (processor, codeGen, _) = createTestSetup()
+
+        val model =
+            buildModelDeclaration(
+                className = "MyModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+                mutable = true,
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        // ADR-0006 D3: mutable=true emits a write-through Mutable<Model> sibling.
+        val jvm = codeGen.generatedFiles["ch.trancee.test.MyModelGenJvm.kt"]!!
+        assertTrue(jvm.contains("MutableMyModel"), "mutable=true must emit a Mutable sibling")
+        assertTrue(jvm.contains("actual var "), "Mutable sibling must expose var")
+        assertTrue(jvm.contains("writeBits"), "Mutable sibling setter must delegate to writeBits")
+        assertTrue(jvm.contains("set(`value`)"), "Mutable sibling must wire a setter")
+        // The default immutable view is still present alongside the escape hatch.
+        assertTrue(jvm.contains("actual val"), "default view must remain val")
+        assertTrue(jvm.contains("fun copy("), "default view must still provide copy")
+    }
+
+    @Test
+    fun process_modelWithPositionalKompactModelArg_ignoresUnnamedArg() {
+        val (processor, codeGen, _) = createTestSetup()
+
+        // @KompactModel(true) — a positional (unnamed) argument. Argument parsing
+        // is named-only (same as @KompactField in parseField): unnamed args are
+        // filtered out by `filter { name != null }`, so the model stays immutable.
+        // This also exercises the class-level @KompactModel lookup's filter
+        // false-branch (a null-name argument is discarded, not matched).
+        val model =
+            FakeKSClassDeclaration(
+                simpleNameStr = "PosModel",
+                packageNameStr = "ch.trancee.test",
+                properties =
+                    listOf(
+                        FakeKSPropertyDeclaration(
+                            "field",
+                            "ch.trancee.test",
+                            "Int",
+                            declAnnotations =
+                                listOf(
+                                    FakeKSAnnotation(
+                                        "ch.trancee.kompact.annotations.KompactField",
+                                        mapOf("bitOffset" to 0, "bitWidth" to 16),
+                                    ),
+                                ),
+                        ),
+                    ),
+                declAnnotations =
+                    listOf(FakeKSAnnotation("ch.trancee.kompact.annotations.KompactModel", nullNameArgValue = true)),
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        val jvm = codeGen.generatedFiles["ch.trancee.test.PosModelGenJvm.kt"]!!
+        assertFalse(
+            jvm.contains("MutablePosModel"),
+            "unnamed @KompactModel args are skipped (named-only), so mutable stays false",
+        )
+        assertTrue(jvm.contains("fun copy("), "default immutable view still emits copy")
+    }
+
+    @Test
+    fun process_defaultView_emitsValReadOnly() {
+        val (processor, codeGen, _) = createTestSetup()
+
+        val model =
+            buildModelDeclaration(
+                className = "MyModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        val jvm = codeGen.generatedFiles["ch.trancee.test.MyModelGenJvm.kt"]!!
+        val ios = codeGen.generatedFiles["ch.trancee.test.MyModelGenIos.kt"]!!
+        // ADR-0006 D1/D4: the default view is immutable — `val`, no write-through setter.
+        assertTrue(jvm.contains("actual val"))
+        assertTrue(ios.contains("actual val"))
+        assertFalse(jvm.contains("var "))
+        assertFalse(jvm.contains("set(value)"))
+        // ADR-0006 D2/D3: the immutable default view still carries copy(...) so
+        // callers can derive an updated frame.
+        assertTrue(jvm.contains("fun copy("), "default view must still provide copy")
+        // KMP forbids default arguments on `actual` declarations (defaults live
+        // in the `expect` only); the actual copy must not carry `= this.x`
+        // defaults. This also locks the buildCopyFunction root-cause fix
+        // (ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS) surfaced by the VehicleTelemetry
+        // example mirror.
+        assertFalse(
+            jvm.contains("field: Int = this.field"),
+            "actual copy must not carry default arguments (KMP: defaults live in the expect only)",
+        )
     }
 
     @Test
@@ -131,7 +239,6 @@ class KompactSymbolProcessorGenerationTest {
 
         val jvmContent = codeGen.generatedFiles["ch.trancee.test.BoolModelGenJvm.kt"]!!
         assertTrue(jvmContent.contains("readBitsBoolean"))
-        assertTrue(jvmContent.contains("writeBitsBoolean"))
     }
 
     @Test
@@ -150,7 +257,6 @@ class KompactSymbolProcessorGenerationTest {
 
         val jvmContent = codeGen.generatedFiles["ch.trancee.test.LongModelGenJvm.kt"]!!
         assertTrue(jvmContent.contains("readBitsLong"))
-        assertTrue(jvmContent.contains("writeBitsLong"))
     }
 
     @Test

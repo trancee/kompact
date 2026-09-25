@@ -248,15 +248,44 @@ avoids the `Long`-packed result value class on the success path:
 
 ```kotlin
 // What the KSP processor emits (not the hand-written example):
-@KompactModel
+// Default immutable view — `val` fields + a `copy(...)` builder (ADR-0006 D2).
+// Schema annotated `@KompactModel(mutable = true)` (ADR-0006 D3): the processor
+// emits this immutable default view AND the Mutable sibling below.
+@KompactModel(mutable = true)
 @JvmInline
 public actual value class VehicleTelemetry(public actual val raw: ByteArray) {
     init { require(raw.size >= 2) }
 
     @KompactField(bitOffset = 0, bitWidth = 4)
+    public actual val batteryStatus: Int
+        get() = KompactRuntime.readBits(raw, 0, 4)          // raw, zero-alloc, no check
+
+    @KompactField(bitOffset = 4, bitWidth = 10)
+    public actual val speed: Int
+        get() = KompactRuntime.readBits(raw, 4, 10)
+
+    @KompactField(bitOffset = 14, bitWidth = 1)
+    public actual val isMalfunctioning: Boolean
+        get() = KompactRuntime.readBitsBoolean(raw, 14)
+
+    public actual fun copy(
+        batteryStatus: Int,
+        speed: Int,
+        isMalfunctioning: Boolean,
+    ): VehicleTelemetry = VehicleTelemetry(encodeVehicleTelemetry(batteryStatus, speed, isMalfunctioning))
+}
+
+// Opt-in Mutable sibling — `var` setters that write through (ADR-0006 D3).
+// Emitted (bare — no `@KompactModel`) when the schema above carries
+// `mutable = true`.
+@JvmInline
+public actual value class MutableVehicleTelemetry(public actual val raw: ByteArray) {
+    init { require(raw.size >= 2) }
+
+    @KompactField(bitOffset = 0, bitWidth = 4)
     public actual var batteryStatus: Int
-        get() = KompactRuntime.readBits(raw, 0, 4)       // raw, zero-alloc, no check
-        set(value) { KompactRuntime.writeBits(raw, 0, 4, value) }   // write-through (ADR-0001)
+        get() = KompactRuntime.readBits(raw, 0, 4)
+        set(value) { KompactRuntime.writeBits(raw, 0, 4, value) }    // write-through
 
     @KompactField(bitOffset = 4, bitWidth = 10)
     public actual var speed: Int
@@ -276,10 +305,13 @@ API they would use without a processor. The codegen-output reference
 above is the shape the processor emits; it exists for the processor
 implementer, not for consumers.
 
-Note that the hand-written setters are intentionally unchecked (raw
-`writeBits`); only the getters go through the typed result path. See
-the VehicleTelemetry section in [api-reference.md](api-reference.md#vehicletelemetry-example-model)
-and [ADR-0001](adr/0001-mutable-view-classes-with-write-through-setters.md).
+Note that the default view has **no setters** — fields are `val` and
+updates go through `copy(...)`. The opt-in `MutableVehicleTelemetry`
+sibling's `var` setters are intentionally unchecked (raw `writeBits`);
+only their getters go through the typed result path. See the
+`VehicleTelemetry` / `MutableVehicleTelemetry` sections in
+[api-reference.md](api-reference.md#vehicletelemetry-example-model) and
+[ADR-0006](adr/0006-immutable-default-models.md).
 
 The KSP/KMP code-generation strategy — processing the common schema once across Android/JVM
 and iOS targets, incremental processing, build-cache reuse, and the C-header extension path —

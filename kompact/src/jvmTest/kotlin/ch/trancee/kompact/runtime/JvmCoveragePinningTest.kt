@@ -1,6 +1,7 @@
 package ch.trancee.kompact.runtime
 
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -76,6 +77,19 @@ class JvmCoveragePinningTest {
         assertEquals(0x01, result[0].toInt())
         assertEquals(0x02, result[1].toInt())
         assertEquals(0x03, result[2].toInt())
+    }
+
+    @Test
+    fun mutableVehicleTelemetry_getRaw_covered() {
+        // The Kotlin compiler lowers `mvt.raw` to a GETFIELD (backing-field)
+        // read for @JvmInline value classes, so the synthetic `getRaw()`
+        // accessor is never reachable from Kotlin sources alone. The Java
+        // helper below emits a genuine INVOKEVIRTUAL that Kover can record.
+        val raw = byteArrayOf(0xA5.toByte(), 0x40.toByte())
+        val mvt = JvmCoveragePinning.boxMutableVehicleTelemetry(raw)
+        val result = JvmCoveragePinning.getMutableVehicleRaw(mvt)
+        assertEquals(2, result.size)
+        assertContentEquals(raw, result)
     }
 
     @Test

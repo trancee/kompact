@@ -18,14 +18,15 @@ public abstract interface annotation class ch/trancee/kompact/annotations/Kompac
 }
 
 public abstract interface annotation class ch/trancee/kompact/annotations/KompactModel : java/lang/annotation/Annotation {
+	public abstract fun mutable ()Z
 }
 
 public abstract interface annotation class ch/trancee/kompact/annotations/KompactPreview : java/lang/annotation/Annotation {
 }
 
-public final class ch/trancee/kompact/generated/VehicleTelemetry {
-	public static final field Companion Lch/trancee/kompact/generated/VehicleTelemetry$Companion;
-	public static final synthetic fun box-impl ([B)Lch/trancee/kompact/generated/VehicleTelemetry;
+public final class ch/trancee/kompact/generated/MutableVehicleTelemetry {
+	public static final field Companion Lch/trancee/kompact/generated/MutableVehicleTelemetry$Companion;
+	public static final synthetic fun box-impl ([B)Lch/trancee/kompact/generated/MutableVehicleTelemetry;
 	public static fun constructor-impl ([B)[B
 	public fun equals (Ljava/lang/Object;)Z
 	public static fun equals-impl ([BLjava/lang/Object;)Z
@@ -39,6 +40,30 @@ public final class ch/trancee/kompact/generated/VehicleTelemetry {
 	public static final fun setBatteryStatus-impl ([BI)V
 	public static final fun setMalfunctioning-impl ([BZ)V
 	public static final fun setSpeed-impl ([BI)V
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl ([B)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()[B
+}
+
+public final class ch/trancee/kompact/generated/MutableVehicleTelemetry$Companion {
+	public final fun create-6C0Ho2Q (IIZ)[B
+}
+
+public final class ch/trancee/kompact/generated/VehicleTelemetry {
+	public static final field Companion Lch/trancee/kompact/generated/VehicleTelemetry$Companion;
+	public static final synthetic fun box-impl ([B)Lch/trancee/kompact/generated/VehicleTelemetry;
+	public static fun constructor-impl ([B)[B
+	public static final fun copy-UmxqB8U ([BIIZ)[B
+	public static synthetic fun copy-UmxqB8U$default ([BIIZILjava/lang/Object;)[B
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl ([BLjava/lang/Object;)Z
+	public static final fun equals-impl0 ([B[B)Z
+	public static final fun getBatteryStatus-impl ([B)I
+	public final fun getRaw ()[B
+	public static final fun getSpeed-impl ([B)I
+	public fun hashCode ()I
+	public static fun hashCode-impl ([B)I
+	public static final fun isMalfunctioning-impl ([B)Z
 	public fun toString ()Ljava/lang/String;
 	public static fun toString-impl ([B)Ljava/lang/String;
 	public final synthetic fun unbox-impl ()[B

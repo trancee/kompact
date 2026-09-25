@@ -8,6 +8,7 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
@@ -34,7 +35,13 @@ private val BYTE_ARRAY_TYPE = ClassName("kotlin", "ByteArray")
  * - getter bodies use the **raw** `readBits` / `readBitsBoolean` path —
  *   not the checked `readScalar` / `readBool` — because the processor
  *   proves bounds at compile time (Ticket 06).
- * - `var` with write-through setters (ADR-0001)
+ * - `val` by default (immutable view; ADR-0006); write-through `var` setters
+ *   move to the opt-in `Mutable*` sibling
+ * - `copy(field = this.field, ...)` builder for immutable field edits (ADR-0006 D2);
+ *   re-encodes the (possibly overridden) values via `encode<ClassName>()` into a
+ *   fresh `raw` buffer, preserving all other bits
+ * - `Mutable<ClassName>` opt-in sibling (when `@KompactModel(mutable = true)`)
+ *   with write-through `var` setters — the bounded escape hatch (ADR-0006 D3).
  * - A shared `internal encodeXxx()` function generates the wire buffer
  *   via `KompactWriter`; the companion `create()` delegates to it.
  */
@@ -80,6 +87,7 @@ internal object ValueClassGenerator {
         return com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, spec.className)
             .addType(buildExpect(spec))
+            .apply { if (spec.mutable) addType(buildMutableExpect(spec)) }
             .addFunction(buildEncodeFunction(spec))
             .build()
             .toString()
@@ -91,6 +99,7 @@ internal object ValueClassGenerator {
         return com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, "${spec.className}JvmActual")
             .addType(buildActual(spec, isJvm = true))
+            .apply { if (spec.mutable) addType(buildMutableActual(spec, isJvm = true)) }
             .build()
             .toString()
     }
@@ -101,6 +110,7 @@ internal object ValueClassGenerator {
         return com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, "${spec.className}IosActual")
             .addType(buildActual(spec, isJvm = false))
+            .apply { if (spec.mutable) addType(buildMutableActual(spec, isJvm = false)) }
             .build()
             .toString()
     }
@@ -109,10 +119,15 @@ internal object ValueClassGenerator {
     // TypeSpec builders
     // ------------------------------------------------------------------
 
-    private fun buildExpect(spec: ModelSpec): TypeSpec {
+    private fun buildExpect(
+        spec: ModelSpec,
+        isMutableSibling: Boolean = false,
+    ): TypeSpec {
+        val simpleName = if (isMutableSibling) "Mutable${spec.className}" else spec.className
+        val className = ClassName(spec.packageName, simpleName)
         val builder =
             TypeSpec
-                .classBuilder(spec.className)
+                .classBuilder(simpleName)
                 .addModifiers(KModifier.PUBLIC, KModifier.EXPECT, KModifier.VALUE)
                 .addAnnotation(AnnotationSpec.builder(KOMPAT_PREVIEW).build())
                 .primaryConstructor(
@@ -132,37 +147,33 @@ internal object ValueClassGenerator {
         )
 
         if (spec.fields.isNotEmpty()) {
-            builder.addType(
-                TypeSpec
-                    .companionObjectBuilder()
-                    .addFunction(
-                        FunSpec
-                            .builder("create")
-                            .addModifiers(KModifier.PUBLIC)
-                            .apply {
-                                spec.fields.forEach { f ->
-                                    addParameter(f.name, f.kotlinType.resolveTypeName())
-                                }
-                            }.returns(ClassName(spec.packageName, spec.className))
-                            .build(),
-                    ).build(),
-            )
+            builder.addType(buildCompanion(spec, className, isActual = false))
+        }
+
+        if (!isMutableSibling) {
+            builder.addFunction(buildCopyFunction(spec))
         }
 
         spec.fields.forEach { f ->
-            builder.addProperty(buildExpectProperty(f))
+            builder.addProperty(if (isMutableSibling) buildMutableExpectProperty(f) else buildExpectProperty(f))
         }
 
         return builder.build()
     }
 
+    /** Builds the opt-in `Mutable<ClassName>` expectation (ADR-0006 D3). */
+    private fun buildMutableExpect(spec: ModelSpec): TypeSpec = buildExpect(spec, isMutableSibling = true)
+
     private fun buildActual(
         spec: ModelSpec,
         isJvm: Boolean,
+        isMutableSibling: Boolean = false,
     ): TypeSpec {
+        val simpleName = if (isMutableSibling) "Mutable${spec.className}" else spec.className
+        val className = ClassName(spec.packageName, simpleName)
         val builder =
             TypeSpec
-                .classBuilder(spec.className)
+                .classBuilder(simpleName)
                 .addModifiers(KModifier.PUBLIC, KModifier.ACTUAL, KModifier.VALUE)
                 .addAnnotation(AnnotationSpec.builder(KOMPAT_PREVIEW).build())
                 .primaryConstructor(
@@ -190,41 +201,34 @@ internal object ValueClassGenerator {
                     "\"%L requires a buffer of at least %L bytes (%L-bit layout); " +
                     "got \${raw.size}\" }\n",
                 spec.minBufferSize,
-                spec.className,
+                simpleName,
                 spec.minBufferSize,
                 spec.totalBits,
             ),
         )
 
         if (spec.fields.isNotEmpty()) {
-            builder.addType(
-                TypeSpec
-                    .companionObjectBuilder()
-                    .addModifiers(KModifier.ACTUAL)
-                    .addFunction(
-                        FunSpec
-                            .builder("create")
-                            .addModifiers(KModifier.PUBLIC, KModifier.ACTUAL)
-                            .apply {
-                                spec.fields.forEach { f ->
-                                    addParameter(f.name, f.kotlinType.resolveTypeName())
-                                }
-                            }.returns(ClassName(spec.packageName, spec.className))
-                            .addStatement(
-                                "return %T(%L)",
-                                ClassName(spec.packageName, spec.className),
-                                buildEncodeCall(spec),
-                            ).build(),
-                    ).build(),
-            )
+            builder.addType(buildCompanion(spec, className, isActual = true))
+        }
+
+        if (!isMutableSibling) {
+            builder.addFunction(buildCopyFunction(spec, KModifier.PUBLIC, KModifier.ACTUAL))
         }
 
         spec.fields.forEach { f ->
-            builder.addProperty(buildActualProperty(f))
+            builder.addProperty(
+                if (isMutableSibling) buildMutableActualProperty(f) else buildActualProperty(f),
+            )
         }
 
         return builder.build()
     }
+
+    /** Builds the opt-in `Mutable<ClassName>` actual (ADR-0006 D3). */
+    private fun buildMutableActual(
+        spec: ModelSpec,
+        isJvm: Boolean,
+    ): TypeSpec = buildActual(spec, isJvm, isMutableSibling = true)
 
     // ------------------------------------------------------------------
     // PropertySpec builders
@@ -234,10 +238,78 @@ internal object ValueClassGenerator {
         PropertySpec
             .builder(f.name, f.kotlinType.resolveTypeName(), KModifier.PUBLIC)
             .addAnnotation(buildFieldAnnotation(f))
-            .mutable(true)
+            .mutable(false)
             .build()
 
     private fun buildActualProperty(f: KompactFieldInfo): PropertySpec {
+        requireSupportedType(f)
+        return PropertySpec
+            .builder(f.name, f.kotlinType.resolveTypeName(), KModifier.PUBLIC, KModifier.ACTUAL)
+            .addAnnotation(buildFieldAnnotation(f))
+            // ADR-0006 D1: views are immutable by default — `val`, no write-through setter.
+            // The opt-in `Mutable<ClassName>` sibling re-enables mutation (slice 3).
+            .mutable(false)
+            .getter(
+                FunSpec
+                    .getterBuilder()
+                    .addStatement("return %L", readCall(f))
+                    .build(),
+            ).build()
+    }
+
+    /**
+     * Builds the shared `companion object` holding the `create(...)` factory.
+     * [isActual] selects the `expect` declaration (abstract, no body) from the
+     * `actual` declaration (concrete, delegating to `encode<ClassName>()`).
+     */
+    private fun buildCompanion(
+        spec: ModelSpec,
+        className: ClassName,
+        isActual: Boolean,
+    ): TypeSpec {
+        val companion = TypeSpec.companionObjectBuilder()
+        if (isActual) companion.addModifiers(KModifier.ACTUAL)
+        val create =
+            FunSpec
+                .builder("create")
+                .addModifiers(
+                    *(
+                        if (isActual) {
+                            listOf(
+                                KModifier.PUBLIC,
+                                KModifier.ACTUAL,
+                            )
+                        } else {
+                            listOf(KModifier.PUBLIC)
+                        }
+                    ).toTypedArray(),
+                ).apply {
+                    spec.fields.forEach { f ->
+                        addParameter(f.name, f.kotlinType.resolveTypeName())
+                    }
+                }.returns(className)
+                .apply {
+                    if (isActual) {
+                        addStatement("return %T(%L)", className, buildEncodeCall(spec))
+                    }
+                }.build()
+        return companion.addFunction(create).build()
+    }
+
+    /** `var` for the `Mutable<ClassName>` sibling — abstract on `expect` (no body). */
+    private fun buildMutableExpectProperty(f: KompactFieldInfo): PropertySpec =
+        PropertySpec
+            .builder(f.name, f.kotlinType.resolveTypeName(), KModifier.PUBLIC)
+            .addAnnotation(buildFieldAnnotation(f))
+            .mutable(true)
+            .build()
+
+    /**
+     * `var` with a write-through setter for the `Mutable<ClassName>` sibling
+     * (ADR-0006 D3 bounded escape hatch). The getter reads raw bits; the setter
+     * delegates to `KompactRuntime.writeBits*` and mutates `raw` in place.
+     */
+    private fun buildMutableActualProperty(f: KompactFieldInfo): PropertySpec {
         requireSupportedType(f)
         return PropertySpec
             .builder(f.name, f.kotlinType.resolveTypeName(), KModifier.PUBLIC, KModifier.ACTUAL)
@@ -299,6 +371,45 @@ internal object ValueClassGenerator {
         return "encode${spec.className}($args)"
     }
 
+    /**
+     * `copy(field = this.field, ...)` member for the immutable default view
+     * (ADR-0006 D2). Re-encodes the (possibly overridden) field values into a
+     * fresh buffer via `encode<ClassName>()` and wraps it, preserving all other
+     * bits. On `expect`, it is an abstract member; `actual`s get the body that
+     * delegates to [buildEncodeCall].
+     */
+    private fun buildCopyFunction(
+        spec: ModelSpec,
+        vararg modifiers: KModifier,
+    ): FunSpec {
+        val className = ClassName(spec.packageName, spec.className)
+        val params = spec.fields.sortedBy { it.bitOffset }
+        return FunSpec
+            .builder("copy")
+            .addModifiers(*modifiers)
+            .apply {
+                params.forEach { f ->
+                    val param =
+                        ParameterSpec
+                            .builder(f.name, f.kotlinType.resolveTypeName())
+                    // KMP: `actual` declarations cannot carry default arguments
+                    // — those live in the `expect` only. Defaults are emitted on
+                    // the expect copy and omitted for the actual so the
+                    // generated JVM/iOS actual declarations compile
+                    // (ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS).
+                    if (KModifier.ACTUAL !in modifiers) {
+                        param.defaultValue(CodeBlock.of("this.%L", f.name))
+                    }
+                    addParameter(param.build())
+                }
+            }.returns(className)
+            .apply {
+                if (KModifier.ACTUAL in modifiers) {
+                    addStatement("return %T(%L)", className, buildEncodeCall(spec))
+                }
+            }.build()
+    }
+
     // ------------------------------------------------------------------
     // Read / write call builders (return CodeBlock for KotlinPoet)
     // ------------------------------------------------------------------
@@ -352,38 +463,37 @@ internal object ValueClassGenerator {
             "Double" to { f -> CodeBlock.of("w.writeBitsLong(64, %L.toRawBits())", f.name) },
         )
 
-    /**
-     * Per-type in-place write call builders for value-class setters (ADR-0001
-     * write-through). Uses `writeBits` / `writeBitsBoolean` / `writeBitsLong`
-     * (random-access, not the sequential KompactWriter methods).
-     */
-    private val WRITE_CALL_BUILDERS: Map<String, (KompactFieldInfo) -> CodeBlock> =
-        mapOf(
-            "Boolean" to { f ->
-                CodeBlock.of("%T.writeBitsBoolean(raw, %L, value)", KOMPAT_RUNTIME, f.bitOffset)
-            },
-            "Int" to { f ->
-                CodeBlock.of("%T.writeBits(raw, %L, %L, value)", KOMPAT_RUNTIME, f.bitOffset, f.bitWidth)
-            },
-            "Long" to { f ->
-                CodeBlock.of("%T.writeBitsLong(raw, %L, %L, value)", KOMPAT_RUNTIME, f.bitOffset, f.bitWidth)
-            },
-            "Float" to { f ->
-                CodeBlock.of("%T.writeBitsLong(raw, %L, 32, value.toRawBits().toLong())", KOMPAT_RUNTIME, f.bitOffset)
-            },
-            "Double" to { f ->
-                CodeBlock.of("%T.writeBitsLong(raw, %L, 64, value.toRawBits())", KOMPAT_RUNTIME, f.bitOffset)
-            },
-        )
-
     /** Raw read call — `readBits` / `readBitsBoolean` / `readBitsLong` (no bounds check; the processor proved bounds at compile time, Ticket 06). */
     private fun readCall(f: KompactFieldInfo): CodeBlock = READ_CALL_BUILDERS.getValue(f.kotlinType)(f)
 
-    /** In-place write call for value-class setters (ADR-0001 write-through). */
-    private fun writeCall(f: KompactFieldInfo): CodeBlock = WRITE_CALL_BUILDERS.getValue(f.kotlinType)(f)
-
     /** Sequential write call for the `encodeXxx` helper. */
     private fun encodeWriteCall(f: KompactFieldInfo): CodeBlock = ENCODE_CALL_BUILDERS.getValue(f.kotlinType)(f)
+
+    /**
+     * In-place write calls for `Mutable<ClassName>` value-class setters
+     * (ADR-0006 D3 bounded escape hatch). `KompactRuntime.writeBits*` mutates the
+     * backing `raw` buffer in place — the same write path as the v1 views.
+     */
+    private val WRITE_CALL_BUILDERS: Map<String, (KompactFieldInfo) -> CodeBlock> =
+        mapOf(
+            "Boolean" to { f -> CodeBlock.of("%T.writeBitsBoolean(raw, %L, value)", KOMPAT_RUNTIME, f.bitOffset) },
+            "Int" to { f -> CodeBlock.of("%T.writeBits(raw, %L, %L, value)", KOMPAT_RUNTIME, f.bitOffset, f.bitWidth) },
+            "Long" to { f ->
+                CodeBlock.of("%T.writeBitsLong(raw, %L, %L, value)", KOMPAT_RUNTIME, f.bitOffset, f.bitWidth)
+            },
+            "Float" to
+                { f ->
+                    CodeBlock.of(
+                        "%T.writeBitsLong(raw, %L, 32, value.toRawBits().toLong())",
+                        KOMPAT_RUNTIME,
+                        f.bitOffset,
+                    )
+                },
+            "Double" to
+                { f -> CodeBlock.of("%T.writeBitsLong(raw, %L, 64, value.toRawBits())", KOMPAT_RUNTIME, f.bitOffset) },
+        )
+
+    private fun writeCall(f: KompactFieldInfo): CodeBlock = WRITE_CALL_BUILDERS.getValue(f.kotlinType)(f)
 
     /** Maps a simple Kotlin type name to the corresponding KotlinPoet [TypeName]. */
     private fun String.resolveTypeName(): TypeName =

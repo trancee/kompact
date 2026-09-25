@@ -451,30 +451,50 @@ A 16-bit frame with this layout (LSB-first):
 | Member | Signature | Description |
 | --- | --- | --- |
 | `raw` | `val raw: ByteArray` | The backing wire-format buffer. Pass this directly to a BLE characteristic for transmission. |
-| `batteryStatus` | `var batteryStatus: Int` | 4 bits at offset 0. Getter calls `readScalar(...).getOrThrow()`; setter writes the low 4 bits in-place via `writeBits` (**no range check**). |
-| `speed` | `var speed: Int` | 10 bits at offset 4. Getter calls `readScalar(...).getOrThrow()`; setter writes the low 10 bits in-place via `writeBits` (**no range check**). |
-| `isMalfunctioning` | `var isMalfunctioning: Boolean` | 1 bit at offset 14. Getter calls `readBool(...).getOrThrow()`; setter writes a single bit in-place via `writeBitsBoolean`. |
+| `batteryStatus` | `val batteryStatus: Int` | 4 bits at offset 0. Reads via `readScalar(...).getOrThrow()`. |
+| `speed` | `val speed: Int` | 10 bits at offset 4. Reads via `readScalar(...).getOrThrow()`. |
+| `isMalfunctioning` | `val isMalfunctioning: Boolean` | 1 bit at offset 14. Reads via `readBool(...).getOrThrow()`. |
+| `copy` | `copy(batteryStatus: Int = …, speed: Int = …, isMalfunctioning: Boolean = …): VehicleTelemetry` | Returns a fresh frame with the listed fields overridden (others preserve their current value). Allocates on the write path. |
 | `Companion.create` | `create(batteryStatus: Int, speed: Int, isMalfunctioning: Boolean): VehicleTelemetry` | Factory that encodes the three fields into a fresh 2-byte `ByteArray` via `KompactWriter` and wraps it. Use this for outbound frames. |
 
 **Constructor validation (F-001).** The platform `actual` init-blocks require
 `raw.size >= 2` and throw `IllegalArgumentException` on a truncated buffer.
 
-**Write-through contract.** Each `var` setter mutates the shared `ByteArray`
-in-place — no copy, no allocation. Two `VehicleTelemetry` instances wrapping
-the same `raw` buffer will observe each other's writes. Pass `tel.raw`
-directly to a BLE characteristic for transmission. Full workflow:
-[`README.md`](../README.md#creating-and-modifying-frames).
+**Immutable by default.** Fields are `val`; the default view has no setters.
+Derive an updated frame with `copy(...)` (allocates a fresh buffer) or opt into
+in-place mutation via the `MutableVehicleTelemetry` sibling (see
+[ADR-0006](adr/0006-immutable-default-models.md)).
 
-**Setters are unchecked bit writes.**  
-Getters use the checked path (`readScalar` / `readBool` + `getOrThrow()`).  
-Setters call the raw primitives (`writeBits` / `writeBitsBoolean`) and perform
-**no range validation**. Writing a value that does not fit the declared width
-(e.g. `tel.speed = 2000` into a 10-bit field) silently stores the low *N* bits.
-This mirrors the raw `KompactRuntime.writeBits` contract and keeps the
-write-through path allocation-free.  
-If you need validation, check the value before the assignment or construct the
-frame with `KompactWriter` / `VehicleTelemetry.create(...)`.  
-See also [ADR-0001](adr/0001-mutable-view-classes-with-write-through-setters.md).
+### MutableVehicleTelemetry (opt-in mutable sibling)
+
+`MutableVehicleTelemetry` is the write-through companion to the immutable
+`VehicleTelemetry`, emitted when the schema is annotated
+`@KompactModel(mutable = true)`. It wraps the same `raw` buffer behind `var`
+fields whose setters write each field in place via `writeBits` /
+`writeBitsBoolean`.
+
+| Member | Signature | Description |
+| --- | --- | --- |
+| `raw` | `val raw: ByteArray` | Shared backing buffer. |
+| `batteryStatus` | `var batteryStatus: Int` | 4 bits at offset 0; setter writes the low 4 bits in-place via `writeBits` (**no range check**). |
+| `speed` | `var speed: Int` | 10 bits at offset 4; setter writes the low 10 bits in-place via `writeBits` (**no range check**). |
+| `isMalfunctioning` | `var isMalfunctioning: Boolean` | 1 bit at offset 14; setter writes a single bit in-place via `writeBitsBoolean`. |
+| `Companion.create` | `create(...): MutableVehicleTelemetry` | Factory mirroring `VehicleTelemetry.create`. |
+
+**Write-through contract.** Each `var` setter mutates the shared `raw`
+`ByteArray` in place — no copy, no allocation. Wrap an existing buffer with
+`MutableVehicleTelemetry(raw)` to mutate a received frame and re-send the same
+bytes. Full workflow: [`README.md`](../README.md#creating-and-modifying-frames)
+and [`how-to/integrate-ble.md`](how-to/integrate-ble.md).
+
+**Setters are unchecked bit writes.** Getters use the checked path (`readScalar`
+/ `readBool` + `getOrThrow()`); setters call the raw primitives (`writeBits` /
+`writeBitsBoolean`) and perform **no range validation** — writing a value that
+does not fit the declared width (e.g. `speed = 2000` into a 10-bit field)
+silently stores the low *N* bits. This keeps the write-through path
+allocation-free. If you need validation, check the value before the assignment or
+build the frame with `KompactWriter` / `VehicleTelemetry.create(...)`. See
+[ADR-0006](adr/0006-immutable-default-models.md).
 
 ---
 

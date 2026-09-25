@@ -115,22 +115,30 @@ and only cross the Swift boundary at the BLE API surface.
 ## 4. The shared `ByteArray` contract
 
 Kompact's value class holds a reference to the same `ByteArray` you
-handed it. Setters write through to the same buffer. This is the
-contract:
+handed it. The default view is **immutable** — `val` fields plus a
+`copy(...)` builder that allocates a fresh buffer only when you ask
+for one. For zero-allocation, in-place mutation, opt into the
+`MutableVehicleTelemetry` sibling: its `var` properties write through
+to the very same `raw` buffer (see
+[ADR-0006](../../docs/adr/0006-immutable-default-models.md)). The shared-buffer
+contract holds for both views:
 
 - `VehicleTelemetry(raw).raw` is the exact `ByteArray` you passed in,
   not a defensive copy. Mutating `raw` later mutates the frame, and
   vice-versa.
-- After `tel.speed = 30`, the original `raw` array is updated —
-  any other code that holds a reference to `raw` sees the new value.
-- The buffer is **not** defensively copied. If you need an isolated
-  copy, do `VehicleTelemetry(raw.copyOf())` explicitly.
+- `MutableVehicleTelemetry(raw).speed = 30` updates the original `raw`
+  array in place — any other code holding `raw` sees the new value.
+- The buffer is **not** defensively copied. Need an isolated frame? Use
+  `tel.copy(speed = 30)` (fresh buffer) or
+  `VehicleTelemetry(raw.copyOf())` explicitly.
 
 ## 5. The receive loop, end to end
 
 A typical receive handler on the JVM / Android:
 
 ```kotlin
+import ch.trancee.kompact.generated.MutableVehicleTelemetry
+
 @OptIn(KompactPreview::class)
 fun onCharacteristicChanged(char: BluetoothGattCharacteristic) {
     val tel = VehicleTelemetry(char.value)            // wrap, no decode yet
@@ -140,9 +148,11 @@ fun onCharacteristicChanged(char: BluetoothGattCharacteristic) {
     }
     // Pull a different field on a different code path:
     logSpeed(tel.speed)
-    // Modify and re-send without copying:
-    tel.batteryStatus = clampBattery(tel.batteryStatus)
-    char.value = tel.raw                              // same buffer, mutated
+    // Modify and re-send without copying: the default view is immutable, so
+    // opt into the Mutable sibling on the SAME backing buffer.
+    val mutable = MutableVehicleTelemetry(tel.raw)
+    mutable.batteryStatus = clampBattery(tel.batteryStatus)
+    char.value = mutable.raw                           // same buffer, mutated
 }
 ```
 
@@ -153,7 +163,7 @@ calls:
 | --- | --- | --- |
 | Create + get bytes | `VehicleTelemetry.create(...).raw` | `char.value = …` + `gatt.writeCharacteristic(char)` |
 | Wrap received bytes | `VehicleTelemetry(char.value)` | `onCharacteristicChanged` callback |
-| Modify a field | `tel.speed = 30` | — (in-place) |
+| Modify a field | `MutableVehicleTelemetry(tel.raw).speed = 30` | — (in-place) |
 | Send updated bytes | `char.value = tel.raw` | `gatt.writeCharacteristic(char)` |
 
 ## 6. Receive-side decode failure
@@ -220,10 +230,13 @@ producer know to resync.
   every characteristic notification make sure the downstream doesn't
   block the GATT callback. Move processing to a coroutine / queue
   off the callback.
-- **Modifying `raw` after a write.** Once you hand `tel.raw` to BLE,
-  do not mutate the fields through `tel` again until the next
+- **Modifying `raw` after a write.** Once you hand `tel.raw` (or
+  `mutable.raw`) to BLE, do not mutate the fields through the
+  `MutableVehicleTelemetry` sibling again until the next
   notification arrives — the framework owns the buffer while the
-  write is in flight.
+  write is in flight. The immutable default view has no setters, so
+  it is always safe to read; only the opt-in `Mutable<>` sibling
+  writes through.
 
 ## What's next
 
