@@ -32,6 +32,7 @@ kotlin {
     }
     iosArm64()
     iosSimulatorArm64()
+    androidNativeArm64()
 
     sourceSets {
         val commonMain =
@@ -60,13 +61,19 @@ kotlin {
                     // and JUnit 4 transitively on the JVM. No explicit JUnit dep needed.
                 }
             }
-        // Shared iOS source set (Ticket 03 expect/actual value class).
+        // Shared Kotlin/Native source set (Ticket 03 expect/actual value class).
+        // The plain (no-@JvmInline) `actual` views + runtime actuals here are
+        // platform-agnostic Native (no Darwin/Android-specific APIs), so they are
+        // shared by every Native target: iosArm64, iosSimulatorArm64, and
+        // androidNativeArm64 (ADR-0006 follow-up: publishes the android arm64
+        // klib variant so consumers like kemseed resolve it).
         // gradle.properties: kotlin.mpp.applyDefaultHierarchyTemplate=false so this
-        // intermediate is the sole iosMain (avoids the default-template conflict).
-        val iosMain = create("iosMain")
-        iosMain.dependsOn(commonMain)
-        getByName("iosArm64Main") { dependsOn(iosMain) }
-        getByName("iosSimulatorArm64Main") { dependsOn(iosMain) }
+        // intermediate is the sole nativeMain (avoids the default-template conflict).
+        val nativeMain = create("nativeMain")
+        nativeMain.dependsOn(commonMain)
+        getByName("iosArm64Main") { dependsOn(nativeMain) }
+        getByName("iosSimulatorArm64Main") { dependsOn(nativeMain) }
+        getByName("androidNativeArm64Main") { dependsOn(nativeMain) }
         // jvmCommon: shared intermediate between commonMain and jvmMain/androidMain.
         // Moved @JvmInline actuals + VehicleTelemetry here so both JVM and Android
         // targets compile them. JvmCoveragePinning.java stays in jvmMain (JVM-only).

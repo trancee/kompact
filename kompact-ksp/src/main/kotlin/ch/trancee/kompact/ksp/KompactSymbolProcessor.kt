@@ -27,12 +27,15 @@ private const val KOMPAT_FIELD_FQN = "ch.trancee.kompact.annotations.KompactFiel
  * - "common" — generate only the `expect` declaration (for kspCommonMainMetadata)
  * - "jvm"   — generate only the `@JvmInline actual` (for kspJvm / kspAndroid)
  * - "ios"   — generate only the plain `actual` (for kspIos)
- * - "all"   — generate all three (default; for non-KMP consumers or single-source)
+ * - "androidArm64" — generate only the plain `actual` (for kspAndroidNativeArm64;
+ *                   Kotlin/Native has no @JvmInline, so this mirrors the ios path)
+ * - "all"   — generate expect + all actuals (default; for non-KMP consumers or single-source)
  */
 internal enum class KompactGenerateMode {
     COMMON,
     JVM,
     IOS,
+    ANDROID_ARM64,
     ALL,
     ;
 
@@ -48,10 +51,12 @@ internal enum class KompactGenerateMode {
 
                 "ios" -> IOS
 
+                "androidArm64" -> ANDROID_ARM64
+
                 "all" -> ALL
 
                 else -> throw IllegalArgumentException(
-                    "Unknown kompact.generate mode '$raw' — expected one of: common, jvm, ios, all",
+                    "Unknown kompact.generate mode '$raw' — expected one of: common, jvm, ios, androidArm64, all",
                 )
             }
     }
@@ -191,6 +196,18 @@ internal class KompactSymbolProcessor(
                     packageName = packageName,
                     fileName = "${className}GenIos",
                     content = ValueClassGenerator.generateIosActual(spec),
+                )
+            }
+
+            KompactGenerateMode.ANDROID_ARM64 -> {
+                // Generate plain Native actual only (kspAndroidNativeArm64 →
+                // androidNativeArm64Main). Kotlin/Native has no @JvmInline, so this
+                // reuses the ios plain-actual body (buildActual(isJvm=false)).
+                writeFile(
+                    declaration = declaration,
+                    packageName = packageName,
+                    fileName = "${className}GenAndroidArm64",
+                    content = ValueClassGenerator.generateAndroidArm64Actual(spec),
                 )
             }
 

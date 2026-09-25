@@ -2,9 +2,9 @@
 
 # bitWidth
 
-[common, ios, jvmCommon]\
+[common, jvmCommon, native]\
 [common]\
 expect val [bitWidth](bit-width.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
 
-[ios, jvmCommon]\
+[jvmCommon, native]\
 actual val [bitWidth](bit-width.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)

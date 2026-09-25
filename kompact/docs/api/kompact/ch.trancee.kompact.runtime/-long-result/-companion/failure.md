@@ -2,9 +2,9 @@
 
 # failure
 
-[common, ios, jvmCommon]\
+[common, jvmCommon, native]\
 [common]\
 expect fun [failure](failure.md)(error: [KompactDecodeError](../../-kompact-decode-error/index.md)): [LongResult](../index.md)
 
-[ios, jvmCommon]\
+[jvmCommon, native]\
 actual fun [failure](failure.md)(error: [KompactDecodeError](../../-kompact-decode-error/index.md)): [LongResult](../index.md)

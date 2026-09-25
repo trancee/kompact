@@ -2,9 +2,9 @@
 
 # getOrThrow
 
-[common, ios, jvmCommon]\
+[common, jvmCommon, native]\
 [common]\
 expect fun [getOrThrow](get-or-throw.md)(): [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)
 
-[ios, jvmCommon]\
+[jvmCommon, native]\
 actual fun [getOrThrow](get-or-throw.md)(): [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)

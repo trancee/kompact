@@ -364,6 +364,72 @@ class KompactSymbolProcessorGenerationTest {
     }
 
     @Test
+    fun process_generateModeAndroidArm64_emitsOnlyPlainNativeActual() {
+        // androidNativeArm64 is Kotlin/Native, so the generated `actual` must be a
+        // PLAIN value class (no @JvmInline — invalid on Native), mirroring the
+        // ios mode's body. Route via a dedicated mode rather than reusing "ios"
+        // so consumers get sensibly-named output (GenAndroidArm64, not GenIos)
+        // and so an unknown mode fails closed instead of silently mis-routing.
+        val (processor, codeGen, _) = createTestSetup(mode = "androidArm64")
+
+        val model =
+            buildModelDeclaration(
+                className = "ModeModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        val content = codeGen.generatedFiles["ch.trancee.test.ModeModelGenAndroidArm64.kt"]!!
+        assertEquals(
+            1,
+            codeGen.generatedFiles.size,
+            "androidArm64 mode should emit exactly 1 file, got ${codeGen.generatedFiles.size}",
+        )
+        // Plain Native actual (mirrors ios).
+        assertTrue(content.contains("actual value class ModeModel"), "must emit a plain actual value class")
+        // `field` is a Kotlin identifier-with-special-meaning → KotlinPoet backtick-escapes it
+        // (`val \`field\``), so assert via the canonical "actual val" token used by the ios/jvm tests.
+        assertTrue(content.contains("actual val"), "default view must expose the backing field as val")
+        assertFalse(
+            content.contains("@JvmInline"),
+            "androidArm64 is Kotlin/Native — @JvmInline is invalid and must not be emitted",
+        )
+        // Defaults live in the expect only (KMP); the actual copy carries no defaults.
+        assertFalse(content.contains("field: Int = this.field"), "actual copy must not carry default arguments")
+    }
+
+    @Test
+    fun process_generateModeAndroidArm64_mutableModel_emitsPlainMutableNativeSibling() {
+        // ADR-0006 D3: mutable=true emits a write-through Mutable<Model> sibling
+        // alongside the immutable actual. On androidNativeArm64 (Kotlin/Native)
+        // BOTH must be plain value classes — no @JvmInline (invalid on Native).
+        // This closes the `if (spec.mutable)` branch of generateAndroidArm64Actual
+        // so kompact-ksp stays at 100% branch coverage (koverVerify).
+        val (processor, codeGen, _) = createTestSetup(mode = "androidArm64")
+
+        val model =
+            buildModelDeclaration(
+                className = "ModeModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+                mutable = true,
+            )
+        val resolver = FakeResolver(listOf(model))
+
+        processor.process(resolver)
+
+        assertEquals(1, codeGen.generatedFiles.size)
+        val content = codeGen.generatedFiles["ch.trancee.test.ModeModelGenAndroidArm64.kt"]!!
+        assertTrue(content.contains("actual value class"), "Native actual must be a plain value class: $content")
+        assertFalse(content.contains("@JvmInline"), "Kotlin/Native must not carry @JvmInline: $content")
+        assertTrue(content.contains("MutableModeModel"), "mutable=true must emit a Mutable sibling: $content")
+        assertFalse(content.contains("field: Int = this.field"), "actual copy must not carry default arguments")
+    }
+
+    @Test
     fun process_generateModeAll_emitsThreeFiles() {
         val (processor, codeGen, _) = createTestSetup(mode = "all")
 

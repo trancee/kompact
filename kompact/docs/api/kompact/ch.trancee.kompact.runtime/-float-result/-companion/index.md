@@ -5,12 +5,12 @@
 [common]\
 expect object [Companion](index.md)
 
-[ios, jvmCommon]\
+[jvmCommon, native]\
 actual object [Companion](index.md)
 
 ## Functions
 
 | Name | Summary |
 |---|---|
-| [failure](failure.md) | [common, ios, jvmCommon]<br>[common]<br>expect fun [failure](failure.md)(error: [KompactDecodeError](../../-kompact-decode-error/index.md)): [FloatResult](../index.md)<br>[ios, jvmCommon]<br>actual fun [failure](failure.md)(error: [KompactDecodeError](../../-kompact-decode-error/index.md)): [FloatResult](../index.md) |
-| [success](success.md) | [common, ios, jvmCommon]<br>[common]<br>expect fun [success](success.md)(value: [Float](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html)): [FloatResult](../index.md)<br>[ios, jvmCommon]<br>actual fun [success](success.md)(value: [Float](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html)): [FloatResult](../index.md) |
+| [failure](failure.md) | [common, jvmCommon, native]<br>[common]<br>expect fun [failure](failure.md)(error: [KompactDecodeError](../../-kompact-decode-error/index.md)): [FloatResult](../index.md)<br>[jvmCommon, native]<br>actual fun [failure](failure.md)(error: [KompactDecodeError](../../-kompact-decode-error/index.md)): [FloatResult](../index.md) |
+| [success](success.md) | [common, jvmCommon, native]<br>[common]<br>expect fun [success](success.md)(value: [Float](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html)): [FloatResult](../index.md)<br>[jvmCommon, native]<br>actual fun [success](success.md)(value: [Float](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html)): [FloatResult](../index.md) |

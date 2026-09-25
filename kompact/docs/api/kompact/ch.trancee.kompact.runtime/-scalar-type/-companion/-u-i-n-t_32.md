@@ -2,9 +2,9 @@
 
 # UINT_32
 
-[common, ios, jvmCommon]\
+[common, jvmCommon, native]\
 [common]\
 expect val [UINT_32](-u-i-n-t_32.md): [ScalarType](../index.md)
 
-[ios, jvmCommon]\
+[jvmCommon, native]\
 actual val [UINT_32](-u-i-n-t_32.md): [ScalarType](../index.md)

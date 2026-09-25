@@ -67,11 +67,12 @@ kotlin {
     jvm()
     iosArm64()
     iosSimulatorArm64()
+    androidNativeArm64()
 
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.2.0-SNAPSHOT")
+                implementation("ch.trancee.kompact:kompact:0.3.0-SNAPSHOT")
             }
         }
     }
@@ -79,7 +80,7 @@ kotlin {
 
 // Only if you use the KSP processor (recommended for production):
 dependencies {
-    kspCommonMainMetadata("ch.trancee.kompact:kompact-ksp:0.2.0-SNAPSHOT")
+    kspCommonMainMetadata("ch.trancee.kompact:kompact-ksp:0.3.0-SNAPSHOT")
 }
 ```
 
