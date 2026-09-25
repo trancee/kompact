@@ -22,7 +22,7 @@ ADR-0006 D1/D3 shape. `VehicleTelemetry` is the immutable default view: `val` fi
 
 For write-through mutation (read a BLE characteristic, tweak one field, and re-send the same backing `ByteArray` with no allocation), opt the schema in with `@KompactModel(mutable = true)`: the processor then emits a `MutableVehicleTelemetry` sibling whose `var` properties write each field's bit range in place on `raw` via `KompactRuntime.writeBits*`.
 
-The `ByteArray` is the wire format. A producer builds it via `KompactWriter` or `VehicleTelemetry.create(...)`; a consumer reads fields via the `@KompactField`-annotated properties. The default-view getters are checked accessors (`KompactRuntime.readScalar` / `readBool` returning a `KompactResult`) so untrusted input throws on a bounds error (Ticket 04/07), trading one bounds-check per field for safety; the unchecked `KompactRuntime.readBits` fast path stays available for trusted in-memory frames (Ticket 06).
+The `ByteArray` is the wire format. A producer builds it via `KompactWriter` or `VehicleTelemetry.create(...)`; a consumer reads fields via the `@KompactField`-annotated properties. The default-view getters are checked accessors (`KompactRuntime.readScalar` / `readBool` returning an `IntResult` / `BooleanResult`) so untrusted input throws on a bounds error (Ticket 04/07), trading one bounds-check per field for safety; the unchecked `KompactRuntime.readBits` fast path stays available for trusted in-memory frames (Ticket 06).
 
 [ios]\
 actual value class [VehicleTelemetry](index.md)(val raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))

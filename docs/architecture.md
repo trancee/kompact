@@ -249,7 +249,9 @@ avoids the `Long`-packed result value class on the success path:
 ```kotlin
 // What the KSP processor emits (not the hand-written example):
 // Default immutable view — `val` fields + a `copy(...)` builder (ADR-0006 D2).
-@KompactModel
+// Schema annotated `@KompactModel(mutable = true)` (ADR-0006 D3): the processor
+// emits this immutable default view AND the Mutable sibling below.
+@KompactModel(mutable = true)
 @JvmInline
 public actual value class VehicleTelemetry(public actual val raw: ByteArray) {
     init { require(raw.size >= 2) }
@@ -274,8 +276,8 @@ public actual value class VehicleTelemetry(public actual val raw: ByteArray) {
 }
 
 // Opt-in Mutable sibling — `var` setters that write through (ADR-0006 D3).
-// Emitted only when @KompactModel(mutable = true).
-@KompactModel(mutable = true)
+// Emitted (bare — no `@KompactModel`) when the schema above carries
+// `mutable = true`.
 @JvmInline
 public actual value class MutableVehicleTelemetry(public actual val raw: ByteArray) {
     init { require(raw.size >= 2) }

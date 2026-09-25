@@ -36,10 +36,11 @@ import ch.trancee.kompact.runtime.ScalarType
  * The `ByteArray` is the wire format. A producer builds it via `KompactWriter`
  * or `VehicleTelemetry.create(...)`; a consumer reads fields via the
  * `@KompactField`-annotated properties. The default-view getters are checked
- * accessors (` KompactRuntime.readScalar` / `readBool` returning a
- * `KompactResult`) so untrusted input throws on a bounds error (Ticket 04/07),
+ * accessors (`KompactRuntime.readScalar` / `readBool` returning an
+ * `IntResult` / `BooleanResult`) so untrusted input throws on a bounds
+ * error (Ticket 04/07),
  * trading one bounds-check per field for safety; the unchecked
- * ` KompactRuntime.readBits` fast path stays available for trusted in-memory
+ * `KompactRuntime.readBits` fast path stays available for trusted in-memory
  * frames (Ticket 06).
  */
 @KompactModel(mutable = true)

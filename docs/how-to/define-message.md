@@ -71,9 +71,10 @@ public expect value class SensorFrame(public val raw: ByteArray) {
 }
 
 > **Default view is read-only.** Fields are `val`; there are no setters.
-> In-place mutation is opt-in via a `@KompactModel(mutable = true)`
-> `MutableSensorFrame` sibling whose `var` fields write through to the same
-> `raw` buffer. See [ADR-0006](../../docs/adr/0006-immutable-default-models.md)
+> In-place mutation is opt-in: set `mutable = true` on the schema's
+> `@KompactModel`, which emits a `MutableSensorFrame` sibling whose `var`
+> fields write through to the same `raw` buffer. See
+> [ADR-0006](../../docs/adr/0006-immutable-default-models.md)
 > and the bundled `VehicleTelemetry` / `MutableVehicleTelemetry` pair.
 
 /** Shared encoder used by the platform `create` actuals. */
@@ -174,7 +175,7 @@ println("status=${received.status} battery=${received.battery} " +
         "temp=${received.temperature} ts=${received.timestamp}")
 
 // For zero-alloc in-place writes, opt into the MutableSensorFrame
-// sibling (declared with @KompactModel(mutable = true)):
+// sibling (emitted when the schema is annotated @KompactModel(mutable = true)):
 val mutable = MutableSensorFrame(received.raw)
 mutable.battery = 7
 // Send the same buffer back over BLE:
@@ -381,9 +382,9 @@ public expect value class SensorFrame(public val raw: ByteArray) {
 The `expect` declaration is all you write — the `create()` bodies,
 the `@JvmInline actual` (JVM), the plain `actual` (iOS), and every
 getter body are generated. To also emit the opt-in write-through
-`Mutable<Model>` sibling, add `@KompactModel(mutable = true)` on a second
-expect/actual (the processor then generates the matching `MutableSensorFrame`
-with `var` setters). The processor also validates the layout
+`Mutable<Model>` sibling, set `mutable = true` on the schema's
+`@KompactModel` (the processor then generates the matching
+`MutableSensorFrame` with `var` setters). The processor also validates the layout
 at compile time (overlapping fields, invalid widths, bad prefix
 widths) and fails the build on violations.
 

@@ -468,9 +468,10 @@ in-place mutation via the `MutableVehicleTelemetry` sibling (see
 ### MutableVehicleTelemetry (opt-in mutable sibling)
 
 `MutableVehicleTelemetry` is the write-through companion to the immutable
-`VehicleTelemetry`. Declared with `@KompactModel(mutable = true)`, it wraps the
-same `raw` buffer behind `var` fields whose setters write each field in place via
-`writeBits` / `writeBitsBoolean`.
+`VehicleTelemetry`, emitted when the schema is annotated
+`@KompactModel(mutable = true)`. It wraps the same `raw` buffer behind `var`
+fields whose setters write each field in place via `writeBits` /
+`writeBitsBoolean`.
 
 | Member | Signature | Description |
 | --- | --- | --- |
