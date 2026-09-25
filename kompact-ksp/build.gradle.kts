@@ -3,11 +3,11 @@
 )
 
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
+import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 import org.gradle.api.publish.maven.MavenPublication
 
 plugins {
     alias(libs.plugins.kotlinJvm)
-    alias(libs.plugins.kover)
     id("dokka-markdown")
     id("portal-publish")
     // maven-publish is also applied by portal-publish convention plugin, but
@@ -55,11 +55,13 @@ dependencies {
 }
 
 // --- Kover (100 % line + branch coverage on the KSP processor) ---
-kover {
+apply(plugin = "org.jetbrains.kotlinx.kover")
+
+extensions.configure<KoverProjectExtension>("kover") {
     reports {
         total {
             xml { onCheck.set(true) }
-            html { onCheck.set(true) }
+            html { onCheck.set(false) }
         }
         verify {
             rule { minBound(100, CoverageUnit.LINE) }

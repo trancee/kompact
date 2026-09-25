@@ -3,11 +3,21 @@ plugins {
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.agp) apply false
     alias(libs.plugins.dokka) apply false
-    alias(libs.plugins.kover) apply false
     alias(libs.plugins.spotless)
     alias(libs.plugins.skie) apply false
     alias(libs.plugins.kotlinPowerAssert) apply false
     alias(libs.plugins.ksp) apply false
+}
+
+val koverVersion = libs.versions.kover.get()
+subprojects {
+    buildscript {
+        dependencies {
+            classpath("org.jetbrains.kotlinx.kover:org.jetbrains.kotlinx.kover.gradle.plugin:$koverVersion") {
+                exclude(group = "org.freemarker", module = "freemarker")
+            }
+        }
+    }
 }
 
 allprojects {
