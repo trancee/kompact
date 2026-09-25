@@ -82,15 +82,27 @@ else
   # Generate CHANGELOG.md from Conventional Commits since the last tag.
   .github/scripts/release/version-bump.sh changelog
 
-  git add CHANGELOG.md
-  git commit -m "docs(release): add CHANGELOG for v${VERSION}"
-  git push origin "${RELEASE_BRANCH}"
-  gh pr create \
-    --head "${RELEASE_BRANCH}" \
-    --base main \
-    --title "$PR_TITLE" \
-    --body-file "$PR_BODY_FILE" \
-    --label release
+  # Guard against an empty commit (false-negative failure): after a release PR
+  # merge, GitHub auto-deletes release/ongoing and the generated CHANGELOG is
+  # already on main (released via the merge squash or the concurrent
+  # release-publish prepare job). Regenerating it yields no diff, so the
+  # unguarded `git commit` below died with "nothing to commit" under
+  # `set -euo pipefail`. Mirror the sync-branch guard: only commit + push +
+  # open a PR when there is an actual diff.
+  if ! git diff --quiet; then
+    git add CHANGELOG.md
+    git commit -m "docs(release): add CHANGELOG for v${VERSION}"
+    git push origin "${RELEASE_BRANCH}"
+    gh pr create \
+      --head "${RELEASE_BRANCH}" \
+      --base main \
+      --title "$PR_TITLE" \
+      --body-file "$PR_BODY_FILE" \
+      --label release
+    echo "Created new release PR"
+  else
+    echo "release/ongoing is identical to main; CHANGELOG already present, no release PR to create."
+  fi
   echo "::endgroup::"
 fi
 

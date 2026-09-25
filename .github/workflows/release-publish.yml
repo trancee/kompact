@@ -206,4 +206,8 @@ jobs:
           git remote set-url origin "https://x-access-token:${RELEASE_PAT}@github.com/trancee/kompact.git"
           git commit -am "chore(release): bump to next SNAPSHOT ${NEXT}"
           git push origin HEAD:main
-          git push origin --delete release/ongoing
+          # release/ongoing is auto-deleted by GitHub on PR merge (and may
+          # already be absent after a prior run); deletion is best-effort
+          # cleanup — it must not fail the run when publish + the next-SNAP
+          # bump above already succeeded.
+          git push origin --delete release/ongoing || true
