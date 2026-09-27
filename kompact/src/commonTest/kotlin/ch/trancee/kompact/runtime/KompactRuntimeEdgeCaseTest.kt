@@ -69,8 +69,7 @@ class KompactRuntimeEdgeCaseTest {
 
     @Test
     fun readScalarAsLong_unsignedWidth64_value() {
-        // Use a value outside the LongResult failure-sentinel band (bit 63 set
-        // but bit 58 also set, per Ticket 08 documentation).
+        // Check a 64-bit value with both the sign and bit 58 set.
         val buf = ByteArray(8) { 0 }
         val value = Long.MIN_VALUE + (1L shl 58)
         KompactRuntime.writeBitsLong(buf, 0, 64, value)

@@ -50,27 +50,12 @@ class JvmCoveragePinning {
         return 0L;
     }
 
-    /** Encodes a LongResult failure (BoundsError): LONG_FAIL_BASE | 0 | 0 = Long.MIN_VALUE. */
-    public static long longFailure() {
-        return Long.MIN_VALUE;
-    }
-
-    /** Success value 42 for LongResult (not in the sentinel range). */
-    public static long longSuccess42() {
-        return 42L;
-    }
-
     // ── Boxed value-class instances via reflection (box-impl has '-' in name) ─
     // Each overload avoids runtime type-checking branches.
 
     public static IntResult boxInt(long packed) throws Exception {
         Method m = IntResult.class.getMethod("box-impl", long.class);
         return (IntResult) m.invoke(null, packed);
-    }
-
-    public static LongResult boxLong(long packed) throws Exception {
-        Method m = LongResult.class.getMethod("box-impl", long.class);
-        return (LongResult) m.invoke(null, packed);
     }
 
     public static FloatResult boxFloat(long packed) throws Exception {
@@ -113,10 +98,6 @@ class JvmCoveragePinning {
     // Returns the raw packed long so the caller can assert on it.
 
     public static long getIntPacked(IntResult r) {
-        return r.getPacked();  // INVOKEVIRTUAL
-    }
-
-    public static long getLongPacked(LongResult r) {
         return r.getPacked();  // INVOKEVIRTUAL
     }
 
@@ -183,33 +164,6 @@ class JvmCoveragePinning {
             KompactWriter.class, int.class, int.class, Function1.class, int.class, Object.class);
         m.invoke(null, w, count, countWidth, NOOP_BLOCK, bitMask, null);
         return w.build();
-    }
-
-    // ── LongResult.map bridge (map-8pLS_AI) via reflection ────────────────
-    // Name contains '-', use reflection.
-    // Returns {mappedSuccess, mappedFailure} for the caller to assert.
-
-    public static long[] callMapBridge(long successPacked, long failurePacked) throws Exception {
-        Method m = KompactResultExtensionsKt.class.getMethod(
-            "map-8pLS_AI", long.class, Function1.class);
-
-        Function1<Long, Long> doubler = new Function1<Long, Long>() {
-            @Override public Long invoke(Long d) { return d + 1L; }
-        };
-        long mappedOk = (long) m.invoke(null, successPacked, doubler);
-        long mappedBad = (long) m.invoke(null, failurePacked, doubler);
-        return new long[]{mappedOk, mappedBad};
-    }
-
-    // ── LongResult.getOrThrow-impl via reflection ────────────
-    // Name contains '-', use reflection.
-    // On failure path, getOrThrow-impl throws KompactDecodeException, which
-    // Method.invoke wraps in InvocationTargetException. The caller (Kotlin
-    // test) catches it and verifies the cause type.
-
-    public static long callLongGetOrThrow(long packed) throws Exception {
-        Method m = LongResult.class.getMethod("getOrThrow-impl", long.class);
-        return (long) m.invoke(null, packed);
     }
 
     // ── KompactRuntime.detailedError (private) — UnknownEnumCode arm ────────

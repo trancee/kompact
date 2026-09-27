@@ -1,6 +1,6 @@
 # ADR-0006 — Immutable value-class views by default (supersedes ADR-0001)
 
-- **Status:** proposed
+- **Status:** Accepted (implementation present; device-level write-allocation evidence remains pending).
 - **Tags:** api, bc-break, wire
 - **Superseded by:** none
 - **Supersedes:** [ADR-0001 — Mutable view classes: write-through `var` setters on `VehicleTelemetry`](0001-mutable-view-classes-with-write-through-setters.md)

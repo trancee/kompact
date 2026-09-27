@@ -10,8 +10,9 @@ package ch.trancee.kompact.runtime
  * first, then prefix + bytes — no back-patch), and count-prefixed repeats
  * `<count><elem₀><elem₁>…`.
  *
- * `build()` returns an exact-length snapshot; the backing buffer is not
- * exposed, so the writer remains single-use forward-only (PROMPT §1).
+ * `build()` returns an exact-length snapshot without exposing the backing
+ * buffer. The writer can continue accumulating data and later builds return
+ * updated snapshots.
  */
 public class KompactWriter {
     /**
@@ -73,7 +74,11 @@ public class KompactWriter {
         }
     }
 
-    /** Writes a length-prefixed UTF-8 string: `<prefix><bytes>` (Ticket 05). */
+    /**
+     * Writes a length-prefixed UTF-8 string: `<prefix><bytes>` (Ticket 05).
+     * Throws before changing this writer if the encoded length does not fit
+     * [countWidth].
+     */
     public fun writeString(
         countWidth: Int,
         value: String,
@@ -84,7 +89,10 @@ public class KompactWriter {
         appendBytes(bytes)
     }
 
-    /** Writes a length-prefixed blob: `<prefix><bytes>` (Ticket 05). */
+    /**
+     * Writes a length-prefixed blob: `<prefix><bytes>` (Ticket 05).
+     * Throws before changing this writer if [bytes] does not fit [countWidth].
+     */
     public fun writeBlob(
         countWidth: Int,
         bytes: ByteArray,
@@ -98,7 +106,8 @@ public class KompactWriter {
      * Writes a nested sub-region: a child `KompactWriter` drains [block], then the
      * child's byte length is emitted as a [lengthPrefixWidth]-bit LE prefix
      * immediately followed by the child bytes (forward-only, compute-first —
-     * Ticket 07). The child region begins byte-aligned after the prefix.
+     * Ticket 07). The child region begins byte-aligned after the prefix. An
+     * unrepresentable child length throws before changing this writer.
      */
     public fun writeNested(
         lengthPrefixWidth: Int = 16,
@@ -115,7 +124,9 @@ public class KompactWriter {
     /**
      * Writes a count-prefixed repeat: `<count><elem₀>…<elem_{count-1}>` where each
      * element is produced by one invocation of [block] against this writer
-     * (Ticket 05). [countWidth] must be one of [KompactFraming.VALID_PREFIX_WIDTHS].
+     * (Ticket 05). [countWidth] must be one of [KompactFraming.VALID_PREFIX_WIDTHS]
+     * and [count] must fit its unsigned range; invalid counts throw before
+     * changing this writer or invoking [block].
      */
     public fun writeRepeated(
         count: Int,
@@ -134,8 +145,8 @@ public class KompactWriter {
     }
 
     /**
-     * Returns an exact-length snapshot of the accumulated bits. Calling
-     * afterwards is allowed but yields an empty buffer (single-shot by design).
+     * Returns an exact-length snapshot of the accumulated bits. Calling this
+     * repeatedly is allowed and does not consume the writer's contents.
      */
     public fun build(): ByteArray {
         val byteLen = (bitCursor + 7) / 8

@@ -9,10 +9,10 @@ package ch.trancee.kompact.runtime
  * with `and 0xFF` before `ushr`/`shl`/`or`, so assembly is identical on the
  * JVM and Kotlin/Native regardless of platform endianness (PROMPT §1).
  *
- * These primitives are small, side-effect-free, and reference-free: a
- * value-class getter delegates to them with no heap allocation on Kotlin/Native
- * (value classes over primitive `Long` are unboxed) and no heap allocation
- * on the JVM (the JIT scalar-replaces the `@JvmInline` wrapper) (Ticket 03).
+ * These primitives read/write the caller-owned buffer without constructing a
+ * result wrapper. Generated raw getters delegate to them directly; checked
+ * accessors add a typed result whose allocation behavior depends on its
+ * representation (`LongResult` allocates to preserve the full `Long` domain).
  */
 public object KompactRuntime {
     /** Reads [bitWidth] bits (1..31) from [raw] starting at [bitOffset], LSB-first. */
@@ -201,10 +201,10 @@ public object KompactRuntime {
     /**
      * Reads up to [ScalarType.bitWidth] bits of [type] as a checked [LongResult] (1..64).
      * Width/signedness derive from [type]; sign extension (two's-complement)
-     * uses Long-arithmetic shifts. Replaces readScalarLong(w, b, signed);
-     * callers pass a [ScalarType] carrying the UInt64/Int64 bands
-     * (ergonomics-01: ScalarType consolidation). See [readScalarAsLongOrThrow]
-     * for the exceptions variant.
+     * uses Long-arithmetic shifts. Each checked read allocates a [LongResult]
+     * so the full signed Long domain remains representable. Pass a [ScalarType]
+     * carrying the UInt64/Int64 bands; see [readScalarAsLongOrThrow] for the
+     * exceptions variant.
      */
     public fun readScalarAsLong(
         raw: ByteArray,

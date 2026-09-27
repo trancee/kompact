@@ -78,7 +78,7 @@ class KompactRuntimeLongBitsTest {
     @Test
     fun writeBitsLong_thenReadLong_largePositive() {
         val buf = ByteArray(8) { 0 }
-        val value = 0x4000_0000_0000_0000L // bit 62 set, outside LongResult sentinel range
+        val value = 0x4000_0000_0000_0000L // bit 62 set
         KompactRuntime.writeBitsLong(buf, 0, 64, value)
         assertEquals(value, KompactRuntime.readBitsLong(buf, 0, 64))
     }

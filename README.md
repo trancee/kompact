@@ -1,9 +1,10 @@
 # Kompact
 
-A bit-packed, zero-allocation serialization framework for Kotlin Multiplatform.
-Built for tiny, dense wire payloads (think BLE characteristics) that still need to
-be safely decoded on the hot path — no boxing, no exception throwing, no
-intermediate copies.
+A bit-packed serialization framework for Kotlin Multiplatform, with zero-allocation
+reads for its packed scalar result types. Built for tiny, dense wire payloads
+(think BLE characteristics) that still need to be safely decoded on the hot path
+without exceptions or intermediate copies. Checked 64-bit integer reads use an
+allocating result to preserve the complete `Long` domain.
 
 ```
 import ch.trancee.kompact.runtime.ScalarType
@@ -54,9 +55,9 @@ FlatBuffers stores offset pointers so you can jump to any field. That
 breaks when a field before it changes size. Kompact's v1 type set
 includes variable-length strings, blobs, nested composites, and repeats.
 So offsets would shift on every schema change. Reads are sequential,
-parse-forward instead — the deliberate but necessary tradeoff: you
-trade random-access field jumps for zero-allocation, lazy, sequential
-reads.
+parse-forward instead — the deliberate tradeoff: no random-access field
+jumps, but lazy sequential reads with allocation-free packed scalar
+results (`LongResult` is the full-domain allocating exception).
 
 ## Creating and modifying frames
 
@@ -119,9 +120,9 @@ bleCharacteristic.value = tel.raw
 ## What's in this repo
 
 - **`:kompact`** — the KMP runtime: bit primitives, a forward-only writer, framing
-  helpers, and five zero-alloc scalar result value classes (`IntResult`,
-  `LongResult`, `FloatResult`, `DoubleResult`, `BooleanResult`) — 8/16-bit widths
-  decode into `IntResult` via `ScalarType` (no `Byte`/`Short` result type).
+  helpers, four zero-alloc scalar result value classes and an allocating
+  full-domain `LongResult` — 8/16-bit widths decode into `IntResult` via
+  `ScalarType` (no `Byte`/`Short` result type).
 - **`:kompact-ksp`** — the KSP annotation processor (`@KompactModel` /
   `@KompactField`) that generates value-class view bodies from
   compile-time-validated field layouts. Apply it with `ksp` in a consumer

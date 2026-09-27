@@ -5,10 +5,11 @@ prefix, unknown enum code) without throwing on the hot path, and
 without silently misreading.
 
 Kompact's read API is **typed-result-shaped** — every checked accessor
-returns a `*Result` value class instead of a primitive and never
-throws on success. `getOrThrow()` is the only call that throws, and
-only on failure. The error is carried as a [`KompactDecodeError`](../api-reference.md#kompactdecodeerror)
-sealed-class instance.
+returns a specialized `*Result` instead of a primitive and never throws
+on success. Most result types are value classes; `LongResult` is an
+allocating regular class so it can represent the complete `Long` domain.
+`getOrThrow()` throws only on failure. The error is carried as a
+[`KompactDecodeError`](../api-reference.md#kompactdecodeerror) sealed-class instance.
 
 ## 1. Inspect the result with `isSuccess` / `isFailure`
 
@@ -38,8 +39,9 @@ The four subtypes are
 
 ## 2. Use `getOrElse` for a single fallback
 
-`getOrElse` mirrors `kotlin.Result.getOrElse` — same shape, no boxing
-on the success path:
+`getOrElse` mirrors `kotlin.Result.getOrElse` — same shape. Packed scalar
+results stay allocation-free on the success path; `LongResult` itself
+allocates to preserve all `Long` values:
 
 ```kotlin
 val speed: Int = KompactRuntime.readScalar(raw, 0, ScalarType.of(10, signed = false))
@@ -195,11 +197,10 @@ corruption (unknown → log and drop).
 - **Forgetting `error` is nullable.** `result.error` is
   `KompactDecodeError?` — `null` on success, non-null on failure.
   Branch on `isSuccess` first to avoid the null.
-- **`LongResult` sentinel band.** Values in
-  `Long.MIN_VALUE .. Long.MIN_VALUE + (1L shl 58) - 1` are not
-  representable as success — see
-  [architecture — runtime error encoding](../architecture.md#runtime-error-encoding)
-  for the details.
+- **`LongResult` allocation.** Unlike the other scalar result value
+  classes, `LongResult` allocates so no valid `Long` values need to be
+  reserved as failure sentinels — see
+  [architecture — runtime error encoding](../architecture.md#runtime-error-encoding).
 
 ## What's next
 

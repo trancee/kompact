@@ -8,10 +8,26 @@ import kotlin.test.assertTrue
  * Edge-case tests for getOrElse / map on result types whose failure branches
  * were not exercised by KompactRuntimeCheckedApiTest:
  *
+ *  - LongResult.map (success transform + failure propagation)
  *  - FloatResult.map (success map + failure propagation)
  *  - DoubleResult.map (success map + failure propagation)
  */
 class KompactResultExtensionsEdgeCaseTest {
+    // --- LongResult.map (getOrElse already covered by CheckedApiTest) ---
+
+    @Test
+    fun longResult_map_transformsSuccessAndPropagatesFailure() {
+        val ok = LongResult.success(2L)
+        val mapped = ok.map { it * 2L }
+        assertTrue(mapped.isSuccess)
+        assertEquals(4L, mapped.getOrThrow())
+
+        val bad = LongResult.failure(KompactDecodeError.BoundsError)
+        val mappedBad = bad.map { it + 1L }
+        assertTrue(mappedBad.isFailure)
+        assertEquals(KompactDecodeError.BoundsError, mappedBad.error)
+    }
+
     // --- FloatResult.map (getOrElse already covered by CheckedApiTest) ---
 
     @Test

@@ -25,12 +25,6 @@ class JvmCoveragePinningTest {
     }
 
     @Test
-    fun longResult_getPacked_covered() {
-        val r = JvmCoveragePinning.boxLong(99L)
-        assertEquals(99L, JvmCoveragePinning.getLongPacked(r))
-    }
-
-    @Test
     fun floatResult_getPacked_covered() {
         val bits = java.lang.Float.floatToRawIntBits(1.0f)
         val r = JvmCoveragePinning.boxFloat(JvmCoveragePinning.smallSuccess(bits.toLong()))
@@ -107,29 +101,6 @@ class JvmCoveragePinningTest {
     fun writeRepeated_defaultBridgeCalled() {
         val bytes = JvmCoveragePinning.writeRepeatedDefault(0, 8, 0x2)
         assertTrue(bytes.isNotEmpty())
-    }
-
-    @Test
-    fun longResult_map_bridgeCovered() {
-        val results =
-            JvmCoveragePinning.callMapBridge(
-                JvmCoveragePinning.longSuccess42(),
-                JvmCoveragePinning.longFailure(),
-            )
-        // Success path: map(42, +1) → 43
-        assertEquals(43L, results[0])
-        // Failure path: map returns packed unchanged
-        assertEquals(JvmCoveragePinning.longFailure(), results[1])
-    }
-
-    @Test
-    fun longResult_getOrThrow_failurePathFromJava() {
-        try {
-            JvmCoveragePinning.callLongGetOrThrow(JvmCoveragePinning.longFailure())
-            throw AssertionError("Expected KompactDecodeException")
-        } catch (e: java.lang.reflect.InvocationTargetException) {
-            assertTrue(e.cause is KompactDecodeException)
-        }
     }
 
     @Test

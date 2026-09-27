@@ -5,4 +5,4 @@
 [common]\
 fun [writeString](write-string.md)(countWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), value: [String](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html))
 
-Writes a length-prefixed UTF-8 string: `<prefix><bytes>` (Ticket 05).
+Writes a length-prefixed UTF-8 string: `<prefix><bytes>` (Ticket 05). Throws before changing this writer if the encoded length does not fit [countWidth](write-string.md).

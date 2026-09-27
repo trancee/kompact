@@ -11,8 +11,10 @@ API surface in [`api-reference.md`](api-reference.md).
 ## The product in one paragraph
 
 Kompact is a binary wire format and runtime for **small, dense
-packets that must be safely decoded on a hot path with no heap
-allocation and no exception throwing**. The original motivating use
+packets that must be safely decoded without exception throwing, with
+allocation-free reads for the packed scalar result types**. The
+checked 64-bit integer read allocates its `LongResult` to preserve
+every signed value. The original motivating use
 case (in [`PROMPT.md`](../PROMPT.md)) is BLE characteristics: a few
 bytes per frame, decoded frequently, on battery-powered devices
 where every micro-allocation costs. The framework is a Kotlin
@@ -55,24 +57,25 @@ The "zero-copy" claim in the original brief has a precise meaning:
 reading a scalar from a `ByteArray` produces a primitive `Int` (or
 `Long`, `Boolean`, etc.) with **no intermediate object on the heap**.
 
-The mechanism is that the typed result value classes
+The mechanism is that most typed result value classes
 ([`KompactResult`](../kompact/src/commonMain/kotlin/ch/trancee/kompact/runtime/KompactResult.kt))
 are wrappers over a single `Long`. On the JVM, `@JvmInline value class`
 over a primitive `Long` is stored as the `Long` itself — no object
 header, no heap allocation. On Kotlin/Native, a `value class` over a
-primitive `Long` is an inline value with the same property. So
-`IntResult`, `LongResult`, `FloatResult`,
-`DoubleResult`, and `BooleanResult` cost exactly the same
-as a `Long` would, on both platforms, on both the success and
-failure paths.
+primitive `Long` is an inline value with the same property. This applies
+to `IntResult`, `FloatResult`, `DoubleResult`, and `BooleanResult`.
+`LongResult` is the deliberate exception: it is a regular class so it can
+represent every `Long` value without reserving sentinel values, and it
+allocates on both success and failure.
 
-This is the entire reason the result types are specialized per scalar
-kind rather than a generic `KompactDecodeResult<T>`. A generic would
-have to box the `T` (or hold a sealed-class instance), and boxing
-on the success path is exactly what the contract forbids.
+The specialized result types avoid a generic `KompactDecodeResult<T>`
+that would box values on the scalar hot paths. `LongResult` trades that
+allocation advantage for a simpler full-domain contract.
 
 The contract is narrower than "no allocations ever." It is
-specifically about the **scalar read hot path** in trusted code.
+specifically about the `IntResult`, `FloatResult`, `DoubleResult`, and
+`BooleanResult` read hot paths in trusted code. `readScalarAsLong`
+returns an allocating `LongResult`, including for widths below 64 bits.
 The writer is allowed to allocate (it grows a buffer), the framing
 helpers are allowed to return `null` and let the caller allocate a
 typed error, and the `getOrThrow()` recovery call is allowed to throw
@@ -84,9 +87,9 @@ developed in [Allocation and boxing measurement across Android and iOS](research
 
 ## Runtime error encoding
 
-Each typed result class packs both the decoded value and an error
-state into a single `Long` so the success-path read returns a
-`Long`-shaped value with no branching, no allocation, and no throw.
+The packed result value classes encode the decoded value and error state
+in a single `Long`, allowing their success paths to avoid allocation.
+`LongResult` stores its nullable value and error as separate fields.
 
 ### ≤32-bit result types (IntResult, FloatResult, BooleanResult)
 
@@ -108,19 +111,15 @@ A single packed `Long` layout:
   does **not** use the NaN-payload scheme — that is a `DoubleResult`-only
   technique (see below).
 
-### LongResult — the sentinel band
+### LongResult — full 64-bit domain
 
 Every 64-bit `Long` bit pattern is a valid signed integer, so
-success and failure cannot be distinguished without reserving a
-sentinel range. `LongResult` treats
-`Long.MIN_VALUE .. Long.MIN_VALUE + (1L shl 58) - 1`
-(bit 63 set, bits 62..58 clear) as the failure sentinel. Those values
-**are not representable as success**: the first representable negative
-success value is `Long.MIN_VALUE + (1L shl 58)`. This is the
-documented tradeoff of packing a typed result into a single `Long`
-without boxing; the reserved range is wide enough to carry the
-error kind and the raw enum code, and it is small enough that
-realistic long values almost never land in it.
+success and failure cannot be distinguished in one `Long` without
+reserving valid values. `LongResult` instead stores `value: Long?` and
+`error: KompactDecodeError?` in a regular class. Every `Long` value,
+including `Long.MIN_VALUE`, is representable; the cost is one result
+allocation on each checked long read. This was chosen over a sentinel
+band because the complete signed domain is part of the public contract.
 
 ### DoubleResult — NaN payloads
 
@@ -135,7 +134,7 @@ through the decoder.
 
 ## Value-class representation across platforms
 
-The result value classes are declared as `expect value class` in
+The packed result value classes are declared as `expect value class` in
 `commonMain` (no `@JvmInline`, because `@JvmInline` is a JVM-only
 annotation and the symbol is meaningless on Kotlin/Native). The
 platform actuals diverge:
@@ -147,12 +146,12 @@ platform actuals diverge:
   `actual value class …` — Kotlin/Native represents the same
   over-primitive-Long shape as an inline value automatically.
 
-Both platforms get the same allocation behaviour (zero on success and
-failure) but the language requires the `@JvmInline` opt-in on the JVM.
-This is a language-level constraint, not a project design choice —
-the original product brief's "no `@JvmInline`" prohibition applies
-to the hand-written common API surface, not to the JVM actual of a
-cross-platform value class.
+Both platforms get the same allocation behaviour for these packed
+results (zero on success and failure), but the language requires the
+`@JvmInline` opt-in on the JVM. `LongResult` is a common regular class
+with the same representation on every target. The original product
+brief's "no `@JvmInline`" prohibition applies to the hand-written common
+API surface, not to the JVM actual of a cross-platform value class.
 
 ## Framing contract
 
@@ -231,8 +230,8 @@ and a real upgrade/compat story can be designed. See
 - **Not yet released**: the Maven Central artifact. Publication is wired via
   standard `maven-publish` + `signing` + Dokka, with a custom Portal Publisher
   API task (`centralPortalDeploy`) for Central Portal upload (no third-party
-  publishing plugin). Coordinates `ch.trancee.kompact:kompact:0.2.0-SNAPSHOT` and
-  `ch.trancee.kompact:kompact-ksp:0.2.0-SNAPSHOT`.
+  publishing plugin). Coordinates `ch.trancee.kompact:kompact:0.4.0-SNAPSHOT` and
+  `ch.trancee.kompact:kompact-ksp:0.4.0-SNAPSHOT`.
   No release has been cut — the Portal namespace, PGP key, and user token still
   require user authorization. Build from source or `./gradlew
   :kompact:publishToMavenLocal` to consume the snapshot.

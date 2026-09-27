@@ -1,12 +1,12 @@
 package ch.trancee.kompact.runtime
 
 /*
- * getOrElse / map extensions on the five result value classes plus
+ * getOrElse / map extensions on the five result types plus
  * NestedRegionResult (ergonomics-04: result-ergonomics extensions).
  *
  * These mirror stdlib Result<T>.getOrElse / Result<T>.map, specialized per type
- * so no boxing occurs on the success path (each result is a value class over a
- * single Long):
+ * so packed result value classes stay unboxed. LongResult is a regular
+ * allocating class to preserve the full Long domain:
  *   - getOrElse returns the success value, or invokes [fallback] with the
  *     [KompactDecodeError] on failure. The fallback may return any type R.
  *   - map transforms the success value in place (same result type); on failure
@@ -15,7 +15,7 @@ package ch.trancee.kompact.runtime
  *
  * `error` is non-null on the failure path (guarded by [isFailure]), so the
  * `error!!` assertions are safe. Both fns are inline so the value-class
- * accessors stay inlined at the call site (Ticket 03).
+ * accessors stay concise at the call site (Ticket 03).
  */
 
 public inline fun IntResult.getOrElse(fallback: (KompactDecodeError) -> Int): Int =

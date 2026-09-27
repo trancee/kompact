@@ -57,6 +57,8 @@ public object KompactFraming {
      * Writes [length] as a fixed-width little-endian byte count at [bitOffset].
      * Mirrors [readLengthPrefix] (Ticket 07: the writer selects the per-field
      * prefix width at codegen time; it must be one of [VALID_PREFIX_WIDTHS]).
+     * [length] must be non-negative and fit the selected width; invalid values
+     * throw before the buffer is modified.
      */
     public fun writeLengthPrefix(
         raw: ByteArray,
@@ -66,6 +68,16 @@ public object KompactFraming {
     ) {
         if (bitWidth !in VALID_PREFIX_WIDTHS) {
             throw IllegalArgumentException("length-prefix bit width must be 8, 16, or 32 (Ticket 06)")
+        }
+        require(length >= 0) { "length-prefix value must be non-negative, was $length" }
+        val maximum =
+            when (bitWidth) {
+                8 -> 0xFF
+                16 -> 0xFFFF
+                else -> Int.MAX_VALUE
+            }
+        require(length <= maximum) {
+            "length $length does not fit in a $bitWidth-bit prefix (maximum $maximum)"
         }
         when (bitWidth) {
             8 -> KompactRuntime.writeBits(raw, bitOffset, 8, length)

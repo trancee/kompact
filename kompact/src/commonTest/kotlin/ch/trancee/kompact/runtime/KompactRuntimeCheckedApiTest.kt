@@ -161,7 +161,7 @@ class KompactRuntimeCheckedApiTest {
         assertTrue(boolMapBad.isFailure)
         assertEquals(KompactDecodeError.BoundsError, boolMapBad.error)
 
-        // LongResult: sign-extended small value + failure (sentinel-band decode).
+        // LongResult: sign-extended value and allocating failure result.
         val longOk = KompactRuntime.readScalarAsLong(byteArrayOf(0x2A), 0, ScalarType.of(8, signed = true))
         assertTrue(longOk.isSuccess)
         assertEquals(42L, longOk.getOrElse { 0L })

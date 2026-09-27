@@ -3,44 +3,34 @@
 # LongResult
 
 [common]\
-expect value class [LongResult](index.md)(val packed: [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html))
+class [LongResult](index.md)
 
 Checked 64-bit integer result (Ticket 08).
 
-Because every 64-bit `Long` bit-pattern is a valid signed value, success and failure cannot be distinguished without reserving a sentinel band. [success](-companion/success.md) therefore treats a compact range near [Long.MIN_VALUE](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/-companion/-m-i-n_-v-a-l-u-e.html) (bit 63 set with bits 62..58 clear, i.e. `Long.MIN_VALUE` through `Long.MIN_VALUE + (1L shl 58) - 1`) as the failure sentinel — these values are **not representable as success**. The first representable negative success value is `Long.MIN_VALUE + (1L shl 58)` (bit 58 set, outside the sentinel mask). This is the documented tradeoff of packing a typed result into a single `Long` without boxing; see Ticket 08.
-
-[jvmCommon, native]\
-actual value class [LongResult](index.md)(val packed: [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html))
-
-Checked 64-bit integer result (Ticket 08).
-
-Because every 64-bit `Long` bit-pattern is a valid signed value, success and failure cannot be distinguished without reserving a sentinel band. [success](-companion/success.md) therefore treats a compact range near [Long.MIN_VALUE](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/-companion/-m-i-n_-v-a-l-u-e.html) (bit 63 set with bits 62..58 clear, i.e. `Long.MIN_VALUE` through `Long.MIN_VALUE + (1L shl 58) - 1`) as the failure sentinel — these values are **not representable as success**. The first representable negative success value is `Long.MIN_VALUE + (1L shl 58)` (bit 58 set, outside the sentinel mask). This is the documented tradeoff of packing a typed result into a single `Long` without boxing; see Ticket 08.
-
-## Constructors
-
-| | |
-|---|---|
-| [LongResult](-long-result.md) | [common]<br>expect constructor(packed: [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html))<br>[jvmCommon, native]<br>actual constructor(packed: [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)) |
+Holds either any [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html) value or a [KompactDecodeError](../-kompact-decode-error/index.md). This regular class allocates so success and failure remain distinct without reserving valid values as sentinels. Unlike the other scalar result types, it is not a zero-allocation value class. Equality and hashing use the held value and error, not object identity.
 
 ## Types
 
 | Name | Summary |
 |---|---|
-| [Companion](-companion/index.md) | [common, jvmCommon, native]<br>[common]<br>expect object [Companion](-companion/index.md)<br>[jvmCommon, native]<br>actual object [Companion](-companion/index.md) |
+| [Companion](-companion/index.md) | [common]<br>object [Companion](-companion/index.md) |
 
 ## Properties
 
 | Name | Summary |
 |---|---|
-| [error](error.md) | [common, jvmCommon, native]<br>[common]<br>expect val [error](error.md): [KompactDecodeError](../-kompact-decode-error/index.md)?<br>[jvmCommon, native]<br>actual val [error](error.md): [KompactDecodeError](../-kompact-decode-error/index.md)? |
-| [isFailure](is-failure.md) | [common, jvmCommon, native]<br>[common]<br>expect val [isFailure](is-failure.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)<br>[jvmCommon, native]<br>actual val [isFailure](is-failure.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) |
-| [isSuccess](is-success.md) | [common, jvmCommon, native]<br>[common]<br>expect val [isSuccess](is-success.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)<br>[jvmCommon, native]<br>actual val [isSuccess](is-success.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) |
-| [packed](packed.md) | [common, jvmCommon, native]<br>[common]<br>expect val [packed](packed.md): [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)<br>[jvmCommon, native]<br>actual val [packed](packed.md): [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html) |
+| [error](error.md) | [common]<br>val [error](error.md): [KompactDecodeError](../-kompact-decode-error/index.md)?<br>Decode error on failure; `null` on success. |
+| [isFailure](is-failure.md) | [common]<br>val [isFailure](is-failure.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) |
+| [isSuccess](is-success.md) | [common]<br>val [isSuccess](is-success.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) |
+| [value](value.md) | [common]<br>val [value](value.md): [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)?<br>Decoded value on success; `null` on failure. |
 
 ## Functions
 
 | Name | Summary |
 |---|---|
+| [equals](equals.md) | [common]<br>open operator override fun [equals](equals.md)(other: [Any](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html)?): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) |
 | [getOrElse](../get-or-else.md) | [common]<br>inline fun [LongResult](index.md).[getOrElse](../get-or-else.md)(fallback: ([KompactDecodeError](../-kompact-decode-error/index.md)) -&gt; [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)): [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html) |
-| [getOrThrow](get-or-throw.md) | [common, jvmCommon, native]<br>[common]<br>expect fun [getOrThrow](get-or-throw.md)(): [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)<br>[jvmCommon, native]<br>actual fun [getOrThrow](get-or-throw.md)(): [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html) |
+| [getOrThrow](get-or-throw.md) | [common]<br>fun [getOrThrow](get-or-throw.md)(): [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html) |
+| [hashCode](hash-code.md) | [common]<br>open override fun [hashCode](hash-code.md)(): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) |
 | [map](../map.md) | [common]<br>inline fun [LongResult](index.md).[map](../map.md)(transform: ([Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)) -&gt; [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)): [LongResult](index.md) |
+| [toString](to-string.md) | [common]<br>open override fun [toString](to-string.md)(): [String](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html) |

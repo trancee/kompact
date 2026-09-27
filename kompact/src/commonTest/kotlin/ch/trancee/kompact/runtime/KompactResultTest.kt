@@ -151,15 +151,48 @@ class KompactResultTest {
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
 
-    // === LongResult — 64-bit sentinel encoding ===
+    // === LongResult — full-domain allocating result ===
 
     @Test
-    fun longResult_success_packsValue() {
+    fun longResult_success_keepsValueAndStatusSeparate() {
         val r = LongResult.success(42L)
         assertTrue(r.isSuccess)
         assertFalse(r.isFailure)
         assertNull(r.error)
+        assertEquals(42L, r.value)
         assertEquals(42L, r.getOrThrow())
+    }
+
+    @Test
+    fun longResult_preservesValueEquality() {
+        val success = LongResult.success(42L)
+        val equalSuccess = LongResult.success(42L)
+        assertEquals(success, equalSuccess)
+        assertEquals(success.hashCode(), equalSuccess.hashCode())
+        assertFalse(success.equals(42L))
+        assertEquals("LongResult(value=42)", success.toString())
+        assertNotEquals(LongResult.success(42L), LongResult.success(43L))
+        val failure = LongResult.failure(KompactDecodeError.BoundsError)
+        val equalFailure = LongResult.failure(KompactDecodeError.BoundsError)
+        assertEquals(failure, equalFailure)
+        assertEquals(failure.hashCode(), equalFailure.hashCode())
+        assertEquals("LongResult(error=BoundsError)", failure.toString())
+        assertEquals(
+            "LongResult(error=BadLengthPrefix)",
+            LongResult.failure(KompactDecodeError.BadLengthPrefix).toString(),
+        )
+        assertEquals(
+            "LongResult(error=TruncatedNested)",
+            LongResult.failure(KompactDecodeError.TruncatedNested).toString(),
+        )
+        assertEquals(
+            "LongResult(error=UnknownEnumCode(rawCode=42))",
+            LongResult.failure(KompactDecodeError.UnknownEnumCode(42)).toString(),
+        )
+        assertNotEquals(
+            LongResult.success(42L),
+            LongResult.failure(KompactDecodeError.BoundsError),
+        )
     }
 
     @Test
@@ -177,24 +210,6 @@ class KompactResultTest {
     }
 
     @Test
-    fun longResult_success_firstValueAboveSentinelRange() {
-        // Sentinel range: bits 63 set + 62..58 clear (0x8000_0000_0000_0000
-        // through 0x07FF_FFFF_FFFF_FFFF as signed). First representable success
-        // value with bit 63 set: bit 58 also set → outside the sentinel mask.
-        val firstAfter = Long.MIN_VALUE + (1L shl 58)
-        val r = LongResult.success(firstAfter)
-        assertTrue(r.isSuccess, "value falls outside sentinel range")
-        assertEquals(firstAfter, r.getOrThrow())
-    }
-
-    @Test
-    fun longResult_sentinelRangeNotRepresentableAsSuccess() {
-        // Long.MIN_VALUE collides with the failure sentinel base — documented tradeoff.
-        val r = LongResult.success(Long.MIN_VALUE)
-        assertFalse(r.isSuccess, "Long.MIN_VALUE is in the failure sentinel range")
-    }
-
-    @Test
     fun longResult_roundTrip_arbitraryLongs() {
         val values =
             listOf(
@@ -205,11 +220,13 @@ class KompactResultTest {
                 -42L,
                 Long.MAX_VALUE,
                 0x4000_0000_0000_0000L,
-                Long.MIN_VALUE + (1L shl 58),
+                Long.MIN_VALUE,
+                Long.MIN_VALUE + 1L,
+                Long.MIN_VALUE + (1L shl 58) - 1L,
             )
         for (v in values) {
             val r = LongResult.success(v)
-            assertTrue(r.isSuccess, "value=$v packed=${v.toString(16)}")
+            assertTrue(r.isSuccess, "value=$v")
             assertEquals(v, r.getOrThrow(), "value=$v")
         }
     }
@@ -219,6 +236,7 @@ class KompactResultTest {
         val r = LongResult.failure(KompactDecodeError.BoundsError)
         assertFalse(r.isSuccess)
         assertTrue(r.isFailure)
+        assertNull(r.value)
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
 
