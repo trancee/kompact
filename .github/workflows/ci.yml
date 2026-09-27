@@ -1,9 +1,9 @@
 name: CI
 
 # Validates the public ABI goldens, runs the JVM/KSP test suites, verifies
-# Kover coverage thresholds, generates Markdown API docs, and performs a
-# dry-run of the Maven Central Portal bundle pipeline (with an ephemeral
-# PGP key) for the KSP processor module.
+# Kover coverage thresholds, tests release-version calculation, generates
+# Markdown API docs, and performs a dry-run of the Maven Central Portal bundle
+# pipeline (with an ephemeral PGP key) for the KSP processor module.
 #
 # ABI validation:
 #   - Built-in KGP checkKotlinAbi (replaces BCV apiCheck/apiDump).
@@ -73,6 +73,8 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
+      - name: Test release version calculation
+        run: bash .github/scripts/release/version-bump-test.sh
       - run: |
           ./gradlew \
             spotlessCheck \

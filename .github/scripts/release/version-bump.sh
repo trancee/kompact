@@ -4,7 +4,7 @@
 #   version = "0.2.0-SNAPSHOT"
 #
 # Release versioning follows Conventional Commits semantics:
-#   - feat!  or BREAKING CHANGE  → major bump  (X.0.0 → (X+1).0.0)
+#   - feat!  or BREAKING CHANGE  → minor bump before 1.0, major bump from 1.0
 #   - feat   (no breaking)        → minor bump  (0.Y.Z → 0.(Y+1).0)
 #   - fix/other                   → patch bump  (0.Y.Z → 0.Y.(Z+1))
 #
@@ -41,7 +41,7 @@ extract_release() {
 }
 
 # Determine the bump type from Conventional Commits since the last tag.
-# Returns "major", "minor", or "patch".
+# Returns "breaking", "minor", or "patch".
 # Falls back to "patch" when git is unavailable or no commits found.
 _get_bump_type() {
   local last_tag commits
@@ -72,7 +72,7 @@ _get_bump_type() {
   # which makes the pipeline non-zero, causing the if-condition to fail even
   # when a match exists.
   if grep -qE '^(feat|fix|perf|refactor|build|chore|ci|style|test|docs)!:|BREAKING[ -]CHANGE' <<< "$commits"; then
-    echo "major"
+    echo "breaking"
   elif grep -qE '^feat(:|[:(])' <<< "$commits"; then
     echo "minor"
   else
@@ -109,7 +109,13 @@ compute_release_version() {
   fi
 
   case "$bump" in
-    major) echo "$((major + 1)).0.0" ;;
+    breaking)
+      if [ "$major" -eq 0 ]; then
+        echo "0.$((minor + 1)).0"
+      else
+        echo "$((major + 1)).0.0"
+      fi
+      ;;
     minor) echo "${major}.$((minor + 1)).0" ;;
     patch) echo "${major}.${minor}.$((patch + 1))" ;;
     *)     echo "$base" ;;

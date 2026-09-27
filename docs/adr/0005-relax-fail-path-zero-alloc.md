@@ -59,8 +59,9 @@ treated as a breaking API change before a stable release.
   failure. This is an intentional tradeoff; device-level allocation evidence
   remains a separate measurement requirement.
 - **Binary/source compatibility:** replacing the public value-class shape and
-  removing `packed` is a breaking API change. Ship it only before stable release
-  or under a MAJOR version.
+  removing `packed` is a breaking API change. Under the repository's pre-`1.0`
+  policy, it ships in the next MINOR release (`0.4.0`); from `1.0.0` onward,
+  the same change requires a MAJOR release.
 
 ## Migration
 

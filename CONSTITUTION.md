@@ -37,7 +37,8 @@ platforms, budgets, artifacts live in version control and refine this policy.
   single letters except trivial local indices.
 - Q4 Public declarations R explicit visibility+types where supported.
 - Q5 Public interfaces R repository compatibility tracking; each diff R release-impact explanation.
-- Q6 Released public/serialized contract semver: breaking=MAJOR, additive=MINOR, compatible fix=PATCH.
+- Q6 Released public/serialized contract semver: while major=0, breaking=MINOR; from major>=1, breaking=MAJOR;
+  additive=MINOR; compatible fix=PATCH.
 - Q7 Public API removal R documented deprecation >=1 MINOR; O immediate removal only for security incident.
 - Q8 Merged code X placeholders/disabled implementations/`TODO`; future work => issue tracker.
 - Q9 Comments R intent/constraint/tradeoff only; structure+names R explain behavior.
@@ -143,4 +144,4 @@ Before merge, all applicable:
 - V5 Ownership rules D designated review for constitution/security/release/CI/protocol/schema/persistence paths.
 - V6 Lower convention R narrowest relevant document; X duplicate here.
 
-`version=2.0.1; ratified=2026-04-30; amended=2026-08-29`
+`version=3.0.0; ratified=2026-04-30; amended=2026-09-27`
