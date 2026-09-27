@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
  * Coverage-pinning tests for accessors that other test suites exercise only
  * indirectly: `packed`, `isFailure` on success, `error` on success.
  *
- * Each result value class's `getPacked()` getter (synthetic on JVM, direct
+ * Each packed result value class's `getPacked()` getter (synthetic on JVM, direct
  * backing-field accessor on Native) is invoked here so JaCoCo/Kover records it
  * as covered. The `isFailure` and `error` accessors on *success* results
  * (returning `false` / `null`) close the remaining branch gaps.
@@ -58,16 +58,9 @@ class KompactResultCoverageTest {
     }
 
     @Test
-    fun longResult_packedRoundTrips() {
-        assertEquals(42L, callGetPacked(LongResult.success(42L)))
-    }
-
-    @Test
-    fun longResult_failure_packedRoundTrips() {
-        assertEquals(
-            encodeLongFailure(KompactDecodeError.BoundsError),
-            callGetPacked(LongResult.failure(KompactDecodeError.BoundsError)),
-        )
+    fun longResult_valueGetterPreservesTheFullLongRange() {
+        assertEquals(Long.MIN_VALUE, LongResult.success(Long.MIN_VALUE).value)
+        assertNull(LongResult.failure(KompactDecodeError.BoundsError).value)
     }
 
     @Test
@@ -105,7 +98,7 @@ class KompactResultCoverageTest {
     fun nestedRegionResult_packedRoundTripsFailure() {
         val r = NestedRegionResult.failure(KompactDecodeError.BoundsError)
         assertEquals(
-            encodeLongFailure(KompactDecodeError.BoundsError),
+            encodePackedFailure(KompactDecodeError.BoundsError),
             callGetPacked(r),
         )
     }

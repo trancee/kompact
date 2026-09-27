@@ -72,7 +72,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.3.0-SNAPSHOT")
+                implementation("ch.trancee.kompact:kompact:0.4.0-SNAPSHOT")
             }
         }
     }
@@ -80,7 +80,7 @@ kotlin {
 
 // Only if you use the KSP processor (recommended for production):
 dependencies {
-    kspCommonMainMetadata("ch.trancee.kompact:kompact-ksp:0.3.0-SNAPSHOT")
+    kspCommonMainMetadata("ch.trancee.kompact:kompact-ksp:0.4.0-SNAPSHOT")
 }
 ```
 
@@ -107,7 +107,7 @@ val bits: Int = KompactRuntime.readBits(raw, bitOffset, bitWidth)    // 1..31 bi
 val bitsL: Long = KompactRuntime.readBitsLong(raw, bitOffset, bitWidth)  // 1..64 bits
 val bit: Boolean = KompactRuntime.readBitsBoolean(raw, bitOffset)
 
-// Checked accessors (return typed result value classes, never throw on success)
+// Checked accessors (return typed results, never throw on success)
 val speed: IntResult = KompactRuntime.readScalar(raw, 0, ScalarType.of(10, signed = false))
 val flag: BooleanResult = KompactRuntime.readBool(raw, 14)
 val temp: FloatResult = KompactRuntime.readFloat(raw, bitOffset)
@@ -124,9 +124,9 @@ val mapped: IntResult = speed.map { it * 2 }
 - `readBits` / `writeBits` accept `bitWidth` in `1..31` only.
 - `readBitsLong` / `writeBitsLong` accept `1..64`.
 - `readScalar` accepts `1..32`; use `readScalarAsLong` for wider.
-- `LongResult` has a **sentinel band**: values in
-  `Long.MIN_VALUE .. Long.MIN_VALUE + (1L shl 58) - 1` are treated as
-  failure. They are not representable as success.
+- `LongResult` is a regular allocating class so every `Long` value,
+  including `Long.MIN_VALUE`, is representable. The other scalar result
+  types use packed value classes.
 - `Float` uses the packed-Long layout (32-bit IEEE-754 in the low 48
   bits). `Double` uses a NaN-payload scheme (canonical quiet-NaN =
   success, non-zero NaN payload = failure).
@@ -152,7 +152,7 @@ w.writeRepeated(count = 3, countWidth = 8) {
     writeScalar(ScalarType.of(16, signed = true), 100L)
 }
 
-val bytes: ByteArray = w.build()  // exact-length snapshot; writer is single-shot
+val bytes: ByteArray = w.build()  // exact-length snapshot; repeated calls preserve contents
 ```
 
 **Critical constraints:**
@@ -167,6 +167,9 @@ val bytes: ByteArray = w.build()  // exact-length snapshot; writer is single-sho
 - `writeString`, `writeBlob`, `writeNested`, `writeRepeated` all
   require `countWidth` / `lengthPrefixWidth` to be in
   `KompactFraming.VALID_PREFIX_WIDTHS` = `{8, 16, 32}`.
+- Prefix values must fit their selected width: byte lengths/counts are
+  capped at 255 for 8-bit prefixes, 65,535 for 16-bit prefixes, and
+  `Int.MAX_VALUE` for 32-bit prefixes.
 
 ### KompactFraming — the reader's counterpart
 
@@ -344,9 +347,8 @@ use the hand-written `KompactWriter` path for those.
    the low 4 bits only — `v = 16` silently truncates to 0. Validate
    before writing if the input is untrusted.
 
-5. **`LongResult` sentinel band.** Values in
-   `Long.MIN_VALUE..Long.MIN_VALUE + (1L shl 58) - 1` look like
-   failures. Don't store Long values that might land in that range.
+5. **`LongResult` allocates.** It preserves every signed `Long` value;
+   the other scalar result value classes are allocation-free.
 
 6. **`writeNested` vs `writeRepeated` receiver.** `writeNested`
    passes a **child** writer to the block; `writeRepeated` passes the
@@ -360,8 +362,8 @@ use the hand-written `KompactWriter` path for those.
    But `readBits` (raw) does not — use the checked accessors if you
    need NaN safety.
 
-9. **`build()` is single-shot.** Calling `w.build()` twice returns an
-   empty array the second time — the writer is forward-only by design.
+9. **`build()` returns a snapshot.** Repeated calls return the writer's
+   current contents without consuming them.
 
 10. **`@KompactPreview` opt-in.** All annotations require
     `@file:OptIn(KompactPreview::class)` per file. The opt-in is

@@ -34,7 +34,7 @@ example, but read with the checked, typed API (`readScalar` /
   and add the local snapshot:
   ```kotlin
   // build.gradle.kts (consumer)
-  implementation("ch.trancee.kompact:kompact:0.2.0-SNAPSHOT")
+  implementation("ch.trancee.kompact:kompact:0.4.0-SNAPSHOT")
   ```
   …or include the project directly.
 
@@ -65,8 +65,10 @@ updated to match).
 ## Step 2 — read it back, checked
 Every `KompactRuntime` read accessor that ends in a typed result
 (`readBool`, `readScalar`, `readScalarAsLong`, `readFloat`, `readDouble`)
-returns a **zero-allocation result value class** — not a primitive, not
-a throw. The success hot path never throws.
+returns a typed result — not a primitive and not an exception. Except
+for `readScalarAsLong`, these are zero-allocation value classes on the
+success path. `readScalarAsLong` allocates a `LongResult` to preserve
+every valid `Long` value.
 
 ```kotlin
 import ch.trancee.kompact.runtime.KompactRuntime

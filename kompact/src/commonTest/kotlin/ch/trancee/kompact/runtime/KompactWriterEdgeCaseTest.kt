@@ -73,6 +73,76 @@ class KompactWriterEdgeCaseTest {
         }
     }
 
+    @Test
+    fun writeBlob_lengthTooLargeForPrefix_throwsBeforeWriting() {
+        val w = KompactWriter()
+        w.writeBool(true)
+        assertFailsWith<IllegalArgumentException> {
+            w.writeBlob(countWidth = 8, bytes = ByteArray(256))
+        }
+        assertEquals(1, w.bitCursor)
+        assertEquals(1, KompactRuntime.readBits(w.build(), 0, 1))
+    }
+
+    @Test
+    fun writeBlob_lengthTooLargeFor16BitPrefix_throwsBeforeWriting() {
+        val w = KompactWriter()
+        assertFailsWith<IllegalArgumentException> {
+            w.writeBlob(countWidth = 16, bytes = ByteArray(65_536))
+        }
+        assertEquals(0, w.bitCursor)
+        assertEquals(0, w.build().size)
+    }
+
+    @Test
+    fun writeString_lengthTooLargeForPrefix_throwsBeforeWriting() {
+        val w = KompactWriter()
+        w.writeBool(true)
+        assertFailsWith<IllegalArgumentException> {
+            w.writeString(countWidth = 8, value = "x".repeat(256))
+        }
+        assertEquals(1, w.bitCursor)
+        assertEquals(1, KompactRuntime.readBits(w.build(), 0, 1))
+    }
+
+    @Test
+    fun writeNested_lengthTooLargeForPrefix_throwsBeforeWriting() {
+        val w = KompactWriter()
+        w.writeBool(true)
+        assertFailsWith<IllegalArgumentException> {
+            w.writeNested(lengthPrefixWidth = 8) {
+                repeat(256) { writeBitsLong(8, 0L) }
+            }
+        }
+        assertEquals(1, w.bitCursor)
+        assertEquals(1, KompactRuntime.readBits(w.build(), 0, 1))
+    }
+
+    @Test
+    fun writeRepeated_countTooLargeForPrefix_throwsBeforeWriting() {
+        val w = KompactWriter()
+        w.writeBool(true)
+        var blockCalls = 0
+        assertFailsWith<IllegalArgumentException> {
+            w.writeRepeated(count = 256, countWidth = 8) { blockCalls++ }
+        }
+        assertEquals(0, blockCalls)
+        assertEquals(1, w.bitCursor)
+        assertEquals(1, KompactRuntime.readBits(w.build(), 0, 1))
+    }
+
+    @Test
+    fun writeRepeated_countTooLargeFor16BitPrefix_throwsBeforeWriting() {
+        val w = KompactWriter()
+        var blockCalls = 0
+        assertFailsWith<IllegalArgumentException> {
+            w.writeRepeated(count = 65_536, countWidth = 16) { blockCalls++ }
+        }
+        assertEquals(0, blockCalls)
+        assertEquals(0, w.bitCursor)
+        assertEquals(0, w.build().size)
+    }
+
     // --- appendBytes: non-aligned bit cursor (bit-by-bit fallback path) ---
 
     @Test

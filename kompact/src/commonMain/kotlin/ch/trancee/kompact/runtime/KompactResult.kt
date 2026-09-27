@@ -7,17 +7,14 @@ package ch.trancee.kompact.runtime
 // packed-Long layout:
 //   [ ok(bit63) | errorKind(bits 62..60) | rawEnumCode(bits 59..48) | value(bits 47..0) ]
 //
-// LongResult (64-bit) uses a sentinel range near Long.MIN_VALUE:
-//   bits 63 set + bits 62..58 clear → failure; error kind in bits 2..0.
-//   Values in that range are not representable as success (documented).
+// NestedRegionResult uses a packed-Long failure sentinel; successful offsets
+// and lengths occupy only non-negative 32-bit halves.
 //
 // DoubleResult (64-bit) uses reserved quiet-NaN payloads:
 //   canonical NaN (payload 0) = success; quiet NaN with non-zero payload
 //   in bits 3..0 = failure (error kind encoded as payload 1..4).
 //
-// On both JVM (@JvmInline) and Kotlin/Native (value class over Long)
-// the result instance is zero-alloc on both success and failure —
-// the packed Long is stored inline (Ticket 03).
+// These packed results are zero-alloc on both JVM and Kotlin/Native.
 // ====================================================================
 
 // --- ≤32-bit result encoding ---
@@ -27,10 +24,10 @@ internal const val RESULT_ERROR_KIND_SHIFT: Int = 60
 internal const val RESULT_RAW_ENUM_SHIFT: Int = 48
 internal val RESULT_VALUE_MASK: Long = 0x0000_FFFF_FFFF_FFFFL
 
-// --- LongResult sentinel encoding ---
+// --- NestedRegionResult failure sentinel ---
 
-internal val LONG_FAIL_MASK: Long = Long.MIN_VALUE or 0x7C00_0000_0000_0000L
-internal val LONG_FAIL_BASE: Long = Long.MIN_VALUE
+internal val PACKED_FAILURE_MASK: Long = Long.MIN_VALUE or 0x7C00_0000_0000_0000L
+internal val PACKED_FAILURE_BASE: Long = Long.MIN_VALUE
 
 // --- FloatResult NaN encoding ---
 
@@ -89,15 +86,15 @@ internal fun encodeSmallFailure(error: KompactDecodeError): Long {
     return (kind shl RESULT_ERROR_KIND_SHIFT) or (rawCode shl RESULT_RAW_ENUM_SHIFT)
 }
 
-internal fun isLongFailure(packed: Long): Boolean = (packed and LONG_FAIL_MASK) == LONG_FAIL_BASE
+internal fun isPackedFailure(packed: Long): Boolean = (packed and PACKED_FAILURE_MASK) == PACKED_FAILURE_BASE
 
-internal fun encodeLongFailure(error: KompactDecodeError): Long {
+internal fun encodePackedFailure(error: KompactDecodeError): Long {
     val kind = encodeErrorKind(error).toLong()
     val rawCode = if (error is KompactDecodeError.UnknownEnumCode) error.rawCode.toLong() else 0L
-    return LONG_FAIL_BASE or kind or (rawCode shl 3)
+    return PACKED_FAILURE_BASE or kind or (rawCode shl 3)
 }
 
-internal fun decodeLongError(packed: Long): KompactDecodeError {
+internal fun decodePackedError(packed: Long): KompactDecodeError {
     val kind = (packed and 0x7L).toInt()
     val rawCode = ((packed ushr 3) and 0xFFL).toInt()
     return decodeError(kind, rawCode)
@@ -132,22 +129,20 @@ internal fun encodeFloatSuccess(value: Float): Long =
 internal fun throwDecodeErrorFromSmallBits(packed: Long): Nothing =
     throw KompactDecodeException(decodeErrorFromSmallBits(packed))
 
-internal fun throwDecodeErrorFromLong(packed: Long): Nothing = throw KompactDecodeException(decodeLongError(packed))
+internal fun throwDecodeErrorFromPacked(packed: Long): Nothing = throw KompactDecodeException(decodePackedError(packed))
 
 internal fun throwDecodeErrorFromDouble(packed: Long): Nothing = throw KompactDecodeException(decodeDoubleError(packed))
 
 // ====================================================================
 // Ticket 08 — result value class declarations (expect)
 //
-// Five specialized result types — one per value shape:
+// Specialized result types:
 //   IntResult     (≤32-bit integer; Byte/Short widen to Int via ScalarType
 //                  width at read time — readScalar already returns IntResult),
-//   LongResult    (64-bit integer, sentinel-band encoding),
 //   FloatResult   (32-bit float, NaN-canonical success),
 //   DoubleResult  (64-bit float, reserved quiet-NaN payload for errors),
-//   BooleanResult (single bit).
-// No generic T. Each wraps a single Long, zero-alloc on both JVM
-// (@JvmInline) and Kotlin/Native (value class).
+//   BooleanResult (single bit), and LongResult (a full-domain allocating result).
+// The four packed result types each wrap a Long and are zero-alloc.
 // ====================================================================
 
 public expect value class IntResult(
@@ -201,29 +196,49 @@ public expect value class BooleanResult(
 /**
  * Checked 64-bit integer result (Ticket 08).
  *
- * Because every 64-bit `Long` bit-pattern is a valid signed value, success
- * and failure cannot be distinguished without reserving a sentinel band.
- * [success] therefore treats a compact range near [Long.MIN_VALUE]
- * (bit 63 set with bits 62..58 clear, i.e. `Long.MIN_VALUE` through
- * `Long.MIN_VALUE + (1L shl 58) - 1`) as the failure sentinel — these values
- * are **not representable as success**. The first representable negative
- * success value is `Long.MIN_VALUE + (1L shl 58)` (bit 58 set, outside the
- * sentinel mask). This is the documented tradeoff of packing a typed result
- * into a single `Long` without boxing; see Ticket 08.
+ * Holds either any [Long] value or a [KompactDecodeError]. This regular class
+ * allocates so success and failure remain distinct without reserving valid
+ * values as sentinels. Unlike the other scalar result types, it is not a
+ * zero-allocation value class. Equality and hashing use the held value and
+ * error, not object identity.
  */
-public expect value class LongResult(
-    public val packed: Long,
+public class LongResult private constructor(
+    private val successValue: Long,
+    /** Decode error on failure; `null` on success. */
+    public val error: KompactDecodeError?,
 ) {
-    public val isSuccess: Boolean
-    public val isFailure: Boolean
-    public val error: KompactDecodeError?
+    /** Decoded value on success; `null` on failure. */
+    public val value: Long? get() = if (error == null) successValue else null
 
-    public fun getOrThrow(): Long
+    public val isSuccess: Boolean get() = error == null
+    public val isFailure: Boolean get() = error != null
+
+    public fun getOrThrow(): Long {
+        val decodeError = error
+        if (decodeError != null) throw KompactDecodeException(decodeError)
+        return successValue
+    }
+
+    public override fun equals(other: Any?): Boolean =
+        other is LongResult && successValue == other.successValue && error == other.error
+
+    public override fun hashCode(): Int = 31 * successValue.hashCode() + (error?.hashCode() ?: 0)
+
+    public override fun toString(): String =
+        "LongResult(${
+            when (val decodeError = error) {
+                null -> "value=$successValue"
+                KompactDecodeError.BoundsError -> "error=BoundsError"
+                KompactDecodeError.BadLengthPrefix -> "error=BadLengthPrefix"
+                KompactDecodeError.TruncatedNested -> "error=TruncatedNested"
+                is KompactDecodeError.UnknownEnumCode -> "error=UnknownEnumCode(rawCode=${decodeError.rawCode})"
+            }
+        })"
 
     public companion object {
-        public fun success(value: Long): LongResult
+        public fun success(value: Long): LongResult = LongResult(value, null)
 
-        public fun failure(error: KompactDecodeError): LongResult
+        public fun failure(error: KompactDecodeError): LongResult = LongResult(0L, error)
     }
 }
 

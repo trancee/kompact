@@ -184,7 +184,7 @@ bleCharacteristic.value = received.raw
 
 `MutableSensorFrame` is the write-through companion to the read-only
 default view — same `raw` buffer, `var` setters that write each bit-field
-in place. See [ADR-0006](adr/0006-immutable-default-models.md) and the
+in place. See [ADR-0006](../adr/0006-immutable-default-models.md) and the
 bundled `MutableVehicleTelemetry` for the full pattern.
 
 **Sanity check.** `frame.raw.size == 4` and the same value class
@@ -261,7 +261,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.3.0-SNAPSHOT")
+                implementation("ch.trancee.kompact:kompact:0.4.0-SNAPSHOT")
             }
         }
     }
@@ -271,7 +271,7 @@ dependencies {
     // Use kspCommonMainMetadata so generated sources land in the
     // common source set shared by all KMP targets (not per-target).
     // The processor generates expect/actual stubs from your annotations.
-    kspCommonMainMetadata("ch.trancee.kompact:kompact-ksp:0.3.0-SNAPSHOT")
+    kspCommonMainMetadata("ch.trancee.kompact:kompact-ksp:0.4.0-SNAPSHOT")
 }
 ```
 

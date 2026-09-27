@@ -78,7 +78,7 @@ class ValueClassGeneratorTest {
     }
 
     @Test
-    fun `encode function uses KompactWriter sequentially`() {
+    fun `encode function writes each field at its declared offset`() {
         val spec = vehicleTelemetrySpec()
         val output = ValueClassGenerator.generateExpect(spec)
 
@@ -87,20 +87,20 @@ class ValueClassGeneratorTest {
             "Should generate internal encode function",
         )
         assertTrue(
-            output.contains("val w = KompactWriter()"),
-            "Should create a KompactWriter",
+            output.contains("val raw = ByteArray(2)"),
+            "Should allocate the size implied by the field offsets",
         )
         assertTrue(
-            output.contains("w.writeScalar(ScalarType.of(4, signed = false), batteryStatus.toLong())"),
-            "Should write batteryStatus via writeScalar",
+            output.contains("KompactRuntime.writeBits(raw, 0, 4, batteryStatus)"),
+            "Should write batteryStatus at its declared bit offset",
         )
         assertTrue(
-            output.contains("w.writeBool(isMalfunctioning)"),
-            "Should write isMalfunctioning via writeBool",
+            output.contains("KompactRuntime.writeBitsBoolean(raw, 14, isMalfunctioning)"),
+            "Should write isMalfunctioning at its declared bit offset",
         )
         assertTrue(
-            output.contains("return w.build()"),
-            "Should return w.build()",
+            output.contains("return raw"),
+            "Should return the allocated frame",
         )
     }
 
@@ -250,13 +250,66 @@ class ValueClassGeneratorTest {
         val spec = vehicleTelemetrySpec()
         val output = ValueClassGenerator.generateJvmActual(spec)
 
-        assertTrue(
-            output.contains("KompactRuntime.readBits(raw, 0, 4)"),
-            "Expected raw readBits call for batteryStatus, got:\n$output",
-        )
+        assertTrue(output.contains("KompactRuntime.readBits(raw, 0, 4)"), "Expected raw readBits call, got:\n$output")
         assertTrue(
             output.contains("KompactRuntime.readBits(raw, 4, 10)"),
             "Expected raw readBits call for speed",
+        )
+    }
+
+    @Test
+    fun `signed Int getter sign extends its declared bit width`() {
+        val spec =
+            ModelSpec(
+                packageName = "test",
+                className = "SignedModel",
+                fields = listOf(field("value", 8, 12, "Int", signed = true)),
+            )
+        val output = ValueClassGenerator.generateJvmActual(spec)
+
+        assertTrue(
+            output.contains("(KompactRuntime.readBits(raw, 8, 12) shl 20) shr 20"),
+            "Signed getters must sign-extend the declared width, got:\n$output",
+        )
+    }
+
+    @Test
+    fun `signed Long getter sign extends its declared bit width`() {
+        val spec =
+            ModelSpec(
+                packageName = "test",
+                className = "SignedLongModel",
+                fields = listOf(field("value", 8, 12, "Long", signed = true)),
+            )
+        val output = ValueClassGenerator.generateJvmActual(spec)
+
+        assertTrue(
+            output.contains("(KompactRuntime.readBitsLong(raw, 8, 12) shl 52) shr 52"),
+            "Signed Long getters must sign-extend the declared width, got:\n$output",
+        )
+    }
+
+    @Test
+    fun `create encoder writes fields at declared offsets including gaps`() {
+        val spec =
+            ModelSpec(
+                packageName = "test",
+                className = "SparseModel",
+                fields =
+                    listOf(
+                        field("first", 0, 4),
+                        field("last", 8, 4),
+                    ),
+            )
+        val output = ValueClassGenerator.generateExpect(spec)
+
+        assertTrue(
+            output.contains("ByteArray(2)"),
+            "Sparse layout must allocate through its final offset, got:\n$output",
+        )
+        assertTrue(
+            output.contains("KompactRuntime.writeBits(raw, 8, 4, last)"),
+            "Sparse layout must encode the second field at its declared offset, got:\n$output",
         )
     }
 
@@ -402,7 +455,7 @@ class ValueClassGeneratorTest {
     }
 
     @Test
-    fun `signed Int uses signed = true in ScalarType for encode`() {
+    fun `signed Int encoder writes its low bits directly at the declared offset`() {
         val spec =
             ModelSpec(
                 packageName = "test",
@@ -415,8 +468,8 @@ class ValueClassGeneratorTest {
         val output = ValueClassGenerator.generateExpect(spec)
 
         assertTrue(
-            output.contains("ScalarType.of(16, signed = true)"),
-            "Expected signed = true in encode call, got:\n$output",
+            output.contains("KompactRuntime.writeBits(raw, 0, 16, value)"),
+            "Expected signed Int field encoding to preserve its two's-complement bits, got:\n$output",
         )
     }
 

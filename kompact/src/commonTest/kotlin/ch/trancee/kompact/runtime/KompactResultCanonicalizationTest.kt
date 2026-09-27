@@ -7,7 +7,7 @@ import kotlin.test.assertTrue
 
 /**
  * Ticket 04: IEEE-754 floats carry a canonicalized NaN.
- * Ticket 08: LongResult reserves a sentinel band near Long.MIN_VALUE (documented tradeoff).
+ * LongResult preserves the complete Long domain independently of its failure state.
  */
 class KompactResultCanonicalizationTest {
     // --- FloatResult NaN canonicalization (Ticket 04) ---
@@ -75,23 +75,21 @@ class KompactResultCanonicalizationTest {
         }
     }
 
-    // --- LongResult sentinel band (Ticket 08: documented tradeoff) ---
+    // --- LongResult full 64-bit domain ---
 
     @Test
-    fun longResult_sentinelRangeReservesLowBandNearMinValue() {
-        // The failure sentinel band is Long.MIN_VALUE .. (Long.MIN_VALUE + (1L<<58) - 1):
-        // bit 63 set (negative) with bits 62..58 clear. The first representable
-        // success value with bit 63 set has bit 58 also set.
-        val firstSuccessBelowMin = Long.MIN_VALUE + (1L shl 58)
-        val r = LongResult.success(firstSuccessBelowMin)
-        assertTrue(r.isSuccess, "first value past sentinel band must be representable")
-        assertEquals(firstSuccessBelowMin, r.getOrThrow())
+    fun longResult_valuesNearMinimumRemainRepresentable() {
+        val lastFormerSentinelValue = Long.MIN_VALUE + (1L shl 58) - 1L
+        val r = LongResult.success(lastFormerSentinelValue)
+        assertTrue(r.isSuccess)
+        assertEquals(lastFormerSentinelValue, r.getOrThrow())
     }
 
     @Test
-    fun longResult_sentinelRangeLongMinValueUnrepresentableAsSuccess() {
+    fun longResult_minValueIsRepresentableAsSuccess() {
         val r = LongResult.success(Long.MIN_VALUE)
-        assertFalse(r.isSuccess, "Long.MIN_VALUE is in the failure sentinel range (documented)")
+        assertTrue(r.isSuccess)
+        assertEquals(Long.MIN_VALUE, r.getOrThrow())
     }
 
     // --- Read-path NaN canonicalization ---

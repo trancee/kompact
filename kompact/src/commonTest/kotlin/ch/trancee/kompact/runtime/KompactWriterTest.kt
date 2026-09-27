@@ -131,4 +131,17 @@ class KompactWriterTest {
         // 4 bits + 1 bit = 5 bits → ceil(5/8) = 1 byte.
         assertEquals(1, w.build().size)
     }
+
+    @Test
+    fun build_returnsIndependentSnapshotsWithoutConsumingWriter() {
+        val w = KompactWriter()
+        w.writeBits(8, 0x12)
+        val first = w.build()
+
+        w.writeBits(8, 0x34)
+        val second = w.build()
+
+        assertContentEquals(byteArrayOf(0x12), first)
+        assertContentEquals(byteArrayOf(0x12, 0x34), second)
+    }
 }

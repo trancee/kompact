@@ -19,9 +19,7 @@ class KompactRuntimeReadScalarAsLongTest {
 
     @Test
     fun readScalarLong_width64_signed_nearMinValue() {
-        // Long.MIN_VALUE (0x8000...) is in the failure sentinel range (documented tradeoff).
-        // 0x8400_0000_0000_0000 is the first representable success value below 0.
-        val value = Long.MIN_VALUE + (1L shl 58)
+        val value = Long.MIN_VALUE
         val buf = ByteArray(8) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 64, value)
         val r = KompactRuntime.readScalarAsLong(buf, 0, ScalarType.of(64, signed = true))
@@ -49,7 +47,7 @@ class KompactRuntimeReadScalarAsLongTest {
 
     @Test
     fun readScalarLong_width64_signed_largePositive() {
-        // 0x4000_0000_0000_0000 is outside the LongResult failure sentinel range
+        // A value with bit 62 set is preserved as a signed Long.
         val buf = ByteArray(8) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 64, 0x4000_0000_0000_0000L)
         val r = KompactRuntime.readScalarAsLong(buf, 0, ScalarType.of(64, signed = true))

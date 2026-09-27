@@ -151,12 +151,14 @@ $dokka.location:ch.trancee.kompact.runtime/LongResult.Companion///PointingToDecl
 $dokka.location:ch.trancee.kompact.runtime/LongResult.Companion/failure/#ch.trancee.kompact.runtime.KompactDecodeError/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/-companion/failure.md
 $dokka.location:ch.trancee.kompact.runtime/LongResult.Companion/success/#kotlin.Long/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/-companion/success.md
 $dokka.location:ch.trancee.kompact.runtime/LongResult///PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/index.md
-$dokka.location:ch.trancee.kompact.runtime/LongResult/LongResult/#kotlin.Long/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/-long-result.md
+$dokka.location:ch.trancee.kompact.runtime/LongResult/equals/#kotlin.Any?/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/equals.md
 $dokka.location:ch.trancee.kompact.runtime/LongResult/error/#/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/error.md
 $dokka.location:ch.trancee.kompact.runtime/LongResult/getOrThrow/#/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/get-or-throw.md
+$dokka.location:ch.trancee.kompact.runtime/LongResult/hashCode/#/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/hash-code.md
 $dokka.location:ch.trancee.kompact.runtime/LongResult/isFailure/#/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/is-failure.md
 $dokka.location:ch.trancee.kompact.runtime/LongResult/isSuccess/#/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/is-success.md
-$dokka.location:ch.trancee.kompact.runtime/LongResult/packed/#/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/packed.md
+$dokka.location:ch.trancee.kompact.runtime/LongResult/toString/#/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/to-string.md
+$dokka.location:ch.trancee.kompact.runtime/LongResult/value/#/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-long-result/value.md
 $dokka.location:ch.trancee.kompact.runtime/NestedRegion///PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-nested-region/index.md
 $dokka.location:ch.trancee.kompact.runtime/NestedRegionResult.Companion///PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-nested-region-result/-companion/index.md
 $dokka.location:ch.trancee.kompact.runtime/NestedRegionResult.Companion/failure/#ch.trancee.kompact.runtime.KompactDecodeError/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-nested-region-result/-companion/failure.md

@@ -234,14 +234,14 @@ public final class ch/trancee/kompact/runtime/KompactFraming {
 }
 
 public final class ch/trancee/kompact/runtime/KompactResultExtensionsKt {
+	public static final fun getOrElse (Lch/trancee/kompact/runtime/LongResult;Lkotlin/jvm/functions/Function1;)J
 	public static final fun getOrElse-04PP264 (JLkotlin/jvm/functions/Function1;)I
-	public static final fun getOrElse-8pLS_AI (JLkotlin/jvm/functions/Function1;)J
 	public static final fun getOrElse-9uUfFUU (JLkotlin/jvm/functions/Function1;)Lkotlin/Pair;
 	public static final fun getOrElse-KHew9tA (JLkotlin/jvm/functions/Function1;)Z
 	public static final fun getOrElse-KRgI0Dk (JLkotlin/jvm/functions/Function1;)F
 	public static final fun getOrElse-Qr0ZSjM (JLkotlin/jvm/functions/Function1;)D
+	public static final fun map (Lch/trancee/kompact/runtime/LongResult;Lkotlin/jvm/functions/Function1;)Lch/trancee/kompact/runtime/LongResult;
 	public static final fun map-04PP264 (JLkotlin/jvm/functions/Function1;)J
-	public static final fun map-8pLS_AI (JLkotlin/jvm/functions/Function1;)J
 	public static final fun map-9uUfFUU (JLkotlin/jvm/functions/Function1;)J
 	public static final fun map-KHew9tA (JLkotlin/jvm/functions/Function1;)J
 	public static final fun map-KRgI0Dk (JLkotlin/jvm/functions/Function1;)J
@@ -266,7 +266,7 @@ public final class ch/trancee/kompact/runtime/KompactRuntime {
 	public final fun readFloat-jORRDc0 ([BI)J
 	public final fun readFloatOrThrow ([BI)F
 	public final fun readScalar-Sza6B_M ([BII)J
-	public final fun readScalarAsLong-x9C6wVU ([BII)J
+	public final fun readScalarAsLong-W6vtYLY ([BII)Lch/trancee/kompact/runtime/LongResult;
 	public final fun readScalarAsLongOrThrow-W6vtYLY ([BII)J
 	public final fun readScalarOrThrow-W6vtYLY ([BII)I
 	public final fun writeBits ([BIII)V
@@ -295,26 +295,19 @@ public final class ch/trancee/kompact/runtime/KompactWriter$Companion {
 
 public final class ch/trancee/kompact/runtime/LongResult {
 	public static final field Companion Lch/trancee/kompact/runtime/LongResult$Companion;
-	public static final synthetic fun box-impl (J)Lch/trancee/kompact/runtime/LongResult;
-	public static fun constructor-impl (J)J
 	public fun equals (Ljava/lang/Object;)Z
-	public static fun equals-impl (JLjava/lang/Object;)Z
-	public static final fun equals-impl0 (JJ)Z
-	public static final fun getError-impl (J)Lch/trancee/kompact/runtime/KompactDecodeError;
-	public static final fun getOrThrow-impl (J)J
-	public final fun getPacked ()J
+	public final fun getError ()Lch/trancee/kompact/runtime/KompactDecodeError;
+	public final fun getOrThrow ()J
+	public final fun getValue ()Ljava/lang/Long;
 	public fun hashCode ()I
-	public static fun hashCode-impl (J)I
-	public static final fun isFailure-impl (J)Z
-	public static final fun isSuccess-impl (J)Z
+	public final fun isFailure ()Z
+	public final fun isSuccess ()Z
 	public fun toString ()Ljava/lang/String;
-	public static fun toString-impl (J)Ljava/lang/String;
-	public final synthetic fun unbox-impl ()J
 }
 
 public final class ch/trancee/kompact/runtime/LongResult$Companion {
-	public final fun failure-cFSl1BI (Lch/trancee/kompact/runtime/KompactDecodeError;)J
-	public final fun success-cFSl1BI (J)J
+	public final fun failure (Lch/trancee/kompact/runtime/KompactDecodeError;)Lch/trancee/kompact/runtime/LongResult;
+	public final fun success (J)Lch/trancee/kompact/runtime/LongResult;
 }
 
 public final class ch/trancee/kompact/runtime/NestedRegionResult {

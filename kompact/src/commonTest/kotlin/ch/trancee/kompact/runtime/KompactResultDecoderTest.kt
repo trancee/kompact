@@ -6,7 +6,7 @@ import kotlin.test.assertFailsWith
 
 /**
  * Edge-case tests for the internal error-decode helpers — the `else` branches
- * in `decodeErrorFromSmallBits`, `decodeLongError`, and `decodeDoubleError`
+ * in `decodeErrorFromSmallBits`, `decodePackedError`, and `decodeDoubleError`
  * that map unknown error kinds (4–7) to `BoundsError` (defensive default).
  *
  * The public `failure(error)` APIs always encode kinds 0–3, so the `else`
@@ -40,23 +40,18 @@ class KompactResultDecoderTest {
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
 
-    // --- decodeLongError else branch (kind 4-7 → BoundsError) ---
-
     @Test
-    fun longResult_constructedWithUnknownErrorKind_decodesAsBoundsError() {
-        // LongResult failure layout: Long.MIN_VALUE | kind (kind in bits 2..0).
-        val unknownPacked = encodeLongFailure(KompactDecodeError.BoundsError) or 4L
-        val r = LongResult(unknownPacked)
+    fun nestedRegionResult_constructedWithUnknownErrorKind_decodesAsBoundsError() {
+        val unknownPacked = encodePackedFailure(KompactDecodeError.BoundsError) or 5L
+        val r = NestedRegionResult(unknownPacked)
         assertEquals(false, r.isSuccess)
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
 
     @Test
-    fun nestedRegionResult_constructedWithUnknownErrorKind_decodesAsBoundsError() {
-        val unknownPacked = encodeLongFailure(KompactDecodeError.BoundsError) or 5L
-        val r = NestedRegionResult(unknownPacked)
-        assertEquals(false, r.isSuccess)
-        assertEquals(KompactDecodeError.BoundsError, r.error)
+    fun nestedRegionResult_failurePreservesUnknownEnumCode() {
+        val result = NestedRegionResult.failure(KompactDecodeError.UnknownEnumCode(42))
+        assertEquals(KompactDecodeError.UnknownEnumCode(42), result.error)
     }
 
     // --- decodeDoubleError else branch (payload kind 4-7 → BoundsError) ---
@@ -79,16 +74,7 @@ class KompactResultDecoderTest {
         assertEquals(KompactDecodeError.BoundsError, r.error)
     }
 
-    // --- throwDecodeErrorFromLong / Double ---
-
-    @Test
-    fun longResult_unknownKind_getOrThrow_throwsBoundsError() {
-        val unknownPacked = encodeLongFailure(KompactDecodeError.BoundsError) or 6L
-        val r = LongResult(unknownPacked)
-        val ex = assertFailsWith<KompactDecodeException> { r.getOrThrow() }
-        assertEquals(KompactDecodeError.BoundsError, ex.error)
-    }
-
+    // --- throwDecodeErrorFromDouble ---
     @Test
     fun doubleResult_unknownKind_getOrThrow_throwsBoundsError() {
         val unknownPacked = DOUBLE_NAN_CANONICAL or 7L

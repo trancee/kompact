@@ -76,30 +76,6 @@ public actual value class BooleanResult(
     }
 }
 
-// LongResult — sentinel-based encoding (bits 63 set + 62..58 clear) (Ticket 08)
-@JvmInline
-public actual value class LongResult(
-    public actual val packed: Long,
-) {
-    public actual val isSuccess: Boolean get() = !isLongFailure(packed)
-    public actual val isFailure: Boolean get() = isLongFailure(packed)
-    public actual val error: KompactDecodeError? get() =
-        if (isSuccess) null else decodeLongError(packed)
-
-    public actual fun getOrThrow(): Long =
-        if (isSuccess) {
-            packed
-        } else {
-            throwDecodeErrorFromLong(packed)
-        }
-
-    public actual companion object {
-        public actual fun success(value: Long): LongResult = LongResult(value)
-
-        public actual fun failure(error: KompactDecodeError): LongResult = LongResult(encodeLongFailure(error))
-    }
-}
-
 // DoubleResult — canonical-NaN success, reserved NaN payload for errors (Ticket 08)
 @JvmInline
 public actual value class DoubleResult(

@@ -128,7 +128,7 @@ the caller knows the buffer is well-formed.
 
 ### Checked, typed read accessors
 
-Every accessor returns a **typed result value class** (see
+Every accessor returns a **typed result type** (see
 [below](#typed-result-value-classes)) — never throws on the
 success path. `getOrThrow()` is the only call that can raise
 (`KompactDecodeException`) and only on failure.
@@ -137,7 +137,7 @@ success path. `getOrThrow()` is the only call that can raise
 | --- | --- | --- | --- |
 | `readBool` | `readBool(raw: ByteArray, bitOffset: Int): BooleanResult` | 1-bit read. | Bounds. |
 | `readScalar` | `readScalar(raw: ByteArray, bitOffset: Int, type: ScalarType): IntResult` | 1–32-bit read. `type.signed` controls sign/zero extension. | Bounds; `bitWidth` must be in `1..32`. |
-| `readScalarAsLong` | `readScalarAsLong(raw: ByteArray, bitOffset: Int, type: ScalarType): LongResult` | 1–64-bit read. Same `signed` semantics as `readScalar`. | Bounds; `bitWidth` must be in `1..64`. The packed `Long` for a 64-bit value uses a sentinel near `Long.MIN_VALUE` (see [architecture — error encoding](architecture.md#runtime-error-encoding)) — those values are not representable as success. |
+| `readScalarAsLong` | `readScalarAsLong(raw: ByteArray, bitOffset: Int, type: ScalarType): LongResult` | 1–64-bit read. Same `signed` semantics as `readScalar`. `LongResult` allocates so every `Long` value remains representable. | Bounds; `bitWidth` must be in `1..64`. |
 | `readFloat` | `readFloat(raw: ByteArray, bitOffset: Int): FloatResult` | 32-bit IEEE-754 read. NaN is canonicalized on the wire. | Bounds. |
 | `readDouble` | `readDouble(raw: ByteArray, bitOffset: Int): DoubleResult` | 64-bit IEEE-754 read. NaN is canonicalized on the wire. | Bounds. |
 
@@ -165,9 +165,9 @@ These exist for callers who prefer exceptions to pattern-matching the result.
 ## KompactWriter
 
 A forward-only, growable bit-buffer builder. Append fields in the
-order they appear on the wire; `build()` returns the exact-length
-`ByteArray` snapshot. The writer is single-use — calling `build()` a
-second time yields an empty buffer.
+order they appear on the wire; `build()` returns an exact-length
+`ByteArray` snapshot. Repeated calls return the current contents and do
+not consume the writer.
 
 | Member | Signature | Description |
 | --- | --- | --- |
@@ -175,11 +175,11 @@ second time yields an empty buffer.
 | `writeBitsLong` | `writeBitsLong(bitWidth: Int, value: Long)` | Appends the low `bitWidth` bits of `value` (1–64). |
 | `writeBool` | `writeBool(value: Boolean)` | Appends a single bit (`true` = 1, `false` = 0). |
 | `writeScalar` | `writeScalar(type: ScalarType, value: Long)` | Appends `type.bitWidth` low bits of `value` as a two's-complement magnitude (1–64). Dispatches to `writeBits` for ≤31, `writeBitsLong` for 32–64. |
-| `writeString` | `writeString(countWidth: Int, value: String)` | Appends a length-prefixed UTF-8 string: `<countWidth>-bit LE byte count><UTF-8 bytes>`. `countWidth` must be in `KompactFraming.VALID_PREFIX_WIDTHS`. |
-| `writeBlob` | `writeBlob(countWidth: Int, bytes: ByteArray)` | Appends a length-prefixed blob: `<countWidth>-bit LE byte count><bytes>`. |
-| `writeNested` | `writeNested(lengthPrefixWidth: Int = 16, block: KompactWriter.() -> Unit)` | Writes a nested sub-region. The `block` is invoked against a **child** writer; the child's byte length is emitted as a `lengthPrefixWidth`-bit LE prefix immediately followed by the child bytes. Forward-only, no back-patch. |
-| `writeRepeated` | `writeRepeated(count: Int, countWidth: Int = 8, block: KompactWriter.() -> Unit)` | Writes a count-prefixed repeat: `<countWidth>-bit LE count><elem₀>…<elem_{count-1}>`. `block` runs once per element against the parent writer. `countWidth` must be in `KompactFraming.VALID_PREFIX_WIDTHS`. |
-| `build` | `build(): ByteArray` | Returns the exact-length snapshot of the accumulated bits. The writer is then empty (single-shot by design). |
+| `writeString` | `writeString(countWidth: Int, value: String)` | Appends a length-prefixed UTF-8 string: `<countWidth>-bit LE byte count><UTF-8 bytes>`. The encoded byte length must fit the selected 8-, 16-, or 32-bit prefix. |
+| `writeBlob` | `writeBlob(countWidth: Int, bytes: ByteArray)` | Appends a length-prefixed blob: `<countWidth>-bit LE byte count><bytes>`. The byte length must fit the selected prefix. |
+| `writeNested` | `writeNested(lengthPrefixWidth: Int = 16, block: KompactWriter.() -> Unit)` | Writes a nested sub-region. The `block` is invoked against a **child** writer; the child's byte length must fit the selected prefix, emitted immediately before the child bytes. Forward-only, no back-patch. |
+| `writeRepeated` | `writeRepeated(count: Int, countWidth: Int = 8, block: KompactWriter.() -> Unit)` | Writes a count-prefixed repeat: `<countWidth>-bit LE count><elem₀>…<elem_{count-1}>`. `block` runs once per element against the parent writer. The non-negative count must fit the selected prefix. |
+| `build` | `build(): ByteArray` | Returns an exact-length snapshot of the accumulated bits without consuming the writer. |
 
 The writer is **not** bound by the zero-allocation hot-path discipline —
 buffer growth and lambda dispatch are acceptable. Only the read path
@@ -211,7 +211,7 @@ to a typed `BadLengthPrefix` error.
 | --- | --- | --- |
 | `VALID_PREFIX_WIDTHS` | `Set<Int> = setOf(8, 16, 32)` | The set of legal length-prefix bit widths. |
 | `readLengthPrefix` | `readLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int` | Reads a fixed-width little-endian byte count at `bitOffset`. Returns [`INVALID_LENGTH_PREFIX`](#constants-and-limits) (`-1`) when `bitWidth` is invalid or the region overruns `raw`. |
-| `writeLengthPrefix` | `writeLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int, length: Int)` | Writes `length` as a fixed-width little-endian byte count at `bitOffset`. Throws `IllegalArgumentException` if `bitWidth` is not in `VALID_PREFIX_WIDTHS`. |
+| `writeLengthPrefix` | `writeLengthPrefix(raw: ByteArray, bitOffset: Int, bitWidth: Int, length: Int)` | Writes a non-negative value that fits the prefix width as a fixed-width little-endian count. Throws `IllegalArgumentException` for an invalid width or an unrepresentable value. |
 | `readNested` | `readNested(raw: ByteArray, bitOffset: Int, prefixBitWidth: Int): NestedRegionResult` | Typed parse-forward nested region: reads the byte-count prefix at `bitOffset`, returns `(startBit, bitLength)` of the payload, or a typed failure (`BadLengthPrefix`). |
 | `readNestedOrThrow` | `readNestedOrThrow(raw: ByteArray, bitOffset: Int, prefixBitWidth: Int): NestedRegion` | Throwing variant of `readNested`: throws `KompactDecodeException` on failure. |
 | `readLengthPrefixOrThrow` | `readLengthPrefixOrThrow(raw: ByteArray, bitOffset: Int, bitWidth: Int): Int` | Throwing variant of `readLengthPrefix`: throws `KompactDecodeException` on a bad prefix. |
@@ -224,35 +224,37 @@ to a typed `BadLengthPrefix` error.
 
 ## Typed result value classes
 
-Five specialized scalar result types — one per value shape. Each wraps a
-single `Long` so it is **zero-alloc on both the JVM and iOS** on success
-and failure. There is no generic `KompactDecodeResult<T>`; the
-specialized types let the success-path primitives stay unboxed.
+Four scalar result value classes are packed into a single `Long` and are
+**zero-alloc on both the JVM and iOS** on success and failure. `LongResult`
+is a regular class that allocates to represent the full `Long` domain
+without sentinels; equality and hashing compare its value/error rather than
+object identity. There is no generic `KompactDecodeResult<T>`.
 
 | Class | Underlying type | Encoding | Used by |
 | --- | --- | --- | --- |
 | `IntResult` | `Long` (packed) | ≤32-bit packed-Long (see below) | `readScalar` |
-| `LongResult` | `Long` (sentinel band) | `Long.MIN_VALUE .. Long.MIN_VALUE + (1L shl 58) - 1` is the failure sentinel (see [architecture](architecture.md#runtime-error-encoding)). | `readScalarAsLong` |
+| `LongResult` | Regular class | Stores a nullable `Long` value separately from its nullable error; every `Long` value is representable, with one allocation per result. | `readScalarAsLong` |
 | `FloatResult` | `Long` (packed) | ≤32-bit packed-Long (see below) | `readFloat` |
 | `DoubleResult` | `Long` (NaN payload) | Canonical quiet-NaN for success; quiet NaN with non-zero payload for failure (see [architecture](architecture.md#runtime-error-encoding)). | `readDouble` |
 | `BooleanResult` | `Long` (packed) | ≤32-bit packed-Long (see below) | `readBool` |
 
-Every result class exposes the same four members. The concrete return
-type of `getOrThrow()` varies by class — see the table below.
+Every result type exposes the status, error, and `getOrThrow()` members.
+`LongResult` additionally exposes its nullable `value`. The concrete
+return type of `getOrThrow()` varies by type — see the table below.
 
 | Member | Description |
 | --- | --- |
 | `isSuccess: Boolean` | `true` iff the result carries a decoded value. |
 | `isFailure: Boolean` | `true` iff the result carries an error. |
 | `error: KompactDecodeError?` | The decoded error on failure, `null` on success. |
-| `getOrThrow(): <see table>` | Returns the decoded primitive on success; throws `KompactDecodeException` on failure. The **only** call that can allocate / throw on the failure path. Return type is `Int` for `IntResult`, `Long` for `LongResult`, `Float` for `FloatResult`, `Double` for `DoubleResult`, `Boolean` for `BooleanResult`, and `NestedRegion` (`Pair<Int, Int>`) for `NestedRegionResult`. |
+| `getOrThrow(): <see table>` | Returns the decoded primitive on success; throws `KompactDecodeException` on failure. Return type is `Int` for `IntResult`, `Long` for `LongResult`, `Float` for `FloatResult`, `Double` for `DoubleResult`, `Boolean` for `BooleanResult`, and `NestedRegion` (`Pair<Int, Int>`) for `NestedRegionResult`. |
 
 Each result class also has a `Companion`:
 
 | Member | Description |
 | --- | --- |
-| `success(value: <see table>): <ResultClass>` | Packs a value into a success result. The `value` parameter type matches `getOrThrow()`: `Int` for `IntResult`, `Long` for `LongResult`, `Float` for `FloatResult`, `Double` for `DoubleResult`, `Boolean` for `BooleanResult`. `NestedRegionResult.success(startBit: Int, bitLength: Int)` takes the two region coordinates instead. |
-| `failure(error: KompactDecodeError): <ResultClass>` | Packs a `KompactDecodeError` into a failure result. |
+| `success(value: <see table>): <ResultClass>` | Creates a success result. The `value` parameter type matches `getOrThrow()`: `Int` for `IntResult`, `Long` for `LongResult`, `Float` for `FloatResult`, `Double` for `DoubleResult`, `Boolean` for `BooleanResult`. `NestedRegionResult.success(startBit: Int, bitLength: Int)` takes the two region coordinates instead. |
+| `failure(error: KompactDecodeError): <ResultClass>` | Creates a failure result carrying the supplied `KompactDecodeError`. |
 
 #### ≤32-bit packed-Long encoding (IntResult, FloatResult, BooleanResult)
 
@@ -270,23 +272,9 @@ Each result class also has a `Companion`:
   success path (see [architecture](architecture.md#runtime-error-encoding)).
 
 See [architecture — runtime error encoding](architecture.md#runtime-error-encoding)
-for the `LongResult` sentinel band and the
-`DoubleResult` NaN-payload layout.
-
-> **`LongResult` representable range (important)**  
-> Because every 64-bit pattern is a valid `Long`, success and failure cannot be
-> distinguished without reserving a sentinel band.  
-> `LongResult` treats the closed range  
-> `Long.MIN_VALUE .. Long.MIN_VALUE + (1L shl 58) - 1`  
-> (bit 63 set, bits 62..58 clear) as the **failure sentinel**.  
-> Those values are **not representable as success**. The first representable
-> negative success value is `Long.MIN_VALUE + (1L shl 58)`.  
->  
-> This is a deliberate trade-off of packing a typed result into a single `Long`
-> with zero allocation. Realistic application values almost never land in the
-> band; if your domain legitimately needs values in that range, prefer a
-> different encoding or a non-result path. Full rationale lives in
-> [architecture.md § Runtime error encoding](architecture.md#runtime-error-encoding).
+for the packed `IntResult`/`FloatResult`/`BooleanResult` layout and the
+`DoubleResult` NaN-payload layout. `LongResult` is an allocating regular class
+because success preserves every 64-bit value.
 
 ---
 
@@ -341,9 +329,10 @@ accessors on the failure path.
 ## Two-tier diagnostics (`decodeFull*`)
 
 [ADR-0005](adr/0005-relax-fail-path-zero-alloc.md) §2 makes diagnostics an
-**opt-in** tier that may allocate, so the zero-alloc `readScalar` / `readBool`
-/ `readFloat` / `readDouble` / `readScalarAsLong` hot path stays untouched.
-Each `decodeFull*` wraps one zero-alloc checked accessor and returns a
+**opt-in** tier that may allocate. The packed `readScalar` / `readBool` /
+`readFloat` / `readDouble` paths stay allocation-free; `readScalarAsLong`
+already allocates its `LongResult` to preserve every `Long` value.
+Each `decodeFull*` wraps one checked accessor and returns a
 `DetailedResult<T>`:
 
 | Function | Wraps | Returns | Failure payload |
@@ -365,8 +354,10 @@ On success, `value` holds the decoded scalar and `error` is `null`. On failure
   reads here).
 
 `DetailedResult<T>` is a plain class (not a value class) and therefore
-**allocates on both paths** — use it only when you need offsets/errors; the
-`readScalar*` accessors and `*OrThrow` variants are the zero-alloc path.
+**allocates on both paths** — use it only when you need offsets/errors. The
+packed `readScalar`, `readBool`, `readFloat`, and `readDouble` accessors and
+their `*OrThrow` variants are allocation-free on their direct success paths;
+`readScalarAsLong` and its throwing variant allocate a `LongResult`.
 `isSuccess`/`isFailure` mirror the scalar result classes.
 
 ---
@@ -396,8 +387,8 @@ visible without a placeholder.
 
 ## `Kompact.Result` namespace
 
-`ch.trancee.kompact.Kompact.Result` type-aliases the five result value
-classes under a single import path for convenience:
+`ch.trancee.kompact.Kompact.Result` type-aliases the five scalar result
+types under a single import path for convenience:
 
 ```kotlin
 import ch.trancee.kompact.Kompact.Result.Int
@@ -418,15 +409,15 @@ import ch.trancee.kompact.Kompact.Result.Long
 ## Annotations
 
 The annotation surface is gated by `@KompactPreview` (opt-in). These
-annotations will drive the future KSP processor; today they are
-source-retained markers on the hand-written `VehicleTelemetry` example
-and any hand-written models.
+source-retained annotations are consumed by the `kompact-ksp` processor
+to generate value-class views for supported scalar fields. The bundled
+`VehicleTelemetry` example remains hand-written.
 
 | Annotation | Package | Description |
 | --- | --- | --- |
 | `@KompactPreview` | `ch.trancee.kompact.annotations` | Opt-in marker for the pre-stable annotation + codegen surface. |
-| `@KompactModel` | `ch.trancee.kompact.annotations` | Marks a value class as a Kompact model (future KSP input). |
-| `@KompactField` | `ch.trancee.kompact.annotations` | Declares a field's bit layout (`bitOffset`, `bitWidth`, `signed`, length/repeat prefix widths, nested flag, default). |
+| `@KompactModel` | `ch.trancee.kompact.annotations` | Marks an `expect value class` for KSP model generation; supports immutable views by default and an opt-in mutable sibling. |
+| `@KompactField` | `ch.trancee.kompact.annotations` | Declares scalar field layout (`bitOffset`, `bitWidth`, `signed`). Generated types are `Boolean`, `Int`, `Long`, `Float`, and `Double`; length/repeat/nested/default metadata is not yet generated. |
 
 ---
 
@@ -437,7 +428,7 @@ A `@JvmInline value class` on the JVM / plain `value class` on iOS, wrapping a
 single `ByteArray` that holds the wire-format bytes directly. See
 [`VehicleTelemetry.kt`](../kompact/src/commonMain/kotlin/ch/trancee/kompact/generated/VehicleTelemetry.kt)
 for the source layout and [`architecture — codegen output reference`](architecture.md#codegen-output-reference)
-for the raw `readBits` pattern the KSP processor will emit.
+for the raw `readBits` pattern emitted by KSP.
 
 A 16-bit frame with this layout (LSB-first):
 
@@ -450,7 +441,7 @@ A 16-bit frame with this layout (LSB-first):
 
 | Member | Signature | Description |
 | --- | --- | --- |
-| `raw` | `val raw: ByteArray` | The backing wire-format buffer. Pass this directly to a BLE characteristic for transmission. |
+| `raw` | `val raw: ByteArray` | The backing wire-format buffer. This is the original mutable array, not a defensive copy; mutations through any alias are visible through the model. Pass it directly to a BLE characteristic for transmission when the data is ready. |
 | `batteryStatus` | `val batteryStatus: Int` | 4 bits at offset 0. Reads via `readScalar(...).getOrThrow()`. |
 | `speed` | `val speed: Int` | 10 bits at offset 4. Reads via `readScalar(...).getOrThrow()`. |
 | `isMalfunctioning` | `val isMalfunctioning: Boolean` | 1 bit at offset 14. Reads via `readBool(...).getOrThrow()`. |
@@ -464,6 +455,9 @@ A 16-bit frame with this layout (LSB-first):
 Derive an updated frame with `copy(...)` (allocates a fresh buffer) or opt into
 in-place mutation via the `MutableVehicleTelemetry` sibling (see
 [ADR-0006](adr/0006-immutable-default-models.md)).
+This is shallow immutability: constructing `VehicleTelemetry(raw)` retains
+the supplied mutable array, so external writes through that array are visible
+through the view. Use a copied array when the model must own an isolated snapshot.
 
 ### MutableVehicleTelemetry (opt-in mutable sibling)
 
@@ -506,4 +500,4 @@ build the frame with `KompactWriter` / `VehicleTelemetry.create(...)`. See
 | `KompactFraming.INVALID_LENGTH_PREFIX` | `-1` | Sentinel returned by `readLengthPrefix` when `bitWidth` is invalid or the region overruns `raw`. |
 | `ScalarType` bit-width range (`readScalar`) | 1–32 | Width passed to `readScalar`; wider reads use `readScalarAsLong`. |
 | `ScalarType` bit-width range (`readScalarAsLong`) | 1–64 | Width passed to `readScalarAsLong`. |
-| `LongResult` success range exclusion | `Long.MIN_VALUE .. Long.MIN_VALUE + (1L shl 58) - 1` | Sentinel band — see [architecture](architecture.md#runtime-error-encoding). |
+| `LongResult` representation | Regular class; full signed `Long` domain | Allocates so no valid values are reserved for failure. |
