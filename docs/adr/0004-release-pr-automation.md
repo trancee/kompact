@@ -70,9 +70,10 @@ Implement two GitHub Actions workflows:
 - **Trigger**: `pull_request_target` (closed) on `main`
 - **Guards**: `github.event.pull_request.merged == true` + PR has `release` label
 - **Conventional Commits versioning**: The release version is computed from
-  commits since the last tag — `feat!:` or `BREAKING CHANGE` → major bump,
-  `feat:` → minor bump, `fix:`/other → patch bump. If no commits since the
-  last tag, defaults to patch bump.
+  commits since the last tag — `feat!:` or `BREAKING CHANGE` → minor bump
+  before `1.0.0` and major bump afterward, `feat:` → minor bump,
+  `fix:`/other → patch bump. If no commits since the last tag, defaults to
+  patch bump.
 - **`prepare` job** (no environment, auto-runs):
   1. Bump version (SNAPSHOT → computed release) via `version-bump.sh`
   2. Generate `CHANGELOG.md` from Conventional Commits since last tag, grouped
@@ -94,9 +95,10 @@ Implement two GitHub Actions workflows:
 
 - **`version-bump.sh`**: Shell script that extracts and bumps the version in
   `build.gradle.kts`. Implements Conventional Commits semantics — `feat!:` or
-  `BREAKING CHANGE` → major, `feat:` → minor, `fix:`/other → patch. Also
-  generates `CHANGELOG.md` grouped by commit type. Handles SNAPSHOT → release
-  and release → next SNAPSHOT with automatic version increment.
+  `BREAKING CHANGE` → minor before `1.0.0` and major afterward, `feat:` →
+  minor, `fix:`/other → patch. Also generates `CHANGELOG.md` grouped by commit
+  type. Handles SNAPSHOT → release and release → next SNAPSHOT with automatic
+  version increment.
 - **GitHub Environment `release`**: Required reviewer (`trancee`), contains all
   publishing secrets as environment-scoped secrets (not repo-level):
   `CENTRAL_PORTAL_TOKEN_USERNAME`, `CENTRAL_PORTAL_TOKEN_PASSWORD`,
