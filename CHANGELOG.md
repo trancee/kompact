@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-09-27
+
+### ⚠️ Breaking
+- fix!: harden codecs and preserve full-width results (#67) (9d7d3b6)
+
 ## [0.3.0] - 2026-09-25
 
 ### ✨ Features
