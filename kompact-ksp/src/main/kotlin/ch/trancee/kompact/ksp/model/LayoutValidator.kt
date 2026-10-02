@@ -163,7 +163,7 @@ internal object LayoutValidator {
      * Per-type bit-width constraints (supporting check, Ticket 04).
      *
      * - `Boolean`: exactly 1 bit
-     * - `Int`: 1..31 bits (fits in the return value of `readBits`)
+     * - `Int`: 1..31 bits for packed models; framed models also permit 32
      * - `Long`: 1..64 bits (fits in the return value of `readBitsLong`)
      * - `Float`: exactly 32 bits
      * - `Double`: exactly 64 bits
@@ -171,22 +171,43 @@ internal object LayoutValidator {
      *
      * @return list of error messages (empty if valid)
      */
-    fun validateWidths(fields: List<KompactFieldInfo>): List<String> {
+    fun validateWidths(
+        fields: List<KompactFieldInfo>,
+        framed: Boolean = false,
+    ): List<String> {
         val errors = mutableListOf<String>()
         for (f in fields) {
             val valid =
-                when (f.kotlinType) {
-                    "Boolean" -> f.bitWidth == 1
-                    "Int" -> f.bitWidth in 1..31
-                    "Long" -> f.bitWidth in 1..64
-                    "Float" -> f.bitWidth == 32
-                    "Double" -> f.bitWidth == 64
-                    "String", "ByteArray" -> f.bitWidth == f.lengthPrefixWidth
-                    else -> true // unknown types pass through; validation is best-effort
+                when (val type = f.type) {
+                    is KompactFieldType.Scalar -> {
+                        when (type.kind) {
+                            KompactScalarKind.BOOLEAN -> f.bitWidth == 1
+                            KompactScalarKind.INT -> f.bitWidth in 1..(if (framed) 32 else 31)
+                            KompactScalarKind.LONG -> f.bitWidth in 1..64
+                            KompactScalarKind.FLOAT -> f.bitWidth == 32
+                            KompactScalarKind.DOUBLE -> f.bitWidth == 64
+                        }
+                    }
+
+                    KompactFieldType.StringType, KompactFieldType.Blob -> {
+                        if (framed) f.bitWidth == 0 else f.bitWidth == f.lengthPrefixWidth
+                    }
+
+                    is KompactFieldType.Nested -> {
+                        framed && f.bitWidth == 0
+                    }
+
+                    is KompactFieldType.Repeated -> {
+                        !framed || isValidFramedWidth(type.elementType, f.bitWidth)
+                    }
+
+                    is KompactFieldType.Unsupported -> {
+                        true
+                    } // diagnosed by generation for legacy models
                 }
             if (!valid) {
                 errors.add(
-                    "Field '${f.name}' has type ${f.kotlinType} with bitWidth=${f.bitWidth} " +
+                    "Field '${f.name}' has type ${f.type.displayName} with bitWidth=${f.bitWidth} " +
                         "which is not valid for that type",
                 )
             }
@@ -203,8 +224,13 @@ internal object LayoutValidator {
      * per-type width check, and returns combined errors. Exits before any
      * code is generated so the build fails on a structurally-invalid schema.
      */
-    fun validateAll(fields: List<KompactFieldInfo>): List<String> =
-        buildList {
+    fun validateAll(
+        fields: List<KompactFieldInfo>,
+        framed: Boolean = false,
+        mutable: Boolean = false,
+    ): List<String> {
+        if (framed) return FramedLayoutValidator.validate(fields, mutable)
+        return buildList {
             addAll(validateNoOverlaps(fields)) // invariant #1
             addAll(validateBitWidthSum(fields)) // invariant #2
             addAll(validateLengthPrefixWidth(fields)) // invariant #3
@@ -212,5 +238,30 @@ internal object LayoutValidator {
             addAll(validateRepeatCountWidth(fields)) // invariant #5
             addAll(validateEnumWidth(fields)) // invariant #6
             addAll(validateWidths(fields)) // supporting per-type check
+        }
+    }
+
+    private fun isValidFramedWidth(
+        type: KompactFieldType,
+        width: Int,
+    ): Boolean =
+        when (type) {
+            is KompactFieldType.Scalar -> {
+                when (type.kind) {
+                    KompactScalarKind.BOOLEAN -> width == 1
+                    KompactScalarKind.INT -> width in 1..32
+                    KompactScalarKind.LONG -> width in 1..64
+                    KompactScalarKind.FLOAT -> width == 32
+                    KompactScalarKind.DOUBLE -> width == 64
+                }
+            }
+
+            KompactFieldType.StringType, KompactFieldType.Blob, is KompactFieldType.Nested -> {
+                width == 0
+            }
+
+            is KompactFieldType.Repeated, is KompactFieldType.Unsupported -> {
+                false
+            }
         }
 }

@@ -5,7 +5,7 @@
 [common]\
 class [DetailedResult](index.md)&lt;[T](index.md)&gt;
 
-Opt-in diagnostics result (ADR-0005 §2). Holds either a success value or a [DetailedDecodeError](../-detailed-decode-error/index.md); unlike the packed `*Result` value classes it is a plain class and therefore allocates — use it only for diagnostics/recovery, never on the read hot path ([KompactRuntime.readScalar](../-kompact-runtime/read-scalar.md)).
+Opt-in diagnostics result (ADR-0005 §2). Holds either a success value or a [DetailedDecodeError](../-detailed-decode-error/index.md). It is a regular class with explicit value and error state; use it when the additional diagnostic context is useful.
 
 Constructed only from `decodeFull` ([KompactRuntime](../-kompact-runtime/index.md)); the constructor is `internal` so external callers cannot create an inconsistent (value+error) instance.
 

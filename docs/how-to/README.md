@@ -1,28 +1,17 @@
 # How-to guides
 
-Task-oriented guides for implementing common things with Kompact. Each
-guide is a recipe: it assumes you already know Kotlin and you have a
-working Kompact setup. Pick the guide that matches your goal.
+These guides assume you know Kotlin and have added Kompact to your project.
+Choose the guide for the task you are doing:
 
-| If you want to … | Read |
+| Goal | Guide |
 | --- | --- |
-| Define your own message model (like the bundled `VehicleTelemetry`) | [`define-message.md`](define-message.md) |
-| Pack or parse a string / blob / nested composite / repeated field | [`long-form-payloads.md`](long-form-payloads.md) |
-| Handle a `KompactDecodeError` (bounds overrun, bad length prefix, unknown enum code) | [`handle-decode-errors.md`](handle-decode-errors.md) |
-| Send a frame over BLE / receive one back | [`integrate-ble.md`](integrate-ble.md) |
-| Consume Kompact from a separate Kotlin / KMP project | [`consume-from-another-project.md`](consume-from-another-project.md) |
+| Add Kompact to a JVM, Android, or KMP project | [Consume Kompact](consume-from-another-project.md) |
+| Define a model whose fields have fixed bit positions | [Define a fixed-layout model](define-message.md) |
+| Define a model with variable-length or repeated fields | [Define a framed model](define-framed-schema.md) |
+| Encode or parse strings, blobs, nested data, or repeats | [Long-form payloads](long-form-payloads.md) |
+| Choose what to do when decoding fails | [Handle decode errors](handle-decode-errors.md) |
+| Pass encoded bytes to a BLE transport | [Integrate with BLE](integrate-ble.md) |
 
-**Prerequisites.** All guides assume:
-
-- A working Kotlin Multiplatform toolchain (Kotlin 2.4.20, JDK 21).
-- `ch.trancee.kompact:kompact:0.4.0-SNAPSHOT` on the classpath. See
-  [`consume-from-another-project.md`](consume-from-another-project.md) if
-  you are not yet building against it.
-- Familiarity with the [getting started tutorial](../getting-started.md)
-  — every how-to references `KompactWriter`, `KompactRuntime`, and the
-  typed result classes by name without re-introducing them.
-
-**Not a tutorial.** If you are new to Kompact, start with the
-[getting started tutorial](../getting-started.md) first; it builds
-the same 2-byte telemetry frame in 4 steps with visible byte-level
-output at each step.
+If you are new to Kompact, start with the
+[getting-started tutorial](../getting-started.md). For exact signatures and
+error types, use the [API reference](../api-reference.md).

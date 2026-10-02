@@ -1,196 +1,156 @@
-# How to consume Kompact from another project
+# How to add Kompact to a project
 
-Goal: add `ch.trancee.kompact:kompact` to a Kotlin or Kotlin
-Multiplatform project so you can call `KompactWriter`, `KompactRuntime`,
-and the typed result types.
+Add the runtime dependency to a Kotlin/JVM, Android, or Kotlin Multiplatform
+module. The latest Maven Central release is `0.4.0`.
 
-The Maven coordinates are `ch.trancee.kompact:kompact:0.4.0-SNAPSHOT`.
-The artifact publishes per-target klibs (`-iosarm64`, `-iossimulatorarm64`, `-androidarm64`)
-and an Android `aar` via standard `maven-publish`.
+## Use the published runtime
 
-## 1. Install the snapshot locally
-
-The first release to Maven Central is not yet cut (the Portal
-namespace, PGP key, and user token still need authorization). Until
-then, publish the snapshot to your local Maven repository:
-
-```bash
-# From the kompact repository root:
-./gradlew :kompact:publishToMavenLocal
-```
-
-This produces the per-target artifacts under `~/.m2/repository/`.
-
-## 2. Plain Kotlin / JVM project (`build.gradle.kts`)
+For a JVM or Android module, add Maven Central and the runtime dependency:
 
 ```kotlin
 repositories {
     mavenCentral()
-    mavenLocal()    // for the 0.4.0-SNAPSHOT until first Central release
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.4.0-SNAPSHOT")
+    implementation("ch.trancee.kompact:kompact:0.4.0")
 }
 ```
 
-The runtime lives in package `ch.trancee.kompact.runtime`. The
-`VehicleTelemetry` example lives in `ch.trancee.kompact.generated`,
-and the convenience `Kompact.Result` namespace lives in
-`ch.trancee.kompact`.
-
-## 3. Kotlin Multiplatform project
+For Kotlin Multiplatform, put the same dependency in `commonMain`:
 
 ```kotlin
-plugins {
-    kotlin("multiplatform") version "2.4.20"
-}
-
 kotlin {
     jvm()
     iosArm64()
     iosSimulatorArm64()
-    androidNativeArm64()
 
     sourceSets {
-        val commonMain by getting {
+        commonMain {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.4.0-SNAPSHOT")
+                implementation("ch.trancee.kompact:kompact:0.4.0")
             }
         }
     }
 }
+```
 
+Add only the targets your application uses. The root KMP coordinate lets
+Gradle select a published platform variant from module metadata; do not guess
+target-specific artifact names. A target must be published for the version
+you consume.
+
+## Try the development snapshot
+
+The `0.5.0-SNAPSHOT` runtime, schema processor, and KMP code-generation plugin
+are not available from Maven Central. To try runtime-only changes, publish the
+runtime from the repository root:
+
+```bash
+./gradlew :kompact:publishToMavenLocal
+```
+
+Then add Maven Local to your dependency repositories before Maven Central and
+use the snapshot coordinate:
+
+```kotlin
 repositories {
-    mavenCentral()
     mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    implementation("ch.trancee.kompact:kompact:0.5.0-SNAPSHOT")
 }
 ```
 
-The KMP artifact publishes a metadata `.module` file that resolves
-the JVM jar for `jvm`, the `androidNativeArm64` klib for
-`androidNativeArm64`, the iOS klib for `iosArm64`, and the iOS klib
-for `iosSimulatorArm64` automatically. You do not need to specify
-target-specific coordinates.
+### Enable schema generation
 
-## 4. Android project (Gradle)
+For generated schemas, publish all three snapshot components to Maven Local:
+
+```bash
+./gradlew \
+  :kompact:publishToMavenLocal \
+  :kompact-ksp:publishToMavenLocal \
+  :kompact-gradle-plugin:publishToMavenLocal
+```
+
+Make the plugin marker available through `pluginManagement` in the consuming
+build's `settings.gradle.kts`:
+
+```kotlin
+pluginManagement {
+    repositories {
+        mavenLocal()
+        google()
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+```
+
+Then apply the plugin after Kotlin Multiplatform and add the runtime to
+`commonMain`:
 
 ```kotlin
 plugins {
-    alias(libs.plugins.kotlinAndroid)  // or kotlin("multiplatform") version "2.4.20" + com.android.kotlin.multiplatform.library
-}
-
-android {
-    namespace = "com.example.myapp"
-    compileSdk = 36
-    defaultConfig { minSdk = 21 }
+    kotlin("multiplatform") version "2.4.20"
+    id("ch.trancee.kompact.codegen") version "0.5.0-SNAPSHOT"
 }
 
 repositories {
-    google()
+    mavenLocal()
     mavenCentral()
-    mavenLocal()    // for the 0.4.0-SNAPSHOT until first Central release
 }
 
-dependencies {
-    implementation("ch.trancee.kompact:kompact:0.4.0-SNAPSHOT")
-    // or, for KMP: implementation("ch.trancee.kompact:kompact-android:0.4.0-SNAPSHOT")
+kotlin {
+    jvm()
+
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation("ch.trancee.kompact:kompact:0.5.0-SNAPSHOT")
+            }
+        }
+    }
 }
 ```
 
-Android consumes the `kompact-android` AAR artifact (published via
-`com.android.kotlin.multiplatform.library`). The runtime is plain Kotlin with
-no Android-specific dependencies, so the AAR wraps the same compiled code
-with no additional Android framework coupling. `minSdk = 21` matches the
-library's own `minSdk`.
+Add any other supported targets required by your application. The plugin
+supports JVM, Android JVM, iOS Arm64, iOS Simulator Arm64, and Android Native
+Arm64. Do not also apply standard target-specific KSP processing to the same
+Kompact schemas. See [How to define a framed schema](define-framed-schema.md)
+for a complete schema example.
 
-## 5. Version catalog (Gradle 7.4+)
+## Verify the dependency
 
-For multi-module builds, pin the version in `gradle/libs.versions.toml`:
-
-```toml
-[versions]
-kompact = "0.4.0-SNAPSHOT"
-
-[libraries]
-kompact = { module = "ch.trancee.kompact:kompact", version.ref = "kompact" }
-```
-
-Then in the module:
+This small JVM program writes a frame, checks its bytes, and reads one field
+back:
 
 ```kotlin
-dependencies {
-    implementation(libs.kompact)
-}
-```
-
-## 6. Verify the install
-
-A one-line smoke test that should print `a540` and three decoded
-values:
-
-```kotlin
-import ch.trancee.kompact.generated.VehicleTelemetry
 import ch.trancee.kompact.runtime.KompactRuntime
 import ch.trancee.kompact.runtime.KompactWriter
 import ch.trancee.kompact.runtime.ScalarType
 
 fun main() {
-    val w = KompactWriter()
-    w.writeScalar(ScalarType.of(4,  signed = false), 5L)
-    w.writeScalar(ScalarType.of(10, signed = false), 10L)
-    w.writeBool(true)
-    val raw = w.build()
-    println(raw.toHexString())                                  // → "a540"
-    val tel = VehicleTelemetry(raw)
-    println("${tel.batteryStatus} ${tel.speed} ${tel.isMalfunctioning}")
-    // → 5 10 true
+    val writer = KompactWriter()
+    writer.writeScalar(ScalarType.of(4, signed = false), 5L)
+    writer.writeScalar(ScalarType.of(10, signed = false), 10L)
+    writer.writeBool(true)
+
+    val bytes = writer.build()
+    check(bytes.contentEquals(byteArrayOf(0xA5.toByte(), 0x40.toByte())))
+    check(KompactRuntime.readScalar(bytes, 4, ScalarType.of(10, signed = false)).getOrThrow() == 10)
 }
 ```
 
-If this prints the expected output, the install is correct. If it
-fails to resolve, double-check that `mavenLocal()` is in your
-`repositories` block (the snapshot is *not* on Maven Central yet).
+If the snapshot does not resolve, check that `mavenLocal()` is configured for
+both plugin resolution and dependencies. For Maven Central, remove
+`mavenLocal()` and use the published `0.4.0` version.
 
-## 7. Optional: enable the preview annotations
+## Next steps
 
-`@KompactModel` and `@KompactField` carry `@KompactPreview`
-(`@RequiresOptIn(level = WARNING)`). To use them in your own code
-to annotate a model class, opt in per file:
-
-```kotlin
-@file:OptIn(KompactPreview::class)
-package your.package
-```
-
-The runtime classes (`KompactWriter`, `KompactRuntime`, the result
-value classes) are not preview API — no opt-in is needed for them.
-
-## 8. Common pitfalls
-
-- **`mavenLocal()` not declared.** The snapshot lives in `~/.m2/`,
-  not on Maven Central. Without `mavenLocal()` in your
-  `repositories`, Gradle reports `Could not find
-  `ch.trancee.kompact:kompact:0.4.0-SNAPSHOT`.
-- **Wrong target coordinate on KMP.** Use
-  `ch.trancee.kompact:kompact` (the root artifact), not
-  `ch.trancee.kompact:kompact-jvm` or `kompact-iosarm64`. The
-  metadata file selects the right per-target artifact for the
-  current source set.
-- **Android minSdk too low.** The runtime is pure Kotlin with no
-  Android dependencies — but the `value class` representation uses
-  `@JvmInline` on JVM, which requires Kotlin 1.5+ and is fine on
-  Android 24+. Older minSdk values still work; the runtime does not
-  bump the floor.
-- **Preview warnings in your build log.** `@KompactPreview` is
-  `Level.WARNING`, not `Level.ERROR`, so the build does not fail —
-  but the warning is printed for every file that uses the preview
-  API without an opt-in. Add `@file:OptIn(KompactPreview::class)` to
-  silence them.
-
-## What's next
-
-- Try the [getting started tutorial](../getting-started.md) end to end.
-- Define your own message:
-  [`define-message.md`](define-message.md).
-- Send it over BLE: [`integrate-ble.md`](integrate-ble.md).
+- [Build your first frame](../getting-started.md)
+- [Define a fixed-layout model](define-message.md)
+- [Define a sequential framed schema](define-framed-schema.md)
+- [Find a public signature](../api-reference.md)

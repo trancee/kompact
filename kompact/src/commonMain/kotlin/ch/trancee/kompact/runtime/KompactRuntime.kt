@@ -11,8 +11,8 @@ package ch.trancee.kompact.runtime
  *
  * These primitives read/write the caller-owned buffer without constructing a
  * result wrapper. Generated raw getters delegate to them directly; checked
- * accessors add a typed result whose allocation behavior depends on its
- * representation (`LongResult` allocates to preserve the full `Long` domain).
+ * accessors add a typed result. `LongResult` is a regular class so it can
+ * represent the full `Long` domain without reserving sentinel values.
  */
 public object KompactRuntime {
     /** Reads [bitWidth] bits (1..31) from [raw] starting at [bitOffset], LSB-first. */
@@ -201,10 +201,10 @@ public object KompactRuntime {
     /**
      * Reads up to [ScalarType.bitWidth] bits of [type] as a checked [LongResult] (1..64).
      * Width/signedness derive from [type]; sign extension (two's-complement)
-     * uses Long-arithmetic shifts. Each checked read allocates a [LongResult]
-     * so the full signed Long domain remains representable. Pass a [ScalarType]
-     * carrying the UInt64/Int64 bands; see [readScalarAsLongOrThrow] for the
-     * exceptions variant.
+     * uses Long-arithmetic shifts. The regular-class [LongResult] preserves the
+     * full signed Long domain without reserving sentinel values. Pass a
+     * [ScalarType] carrying the UInt64/Int64 bands; see
+     * [readScalarAsLongOrThrow] for the exceptions variant.
      */
     public fun readScalarAsLong(
         raw: ByteArray,
@@ -252,10 +252,9 @@ public object KompactRuntime {
     /**
      * Opt-in diagnostics reads (ADR-0005 §2). Each returns a [DetailedResult]
      * carrying, on failure, a [DetailedDecodeError] with the byte offset of the
-     * failure (`bitOffset ushr 3`); on success the decoded value. These wrap the
-     * zero-alloc `read*` accessors and allocate the [DetailedResult] holder — they
-     * are NOT on the read hot path. Use [readScalar]/[readScalarAsLong]/[readFloat]/
-     * [readDouble]/[readBool] when offsets/errors are unneeded (Tickets 03/10).
+     * failure (`bitOffset ushr 3`); on success the decoded value. Use the basic
+     * [readScalar], [readScalarAsLong], [readFloat], [readDouble], or [readBool]
+     * methods when the additional offset detail is not needed.
      */
     public fun decodeFullInt(
         raw: ByteArray,

@@ -91,6 +91,9 @@ jobs:
             :kompact-ksp:checkKotlinAbi \
             :kompact-ksp:test \
             :kompact-ksp:koverVerify \
+            :kompact-ksp-integration:test \
+            :kompact-gradle-plugin:validatePlugins \
+            :kompact-gradle-plugin:test \
             --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
       - name: Commit version bump + tag
@@ -138,6 +141,9 @@ jobs:
             :kompact-ksp:publishAllPublicationsToBundleDirRepository \
             :kompact-ksp:generateChecksums \
             :kompact-ksp:assembleCentralBundle \
+            :kompact-gradle-plugin:publishAllPublicationsToBundleDirRepository \
+            :kompact-gradle-plugin:generateChecksums \
+            :kompact-gradle-plugin:assembleCentralBundle \
             --no-daemon --console=plain
 
       - name: Deploy to Central Portal
@@ -147,6 +153,7 @@ jobs:
         run: |
           ./gradlew :kompact:centralPortalDeploy \
             :kompact-ksp:centralPortalDeploy \
+            :kompact-gradle-plugin:centralPortalDeploy \
             --no-daemon --console=plain
 
       - name: Wait for validation + check status
@@ -161,6 +168,7 @@ jobs:
             set +e
             ./gradlew :kompact:centralPortalStatus \
               :kompact-ksp:centralPortalStatus \
+              :kompact-gradle-plugin:centralPortalStatus \
               --no-daemon --console=plain 2>&1 | tee /tmp/portal-status.txt
             # Use PIPESTATUS to get gradle's exit code, not tee's
             STATUS=${PIPESTATUS[0]}
@@ -190,6 +198,7 @@ jobs:
         run: |
           ./gradlew :kompact:centralPortalPublish \
             :kompact-ksp:centralPortalPublish \
+            :kompact-gradle-plugin:centralPortalPublish \
             --no-daemon --console=plain
 
       - name: Bump to next SNAPSHOT + commit + delete release branch

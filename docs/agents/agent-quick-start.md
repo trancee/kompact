@@ -5,6 +5,14 @@ serialization library. Covers setup, core concepts, the most common
 API calls, and the traps that cause compile errors or runtime
 failures.
 
+For sequential string/blob/nested/repeated fields in 0.5.0, opt in with
+`@KompactModel(framed = true)` and contiguous `@KompactField(order = ...)`.
+The generated `SchemaView` exposes bounded `decode(raw, start, end)` typed
+results, borrowed nested/blob slices and lazy repeated values. Fixed-layout
+`bitOffset` fields retain the scalar fast path. See
+[the framed schema guide](../how-to/define-framed-schema.md)
+and [ADR-0008](../adr/0008-framed-generated-views.md).
+
 ## What is Kompact (10 s)
 
 Kompact is a Kotlin Multiplatform (JVM + iOS) library that serializes
@@ -48,6 +56,8 @@ kompact/                        the runtime library (KMP: JVM + Android + iOS)
 kompact-ksp/                    the KSP code generator
 ├── src/main/kotlin/…/gen/ValueClassGenerator.kt  ← generates expect/actual from annotations
 └── api/kompact-ksp.api             ← committed KSP ABI golden
+kompact-gradle-plugin/           common-source KMP code-generation plugin
+└── id: ch.trancee.kompact.codegen
 ```
 
 > **Key constraint:** `kompact-ksp` is a JVM-only module targeting
@@ -57,10 +67,28 @@ kompact-ksp/                    the KSP code generator
 ## Setup (consumer)
 
 ```kotlin
+// settings.gradle.kts (mavenLocal() is needed only for the unpublished snapshot)
+pluginManagement {
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+}
+```
+
+```kotlin
 // build.gradle.kts (consumer module)
 plugins {
     kotlin("multiplatform") version "2.4.20"
-    id("com.google.devtools.ksp") version "2.3.12"   // only if using codegen
+    id("ch.trancee.kompact.codegen") version "0.5.0-SNAPSHOT"
 }
 
 kotlin {
@@ -72,21 +100,21 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.4.0-SNAPSHOT")
+                implementation("ch.trancee.kompact:kompact:0.5.0-SNAPSHOT")
             }
         }
     }
 }
 
-// Only if you use the KSP processor (recommended for production):
-dependencies {
-    kspCommonMainMetadata("ch.trancee.kompact:kompact-ksp:0.4.0-SNAPSHOT")
-}
 ```
 
-Until the first Maven Central release, the snapshot is only available
-via `./gradlew :kompact:publishToMavenLocal` + `mavenLocal()` in your
-`repositories` block.
+The Kompact plugin must follow the Kotlin Multiplatform plugin in the `plugins`
+block. It runs common processing once and adds generated common/platform
+sources; do not add the standard KSP plugin for the same Kompact schemas.
+For the unpublished snapshot, run
+`./gradlew :kompact:publishToMavenLocal :kompact-ksp:publishToMavenLocal :kompact-gradle-plugin:publishToMavenLocal`
+from the Kompact checkout. Remove `mavenLocal()` after using a released
+version from Maven Central.
 
 ## Core API cheat sheet
 
@@ -216,18 +244,20 @@ val r: Int = KompactRuntime.readScalar(raw, 0, ScalarType.of(10, false)).getOrTh
 //   … etc. (7 typealiases total)
 ```
 
-### KompactDecodeError — the 4 subtypes
+### KompactDecodeError — the 5 subtypes
 
 ```kotlin
 KompactDecodeError.BoundsError              // object — buffer too short
 KompactDecodeError.BadLengthPrefix          // object — prefix overruns buffer or invalid width
 KompactDecodeError.TruncatedNested          // object — nested region truncated
+KompactDecodeError.InvalidUtf8              // object — framed string payload is malformed UTF-8
 KompactDecodeError.UnknownEnumCode(rawCode) // data class — unknown enum value, carries rawCode: Int
 ```
 
-`KompactDecodeException(error)` is the thrown variant — only
-`getOrThrow()` / `readNestedOrThrow()` / `readOrThrow` can produce it,
-and only on the **failure** path. The success path never throws.
+Checked scalar accessors return errors as result values. Direct `KompactFrame`
+read methods throw `KompactDecodeException` on malformed input; wrap them in
+the block overload of `KompactFrame.decode` to receive a typed result.
+`getOrThrow()` / `readNestedOrThrow()` / `readOrThrow` also throw only on failure.
 
 ## Defining a model
 
@@ -310,23 +340,25 @@ check) because the processor proves bounds at compile time. Write-through
 `@KompactModel(mutable = true)`, via `writeBits` / `writeBitsBoolean`
 (see [ADR-0006](../../docs/adr/0006-immutable-default-models.md)).
 
-**Supported field types:** `Boolean`, `Int`, `Long`, `Float`, `Double`.
-Variable-length types (`String`, `ByteArray`, nested, repeated) are
-declared via `@KompactField` metadata but are not yet codegen'd —
-use the hand-written `KompactWriter` path for those.
+**Supported field types:** fixed-layout schemas support `Boolean`, `Int`,
+`Long`, `Float`, and `Double`. Sequential schemas declared with
+`@KompactModel(framed = true)` also generate `String`, `ByteArray`, nested
+framed views, and lazy repeated fields. See
+[`define-message.md`](../how-to/define-message.md).
 
 ## @KompactField parameters
 
 ```
 @KompactField(
-    bitOffset: Int,           // required — bit position from LSB-first start
-    bitWidth: Int,            // required — 1..64 for scalars
+    bitOffset: Int = 0,       // fixed-layout bit position from LSB-first start
+    bitWidth: Int = 0,        // scalar width; 1..64
     signed: Boolean = false,  // true → two's-complement sign extension
-    lengthPrefixWidth: Int = 8,   // for String/ByteArray: 8, 16, or 32
-    isNested: Boolean = false,    // for nested composites
-    repeatCountWidth: Int = 8,    // for repeated fields: 8, 16, or 32
-    enumWidth: Int = 0,           // for enum-typed fields
-    defaultValue: String = "",    // for versioning fallback
+    lengthPrefixWidth: Int = 8,   // String/blob/nested/variable repeat element
+    isNested: Boolean = false,   // nested framed schema
+    repeatCountWidth: Int = 8,   // repeat count prefix: 8, 16, or 32
+    enumWidth: Int = 0,          // for enum-typed fields
+    defaultValue: String = "",   // reserved; not supported by generation
+    order: Int = -1,             // framed field order, contiguous from zero
 )
 ```
 

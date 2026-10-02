@@ -9,12 +9,12 @@ import kotlin.test.assertFailsWith
  * in `decodeErrorFromSmallBits`, `decodePackedError`, and `decodeDoubleError`
  * that map unknown error kinds (4–7) to `BoundsError` (defensive default).
  *
- * The public `failure(error)` APIs always encode kinds 0–3, so the `else`
+ * The public `failure(error)` APIs always encode kinds 0–4, so the `else`
  * branch is unreachable from the normal API surface. We construct raw packed
  * values directly to exercise the defensive fallback.
  */
 class KompactResultDecoderTest {
-    // --- decodeErrorFromSmallBits else branch (kind 4-7 → BoundsError) ---
+    // --- decodeErrorFromSmallBits else branch (kind 5-7 → BoundsError) ---
 
     @Test
     fun intResult_constructedWithUnknownErrorKind_decodesAsBoundsError() {
@@ -34,7 +34,7 @@ class KompactResultDecoderTest {
 
     @Test
     fun booleanResult_constructedWithUnknownErrorKind_decodesAsBoundsError() {
-        val unknownPacked = 4L shl RESULT_ERROR_KIND_SHIFT
+        val unknownPacked = 5L shl RESULT_ERROR_KIND_SHIFT
         val r = BooleanResult(unknownPacked)
         assertEquals(false, r.isSuccess)
         assertEquals(KompactDecodeError.BoundsError, r.error)
@@ -54,13 +54,13 @@ class KompactResultDecoderTest {
         assertEquals(KompactDecodeError.UnknownEnumCode(42), result.error)
     }
 
-    // --- decodeDoubleError else branch (payload kind 4-7 → BoundsError) ---
+    // --- decodeDoubleError else branch (payload kind 5-7 → BoundsError) ---
 
     @Test
     fun doubleResult_constructedWithUnknownErrorKind_decodesAsBoundsError() {
         // DoubleResult failure layout: canonical NaN | (kind + 1) in bits 3..0.
-        // kind = 4 → payload = 5 → packed = DOUBLE_NAN_CANONICAL or 5
-        val unknownPacked = DOUBLE_NAN_CANONICAL or 5L
+        // kind = 5 → payload = 6 → packed = DOUBLE_NAN_CANONICAL or 6
+        val unknownPacked = DOUBLE_NAN_CANONICAL or 6L
         val r = DoubleResult(unknownPacked)
         assertEquals(false, r.isSuccess)
         assertEquals(KompactDecodeError.BoundsError, r.error)

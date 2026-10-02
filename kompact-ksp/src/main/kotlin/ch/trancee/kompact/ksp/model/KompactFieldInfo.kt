@@ -9,7 +9,8 @@ package ch.trancee.kompact.ksp.model
  */
 internal data class KompactFieldInfo(
     val name: String,
-    val kotlinType: String,
+    val type: KompactFieldType,
+    val order: Int?,
     val bitOffset: Int,
     val bitWidth: Int,
     val signed: Boolean,
@@ -18,6 +19,7 @@ internal data class KompactFieldInfo(
     val repeatCountWidth: Int,
     val enumWidth: Int,
     val defaultValue: String,
+    val isMutable: Boolean = false,
 ) {
     /** The bit range [bitOffset, bitOffset + bitWidth) — exclusive upper bound. */
     val endBit: Int get() = bitOffset + bitWidth

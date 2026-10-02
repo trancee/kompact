@@ -5,12 +5,22 @@
 - **Deciders:** kompact maintainer
 - **Tags:** release, ci, github-actions, maven-central, pgp
 
+## Current implementation status
+
+This ADR records the original release design for the runtime and KSP
+processor. The `0.5.0-SNAPSHOT` development cycle also adds
+`:kompact-gradle-plugin`; the current workflows publish its implementation and
+plugin marker alongside the runtime and processor. See
+[`docs/ci.md`](../ci.md) for the current CI task list. Historical version and
+module references below describe the state when this decision was made.
+
 ## Context
 
-Kompact needs an automated release pipeline that publishes `ch.trancee.kompact:kompact`
-and `ch.trancee.kompact:kompact-ksp` to Maven Central Portal. The project uses a
-custom Portal Publisher API integration (`portal-publish.gradle.kts`) — not a
-third-party plugin like `nexus-publishing-plugin` or `com.vanniktech.maven.publish`.
+Kompact needed an automated release pipeline for
+`ch.trancee.kompact:kompact` and `ch.trancee.kompact:kompact-ksp`. The project
+uses a custom Portal Publisher API integration (`portal-publish.gradle.kts`)
+— not a third-party plugin like `nexus-publishing-plugin` or
+`com.vanniktech.maven.publish`.
 
 The desired release model:
 
@@ -78,16 +88,17 @@ Implement two GitHub Actions workflows:
   1. Bump version (SNAPSHOT → computed release) via `version-bump.sh`
   2. Generate `CHANGELOG.md` from Conventional Commits since last tag, grouped
      by type (Breaking, Features, Fixes, Other)
-  3. Run all CI quality gates (`spotlessCheck`, `checkKotlinAbi`, `jvmTest`,
-     `koverVerify`, `bundleAndroidMainAar`, KSP module gates)
+  3. Run the release quality gates for the runtime, KSP processor, integration
+     fixture, and Gradle plugin.
   4. Commit version bump + CHANGELOG.md + create git tag on `main`
 - **`deploy` job** (`environment: release`, **manual approval**):
   1. Checkout the tagged release
-  2. Build + sign + assemble bundles (`publishAllPublicationsToBundleDirRepository`,
-     `generateChecksums`, `assembleCentralBundle`)
-  3. Deploy to Central Portal (`centralPortalDeploy` for both modules)
+  2. Build + sign + assemble bundles for the runtime, KSP processor, and Gradle
+     plugin (`publishAllPublicationsToBundleDirRepository`, `generateChecksums`,
+     `assembleCentralBundle`)
+  3. Deploy all three bundles to Central Portal
   4. Wait for validation + poll loop (12 × 30 s, early-exit on success/failure)
-  5. Publish (`centralPortalPublish` for both modules — IRREVERSIBLE)
+  5. Publish (`centralPortalPublish` for all three modules — IRREVERSIBLE)
   6. Bump to next SNAPSHOT, commit, push
   7. Delete `release/ongoing` branch
 
@@ -109,26 +120,25 @@ Implement two GitHub Actions workflows:
 
 ### Why `pull_request_target` for the publish trigger
 
-GitHub Actions' `GITHUB_TOKEN` cannot trigger workflows for PRs it creates.
-Since `release-pr.yml` creates the release PR via `gh pr create` (using
-`GITHUB_TOKEN`), the `pull_request` event would not fire reliably.
-`pull_request_target` uses the base branch's workflow code and is the standard
-pattern for release-PR automation. The `if` guard (merged + `release` label)
-restricts execution to the legitimate release PR only.
+`pull_request_target` runs the workflow definition from the trusted base
+branch rather than the pull-request head. The explicit guard (merged PR plus
+the `release` label) limits the privileged release jobs to the release PR.
+Keep this workflow from checking out or executing code from an untrusted PR
+head.
 
 ## Consequences
 
 - **Positive**: Fully automated release gating; secrets never in repository or
   logs; manual approval on the irreversible publish step; idempotent retries
-  supported; both `kompact` and `kompact-ksp` modules released together;
+  supported; the runtime, KSP processor, and Gradle plugin are released together;
   Conventional Commits drive both version bump and CHANGELOG.md content.
 - **Negative**: Two jobs must complete (quality gates + manual approval); the
-  maintainer must monitor the `deploy` job after approval. Failure after the
-  version bump requires manual revert (documented in `docs/ci.md`).
-- **First-release note**: With no prior `v*` tag, all commits since repo
-  inception are scanned. Current history (19 `feat:`, 0 `feat!:`) yields a
-  first release of `0.2.0` from `0.1.0-SNAPSHOT` (minor bump). This is the
-  desired outcome — no intervention needed.
+  maintainer must monitor the `deploy` job after approval. A failure after the
+  version bump requires maintainers to inspect the tag and Portal state before
+  retrying or recovering.
+- **Initial release note**: At the time of this decision, the history produced
+  `0.2.0` from `0.1.0-SNAPSHOT`. That release has since shipped; future
+  versions are calculated from the most recent release tag.
 - **Security**: Environment-scoped secrets, `can_admins_bypass = true` allows
   the maintainer to override if needed, all credential values redacted in Gradle
   output by `portal-publish.gradle.kts` (S1).

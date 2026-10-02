@@ -46,9 +46,9 @@ features, and compatible fixes.
 
 ## Migration
 
-The current release PR must be regenerated after this change reaches `main`;
-its title and generated changelog will then target `0.4.0`. No artifact or wire
-format migration is introduced by this policy change.
+This policy was applied when `0.4.0` was released; future releases continue to
+use the same pre-`1.0` rule. No artifact or wire-format migration is introduced
+by the policy itself.
 
 ## Approval
 

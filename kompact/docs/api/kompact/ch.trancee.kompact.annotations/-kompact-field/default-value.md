@@ -11,4 +11,4 @@ common
 
 | | |
 |---|---|
-| defaultValue | string-encoded default used by the generated ctor/accessor         when the backing region is absent or zero-filled (Ticket 04) |
+| defaultValue | string-encoded default metadata; it is not currently         supported by code generation |

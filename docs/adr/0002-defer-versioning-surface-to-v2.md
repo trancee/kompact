@@ -2,7 +2,8 @@
 
 - **Status:** accepted (2026-09-09)
 - **Tags:** api, versioning, v2
-- **Superseded by:** none
+- **Related:** [ADR-0008](0008-framed-generated-views.md) adds generated framed views;
+  it does not add stream versioning.
 - **Contradicts:** none (intentional deferral, not a contradiction of an existing
   rule)
 
@@ -13,15 +14,12 @@ surface so consumers can detect and reject frames they cannot parse — in
 particular a `UnsupportedSchemaVersion` error kind and a stream *version prefix*
 at the head of a frame, so the T10 compatibility matrix can be authored.
 
-v1 has **no code generator** (kompact-spec ticket 02: "generation strategy";
-ticket 04: "v1 type set"). The wire format is therefore fixed and final for v1:
-fields are positional, framed by the length-prefix scheme in
-ticket 05, and there is no version tag anywhere in `KompactFraming` /
-`KompactWriter`. Consequently:
+At the time this ADR was accepted, v1 had no code generator. ADR-0008 later
+added generated framed views, but neither those views nor the manual framing
+helpers add a version tag to the wire format. Consequently:
 
-- `KompactDecodeError` exposes only the four ticket-06 kinds —
-  `BoundsError`, `BadLengthPrefix`, `TruncatedNested`, `UnknownEnumCode` — and
-  nowhere produces an `UnsupportedSchemaVersion`.
+- `KompactDecodeError` has no `UnsupportedSchemaVersion` case, and no decoder
+  can distinguish an unsupported schema version.
 - `writeLengthPrefix` / `readLengthPrefix` write and read only the per-field
   payload byte-count; no byte in the frame encodes a schema/frame version.
 - `VehicleTelemetry` (the reference generated view) has no version field and no
@@ -32,8 +30,9 @@ it in v1:
 
 1. **Breaking wire change.** A stream version prefix is a byte-level frame change.
    v1 frames already exist (see `references/` and the BLE usage in ADR-0001);
-   inserting a prefix at the head of the frame is a breaking format change with no
-   backwards-compat story in v1 (there is no codegen to emit versioned views).
+   inserting a prefix at the head of the frame is a breaking format change.
+   Existing code generation does not provide a versioned wire format or a
+   migration strategy for those frames.
 2. **ABI churn for a dead producer.** Adding the `UnsupportedSchemaVersion` enum
    constant is a public ABI expansion (it lands in both `kompact.api` and
    `kompact.klib.api`), yet with no version prefix there is **no code path** that
@@ -43,10 +42,11 @@ it in v1:
 
 ## Decision
 
-Do **not** implement the versioning surface in v1. Keep `KompactDecodeError` at
-its four ticket-06 kinds; keep `readLengthPrefix` / `writeLengthPrefix` as
-length-only prefixes (no stream version tag); keep `VehicleTelemetry` as a
-positional, version-less model. The v1 wire format is frozen.
+Do **not** implement the versioning surface without a compatible wire-format
+and migration decision. Keep `UnsupportedSchemaVersion` absent;
+`readLengthPrefix` / `writeLengthPrefix` remain length-only prefixes, and
+`VehicleTelemetry` remains a positional, version-less model. Framed generated
+views do not alter this decision.
 
 The versioning surface — `UnsupportedSchemaVersion`, a stream version prefix, a
 `CURRENT_SCHEMA_VERSION`, and the `isVersionField` accessor path on generated
@@ -57,8 +57,8 @@ views and a real upgrade/compat story can be designed.
 
 1. **Implement the full versioning surface now.** Add a 1-byte stream version
    prefix at the frame head, a `CURRENT_SCHEMA_VERSION`, `UnsupportedSchemaVersion`,
-   and `isVersionField` handling. Rejected: breaking wire-format change for a v1
-   that has no codegen to consume it; high scope; needs a versioning strategy
+   and `isVersionField` handling. Rejected: breaking wire-format change that
+   existing version-less frames cannot consume; high scope; needs a versioning strategy
    (prefix bit-width, placement, how many versions, upgrade path) that is out of
    scope for a v1 feature-freeze.
 2. **Add only `UnsupportedSchemaVersion` (enum constant, no wire change).** Rejected:
@@ -73,8 +73,8 @@ views and a real upgrade/compat story can be designed.
 ## Risks
 
 - **T10 compat matrix unbuilt.** Without a version prefix there is nothing to
-  matrix against; the T10 "version compatibility" tests cannot be authored. This
-  is accepted: T10 is gated on the v2 codegen.
+  matrix against; version-compatibility tests require a separately approved
+  versioned wire format and migration path.
 - **Future v2 wire change is breaking.** v1 consumers (e.g. the BLE
   receive/modify/retransmit cycle in ADR-0001) will need a migration path when v2
   introduces a version prefix. Mitigated by: (a) freezing the v1 format now so the
@@ -86,7 +86,8 @@ views and a real upgrade/compat story can be designed.
 
 ## Migration
 
-No change for v1 consumers: the public ABI (`KompactDecodeError` kinds), the wire
-format, and the `KompactFraming` API surface are unchanged. v2 (when the codegen
-lands) will introduce the version prefix and `UnsupportedSchemaVersion` together,
-at which point a v1→v2 reader strategy and T10 compat tests become possible.
+No change for existing version-less consumers: the public ABI, wire format, and
+manual `KompactFraming` prefix contract remain unchanged. A future versioned
+wire-format revision must introduce the version prefix and
+`UnsupportedSchemaVersion` together with a v1 migration strategy and compatibility
+tests.

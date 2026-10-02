@@ -5,7 +5,7 @@
 [common]\
 expect value class [VehicleTelemetry](index.md)(val raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))
 
-Concrete shared example (PROMPT §3), realized as an `expect value class` per Ticket 03: a plain `value class` in common (no `@JvmInline`, per PROMPT §1) backed by a single `ByteArray`. Platform actuals provide the member bodies; the JVM actual is `@JvmInline` for zero-allocation wrapping, iOS uses a plain actual value class (Ticket 03 reconciliation).
+Concrete shared example (PROMPT §3), realized as an `expect value class` backed by a `ByteArray`. Platform actuals provide the member bodies; their value-class representation does not guarantee allocation behavior at every call site. See the allocation and boxing research note for the evidence needed to support a performance claim.
 
 Layout matrix (LSB-first), packed into 16 bits:
 
@@ -18,16 +18,16 @@ Layout matrix (LSB-first), packed into 16 bits:
 - 
    15..15  (1 bit)  : Reserved/Unused
 
-ADR-0006 D1/D3 shape. `VehicleTelemetry` is the immutable default view: `val` fields read the packed bits, there are no in-place setters, and `copy(...)` derives an updated frame (allocating a fresh 2-byte buffer via `KompactWriter` — an outbound-frame operation, not the read hot path).
+ADR-0006 D1/D3 shape. `VehicleTelemetry` is the immutable default view: `val` fields read the packed bits, there are no in-place setters, and `copy(...)` derives an updated frame backed by a fresh 2-byte buffer via `KompactWriter`.
 
-For write-through mutation (read a BLE characteristic, tweak one field, and re-send the same backing `ByteArray` with no allocation), opt the schema in with `@KompactModel(mutable = true)`: the processor then emits a `MutableVehicleTelemetry` sibling whose `var` properties write each field's bit range in place on `raw` via `KompactRuntime.writeBits*`.
+For write-through mutation (read a BLE characteristic, tweak one field, and re-send the same backing `ByteArray`), opt the schema in with `@KompactModel(mutable = true)`: the processor then emits a `MutableVehicleTelemetry` sibling whose `var` properties write each field's bit range in place on `raw` via `KompactRuntime.writeBits*`. Performance depends on the call site and must be measured for a target workload.
 
-The `ByteArray` is the wire format. A producer builds it via `KompactWriter` or `VehicleTelemetry.create(...)`; a consumer reads fields via the `@KompactField`-annotated properties. The default-view getters are checked accessors (`KompactRuntime.readScalar` / `readBool` returning an `IntResult` / `BooleanResult`) so untrusted input throws on a bounds error (Ticket 04/07), trading one bounds-check per field for safety; the unchecked `KompactRuntime.readBits` fast path stays available for trusted in-memory frames (Ticket 06).
+The `ByteArray` is the wire format. A producer builds it via `KompactWriter` or `VehicleTelemetry.create(...)`; a consumer reads fields via the `@KompactField`-annotated properties. The default-view getters are checked accessors (`KompactRuntime.readScalar` / `readBool` returning an `IntResult` / `BooleanResult`). A truncated input is rejected by the constructor, and the unchecked `KompactRuntime.readBits` primitives remain available for layouts whose bounds are already known (Ticket 06).
 
 [jvmCommon]\
 actual value class [VehicleTelemetry](index.md)(val raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))
 
-JVM actual: `@JvmInline` yields a zero-allocation inline class (Ticket 03).
+JVM actual uses `@JvmInline` for the value-class representation (Ticket 03).
 
 [native]\
 actual value class [VehicleTelemetry](index.md)(val raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))
@@ -59,4 +59,4 @@ iOS actual: a plain value class (Kotlin/Native) with identical field layout.
 
 | Name | Summary |
 |---|---|
-| [copy](copy.md) | [common, jvmCommon, native]<br>[common]<br>expect fun [copy](copy.md)(batteryStatus: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = this.batteryStatus, speed: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = this.speed, isMalfunctioning: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) = this.isMalfunctioning): [VehicleTelemetry](index.md)<br>[jvmCommon, native]<br>actual fun [copy](copy.md)(batteryStatus: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), speed: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), isMalfunctioning: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)): [VehicleTelemetry](index.md)<br>Returns a new `VehicleTelemetry` copying `this` with any supplied fields overridden. Each parameter defaults to the current value, so only the fields you want to change need to be passed. Allocates a fresh buffer. |
+| [copy](copy.md) | [common, jvmCommon, native]<br>[common]<br>expect fun [copy](copy.md)(batteryStatus: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = this.batteryStatus, speed: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = this.speed, isMalfunctioning: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) = this.isMalfunctioning): [VehicleTelemetry](index.md)<br>[jvmCommon, native]<br>actual fun [copy](copy.md)(batteryStatus: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), speed: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), isMalfunctioning: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)): [VehicleTelemetry](index.md)<br>Returns a new `VehicleTelemetry` copying `this` with any supplied fields overridden. Each parameter defaults to the current value, so only the fields you want to change need to be passed. The returned frame is backed by a fresh buffer. |

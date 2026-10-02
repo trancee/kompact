@@ -5,12 +5,12 @@
 [common]\
 expect value class [MutableVehicleTelemetry](index.md)(val raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))
 
-Write-through sibling emitted when `VehicleTelemetry` is annotated with `@KompactModel(mutable = true)` (ADR-0006 D3, bounded escape hatch). The `var` properties read the packed bits (checked) and write them in place on `raw` — mutate a field and re-send the same buffer with no allocation. Construct a fresh frame with `create(...)`; this sibling intentionally has no `copy`.
+Write-through sibling emitted when `VehicleTelemetry` is annotated with `@KompactModel(mutable = true)` (ADR-0006 D3, bounded escape hatch). The `var` properties read the packed bits (checked) and write them in place on `raw`. Use `create(...)` to construct a fresh frame; this sibling intentionally has no `copy`.
 
 [jvmCommon, native]\
 actual value class [MutableVehicleTelemetry](index.md)(val raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))
 
-Write-through sibling emitted when `VehicleTelemetry` is annotated with `@KompactModel(mutable = true)` (ADR-0006 D3, bounded escape hatch). The `var` properties read the packed bits (checked) and write them in place on `raw` — mutate a field and re-send the same buffer with no allocation. Construct a fresh frame with `create(...)`; this sibling intentionally has no `copy`.
+Write-through sibling emitted when `VehicleTelemetry` is annotated with `@KompactModel(mutable = true)` (ADR-0006 D3, bounded escape hatch). The `var` properties read the packed bits (checked) and write them in place on `raw`. Use `create(...)` to construct a fresh frame; this sibling intentionally has no `copy`.
 
 ## Constructors
 

@@ -5,7 +5,7 @@
 [common]\
 class [KompactDecodeException](index.md)(val error: [KompactDecodeError](../-kompact-decode-error/index.md)) : [RuntimeException](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-runtime-exception/index.html)
 
-Thrown by `getOrThrow()` / `readOrThrow()` on the failure path. The success hot-path never throws (Ticket 03 zero-alloc). Allocation of this exception is acceptable because it only occurs on an explicit recovery call.
+Thrown by result `getOrThrow()` / `readOrThrow()` and by direct framed-reader methods when decoding fails. The block overload of `KompactFrame.decode` converts it to a typed `KompactFrameResult` failure.
 
 ## Constructors
 

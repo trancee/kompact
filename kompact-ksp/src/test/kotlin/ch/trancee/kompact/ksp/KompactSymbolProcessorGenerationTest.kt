@@ -450,6 +450,57 @@ class KompactSymbolProcessorGenerationTest {
     }
 
     @Test
+    fun process_generateModeKmp_fixedExpectEmitsPlatformActualsOnly() {
+        val (processor, codeGen, logger) = createTestSetup(mode = "kmp")
+        val model =
+            buildModelDeclaration(
+                className = "KmpModeModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+                isExpect = true,
+            )
+
+        processor.process(FakeResolver(listOf(model)))
+
+        assertTrue(logger.errors.isEmpty(), logger.errors.toString())
+        assertEquals(
+            setOf(
+                "ch.trancee.test.KmpModeModelGenEncoder.kt",
+                "ch.trancee.test.KmpModeModelGenJvm.kt",
+                "ch.trancee.test.KmpModeModelGenIos.kt",
+                "ch.trancee.test.KmpModeModelGenAndroidArm64.kt",
+            ),
+            codeGen.generatedFiles.keys,
+        )
+        val commonEncoder = codeGen.generatedFiles.getValue("ch.trancee.test.KmpModeModelGenEncoder.kt")
+        assertTrue(commonEncoder.contains("internal fun encodeKmpModeModel"), commonEncoder)
+        assertTrue(codeGen.generatedFiles.getValue("ch.trancee.test.KmpModeModelGenJvm.kt").contains("@JvmInline"))
+        assertTrue(
+            codeGen.generatedFiles.getValue("ch.trancee.test.KmpModeModelGenIos.kt").contains("actual value class"),
+        )
+        assertTrue(
+            codeGen.generatedFiles.getValue("ch.trancee.test.KmpModeModelGenAndroidArm64.kt")
+                .contains("actual value class"),
+        )
+    }
+
+    @Test
+    fun process_generateModeKmp_rejectsFixedSchemaWithoutExpectDeclaration() {
+        val (processor, codeGen, logger) = createTestSetup(mode = "kmp")
+        val model =
+            buildModelDeclaration(
+                className = "KmpModeModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("field", "Int", 0 to 16)),
+            )
+
+        processor.process(FakeResolver(listOf(model)))
+
+        assertTrue(logger.errors.any { it.contains("expect value class") }, logger.errors.toString())
+        assertTrue(codeGen.generatedFiles.isEmpty())
+    }
+
+    @Test
     fun create_withUnknownGenerateMode_failsClosed() {
         // S3 (fail-closed) + D1 (no speculative fallback): an unrecognized,
         // non-null kompact.generate value is a misconfiguration, not a

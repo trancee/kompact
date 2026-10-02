@@ -145,7 +145,7 @@ extract_computed_release() {
   fi
 }
 
-# Next SNAPSHOT is always a patch increment from the release version.
+# Next SNAPSHOT starts the following minor development cycle.
 extract_next_snap() {
   local release
   release="$(extract_computed_release)"

@@ -10,7 +10,8 @@ class ModelSpecTest {
         bitWidth: Int,
     ) = KompactFieldInfo(
         name = name,
-        kotlinType = "Int",
+        type = scalarType("Int"),
+        order = null,
         bitOffset = bitOffset,
         bitWidth = bitWidth,
         signed = false,

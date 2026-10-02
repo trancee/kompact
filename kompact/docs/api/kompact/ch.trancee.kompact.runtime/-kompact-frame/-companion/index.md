@@ -1,0 +1,12 @@
+//[kompact](../../../../index.md)/[ch.trancee.kompact.runtime](../../index.md)/[KompactFrame](../index.md)/[Companion](index.md)
+
+# Companion
+
+[common]\
+object [Companion](index.md)
+
+## Functions
+
+| Name | Summary |
+|---|---|
+| [decode](decode.md) | [common]<br>fun [decode](decode.md)(raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html), start: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = 0, end: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = raw.size): [KompactFrameResult](../../-kompact-frame-result/index.md)&lt;[KompactFrame](../index.md)&gt;<br>Validate a bounded region and return a reader without copying. Direct reads may throw; use the block overload when malformed input should be returned as a result.<br>[common]<br>fun &lt;[T](decode.md)&gt; [decode](decode.md)(raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html), start: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = 0, end: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = raw.size, block: ([KompactFrame](../index.md)) -&gt; [T](decode.md)): [KompactFrameResult](../../-kompact-frame-result/index.md)&lt;[T](decode.md)&gt;<br>Parse an untrusted region and translate only decoder failures into typed results. |

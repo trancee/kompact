@@ -1,70 +1,58 @@
-# Docs
+# Documentation
 
-A short index of the documentation in this repository, organized by
-who it's for and what they want to do.
+Choose a page by the job you need to do. The root
+[`README.md`](../README.md) is the project overview; this page is the full map.
 
-## For library consumers
+## Use Kompact
 
-Start at the [project root `README.md`](../README.md) for the
-one-paragraph pitch, then pick the doc that matches your task:
-
-| I want to … | Read |
+| Goal | Guide |
 | --- | --- |
-| Try kompact end-to-end (write a frame, read it back) | [`getting-started.md`](getting-started.md) |
-| Define my own message model (like `VehicleTelemetry`) | [`how-to/define-message.md`](how-to/define-message.md) |
-| Pack / parse a string, blob, nested composite, or repeated field | [`how-to/long-form-payloads.md`](how-to/long-form-payloads.md) |
-| Handle a `KompactDecodeError` without throwing on the hot path | [`how-to/handle-decode-errors.md`](how-to/handle-decode-errors.md) |
-| Send a frame over BLE / receive one back | [`how-to/integrate-ble.md`](how-to/integrate-ble.md) |
-| Consume kompact from a separate Kotlin / KMP project | [`how-to/consume-from-another-project.md`](how-to/consume-from-another-project.md) |
-| Look up an exact API signature, parameter, or error type | [`api-reference.md`](api-reference.md) |
-| Understand the design choices (LSB-first, zero-alloc, value classes, framing, error encoding) | [`architecture.md`](architecture.md) |
-| Run the CI gates / regenerate the goldens | [`ci.md`](ci.md) |
-| Read the original product brief | [`../PROMPT.md`](../PROMPT.md) |
+| Build and decode your first frame | [Getting started](getting-started.md) |
+| Add Kompact to a Kotlin or KMP project | [Consume Kompact](how-to/consume-from-another-project.md) |
+| Define a fixed-layout schema | [Fixed-layout models](how-to/define-message.md) |
+| Define a sequential framed schema | [Framed models](how-to/define-framed-schema.md) |
+| Read and write strings, blobs, nested regions, or repeats | [Long-form payloads](how-to/long-form-payloads.md) |
+| Handle malformed input | [Decode errors](how-to/handle-decode-errors.md) |
+| Pass frames to and from a BLE transport | [BLE integration](how-to/integrate-ble.md) |
+| Find a signature, parameter, or error definition | [API reference](api-reference.md) |
+| Understand the wire format and design tradeoffs | [Architecture](architecture.md) |
 
-## Explanation — design rationale & measurement
+## Contribute
 
-Background on *why* Kompact is shaped this way. The architecture guide covers
-the wire format, zero-allocation reads, value-class layout, and framing; the
-two notes below are deeper justification for the code-generation strategy and
-the performance budget:
+Start with [`CONTRIBUTING.md`](../CONTRIBUTING.md) for the repository setup,
+local checks, documentation workflow, and pull-request guidance. Use
+[`ci.md`](ci.md) for the host-specific CI matrix and exact Gradle tasks.
 
-| Topic | Read |
+### Design decisions
+
+The ADRs record decisions that affect the public API, wire format, builds, and
+releases:
+
+| Decision | ADR |
 | --- | --- |
-| Wire format, zero-alloc, value-class layout, framing, error encoding | [`architecture.md`](architecture.md) |
-| KSP codegen strategy (process common schema once; incremental / cache / C headers) | [`research/ksp-kmp-generation.md`](research/ksp-kmp-generation.md) |
-| Allocation & boxing measurement; the precise zero-alloc contract | [`research/allocation-boxing-measurement.md`](research/allocation-boxing-measurement.md) |
+| Mutable view setters (superseded) | [ADR-0001](adr/0001-mutable-view-classes-with-write-through-setters.md) |
+| Defer schema versioning | [ADR-0002](adr/0002-defer-versioning-surface-to-v2.md) |
+| KMP consumer and publication support | [ADR-0003](adr/0003-kmp-consumer-enablement.md) |
+| Release pull-request automation | [ADR-0004](adr/0004-release-pr-automation.md) |
+| Full-domain `LongResult` | [ADR-0005](adr/0005-relax-fail-path-zero-alloc.md) |
+| Immutable model views by default | [ADR-0006](adr/0006-immutable-default-models.md) |
+| Pre-1.0 versioning | [ADR-0007](adr/0007-pre-1-release-versioning.md) |
+| Sequential framed views | [ADR-0008](adr/0008-framed-generated-views.md) |
 
-## For library contributors
+### Technical research
 
-The locked implementation spec is the source of truth for design
-decisions. Start with the index:
+These notes preserve implementation evidence and are aimed at contributors
+investigating the build or performance model; they are not setup guides:
 
-- [`.scratch/kompact-spec/map.md`](../.scratch/kompact-spec/map.md) —
-  the spec index, with a one-line summary of each design decision
-  and links to the underlying research notes.
-- The spec tickets under [`.scratch/kompact-spec/issues/`](../.scratch/kompact-spec/issues/)
-  record the **why** behind every API decision.
-  Read these when changing or extending the runtime surface.
+- [KSP common-source generation](research/ksp-kmp-generation.md)
+- [How to measure allocation and boxing](research/allocation-boxing-measurement.md)
 
-## For AI agents
+## For coding agents
 
-The repository's AI-execution policy is the canonical source for how
-coding agents should operate here:
+The compact, directive-style agent policy is kept separate from the human
+guides:
 
-- [`../AGENTS.md`](../AGENTS.md) — the AI execution policy (TDD path,
-  clean cutover, commit conventions, review checklist).
-- [`../CONSTITUTION.md`](../CONSTITUTION.md) — the R/X/D/O normative
-  policy. Priority: `CONSTITUTION > AGENTS > scoped docs/ADRs`.
-- [`domain.md`](agents/domain.md) — domain documentation
-  conventions.
-- [`issue-tracker.md`](agents/issue-tracker.md) — how spec
-  tickets and issues are recorded.
-- [`triage-labels.md`](agents/triage-labels.md) — the canonical
-  triage label set.
-- [`agent-quick-start.md`](agents/agent-quick-start.md) — a
-  2-minute reference for working with the Kompact library: setup,
-  core API, gotchas, and CI gates.
-
-These files are written in compact directive syntax and are *not*
-the entry point for human consumers of the library — use the
-"For library consumers" table above instead.
+- [`AGENTS.md`](../AGENTS.md) and [`CONSTITUTION.md`](../CONSTITUTION.md) define
+  repository execution and review rules.
+- [`docs/agents/`](agents/) contains issue-tracker conventions, domain-document
+  guidance, triage labels, and the agent quick start.

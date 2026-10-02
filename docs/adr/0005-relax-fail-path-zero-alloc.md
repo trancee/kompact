@@ -1,20 +1,20 @@
 # ADR-0005 — Full-domain LongResult
 
-- **Status:** Accepted for the `LongResult` representation; other result representations are unchanged.
+- **Status:** Accepted for the `LongResult` representation; allocation behavior is not measured.
 - **Tags:** api, perf, bc-break
 - **Superseded by:** none
-- **Reconsiders:** [ticket 08 — runtime error model](../../.scratch/kompact-spec/issues/08-runtime-error-model.md) (the accepted consequence: result value classes are zero-alloc on *both* success and failure, byte offset not on the fast path)
+- **Reconsiders:** [ticket 08 — runtime error model](../../.scratch/kompact-spec/issues/08-runtime-error-model.md) (the original representation intent was packed results on both success and failure, with byte offsets kept off the basic result types)
 
 ## Context
 
 An external code review of `KompactRuntime` and the typed-result value classes
-questioned the zero-allocation contract on the **failure** path. Before this
-decision, per ticket 08, the seven specialized `*Result` value classes (`ByteResult` …
-`BooleanResult`) each wrap a single packed `Long` and are zero-alloc on both
-success and failure: the error code + raw enum code live in the value bits, and
-a full diagnostic (byte/bit offset, raw enum code, offending-field id) is
-reachable only on an opt-in `decodeFull()` path that allocates the
-`DecodeError` object only on the rare failure path.
+questioned the complexity of carrying detailed diagnostics in the basic result
+types. Before this decision, ticket 08 specified packed `*Result` value classes
+for success and failure: the error kind and raw enum code share the packed
+representation with the value, while byte-offset diagnostics are available
+through an opt-in `decodeFull()` path. This records the original representation
+design; it is not a measurement of allocation behavior on each runtime or call
+shape.
 
 The costs of that design are real:
 - seven nearly-identical `expect`/`actual` value classes (JVM `@JvmInline`
@@ -25,22 +25,21 @@ The costs of that design are real:
 - a caller only caring about success still pays the full pack/unpack machinery
   on every read, because there is no single, simpler success-shaped return.
 
-The review's central suggestion: make the **success** path the only thing the
-zero-alloc contract covers, and let the **failure** path allocate a richer
-structured error. That is the largest single lever the review identifies for
-maintainability.
+The review's central suggestion was to keep the basic result representation
+simple and make detailed offsets an explicit diagnostic choice. That is the
+largest single lever the review identified for maintainability.
 
 ## Accepted decision — LongResult
 
 `LongResult` is a regular common class holding a nullable `Long` value and a
 nullable `KompactDecodeError`. Every `Long` bit pattern, including
 `Long.MIN_VALUE`, remains representable. Unlike the other packed scalar result
-types, creating a `LongResult` allocates on both success and failure.
+types, it does not use a value-class representation.
 
-This deliberately prioritizes a full-domain API over the zero-allocation
+This deliberately prioritizes a full-domain API over a single-`Long`
 representation. Reserving any sentinel band would silently misclassify valid
 user data. This changes the public JVM/Native representation and must be
-treated as a breaking API change before a stable release.
+treated as a breaking API change.
 
 ## Alternatives considered
 
@@ -55,13 +54,12 @@ treated as a breaking API change before a stable release.
 
 ## Risks
 
-- **Allocation:** every checked long read allocates a result, on success and
-  failure. This is an intentional tradeoff; device-level allocation evidence
-  remains a separate measurement requirement.
+- **Representation:** each checked long read returns a regular-class
+  `LongResult`. Its runtime allocation cost depends on the call shape and
+  platform; no device-level allocation evidence is recorded.
 - **Binary/source compatibility:** replacing the public value-class shape and
-  removing `packed` is a breaking API change. Under the repository's pre-`1.0`
-  policy, it ships in the next MINOR release (`0.4.0`); from `1.0.0` onward,
-  the same change requires a MAJOR release.
+  removing `packed` is a breaking API change. It shipped in `0.4.0` under the
+  repository's pre-`1.0` versioning policy.
 
 ## Migration
 
@@ -73,5 +71,6 @@ read-API representation change.
 ## References
 - [ticket 08 — runtime error model](../../.scratch/kompact-spec/issues/08-runtime-error-model.md) (the packed representation this revisits)
 - [ticket 03 — value-class representation / zero-alloc reads](../../.scratch/kompact-spec/issues/03-value-class-representation.md)
-- `docs/architecture.md` § "Zero-allocation reads"; § "Runtime error encoding"
-- `docs/api-reference.md` § "Typed result value classes"; § "`Kompact.Result` namespace"
+- `docs/architecture.md` § "Result representations and performance evidence"
+- [Generated runtime API reference](../../kompact/docs/api/index.md)
+- `docs/research/allocation-boxing-measurement.md`

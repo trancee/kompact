@@ -2,8 +2,7 @@ package ch.trancee.kompact.runtime
 
 import kotlin.jvm.JvmInline
 
-// Ticket 08 — JVM actuals: @JvmInline over primitive Long → zero-alloc on
-// both success and failure (KT-61573 silenced in build.gradle.kts).
+// Ticket 08 — JVM actuals use @JvmInline over the packed Long representation.
 
 @JvmInline
 public actual value class IntResult(

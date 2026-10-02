@@ -9,7 +9,7 @@ import ch.trancee.kompact.runtime.KompactRuntime
 import ch.trancee.kompact.runtime.ScalarType
 import kotlin.jvm.JvmInline
 
-/** JVM actual: `@JvmInline` yields a zero-allocation inline class (Ticket 03). */
+/** JVM actual uses `@JvmInline` for the value-class representation (Ticket 03). */
 @KompactModel(mutable = true)
 @JvmInline
 public actual value class VehicleTelemetry(

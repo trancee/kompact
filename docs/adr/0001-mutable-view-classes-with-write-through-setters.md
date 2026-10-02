@@ -1,9 +1,14 @@
 # ADR-0001 — Mutable view classes: write-through `var` setters on `VehicleTelemetry`
 
-- **Status:** accepted (2026-09-06)
+- **Status:** superseded by ADR-0006 (2026-09-27)
 - **Tags:** api, wire, bc-break
-- **Superseded by:** none
+- **Superseded by:** [ADR-0006 — Immutable value-class views by default](0006-immutable-default-models.md)
 - **Contradicts:** PROMPT.md §1 ("Fields must be exposed as Kotlin `val` properties"), kompact-spec ticket 07 ("generated value-class views are read-only")
+
+> This ADR preserves the original rationale for a decision that was later
+> superseded. Its performance language is design intent, not recorded
+> measurement; see [ADR-0006](0006-immutable-default-models.md) and the
+> [allocation research note](../research/allocation-boxing-measurement.md).
 
 ## Context
 

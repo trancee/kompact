@@ -10,6 +10,7 @@ internal data class ModelSpec(
     val className: String,
     val fields: List<KompactFieldInfo>,
     val mutable: Boolean = false,
+    val framed: Boolean = false,
 ) {
     /** Total bit-size of the packed layout — the end of the last field. */
     val totalBits: Int get() = fields.maxOfOrNull { it.endBit } ?: 0
