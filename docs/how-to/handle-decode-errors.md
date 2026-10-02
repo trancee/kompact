@@ -30,11 +30,12 @@ if (r.isSuccess) {
         KompactDecodeError.TruncatedNested  -> println("nested truncated")
         is KompactDecodeError.UnknownEnumCode -> println("unknown enum ${err.rawCode}")
         KompactDecodeError.BadLengthPrefix  -> println("length prefix overruns")
+        KompactDecodeError.InvalidUtf8      -> println("string payload is not UTF-8")
     }
 }
 ```
 
-The four subtypes are
+The five subtypes are
 [documented here](../api-reference.md#kompactdecodeerror).
 
 ## 2. Use `getOrElse` for a single fallback

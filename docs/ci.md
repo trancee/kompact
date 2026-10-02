@@ -12,7 +12,7 @@ Two workflow files live in [`.github/workflows/`](../.github/workflows/):
 
 | Workflow | File | Runner | Gates |
 | --- | --- | --- | --- |
-| **CI** | `ci.yml` | `checkKotlinAbi + spotlessCheck + Markdown (macOS)` on `macos-latest`; `checkKotlinAbi + jvmTest + koverVerify + Android assemble + KSP Portal dry-run (Linux)` on `ubuntu-latest` | `spotlessCheck` + `checkKotlinAbi` (all KMP targets) on macOS; `spotlessCheck` + `checkKotlinAbi` (JVM + Android, klib inferred) + `koverVerify` + `jvmTest` + `bundleAndroidMainAar` + `kompact-ksp:` gates on Linux |
+| **CI** | `ci.yml` | `checkKotlinAbi + spotlessCheck + Markdown (macOS)` on `macos-latest`; runtime/KSP tests, KMP Gradle-plugin TestKit, coverage, Android assemble, and Portal bundle dry-runs (Linux) on `ubuntu-latest` | `spotlessCheck` + `checkKotlinAbi` (all KMP targets) on macOS; Linux also runs JVM/KSP tests, KMP generation TestKit, `koverVerify`, Android AAR, and Central Portal bundle validation |
 | **Regen Goldens** | `regen-goldens.yml` | `macos-latest` | Regenerate the KGP built-in ABI goldens (manual `workflow_dispatch`) |
 | **Release PR** | `release-pr.yml` | `ubuntu-latest` | On push to `main`: creates or syncs a `release/ongoing` branch + release PR with `release` label |
 | **Release Publish** | `release-publish.yml` | `ubuntu-latest` | On `release` PR merge: quality gates → version bump → tag → build + sign → deploy → publish → next SNAPSHOT |
@@ -89,16 +89,28 @@ compilation and ABI validation work here.
 - `kompact-ksp:test` runs the KSP processor's JVM test suite
   (unit tests for `ValueClassGenerator`, `LayoutValidator`,
   `KompactSymbolProcessor`, and `ModelSpec`).
+- `kompact-ksp-integration:test` runs a real JVM consumer through KSP,
+  compiles the generated framed actual classes against their expected
+  declarations, and exercises nested, repeated, blob, and string round trips.
+  It verifies the JVM processor path.
+- `kompact-gradle-plugin:validatePlugins` checks Gradle task annotations and
+  plugin declarations.
+- `kompact-gradle-plugin:test` uses TestKit to verify common and platform
+  generation/compilation for JVM, Android JVM, iOS Arm64, iOS Simulator Arm64,
+  and Android Native Arm64. It also checks stale-output cleanup, relocated
+  build-cache restoration, and configuration-cache reuse. This tests Kompact's
+  custom plugin; the standard KSP2 Gradle plugin still lacks the same
+  common-source wiring.
 - `kompact-ksp:koverVerify` enforces 100% line + branch coverage on
   the `kompact-ksp` module (same bar as `:kompact:koverVerify`).
 - `kompact-ksp:checkKotlinAbi` validates the KSP module's public ABI
   golden (`kompact-ksp/api/kompact-ksp.api`) against the inferred ABI.
 
-**KSP Portal dry-run.** After the test/coverage/ABI gates pass, the Linux
-job generates an ephemeral PGP key and runs `:kompact-ksp:generateChecksums`
-+ `:kompact-ksp:assembleCentralBundle` to verify the full Maven Central Portal
-bundle pipeline works end-to-end without publishing to Central. The ephemeral
-key is never stored — it exists only for the duration of the CI job.
+**Portal dry-run.** After the test/coverage/ABI gates pass, the Linux job
+generates an ephemeral PGP key and assembles Central Portal bundles for both
+`:kompact-ksp` and `:kompact-gradle-plugin`. This verifies implementation and
+plugin-marker publication without publishing to Central. The ephemeral key is
+never stored — it exists only for the duration of the CI job.
 
 **Why this gate exists.** The macOS job carries a ~6 min queue and
 compiles iOS klibs (slow). Folding `jvmTest`, `checkKotlinAbi` (JVM + Android),
@@ -155,19 +167,23 @@ follows the host:
 ./gradlew spotlessCheck :kompact:checkKotlinAbi :kompact:koverVerify :kompact:jvmTest \
   :kompact:bundleAndroidMainAar :kompact:dokkaGeneratePublicationMarkdown \
   :kompact-ksp:checkKotlinAbi :kompact-ksp:test :kompact-ksp:koverVerify \
+  :kompact-ksp-integration:test :kompact-gradle-plugin:validatePlugins \
+  :kompact-gradle-plugin:test \
   --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
 # Linux / Windows — all gates that work without iOS klib compilation
 ./gradlew spotlessCheck :kompact:checkKotlinAbi :kompact:koverVerify :kompact:jvmTest \
   :kompact:bundleAndroidMainAar :kompact-ksp:test :kompact-ksp:checkKotlinAbi \
-  :kompact-ksp:koverVerify \
+  :kompact-ksp:koverVerify :kompact-ksp-integration:test \
+  :kompact-gradle-plugin:validatePlugins :kompact-gradle-plugin:test \
   --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
 # Regenerate the goldens in place (macOS only)
 ./gradlew :kompact:updateKotlinAbi
 
-# KSP Portal dry-run (checksums + bundle, no real publishing)
+# Central Portal dry-run (checksums + bundles, no real publishing)
 ./gradlew :kompact-ksp:generateChecksums :kompact-ksp:assembleCentralBundle
+./gradlew :kompact-gradle-plugin:generateChecksums :kompact-gradle-plugin:assembleCentralBundle
 ```
 
 When you change a public JVM declaration, update the golden
@@ -187,9 +203,8 @@ is a Kotlin Multiplatform project targeting `jvm` (JVM 21), `android`
 KGP auto-creates the per-target publications via `maven-publish`;
 `ch.trancee.kompact:kompact` is staged for Maven Central Portal via a
 custom Portal Publisher API task (`centralPortalDeploy`, no
-third-party publishing plugin). No release has been cut yet — the
-Portal namespace, PGP key, and user token still require user
-authorization. The `:kompact-ksp` processor is a JVM-only module
+third-party publishing plugin). `v0.4.0` has been published; current
+development targets `0.5.0-SNAPSHOT`. The `:kompact-ksp` processor is a JVM-only module
 targeting JVM 17, published as a standard Maven JAR with sources +
 javadoc stubs.
 
@@ -221,7 +236,8 @@ as the approval gate. Merging the release PR triggers the publish pipeline.
      builds + signs all artifacts, generates checksums + bundles,
      deploys to Central Portal, checks validation status, publishes
      to Maven Central (irreversible), then bumps to the next `*-SNAPSHOT`
-     (always a patch increment) and deletes the `release/ongoing` branch.
+     (the following minor development cycle) and deletes the
+     `release/ongoing` branch.
 4. **Version-bump commits** (`release: …`, `chore(release): …`) are
    filtered by `release-pr.yml`'s `if` condition to prevent circular
    triggering.

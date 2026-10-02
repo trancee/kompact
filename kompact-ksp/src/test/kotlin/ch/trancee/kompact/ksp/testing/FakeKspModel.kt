@@ -13,6 +13,7 @@ fun buildModelDeclaration(
     fields: List<Triple<String, String, Pair<Int, Int>>>,
     mutable: Boolean = false,
     containingFile: KSFile? = null,
+    isExpect: Boolean = false,
 ): FakeKSClassDeclaration {
     val props =
         fields.map { (name, kotlinType, offsets) ->
@@ -47,6 +48,7 @@ fun buildModelDeclaration(
                 ),
             ),
         containingFile = containingFile,
+            isExpect = isExpect,
     )
 }
 

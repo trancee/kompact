@@ -1,5 +1,133 @@
 # How to define a message model
 
+## Generate a sequential framed schema (0.5.0)
+
+For variable-length fields, use a separate framed declaration rather than
+assigning offsets to fields after a payload:
+
+```kotlin
+@file:OptIn(KompactPreview::class)
+
+import ch.trancee.kompact.annotations.KompactField
+import ch.trancee.kompact.annotations.KompactModel
+import ch.trancee.kompact.annotations.KompactPreview
+
+@KompactModel(framed = true)
+public class Packet {
+    @KompactField(order = 0, lengthPrefixWidth = 8)
+    public val label: String = ""
+
+    @KompactField(order = 1, lengthPrefixWidth = 16)
+    public val payload: ByteArray = byteArrayOf()
+
+    @KompactField(order = 2, bitWidth = 16, repeatCountWidth = 8)
+    public val samples: List<Int> = emptyList()
+}
+```
+
+### Generate common KMP sources
+
+For a Kotlin Multiplatform consumer, apply the Kompact Gradle plugin after the
+Kotlin Multiplatform plugin. Do not also apply the standard KSP plugin for
+Kompact schemas; the Kompact plugin runs common processing once and registers
+the generated expect and platform actual declarations:
+
+```kotlin
+plugins {
+    kotlin("multiplatform") version "2.4.20"
+    id("ch.trancee.kompact.codegen") version "0.5.0-SNAPSHOT"
+}
+
+kotlin {
+    jvm()
+    iosArm64()
+    iosSimulatorArm64()
+    androidNativeArm64()
+
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation("ch.trancee.kompact:kompact:0.5.0-SNAPSHOT")
+            }
+        }
+    }
+}
+```
+
+The plugin supports JVM, Android JVM, iOS Arm64, iOS Simulator Arm64, and
+Android Native Arm64 targets. Framed schemas are ordinary annotated classes
+in `commonMain`; fixed-layout schemas retain their handwritten common
+`expect value class` declaration, while the plugin generates their encoder
+and platform actuals.
+
+For the current unpublished snapshot, first publish the runtime, processor,
+and Gradle plugin locally:
+
+```shell
+./gradlew :kompact:publishToMavenLocal :kompact-ksp:publishToMavenLocal :kompact-gradle-plugin:publishToMavenLocal
+```
+
+Then add `mavenLocal()` to both `pluginManagement.repositories` and
+`dependencyResolutionManagement.repositories` in `settings.gradle.kts`:
+
+```kotlin
+pluginManagement {
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+}
+```
+
+Released versions resolve from Maven Central; keep `mavenCentral()` in both
+repository lists and remove `mavenLocal()` after using a released version.
+
+The generated view shape is a regular expect/actual `PacketView` with
+`create(label, payload, samples)`, `copy(...)`, and
+`decode(raw, start, end)` returning `KompactFrameResult<PacketView>`.
+Source declarations use `List<Int>`
+for repeated fields; generated properties expose the read-only
+`KompactRepeatedView<Int>` instead. Its elements decode lazily; the count and
+element boundaries are checked when decoding. `payload` explicitly copies on
+each access; `payloadSlice` exposes the original array and bounded
+`start`/`end` without copying. Nested framed model fields use
+`isNested = true` and borrow the same backing array. Variable-length elements
+in a repeated `List<String>`, `List<ByteArray>`, or `List<NestedModel>` use
+`lengthPrefixWidth`; nested elements also set `isNested = true`.
+For repeated variable-width values, `field.getElementSlice(index)` returns a
+typed-result borrowed slice of the element payload, excluding its prefix.
+This avoids copying a repeated `ByteArray` element.
+Parameterized nested schema classes and mutable framed fields are not supported.
+Use `samples.getResult(index)` to inspect a typed error from a lazily decoded
+element; ordinary `samples[index]` is the throwing convenience.
+
+Order values must be contiguous from zero. Scalar fields use `bitWidth`;
+variable payloads require a byte-aligned start. Untrusted input must go through
+`decode`: inspect its typed `error` or call `getOrThrow()` explicitly. Generated
+views validate every declared field and reject unread trailing bytes. The
+backing array is borrowed. Keep it unchanged while any decoded view or lazy
+repeated field is in use: changing a variable-length prefix invalidates the
+validated sparse index, and behavior after such mutation is unsupported. Some
+changed prefixes are detected as typed failures, but callers must not rely on
+that. Use `KompactByteSlice.toByteArray()` when independent ownership is needed.
+Fixed-layout
+`bitOffset` schemas below retain their scalar fast path.
+
+**KMP generation:** the `ch.trancee.kompact.codegen` plugin provides the
+common-source integration; the limitation applies to the standard KSP Gradle
+plugin, not the Kompact plugin. The TestKit consumer compiles generated sources
+for JVM, iOS Arm64, iOS Simulator Arm64, and Android Native Arm64. See
+[KSP common-schema generation across targets](../research/ksp-kmp-generation.md)
+for its implementation and compatibility constraints.
+
 Goal: a Kotlin `value class` that reads, writes, and mutates a Kompact
 frame — same shape as the bundled `VehicleTelemetry`, applied to your
 own schema.
@@ -69,6 +197,7 @@ public expect value class SensorFrame(public val raw: ByteArray) {
     @KompactField(bitOffset = 8,  bitWidth = 12) public val temperature: Int
     @KompactField(bitOffset = 20, bitWidth = 12) public val timestamp: Int
 }
+```
 
 > **Default view is read-only.** Fields are `val`; there are no setters.
 > In-place mutation is opt-in: set `mutable = true` on the schema's
@@ -77,6 +206,7 @@ public expect value class SensorFrame(public val raw: ByteArray) {
 > [ADR-0006](../../docs/adr/0006-immutable-default-models.md)
 > and the bundled `VehicleTelemetry` / `MutableVehicleTelemetry` pair.
 
+```kotlin
 /** Shared encoder used by the platform `create` actuals. */
 internal fun encodeSensorFrame(
     status: Int, battery: Int, temperature: Int, timestamp: Int,
@@ -234,164 +364,55 @@ class SensorFrameTest {
 
 ## Using the KSP processor (optional)
 
-The hand-written pattern above — `@KompactField` annotations + manual
-`readScalar`/`writeBits` bodies in each getter/setter — is the v1
-reference implementation. In production, the `@KompactModel` / `@KompactField`
-annotations are consumed by the **KSP processor** (`kompact-ksp`),
-which generates the `expect`/`actual` value-class stubs, the `create()`
-factories, and the getter/setter bodies automatically from your
-annotation metadata alone. See [ADR-0003](../adr/0003-kmp-consumer-enablement.md)
-for the publication pipeline.
+The `kompact-ksp` processor generates fixed-layout scalar views and framed
+views from `@KompactModel` / `@KompactField` declarations. It selects output
+for each processing invocation with the `kompact.generate` option:
 
-### Applying the processor
+| Mode | Output |
+| --- | --- |
+| `common` | `expect` declaration |
+| `jvm` | JVM `actual` declaration |
+| `ios` | iOS `actual` declaration |
+| `androidArm64` | Android Native `actual` declaration |
+| `all` (default) | common, JVM, and iOS files |
 
-In your consumer module's `build.gradle.kts`:
+KSP's `ksp { arg(...) }` block applies one option value to every processing
+task in the module. A multiplatform consumer that needs different outputs per
+target must configure each KSP task with its own processor argument.
 
-```kotlin
-plugins {
-    kotlin("multiplatform") version "2.4.20"
-    id("com.google.devtools.ksp") version "2.3.12"
-}
-
-kotlin {
-    jvm()
-    iosArm64()
-    androidNativeArm64()
-
-    sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation("ch.trancee.kompact:kompact:0.4.0-SNAPSHOT")
-            }
-        }
-    }
-}
-
-dependencies {
-    // Use kspCommonMainMetadata so generated sources land in the
-    // common source set shared by all KMP targets (not per-target).
-    // The processor generates expect/actual stubs from your annotations.
-    kspCommonMainMetadata("ch.trancee.kompact:kompact-ksp:0.4.0-SNAPSHOT")
-}
-```
-
-### Selecting the generation mode (`kompact.generate`)
-
-The processor emits up to one file per model: an `expect value class`
-(commonMain), a `@JvmInline actual value class` (jvmMain/androidMain), and a
-plain `actual value class` (iosMain). Which of these the processor writes in a
-given KSP invocation is selected by the **`kompact.generate`** processor option.
-Pass it as a module-level KSP argument:
-
-```kotlin
-ksp {
-    arg("kompact.generate", "all")   // one of: common | jvm | ios | all
-}
-```
-
-| `kompact.generate` value | Emits | Source-set fit |
-| --- | --- | --- |
-| `common` | `expect value class` only | `commonMain` (shared by all targets) |
-| `jvm` | `@JvmInline actual value class` only | `jvmMain` / `androidMain` |
-| `ios` | plain `actual value class` only | `iosMain` |
-| _(omitted)_ / `all` | all three files above | non-KMP or single-source builds |
-
-For a **Kotlin Multiplatform** module, route generated sources into the
-matching source set with KSP's per-source-set dependency configurations
-(`kspCommonMainMetadata`, `kspJvm`, `kspIosArm64`, …). These controls decide
-*where* generated code lands — `common` files into `commonMain`, `jvm` files
-into `jvmMain`/`androidMain`, `ios` files into `iosMain` — but they do **not**
-set the `kompact.generate` value; that stays module-wide (the `ksp { arg(…) }`
-block above applies to every target).
-
-```kotlin
-dependencies {
-    add("kspCommonMainMetadata", "ch.trancee.kompact:kompact-ksp:<version>")
-    add("kspJvm", "ch.trancee.kompact:kompact-ksp:<version>")
-    add("kspIosArm64", "ch.trancee.kompact:kompact-ksp:<version>")
-}
-// Select which file set the processor emits for this module:
-ksp {
-    arg("kompact.generate", "all")   // default when omitted
-}
-```
-
-If `kompact.generate` is omitted, the processor defaults to `all` (generates
-every file) — convenient for non-KMP modules and single-source builds. An
-**unrecognised** value (e.g. a typo like `"cmomn"`) **fails the build**: the
-processor throws `IllegalArgumentException` naming the illegal value and the
-accepted set `common | jvm | ios | all`, rather than silently mis-routing
-expect/actual stubs into the wrong source set. See
-[`ADR-0003`](../adr/0003-kmp-consumer-enablement.md) for the full Android +
-publication wiring.
+**Common-source limitation:** the standard KSP2 Gradle integration still does
+not connect `kspCommonMainMetadata` output to every target's `commonMain`.
+Use `ch.trancee.kompact.codegen` for Kompact's KMP generation path. The
+`kompact-gradle-plugin` TestKit fixture verifies common and platform source
+generation, compilation, build-cache relocation, and configuration-cache
+reuse; `kompact-ksp-integration:test` separately exercises JVM generated-code
+round trips.
 
 ### What the processor generates
 
-Given a model annotated with `@KompactModel` + `@KompactField` (same
-annotations as the hand-written example), the processor emits three
-files:
+The processor has separate output shapes for fixed and framed schemas:
 
-| Output | Source set | Contents |
+| Schema | Common declaration | Platform declaration |
 | --- | --- | --- |
-| `<Name>.kt` | `commonMain` | `expect value class` + `@KompactPreview` + `internal encodeXxx()` helper |
-| `<Name>JvmActual.kt` | `jvmMain` | `@JvmInline actual value class` with init guard, `@Actual` companion `create()` |
-| `<Name>IosActual.kt` | `iosMain` | plain `actual value class` (no `@JvmInline`) |
+| Fixed layout | `expect value class <Name>` | JVM `@JvmInline actual value class`; Native plain `actual value class` |
+| Framed | `expect class <Name>View` | JVM/Native regular `actual class <Name>View` |
 
-The generated getters use the **raw** `KompactRuntime.readBits` /
-`readBitsBoolean` path (not the checked `readScalar`/`readBool`),
-because the processor proves bounds at compile time — see the
-[codegen output reference](../architecture.md#codegen-output-reference)
-for the full shape. The default view's fields are `val` (read-only); write-
-through `var` setters live on the opt-in `Mutable<Model>` sibling emitted
-when `@KompactModel(mutable = true)` — `writeBits` /
-`writeBitsBoolean`, just like the hand-written example.
+Fixed-layout schemas support `Boolean`, `Int`, `Long`, `Float`, and
+`Double`; their generated getters use raw `KompactRuntime` reads after
+compile-time layout validation. Framed schemas support those scalar types,
+`String`, `ByteArray`, nested framed schemas, and `List<T>` repeats over
+supported element types. Their generated readers use the bounded
+`KompactFrame`; `defaultValue` is not currently supported by generation.
 
-**Supported types.** The processor handles `Boolean`, `Int`, `Long`,
-`Float`, `Double`. Variable-length types (`String`, `ByteArray`, nested
-composites, repeated fields) are declared via `@KompactField` metadata
-(`lengthPrefixWidth`, `isNested`, `repeatCountWidth`) but are not yet
-fully generated — use the hand-written [`KompactWriter`](long-form-payloads.md)
-path for those until the v2 codegen lands.
-
-### Writing your annotation-based model
-
-After applying KSP, you write **only the annotations** — the processor
-generates the boilerplate:
-
-```kotlin
-@file:OptIn(KompactPreview::class)
-package your.package
-
-@KompactModel
-public expect value class SensorFrame(public val raw: ByteArray) {
-    public companion object {
-        public fun create(
-            status: Int,
-            battery: Int,
-            temperature: Int,
-            timestamp: Int,
-        ): SensorFrame
-    }
-
-    @KompactField(bitOffset = 0,  bitWidth = 4)  public val status: Int
-    @KompactField(bitOffset = 4,  bitWidth = 4)  public val battery: Int
-    @KompactField(bitOffset = 8,  bitWidth = 12, signed = true) public val temperature: Int
-    @KompactField(bitOffset = 20, bitWidth = 12) public val timestamp: Int
-}
-```
-
-The `expect` declaration is all you write — the `create()` bodies,
-the `@JvmInline actual` (JVM), the plain `actual` (iOS), and every
-getter body are generated. To also emit the opt-in write-through
-`Mutable<Model>` sibling, set `mutable = true` on the schema's
-`@KompactModel` (the processor then generates the matching
-`MutableSensorFrame` with `var` setters). The processor also validates the layout
-at compile time (overlapping fields, invalid widths, bad prefix
-widths) and fails the build on violations.
+The framed input is a regular schema declaration with a distinct generated
+`<Name>View` type, as shown at the top of this guide. The generated view is
+not the annotated input class. Fixed-layout value-class generation is
+documented in the architecture reference, but its common-source wiring has
+the same KSP2 limitation described above.
 
 ## What's next
 
-- Variable-length fields (string, blob, nested, repeated):
+- Manual low-level framing with strings, blobs, nested regions, and repeats:
   [`long-form-payloads.md`](long-form-payloads.md).
 - How to recover from a bad wire buffer without throwing:
   [`handle-decode-errors.md`](handle-decode-errors.md).

@@ -1,6 +1,7 @@
 package ch.trancee.kompact.ksp.gen
 
 import ch.trancee.kompact.ksp.model.KompactFieldInfo
+import ch.trancee.kompact.ksp.model.KompactFieldType
 import ch.trancee.kompact.ksp.model.LayoutValidator
 import ch.trancee.kompact.ksp.model.ModelSpec
 import com.squareup.kotlinpoet.AnnotationSpec
@@ -20,33 +21,14 @@ private val JVM_INLINE = ClassName("kotlin.jvm", "JvmInline")
 private val BYTE_ARRAY_TYPE = ClassName("kotlin", "ByteArray")
 
 /**
- * Generates Kotlin source for a `@KompactModel` value class (Ticket 02).
+ * Generates fixed-layout value-class sources and delegates framed schemas to [FramedClassGenerator].
  *
- * Uses KotlinPoet for type-safe, import-managed code generation. The output
- * matches the "codegen-output reference" in docs/architecture.md:
- *
- * - `expect value class` in commonMain
- * - `@JvmInline actual value class` in jvmMain (F-001: with init guard)
- * - plain `actual value class` in iosMain (no `@JvmInline` per Ticket 03)
- * - getter bodies use the **raw** `readBits` / `readBitsBoolean` path —
- *   not the checked `readScalar` / `readBool` — because the processor
- *   proves bounds at compile time (Ticket 06).
- * - `val` by default (immutable view; ADR-0006); write-through `var` setters
- *   move to the opt-in `Mutable*` sibling
- * - `copy(field = this.field, ...)` builder for immutable field edits (ADR-0006 D2);
- *   re-encodes the (possibly overridden) values via `encode<ClassName>()` into a
- *   fresh `raw` buffer, preserving all other bits
- * - `Mutable<ClassName>` opt-in sibling (when `@KompactModel(mutable = true)`)
- *   with write-through `var` setters — the bounded escape hatch (ADR-0006 D3).
- * - A shared `internal encodeXxx()` function generates the wire buffer
- *   via `KompactWriter`; the companion `create()` delegates to it.
+ * Fixed-layout output uses KotlinPoet and keeps the raw scalar read/write path, immutable views, and
+ * opt-in mutable siblings. Framed schemas instead generate bounded regular view classes.
  */
 internal object ValueClassGenerator {
-    /** Types the code generator can emit read/write/encode calls for. */
-    private val SUPPORTED_TYPES: Set<String> = setOf("Boolean", "Int", "Long", "Float", "Double")
-
     private fun requireValidLayout(spec: ModelSpec) {
-        val errors = LayoutValidator.validateAll(spec.fields)
+        val errors = LayoutValidator.validateAll(spec.fields, framed = spec.framed, mutable = spec.mutable)
         require(errors.isEmpty()) {
             "Cannot generate code for invalid layout — fix before codegen:\n" +
                 errors.joinToString("\n") { "  - $it" }
@@ -54,22 +36,15 @@ internal object ValueClassGenerator {
     }
 
     /**
-     * Rejects field types the generator cannot emit. Must be called by every
-     * code-generation entry point so that `readCall` / `writeCall` /
-     * `encodeWriteCall` only receive supported types and therefore have no
-     * unreachable error branches.
+     * Rejects field types unsupported by fixed-layout generation. Framed schemas are dispatched to
+     * [FramedClassGenerator] before this check.
      */
     private fun requireSupportedType(f: KompactFieldInfo) {
-        if (f.kotlinType in SUPPORTED_TYPES) return
-        if (f.kotlinType in setOf("String", "ByteArray")) {
-            throw IllegalArgumentException(
-                "Field '${f.name}' has type ${f.kotlinType} which requires length-prefix " +
-                    "framing (Ticket 05). Variable-length reads/writes are not yet generated.",
-            )
-        }
+        if (f.type is KompactFieldType.Scalar) return
         throw IllegalArgumentException(
-            "Field '${f.name}' has unsupported type ${f.kotlinType}. " +
-                "Supported types: Boolean, Int, Long, Float, Double.",
+            "Field '${f.name}' has type ${f.type.displayName}, which is unsupported by fixed-layout generation. " +
+                "Use @KompactModel(framed = true) with contiguous order values for strings, blobs, nested models, " +
+                "or repeated fields; custom types remain unsupported.",
         )
     }
 
@@ -80,6 +55,7 @@ internal object ValueClassGenerator {
     /** Generates the `expect value class` + shared `encodeXxx()` function. */
     fun generateExpect(spec: ModelSpec): String {
         requireValidLayout(spec)
+        if (spec.framed) return FramedClassGenerator.generateExpect(spec)
         return com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, spec.className)
             .addType(buildExpect(spec))
@@ -89,9 +65,21 @@ internal object ValueClassGenerator {
             .toString()
     }
 
+    /** Generates the shared encoder for a fixed-layout expect contract supplied by the consumer. */
+    fun generateCommonEncoder(spec: ModelSpec): String {
+        requireValidLayout(spec)
+        require(!spec.framed) { "Framed models do not use the fixed-layout shared encoder" }
+        return com.squareup.kotlinpoet.FileSpec
+            .builder(spec.packageName, "${spec.className}Encoder")
+            .addFunction(buildEncodeFunction(spec))
+            .build()
+            .toString()
+    }
+
     /** Generates the `@JvmInline actual value class` for jvmMain. */
     fun generateJvmActual(spec: ModelSpec): String {
         requireValidLayout(spec)
+        if (spec.framed) return FramedClassGenerator.generateJvmActual(spec)
         return com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, "${spec.className}JvmActual")
             .addType(buildActual(spec, isJvm = true))
@@ -103,6 +91,7 @@ internal object ValueClassGenerator {
     /** Generates the plain `actual value class` for iosMain. */
     fun generateIosActual(spec: ModelSpec): String {
         requireValidLayout(spec)
+        if (spec.framed) return FramedClassGenerator.generateIosActual(spec)
         return com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, "${spec.className}IosActual")
             .addType(buildActual(spec, isJvm = false))
@@ -119,6 +108,7 @@ internal object ValueClassGenerator {
      */
     fun generateAndroidArm64Actual(spec: ModelSpec): String {
         requireValidLayout(spec)
+        if (spec.framed) return FramedClassGenerator.generateAndroidArm64Actual(spec)
         return com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, "${spec.className}AndroidArm64Actual")
             .addType(buildActual(spec, isJvm = false))
@@ -248,7 +238,7 @@ internal object ValueClassGenerator {
 
     private fun buildExpectProperty(f: KompactFieldInfo): PropertySpec =
         PropertySpec
-            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.kotlinType), KModifier.PUBLIC)
+            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.type), KModifier.PUBLIC)
             .addAnnotation(buildFieldAnnotation(f))
             .mutable(false)
             .build()
@@ -256,7 +246,7 @@ internal object ValueClassGenerator {
     private fun buildActualProperty(f: KompactFieldInfo): PropertySpec {
         requireSupportedType(f)
         return PropertySpec
-            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.kotlinType), KModifier.PUBLIC, KModifier.ACTUAL)
+            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.type), KModifier.PUBLIC, KModifier.ACTUAL)
             .addAnnotation(buildFieldAnnotation(f))
             // ADR-0006 D1: views are immutable by default — `val`, no write-through setter.
             // The opt-in `Mutable<ClassName>` sibling re-enables mutation (slice 3).
@@ -297,7 +287,7 @@ internal object ValueClassGenerator {
                     ).toTypedArray(),
                 ).apply {
                     spec.fields.forEach { f ->
-                        addParameter(f.name, FieldCodeGenerator.resolveTypeName(f.kotlinType))
+                        addParameter(f.name, FieldCodeGenerator.resolveTypeName(f.type))
                     }
                 }.returns(className)
                 .apply {
@@ -311,7 +301,7 @@ internal object ValueClassGenerator {
     /** `var` for the `Mutable<ClassName>` sibling — abstract on `expect` (no body). */
     private fun buildMutableExpectProperty(f: KompactFieldInfo): PropertySpec =
         PropertySpec
-            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.kotlinType), KModifier.PUBLIC)
+            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.type), KModifier.PUBLIC)
             .addAnnotation(buildFieldAnnotation(f))
             .mutable(true)
             .build()
@@ -324,7 +314,7 @@ internal object ValueClassGenerator {
     private fun buildMutableActualProperty(f: KompactFieldInfo): PropertySpec {
         requireSupportedType(f)
         return PropertySpec
-            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.kotlinType), KModifier.PUBLIC, KModifier.ACTUAL)
+            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.type), KModifier.PUBLIC, KModifier.ACTUAL)
             .addAnnotation(buildFieldAnnotation(f))
             .mutable(true)
             .getter(
@@ -335,7 +325,7 @@ internal object ValueClassGenerator {
             ).setter(
                 FunSpec
                     .setterBuilder()
-                    .addParameter("value", FieldCodeGenerator.resolveTypeName(f.kotlinType))
+                    .addParameter("value", FieldCodeGenerator.resolveTypeName(f.type))
                     .addStatement("%L", FieldCodeGenerator.writeCall(f))
                     .build(),
             ).build()
@@ -366,7 +356,7 @@ internal object ValueClassGenerator {
 
         spec.fields.sortedBy { it.bitOffset }.forEach { f ->
             requireSupportedType(f)
-            builder.addParameter(f.name, FieldCodeGenerator.resolveTypeName(f.kotlinType))
+            builder.addParameter(f.name, FieldCodeGenerator.resolveTypeName(f.type))
         }
 
         builder.addStatement("val raw = ByteArray(%L)", spec.minBufferSize)
@@ -403,7 +393,7 @@ internal object ValueClassGenerator {
                 params.forEach { f ->
                     val param =
                         ParameterSpec
-                            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.kotlinType))
+                            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.type))
                     // KMP: `actual` declarations cannot carry default arguments
                     // — those live in the `expect` only. Defaults are emitted on
                     // the expect copy and omitted for the actual so the

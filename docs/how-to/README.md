@@ -8,14 +8,14 @@ working Kompact setup. Pick the guide that matches your goal.
 | --- | --- |
 | Define your own message model (like the bundled `VehicleTelemetry`) | [`define-message.md`](define-message.md) |
 | Pack or parse a string / blob / nested composite / repeated field | [`long-form-payloads.md`](long-form-payloads.md) |
-| Handle a `KompactDecodeError` (bounds overrun, bad length prefix, unknown enum code) | [`handle-decode-errors.md`](handle-decode-errors.md) |
+| Handle a `KompactDecodeError` (bounds, bad prefixes, truncated nested data, invalid UTF-8, unknown enum codes) | [`handle-decode-errors.md`](handle-decode-errors.md) |
 | Send a frame over BLE / receive one back | [`integrate-ble.md`](integrate-ble.md) |
 | Consume Kompact from a separate Kotlin / KMP project | [`consume-from-another-project.md`](consume-from-another-project.md) |
 
 **Prerequisites.** All guides assume:
 
 - A working Kotlin Multiplatform toolchain (Kotlin 2.4.20, JDK 21).
-- `ch.trancee.kompact:kompact:0.4.0-SNAPSHOT` on the classpath. See
+- `ch.trancee.kompact:kompact:0.5.0-SNAPSHOT` on the classpath. See
   [`consume-from-another-project.md`](consume-from-another-project.md) if
   you are not yet building against it.
 - Familiarity with the [getting started tutorial](../getting-started.md)

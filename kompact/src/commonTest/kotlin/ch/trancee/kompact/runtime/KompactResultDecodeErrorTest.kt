@@ -53,6 +53,27 @@ class KompactResultDecodeErrorTest {
     }
 
     @Test
+    fun decodeError_invalidUtf8Kind_mapsToInvalidUtf8() {
+        val error = decodeError(ERROR_INVALID_UTF8, rawCode = 0)
+
+        assertEquals(KompactDecodeError.InvalidUtf8, error)
+    }
+
+    @Test
+    fun intResult_failurePreservesInvalidUtf8() {
+        val result = IntResult.failure(KompactDecodeError.InvalidUtf8)
+
+        assertEquals(KompactDecodeError.InvalidUtf8, result.error)
+    }
+
+    @Test
+    fun longResult_formatsInvalidUtf8Failure() {
+        val result = LongResult.failure(KompactDecodeError.InvalidUtf8)
+
+        assertEquals("LongResult(error=InvalidUtf8)", result.toString())
+    }
+
+    @Test
     fun decodeError_unrecognizedKind_defaultsToBoundsError() {
         // 7-bit kind field can carry 0..7; 99 is outside the known set.
         val kind = 99

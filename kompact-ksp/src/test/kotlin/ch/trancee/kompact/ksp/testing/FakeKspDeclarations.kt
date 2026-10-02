@@ -39,6 +39,8 @@ open class FakeKSDeclaration(
     private val declAnnotations: List<KSAnnotation> = emptyList(),
     private val nullQualifiedName: Boolean = false,
     private val containingFileOverride: KSFile? = null,
+    private val typeParametersOverride: List<KSTypeParameter> = emptyList(),
+    private val isExpectOverride: Boolean = false,
 ) : KSDeclaration {
     override val simpleName: KSName = FakeKSName(simpleNameStr)
     override val qualifiedName: KSName? =
@@ -47,7 +49,7 @@ open class FakeKSDeclaration(
         } else {
             FakeKSName(if (packageNameStr.isEmpty()) simpleNameStr else "$packageNameStr.$simpleNameStr")
         }
-    override val typeParameters: List<KSTypeParameter> = emptyList()
+    override val typeParameters: List<KSTypeParameter> = typeParametersOverride
     override val packageName: KSName = FakeKSName(packageNameStr)
     override val parentDeclaration: KSDeclaration? = null
     override val containingFile: KSFile? = containingFileOverride
@@ -55,7 +57,7 @@ open class FakeKSDeclaration(
 
     // KSExpectActual
     override val isActual: Boolean = false
-    override val isExpect: Boolean = false
+    override val isExpect: Boolean = isExpectOverride
 
     override fun findActuals(): Sequence<KSDeclaration> = emptySequence()
 
@@ -87,13 +89,14 @@ class FakeKSPropertyDeclaration(
     packageNameStr: String,
     private val typeStr: String,
     declAnnotations: List<KSAnnotation> = emptyList(),
+    private val typeReference: com.google.devtools.ksp.symbol.KSTypeReference? = null,
+    override val isMutable: Boolean = false,
 ) : FakeKSDeclaration(simpleNameStr, packageNameStr, declAnnotations),
     KSPropertyDeclaration {
     override val getter: KSPropertyGetter? = null
     override val setter: KSPropertySetter? = null
     override val extensionReceiver: KSTypeReference? = null
-    override val type: KSTypeReference = FakeKSTypeReference(typeStr)
-    override val isMutable: Boolean = true
+    override val type: KSTypeReference = typeReference ?: FakeKSTypeReference(typeStr)
     override val hasBackingField: Boolean = false
 
     override fun isDelegated(): Boolean = false
@@ -114,7 +117,17 @@ class FakeKSClassDeclaration(
     declAnnotations: List<KSAnnotation> = emptyList(),
     nullQualifiedName: Boolean = false,
     containingFile: KSFile? = null,
-) : FakeKSDeclaration(simpleNameStr, packageNameStr, declAnnotations, nullQualifiedName, containingFile),
+    typeParametersOverride: List<KSTypeParameter> = emptyList(),
+    isExpect: Boolean = false,
+) : FakeKSDeclaration(
+        simpleNameStr,
+        packageNameStr,
+        declAnnotations,
+        nullQualifiedName,
+        containingFile,
+        typeParametersOverride,
+        isExpect,
+    ),
     KSClassDeclaration {
     override val classKind: ClassKind = ClassKind.CLASS
     override val primaryConstructor: KSFunctionDeclaration? = null

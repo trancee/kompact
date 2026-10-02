@@ -124,9 +124,16 @@ bleCharacteristic.value = tel.raw
   full-domain `LongResult` — 8/16-bit widths decode into `IntResult` via
   `ScalarType` (no `Byte`/`Short` result type).
 - **`:kompact-ksp`** — the KSP annotation processor (`@KompactModel` /
-  `@KompactField`) that generates value-class view bodies from
-  compile-time-validated field layouts. Apply it with `ksp` in a consumer
-  build to generate `@KompactModel` view classes.
+  `@KompactField`) that generates fixed-layout scalar value classes or, with
+  `framed = true`, bounded `SchemaView` classes for ordered strings, blobs,
+  nested models and lazy repeats. The framed decoder returns typed failures;
+  nested and blob slices can borrow the original array. Use the standard KSP
+  plugin for single-target processing; use the Kompact Gradle plugin for
+  common-source KMP generation.
+- **`:kompact-gradle-plugin`** — the `ch.trancee.kompact.codegen` Gradle
+  plugin. It runs common KSP processing once and registers generated common
+  and platform sources for JVM, Android JVM, iOS Arm64, iOS Simulator Arm64,
+  and Android Native Arm64 consumers.
 - **Targets**: `jvm` (JVM 21), `androidNativeArm64`, `iosArm64`, `iosSimulatorArm64`.
   Android JVM consumers use the `jvm` artifact; Android native ARM64 consumers
   use the `androidNativeArm64` klib — see
@@ -151,15 +158,14 @@ bleCharacteristic.value = tel.raw
 
 ## Status
 
-`0.1.0-SNAPSHOT` — the runtime, writer, framing, and result value classes are
-stable and exercised by the `commonTest` suite. Publication is wired via
-standard `maven-publish` + `signing` + Dokka with a custom Central Portal
-Publisher API task (`centralPortalDeploy`, staging to `USER_MANAGED`). Maven
-coordinates `ch.trancee.kompact:kompact`, license Unlicense (public domain),
-but **no
-release has been cut to Maven Central yet** — the Portal namespace, PGP key,
-and user token still require user authorization. Build from source or
-`./gradlew :kompact:publishToMavenLocal` and consume the local snapshot.
+`v0.4.0` is available from Maven Central. The current development version is
+`0.5.0-SNAPSHOT`; it adds framed schemas and the common-source Gradle plugin.
+The runtime, KSP processor, and Gradle plugin are staged through the existing
+Central Portal release pipeline. To try the snapshot locally, publish all
+three modules with
+`./gradlew :kompact:publishToMavenLocal :kompact-ksp:publishToMavenLocal :kompact-gradle-plugin:publishToMavenLocal`
+and add `mavenLocal()` to both `pluginManagement.repositories` and
+`dependencyResolutionManagement.repositories`.
 
 ## License
 

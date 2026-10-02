@@ -29,14 +29,18 @@ allprojects {
 spotless {
     kotlin {
         target("kompact/src/**/*.kt")
+        target("kompact-gradle-plugin/src/**/*.kt")
         target("kompact-ksp/src/**/*.kt")
+        target("kompact-ksp-integration/src/**/*.kt")
         ktlint()
     }
     kotlinGradle {
         target("build.gradle.kts")
         target("settings.gradle.kts")
         target("kompact/build.gradle.kts")
+        target("kompact-gradle-plugin/build.gradle.kts")
         target("kompact-ksp/build.gradle.kts")
+        target("kompact-ksp-integration/build.gradle.kts")
         target("build-logic/build.gradle.kts")
         target("build-logic/settings.gradle.kts")
         target("build-logic/src/main/kotlin/*.gradle.kts")

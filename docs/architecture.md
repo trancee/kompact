@@ -1,8 +1,8 @@
 # Architecture
 
 A walk through the design choices in Kompact: why the wire looks the
-way it does, why reads are zero-allocation, why the result is a typed
-value class instead of a thrown exception, and how the pieces fit
+way it does, why packed scalar reads are zero-allocation, how typed
+decode results avoid exceptions on checked paths, and how the pieces fit
 together. Read this if you want to understand the *why* behind the
 API surface in [`api-reference.md`](api-reference.md).
 
@@ -10,9 +10,9 @@ API surface in [`api-reference.md`](api-reference.md).
 
 ## The product in one paragraph
 
-Kompact is a binary wire format and runtime for **small, dense
-packets that must be safely decoded without exception throwing, with
-allocation-free reads for the packed scalar result types**. The
+Kompact is a binary wire format and runtime for **small, dense packets
+with typed decode errors and allocation-free reads for packed scalar
+result types**. The
 checked 64-bit integer read allocates its `LongResult` to preserve
 every signed value. The original motivating use
 case (in [`PROMPT.md`](../PROMPT.md)) is BLE characteristics: a few
@@ -156,29 +156,29 @@ API surface, not to the JVM actual of a cross-platform value class.
 ## Framing contract
 
 Variable-length fields (strings, blobs, nested composites, repeated
-fields) are layered on top of the fixed-width bit stream with a
-shared length-prefix contract. The contract is:
+fields) use the same little-endian prefix encoding in the manual writer
+and generated framed views. Prefix widths are declared per field; they
+do not have to be uniform across a schema.
 
 - Every length-delimited field carries a fixed-width little-endian
-  byte-count prefix, with the width declared per field and constrained
-  to `{8, 16, 32}`.
-- Nested composites are length-delimited sub-regions. The reader
-  consumes the prefix, learns the byte count, then consumes exactly
-  `prefixWidth + byteCount * 8` bits and hands the caller a
-  `(startBit, bitLength)` pair.
-- Repeated fields are count-prefixed. The reader reads a count prefix
-  of the field's declared `countWidth`, then iterates `count` elements
-  sequentially. The writer's `writeRepeated` invokes its block `count`
-  times against the parent writer.
+  byte-count prefix, with its own width constrained to `{8, 16, 32}`.
+- Nested generated views consume a length-delimited byte region and
+  validate the nested schema within that bound. The low-level
+  `KompactFraming.readNested` API still exposes a `(startBit, bitLength)`
+  region; `KompactFrame.readNested` returns a bounded borrowed
+  `KompactByteSlice`.
+- Repeated fields carry a count prefix with the field's declared
+  `repeatCountWidth`. Variable-width elements also carry their own
+  length prefixes. Generated views validate element boundaries before
+  returning a lazy `KompactRepeatedView`; the writer's `writeRepeated`
+  invokes its block once per element.
 
-The framing helpers live in `KompactFraming`: `readLengthPrefix` and
-`writeLengthPrefix` for the fixed-width count, plus `readNested` (the
-typed public entry point returning a `NestedRegionResult`) which wraps
-the internal `nestedRegionOrNull`. The writer exposes the user-facing
-shape (`writeString` / `writeBlob` / `writeNested` / `writeRepeated`).
-The typed `NestedRegionResult` carries `TruncatedNested` /
-`BadLengthPrefix` failures as values — never throwing on the hot path —
-so the framing layer stays allocation-free.
+The manual framing helpers live in `KompactFraming`, while generated
+framed views use the bounded forward-only `KompactFrame`. The writer
+exposes `writeString`, `writeBlob`, `writeNested`, and `writeRepeated`.
+`NestedRegionResult` and `KompactFrameResult` carry typed failures on
+checked paths; direct `KompactFrame` reads and `getOrThrow()` are
+explicit throwing conveniences.
 
 The deliberate rejection: no random-access offset jumps (see wire
 format rule 3). This is what made the variable-length type set
@@ -186,26 +186,20 @@ addable to v1 without sacrificing the parse-forward property.
 
 ## Versioning and schema evolution
 
-The v1 plan is positional + additive-only (deferred versioning surface —
-see [ADR-0002](adr/0002-defer-versioning-surface-to-v2.md)):
+Generated framed schemas are positional and strict: each declared field
+is required, field order and widths define the wire layout, and the
+decoder rejects unread trailing data rather than skipping unknown fields.
+`defaultValue` is not currently supported by framed code generation.
+Changing field order, type, width, or prefix width is wire-incompatible.
+Appending a field is not automatically compatible: an older reader rejects
+the extra data, while a newer reader cannot decode a frame that omits the
+new required field.
 
-- New fields are appended at the **end** of a length-delimited group.
-- All length-delimited fields in a group share one uniform prefix
-  width so an older reader can skip unknown trailing length-delimited
-  fields by reading prefix + payload.
-- Missing trailing fields fall back to the field's `defaultValue` (the
-  `defaultValue` member of `@KompactField`).
-- Breaking changes are reserved for: reordering fields, inserting a
-  fixed-width scalar field, changing a field's width, or changing
-  the stream's uniform prefix width.
-
-Skew (newer writer, older reader) is always surfaced as a typed
-`BadLengthPrefix`. The framework does not silently truncate or misread.
-
-A stream-level version prefix and `UnsupportedSchemaVersion` error are
-**deferred to v2** where the KSP codegen can emit version-aware views
-and a real upgrade/compat story can be designed. See
-[ADR-0002](adr/0002-defer-versioning-surface-to-v2.md) for the rationale.
+There is no stream-level schema-version prefix or
+`UnsupportedSchemaVersion` error yet. Applications that need mixed-version
+communication must provide their own version discriminator and migration
+policy. The versioning surface remains deferred as described in
+[ADR-0002](adr/0002-defer-versioning-surface-to-v2.md).
 
 ## What is and is not in this repository today
 
@@ -227,18 +221,35 @@ and a real upgrade/compat story can be designed. See
   accessors, not the raw `readBits` path — see the
   [Codegen output reference](#codegen-output-reference) for the
   raw-readBits shape the processor emits for generated views.
-- **Not yet released**: the Maven Central artifact. Publication is wired via
+- **KMP Gradle plugin** (`kompact-gradle-plugin/`): the
+  `ch.trancee.kompact.codegen` plugin runs KSP2 common processing once and
+  registers generated common and platform sources. It supports JVM, Android
+  JVM, iOS Arm64, iOS Simulator Arm64, and Android Native Arm64 targets; it is
+  separate from the standard KSP Gradle plugin.
+- **Released**: `v0.4.0` is available from Maven Central. Publication is wired via
   standard `maven-publish` + `signing` + Dokka, with a custom Portal Publisher
   API task (`centralPortalDeploy`) for Central Portal upload (no third-party
-  publishing plugin). Coordinates `ch.trancee.kompact:kompact:0.4.0-SNAPSHOT` and
-  `ch.trancee.kompact:kompact-ksp:0.4.0-SNAPSHOT`.
-  No release has been cut — the Portal namespace, PGP key, and user token still
-  require user authorization. Build from source or `./gradlew
-  :kompact:publishToMavenLocal` to consume the snapshot.
+  publishing plugin). The `0.5.0-SNAPSHOT` release pipeline also publishes the
+  Gradle plugin implementation and its plugin marker.
+
+  Framed schemas (`@KompactModel(framed = true)`) instead generate regular
+  `SchemaView` classes. Their properties read through a bounded `KompactFrame`
+  cursor, which owns prefix and bounds validation. Nested views share the
+  original array; repeated values use a lazy indexed `KompactRepeatedView`.
+  The existing fixed-layout scalar value classes are unchanged. See
+  [ADR-0008](adr/0008-framed-generated-views.md).
+
+  The framed APIs and generated common declarations described here target
+  `0.5.0-SNAPSHOT`. Apply `ch.trancee.kompact.codegen` after the Kotlin
+  Multiplatform plugin; for the unpublished snapshot, publish the runtime,
+  processor, and Gradle plugin to Maven Local first. The standard KSP Gradle
+  plugin still does not wire common metadata output into every KMP target.
+  See [KSP common-schema generation across targets](research/ksp-kmp-generation.md)
+  for the custom integration and its compatibility constraints.
 
 ## Codegen output reference
 
-The KSP processor (`kompact-ksp/`) emits `expect value class`
+For fixed-layout schemas, the KSP processor (`kompact-ksp/`) emits `expect value class`
 declarations into `commonMain` plus `@JvmInline actual` (jvmMain) and
 plain `actual value class` (iosMain), all wrapping a single `ByteArray`.
 The getter bodies use the **raw** `KompactRuntime.readBits` /
@@ -298,6 +309,10 @@ public actual value class MutableVehicleTelemetry(public actual val raw: ByteArr
         set(value) { KompactRuntime.writeBitsBoolean(raw, 14, value) }
 }
 ```
+
+Framed schemas use a separate regular-class generator, described above;
+their fields and bounded runtime behavior are not represented by this
+fixed-layout example.
 
 The hand-written example instead uses the checked accessors
 (`readScalar`/`readBool` + `getOrThrow()`) so newcomers see the public

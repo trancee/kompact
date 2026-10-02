@@ -17,6 +17,8 @@ dependencyResolutionManagement {
 rootProject.name = "kompact"
 
 include(":kompact")
+include(":kompact-gradle-plugin")
 include(":kompact-ksp")
+include(":kompact-ksp-integration")
 
 includeBuild("build-logic")

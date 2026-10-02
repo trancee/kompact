@@ -3,7 +3,7 @@
 # bitWidth
 
 [common]\
-val [bitWidth](bit-width.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+val [bitWidth](bit-width.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = 0
 
 #### Parameters
 

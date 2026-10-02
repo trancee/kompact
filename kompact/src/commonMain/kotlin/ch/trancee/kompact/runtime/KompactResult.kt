@@ -45,6 +45,7 @@ internal const val ERROR_BOUNDS: Int = 0
 internal const val ERROR_BAD_LENGTH: Int = 1
 internal const val ERROR_TRUNCATED: Int = 2
 internal const val ERROR_UNKNOWN_ENUM: Int = 3
+internal const val ERROR_INVALID_UTF8: Int = 4
 
 // === Shared helpers (commonMain, visible from platform actuals) ===
 
@@ -54,6 +55,7 @@ internal fun encodeErrorKind(error: KompactDecodeError): Int =
         is KompactDecodeError.BadLengthPrefix -> ERROR_BAD_LENGTH
         is KompactDecodeError.TruncatedNested -> ERROR_TRUNCATED
         is KompactDecodeError.UnknownEnumCode -> ERROR_UNKNOWN_ENUM
+        is KompactDecodeError.InvalidUtf8 -> ERROR_INVALID_UTF8
     }
 
 /**
@@ -69,6 +71,7 @@ internal fun decodeError(kind: Int, rawCode: Int): KompactDecodeError =
         ERROR_BAD_LENGTH -> KompactDecodeError.BadLengthPrefix
         ERROR_TRUNCATED -> KompactDecodeError.TruncatedNested
         ERROR_UNKNOWN_ENUM -> KompactDecodeError.UnknownEnumCode(rawCode)
+        ERROR_INVALID_UTF8 -> KompactDecodeError.InvalidUtf8
         else -> KompactDecodeError.BoundsError
     }
 
@@ -231,6 +234,7 @@ public class LongResult private constructor(
                 KompactDecodeError.BoundsError -> "error=BoundsError"
                 KompactDecodeError.BadLengthPrefix -> "error=BadLengthPrefix"
                 KompactDecodeError.TruncatedNested -> "error=TruncatedNested"
+                KompactDecodeError.InvalidUtf8 -> "error=InvalidUtf8"
                 is KompactDecodeError.UnknownEnumCode -> "error=UnknownEnumCode(rawCode=${decodeError.rawCode})"
             }
         })"

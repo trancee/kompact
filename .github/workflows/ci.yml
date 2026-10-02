@@ -1,9 +1,9 @@
 name: CI
 
-# Validates the public ABI goldens, runs the JVM/KSP test suites, verifies
-# Kover coverage thresholds, tests release-version calculation, generates
-# Markdown API docs, and performs a dry-run of the Maven Central Portal bundle
-# pipeline (with an ephemeral PGP key) for the KSP processor module.
+# Validates the public ABI goldens, runs the JVM/KSP/Gradle-plugin test suites,
+# verifies Kover coverage thresholds, tests release-version calculation,
+# generates Markdown API docs, and dry-runs Maven Central Portal bundles for
+# the KSP processor and Gradle plugin with an ephemeral PGP key.
 #
 # ABI validation:
 #   - Built-in KGP checkKotlinAbi (replaces BCV apiCheck/apiDump).
@@ -85,11 +85,14 @@ jobs:
             :kompact-ksp:checkKotlinAbi \
             :kompact-ksp:test \
             :kompact-ksp:koverVerify \
+            :kompact-ksp-integration:test \
+            :kompact-gradle-plugin:validatePlugins \
+            :kompact-gradle-plugin:test \
             --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
-      # KSP Portal dry-run: generate checksums + assemble bundle with an ephemeral
-      # PGP key (never real credentials). Verifies the full Portal pipeline works
-      # end-to-end without publishing to Maven Central.
+      # Portal dry-run: generate checksums + assemble bundles with an ephemeral
+      # PGP key (never real credentials). Verifies both JVM module pipelines
+      # without publishing to Maven Central.
       - name: Generate ephemeral PGP key
         run: |
           # GPG 2.4+ (ubuntu-latest) requires --pinentry-mode loopback + --passphrase ""
@@ -108,7 +111,11 @@ jobs:
           gpg --batch --armor --export-secret-keys ci@kompact.dev >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
           echo "SIGNING_PASSWORD=" >> $GITHUB_ENV
-      - name: KSP Portal dry-run (checksums + bundle)
+      - name: Portal dry-run (checksums + bundles)
         run: |
-          ./gradlew :kompact-ksp:generateChecksums :kompact-ksp:assembleCentralBundle --no-daemon --console=plain
+          ./gradlew \
+            :kompact-ksp:generateChecksums :kompact-ksp:assembleCentralBundle \
+            :kompact-gradle-plugin:generateChecksums :kompact-gradle-plugin:assembleCentralBundle \
+            --no-daemon --console=plain
           test -f kompact-ksp/build/kompact-ksp-portal-bundle.zip && echo "Portal bundle OK"
+          test -f kompact-gradle-plugin/build/kompact-gradle-plugin-portal-bundle.zip && echo "Gradle plugin Portal bundle OK"

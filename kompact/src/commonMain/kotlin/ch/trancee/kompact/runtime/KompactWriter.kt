@@ -32,7 +32,7 @@ public class KompactWriter {
         value: Int,
     ) {
         require(bitWidth in 1..31) { "writeBits bitWidth must be 1..31, was $bitWidth" }
-        ensureCapacityBits(bitWidth)
+        ensureCapacityBits(bitWidth.toLong())
         KompactRuntime.writeBits(buffer, bitCursor, bitWidth, value)
         bitCursor += bitWidth
     }
@@ -43,14 +43,14 @@ public class KompactWriter {
         value: Long,
     ) {
         require(bitWidth in 1..64) { "writeBitsLong bitWidth must be 1..64, was $bitWidth" }
-        ensureCapacityBits(bitWidth)
+        ensureCapacityBits(bitWidth.toLong())
         KompactRuntime.writeBitsLong(buffer, bitCursor, bitWidth, value)
         bitCursor += bitWidth
     }
 
     /** Writes a single bit (true = 1, false = 0). */
     public fun writeBool(value: Boolean) {
-        ensureCapacityBits(1)
+        ensureCapacityBits(1L)
         KompactRuntime.writeBitsBoolean(buffer, bitCursor, value)
         bitCursor += 1
     }
@@ -84,6 +84,8 @@ public class KompactWriter {
         value: String,
     ) {
         val bytes = value.encodeToByteArray()
+        checkPrefix(countWidth, bytes.size)
+        ensureCapacityBits(countWidth.toLong() + bytes.size.toLong() * 8)
         KompactFraming.writeLengthPrefix(buffer, bitCursor, countWidth, bytes.size)
         bitCursor += countWidth
         appendBytes(bytes)
@@ -97,6 +99,8 @@ public class KompactWriter {
         countWidth: Int,
         bytes: ByteArray,
     ) {
+        checkPrefix(countWidth, bytes.size)
+        ensureCapacityBits(countWidth.toLong() + bytes.size.toLong() * 8)
         KompactFraming.writeLengthPrefix(buffer, bitCursor, countWidth, bytes.size)
         bitCursor += countWidth
         appendBytes(bytes)
@@ -116,9 +120,43 @@ public class KompactWriter {
         val child = KompactWriter()
         block(child)
         val bytes = child.build()
+        checkPrefix(lengthPrefixWidth, bytes.size)
+        ensureCapacityBits(lengthPrefixWidth.toLong() + bytes.size.toLong() * 8)
         KompactFraming.writeLengthPrefix(buffer, bitCursor, lengthPrefixWidth, bytes.size)
         bitCursor += lengthPrefixWidth
         appendBytes(bytes)
+    }
+
+    /** Append a bounded byte-aligned view without allocating an intermediate payload. */
+    public fun writeSlice(slice: KompactByteSlice) {
+        appendRegion(slice.raw, slice.start, slice.end)
+    }
+
+    /** Write a borrowed nested region with its length prefix. */
+    public fun writeNested(
+        lengthPrefixWidth: Int,
+        slice: KompactByteSlice,
+    ) {
+        checkPrefix(lengthPrefixWidth, slice.size)
+        ensureCapacityBits(lengthPrefixWidth.toLong() + slice.size.toLong() * 8)
+        KompactFraming.writeLengthPrefix(buffer, bitCursor, lengthPrefixWidth, slice.size)
+        bitCursor += lengthPrefixWidth
+        writeSlice(slice)
+    }
+
+    /** Append the bounded payload of an existing model with its length prefix. */
+    public fun writeNested(
+        lengthPrefixWidth: Int,
+        raw: ByteArray,
+        start: Int,
+        end: Int,
+    ) {
+        require(start >= 0 && end >= start && end <= raw.size) { "Invalid nested view bounds" }
+        checkPrefix(lengthPrefixWidth, end - start)
+        ensureCapacityBits(lengthPrefixWidth.toLong() + (end - start).toLong() * 8)
+        KompactFraming.writeLengthPrefix(buffer, bitCursor, lengthPrefixWidth, end - start)
+        bitCursor += lengthPrefixWidth
+        appendRegion(raw, start, end)
     }
 
     /**
@@ -137,6 +175,8 @@ public class KompactWriter {
             "countWidth must be 8, 16, or 32 (Ticket 06), was $countWidth"
         }
         require(count >= 0) { "repeat count must be non-negative, was $count" }
+        checkPrefix(countWidth, count)
+        ensureCapacityBits(countWidth.toLong())
         KompactFraming.writeLengthPrefix(buffer, bitCursor, countWidth, count)
         bitCursor += countWidth
         for (i in 0 until count) {
@@ -159,8 +199,11 @@ public class KompactWriter {
 
     // --- internals ---
 
-    private fun ensureCapacityBits(neededBits: Int) {
-        val neededBytes = (bitCursor + neededBits + 7) / 8
+    private fun ensureCapacityBits(neededBits: Long) {
+        require(bitCursor.toLong() + neededBits <= Int.MAX_VALUE - 7L) {
+            "Writer length overflow"
+        }
+        val neededBytes = ((bitCursor.toLong() + neededBits + 7) / 8).toInt()
         if (neededBytes > buffer.size) {
             val newSize = maxOf(neededBytes, buffer.size * 2)
             buffer = buffer.copyOf(newSize)
@@ -168,22 +211,40 @@ public class KompactWriter {
     }
 
     private fun appendBytes(bytes: ByteArray) {
-        ensureCapacityBits(bytes.size * 8)
+        appendRegion(bytes, 0, bytes.size)
+    }
+
+    private fun appendRegion(bytes: ByteArray, start: Int, end: Int) {
+        require(start >= 0 && end >= start && end <= bytes.size) { "Invalid byte slice" }
+        val size = end - start
+        ensureCapacityBits(size.toLong() * 8)
         // Byte-aligned append fast path (the prefix left us byte-aligned for nested/blob).
         if (bitCursor % 8 == 0) {
             // copyInto lowers to System.arraycopy on the JVM (memcpy on Native),
             // avoiding a per-byte Kotlin loop on the common aligned string/blob path.
             val dst = bitCursor / 8
-            bytes.copyInto(buffer, destinationOffset = dst)
-            bitCursor += bytes.size * 8
+            bytes.copyInto(buffer, destinationOffset = dst, startIndex = start, endIndex = end)
+            bitCursor += size * 8
         } else {
-            // Fall back to the bit primitive so we handle the rare non-aligned case.
-            var i = 0
-            while (i < bytes.size) {
+            var i = start
+            while (i < end) {
                 KompactRuntime.writeBits(buffer, bitCursor, 8, bytes[i].toInt() and 0xFF)
                 bitCursor += 8
                 i++
             }
+        }
+    }
+
+    private fun checkPrefix(width: Int, length: Int) {
+        val maximum =
+            when (width) {
+                8 -> 255
+                16 -> 65_535
+                32 -> Int.MAX_VALUE
+                else -> throw IllegalArgumentException("Invalid prefix width: $width")
+            }
+        require(length <= maximum) {
+            "Length $length does not fit in a $width-bit prefix"
         }
     }
 

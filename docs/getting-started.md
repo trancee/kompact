@@ -34,7 +34,7 @@ example, but read with the checked, typed API (`readScalar` /
   and add the local snapshot:
   ```kotlin
   // build.gradle.kts (consumer)
-  implementation("ch.trancee.kompact:kompact:0.4.0-SNAPSHOT")
+  implementation("ch.trancee.kompact:kompact:0.5.0-SNAPSHOT")
   ```
   …or include the project directly.
 
@@ -108,6 +108,7 @@ if (speed.isFailure) {
         KompactDecodeError.BoundsError       -> println("buffer too short")
         KompactDecodeError.BadLengthPrefix   -> println("length prefix overruns buffer")
         KompactDecodeError.TruncatedNested   -> println("nested region truncated")
+        KompactDecodeError.InvalidUtf8       -> println("string payload is not UTF-8")
         is KompactDecodeError.UnknownEnumCode -> println("unknown enum code: ${err.rawCode}")
     }
 }

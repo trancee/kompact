@@ -101,10 +101,26 @@ class FakeKSTypeReference(
     private val typeName: String,
     private val typeAnnotations: List<KSAnnotation> = emptyList(),
     private val nullQualifiedName: Boolean = false,
+    private val typeArguments: List<KSTypeArgument> = emptyList(),
+    private val framedModel: Boolean = false,
+    private val errorType: Boolean = false,
+    private val nullableType: Boolean = false,
+    private val declarationAnnotations: List<KSAnnotation> = emptyList(),
+    private val classType: Boolean = true,
 ) : KSTypeReference {
     override val element: com.google.devtools.ksp.symbol.KSReferenceElement? = null
 
-    override fun resolve(): KSType = FakeKSType(typeName, nullQualifiedName)
+    override fun resolve(): KSType =
+        FakeKSType(
+            typeName,
+            nullQualifiedName,
+            typeArguments,
+            framedModel,
+            errorType,
+            nullableType,
+            declarationAnnotations,
+            classType,
+        )
 
     // KSAnnotated
     override val annotations: Sequence<KSAnnotation> = typeAnnotations.asSequence()
@@ -130,10 +146,40 @@ class FakeKSTypeReference(
 class FakeKSType(
     private val typeName: String,
     private val nullQualifiedName: Boolean = false,
+    override val arguments: List<KSTypeArgument> = emptyList(),
+    private val framedModel: Boolean = false,
+    private val errorType: Boolean = false,
+    private val nullableType: Boolean = false,
+    declarationAnnotations: List<KSAnnotation> = emptyList(),
+    private val classType: Boolean = true,
 ) : KSType {
-    override val declaration: KSDeclaration = FakeKSDeclaration(typeName, "", emptyList(), nullQualifiedName)
+    override val declaration: KSDeclaration =
+        if (classType) {
+            FakeKSClassDeclaration(
+                simpleNameStr = typeName.substringAfterLast('.'),
+                packageNameStr = typeName.substringBeforeLast('.', ""),
+                declAnnotations =
+                    if (framedModel) {
+                        declarationAnnotations +
+                            listOf(
+                                FakeKSAnnotation(
+                                    "ch.trancee.kompact.annotations.KompactModel",
+                                    mapOf("framed" to true),
+                                ),
+                            )
+                    } else {
+                        declarationAnnotations
+                    },
+                nullQualifiedName = nullQualifiedName,
+            )
+        } else {
+            FakeKSDeclaration(
+                simpleNameStr = typeName.substringAfterLast('.'),
+                packageNameStr = typeName.substringBeforeLast('.', ""),
+                nullQualifiedName = nullQualifiedName,
+            )
+        }
     override val nullability: Nullability = Nullability.NOT_NULL
-    override val arguments: List<KSTypeArgument> = emptyList()
     override val annotations: Sequence<KSAnnotation> = emptySequence()
 
     override fun isAssignableFrom(that: KSType): Boolean = false
@@ -150,8 +196,8 @@ class FakeKSType(
 
     override fun makeNotNullable(): KSType = this
 
-    override val isMarkedNullable: Boolean = false
-    override val isError: Boolean = false
+    override val isMarkedNullable: Boolean = nullableType
+    override val isError: Boolean = errorType
     override val isFunctionType: Boolean = false
     override val isSuspendFunctionType: Boolean = false
 }
@@ -160,10 +206,10 @@ class FakeKSType(
 // KSTypeArgument
 // ------------------------------------------------------------------
 
-class FakeKSTypeArgument : KSTypeArgument {
-    override val variance: Variance = Variance.INVARIANT
-    override val type: KSTypeReference? = null
-
+class FakeKSTypeArgument(
+    override val type: KSTypeReference? = null,
+    override val variance: Variance = Variance.INVARIANT,
+) : KSTypeArgument {
     // KSAnnotated
     override val annotations: Sequence<KSAnnotation> = emptySequence()
 

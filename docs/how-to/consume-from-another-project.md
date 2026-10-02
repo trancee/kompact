@@ -4,33 +4,35 @@ Goal: add `ch.trancee.kompact:kompact` to a Kotlin or Kotlin
 Multiplatform project so you can call `KompactWriter`, `KompactRuntime`,
 and the typed result types.
 
-The Maven coordinates are `ch.trancee.kompact:kompact:0.4.0-SNAPSHOT`.
+The current Maven Central release is `ch.trancee.kompact:kompact:0.4.0`.
+The `0.5.0-SNAPSHOT` development version is available from Maven Local.
 The artifact publishes per-target klibs (`-iosarm64`, `-iossimulatorarm64`, `-androidarm64`)
 and an Android `aar` via standard `maven-publish`.
 
 ## 1. Install the snapshot locally
 
-The first release to Maven Central is not yet cut (the Portal
-namespace, PGP key, and user token still need authorization). Until
-then, publish the snapshot to your local Maven repository:
+For runtime-only use, publish the snapshot runtime to your local Maven
+repository:
 
 ```bash
 # From the kompact repository root:
 ./gradlew :kompact:publishToMavenLocal
 ```
 
-This produces the per-target artifacts under `~/.m2/repository/`.
+This produces the per-target artifacts under `~/.m2/repository/`. The
+`v0.4.0` runtime is already available from Maven Central; use Maven Local only
+when testing the `0.5.0-SNAPSHOT` development version.
 
 ## 2. Plain Kotlin / JVM project (`build.gradle.kts`)
 
 ```kotlin
 repositories {
     mavenCentral()
-    mavenLocal()    // for the 0.4.0-SNAPSHOT until first Central release
+    mavenLocal()    // only needed for the local 0.5.0-SNAPSHOT
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.4.0-SNAPSHOT")
+    implementation("ch.trancee.kompact:kompact:0.5.0-SNAPSHOT")
 }
 ```
 
@@ -55,7 +57,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.4.0-SNAPSHOT")
+                implementation("ch.trancee.kompact:kompact:0.5.0-SNAPSHOT")
             }
         }
     }
@@ -73,6 +75,12 @@ the JVM jar for `jvm`, the `androidNativeArm64` klib for
 for `iosSimulatorArm64` automatically. You do not need to specify
 target-specific coordinates.
 
+For generated framed schemas in `commonMain`, also apply the
+`ch.trancee.kompact.codegen` Gradle plugin. The current snapshot requires the
+runtime, KSP processor, and plugin marker to be published locally; see
+[the framed schema guide](define-message.md#generate-a-sequential-framed-schema-050)
+for the full setup.
+
 ## 4. Android project (Gradle)
 
 ```kotlin
@@ -89,12 +97,12 @@ android {
 repositories {
     google()
     mavenCentral()
-    mavenLocal()    // for the 0.4.0-SNAPSHOT until first Central release
+    mavenLocal()    // only needed for the local 0.5.0-SNAPSHOT
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.4.0-SNAPSHOT")
-    // or, for KMP: implementation("ch.trancee.kompact:kompact-android:0.4.0-SNAPSHOT")
+    implementation("ch.trancee.kompact:kompact:0.5.0-SNAPSHOT")
+    // or, for KMP: implementation("ch.trancee.kompact:kompact-android:0.5.0-SNAPSHOT")
 }
 ```
 
@@ -110,7 +118,7 @@ For multi-module builds, pin the version in `gradle/libs.versions.toml`:
 
 ```toml
 [versions]
-kompact = "0.4.0-SNAPSHOT"
+kompact = "0.5.0-SNAPSHOT"
 
 [libraries]
 kompact = { module = "ch.trancee.kompact:kompact", version.ref = "kompact" }
@@ -171,7 +179,7 @@ value classes) are not preview API — no opt-in is needed for them.
 - **`mavenLocal()` not declared.** The snapshot lives in `~/.m2/`,
   not on Maven Central. Without `mavenLocal()` in your
   `repositories`, Gradle reports `Could not find
-  `ch.trancee.kompact:kompact:0.4.0-SNAPSHOT`.
+  `ch.trancee.kompact:kompact:0.5.0-SNAPSHOT`.
 - **Wrong target coordinate on KMP.** Use
   `ch.trancee.kompact:kompact` (the root artifact), not
   `ch.trancee.kompact:kompact-jvm` or `kompact-iosarm64`. The

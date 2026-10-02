@@ -3,7 +3,7 @@
 # bitOffset
 
 [common]\
-val [bitOffset](bit-offset.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+val [bitOffset](bit-offset.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = 0
 
 #### Parameters
 

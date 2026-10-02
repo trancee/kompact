@@ -3,6 +3,10 @@
 Goal: use Kompact's length-delimited framing to write and parse
 variable-length fields on top of the fixed-width bit stream.
 
+For generated sequential model views, see
+[`define-message.md`](define-message.md#generate-a-sequential-framed-schema-050).
+This guide covers the lower-level writer and framing helpers.
+
 Kompact's framing is **sequential, parse-forward, no random access** —
 a wire field is either fixed-width (one of the scalar types) or
 length-delimited with a fixed-width little-endian byte-count prefix.
@@ -36,9 +40,9 @@ val byteCount = KompactFraming.readLengthPrefix(bytes, currentBitOffset, 8)
 ```
 
 **Pick `countWidth` for the worst case.** A 16-bit prefix holds strings
-up to 65 535 bytes; an 8-bit prefix holds up to 255. If you exceed the
-prefix, the high bits are silently truncated — validate at the write
-site.
+up to 65 535 bytes; an 8-bit prefix holds up to 255. `writeString`
+rejects an unrepresentable length with `IllegalArgumentException` before
+changing the writer.
 
 ## 2. Write a length-prefixed blob
 
@@ -202,9 +206,10 @@ same shape and content.
   Validate input sizes before passing them in, or use
   [`KompactFraming.readNested`](../api-reference.md#kompactframing)
   on the reader side to surface a typed `TruncatedNested`.
-- **Count overflow.** `countWidth = 8` caps the repeat at 255. If
-  the upstream value is `n > 255`, the high bits truncate silently
-  and the reader will see a wrong count.
+- **Count overflow.** `countWidth = 8` caps the repeat at 255.
+  `writeRepeated` rejects a larger count before changing the writer.
+  When writing a count manually with `writeScalar`, validate it first;
+  the scalar writer does not know that the value is a repeat count.
 
 ## What's next
 

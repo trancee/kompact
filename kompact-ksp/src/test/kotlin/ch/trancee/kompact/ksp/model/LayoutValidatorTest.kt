@@ -17,7 +17,8 @@ class LayoutValidatorTest {
         enumWidth: Int = 0,
     ) = KompactFieldInfo(
         name = name,
-        kotlinType = kotlinType,
+        type = scalarType(kotlinType),
+        order = null,
         bitOffset = bitOffset,
         bitWidth = bitWidth,
         signed = signed,
@@ -217,7 +218,8 @@ class LayoutValidatorTest {
             listOf(
                 KompactFieldInfo(
                     name = "name",
-                    kotlinType = "String",
+                    type = scalarType("String"),
+                    order = null,
                     bitOffset = 0,
                     bitWidth = 4,
                     signed = false,
@@ -239,7 +241,8 @@ class LayoutValidatorTest {
             listOf(
                 KompactFieldInfo(
                     name = "data",
-                    kotlinType = "ByteArray",
+                    type = scalarType("ByteArray"),
+                    order = null,
                     bitOffset = 0,
                     bitWidth = 16,
                     signed = false,

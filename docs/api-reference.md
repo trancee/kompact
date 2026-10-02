@@ -73,6 +73,7 @@ if (speed.isSuccess) {
         KompactDecodeError.BoundsError     -> log.warn("truncated: $err")
         KompactDecodeError.BadLengthPrefix -> log.warn("bad prefix: $err")
         KompactDecodeError.TruncatedNested -> log.warn("nested: $err")
+        KompactDecodeError.InvalidUtf8 -> log.warn("invalid UTF-8: $err")
         is KompactDecodeError.UnknownEnumCode -> log.warn("unknown enum ${err.rawCode}")
     }
 }
@@ -318,11 +319,14 @@ produces one.
 | `BoundsError` | The read exceeded the buffer. |
 | `BadLengthPrefix` | A length prefix would overrun the remaining buffer. |
 | `TruncatedNested` | A nested sub-region was declared but the buffer ended inside it. |
+| `InvalidUtf8` | A framed string payload is not valid UTF-8. |
 | `UnknownEnumCode(rawCode: Int)` | An enum ordinal decoded to a value outside the declared set. |
 
-`KompactDecodeException(error: KompactDecodeError)` is the only
-exception thrown by Kompact, and only by `getOrThrow()` / the `*OrThrow`
-accessors on the failure path.
+Checked scalar accessors return failures as result values. Direct `KompactFrame`
+read methods throw `KompactDecodeException` for malformed input; use the block
+overload of `KompactFrame.decode` to receive those failures as
+`KompactFrameResult.Failure`. Result `getOrThrow()` and `*OrThrow` accessors
+also throw on failure.
 
 ---
 
@@ -416,8 +420,19 @@ to generate value-class views for supported scalar fields. The bundled
 | Annotation | Package | Description |
 | --- | --- | --- |
 | `@KompactPreview` | `ch.trancee.kompact.annotations` | Opt-in marker for the pre-stable annotation + codegen surface. |
-| `@KompactModel` | `ch.trancee.kompact.annotations` | Marks an `expect value class` for KSP model generation; supports immutable views by default and an opt-in mutable sibling. |
-| `@KompactField` | `ch.trancee.kompact.annotations` | Declares scalar field layout (`bitOffset`, `bitWidth`, `signed`). Generated types are `Boolean`, `Int`, `Long`, `Float`, and `Double`; length/repeat/nested/default metadata is not yet generated. |
+| `@KompactModel` | `ch.trancee.kompact.annotations` | Marks a fixed-layout `expect value class` or a framed schema class for generation; supports immutable views by default and an opt-in mutable sibling for fixed layouts. |
+| `@KompactField` | `ch.trancee.kompact.annotations` | Fixed-layout scalars keep `bitOffset`/`bitWidth` and their value-class fast path. With `@KompactModel(framed = true)`, contiguous `order` declares sequential scalar, UTF-8 string, blob, nested framed model and repeated fields. Prefix widths are 8/16/32 bits. `defaultValue` remains unsupported by generation. |
+
+Framed `Packet` declarations generate a `PacketView` regular class on JVM and
+Native with bounded `raw`, `start`, `end`, typed properties, `create`, `copy`,
+and `decode` returning `KompactFrameResult<PacketView>`. `fieldSlice` provides
+borrowed zero-copy access to a blob while its `ByteArray` field getter copies.
+Repeats expose `KompactRepeatedView<T>` (`List<T>`) and decode elements when
+accessed; variable-length boundaries are validated with sparse checkpoints
+during decode. A repeated variable-width element's `getElementSlice(index)` borrows its
+payload without copying; the returned slice excludes the declared prefix.
+Fixed-width repeated elements return a typed bounds failure. See
+[the framed schema guide](how-to/define-message.md#generate-a-sequential-framed-schema-050).
 
 ---
 
