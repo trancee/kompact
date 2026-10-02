@@ -83,7 +83,4 @@ publishing {
 
 tasks.withType<Test>().configureEach {
     systemProperty("kompact.repository.root", rootProject.projectDir.absolutePath)
-    testLogging {
-        showStandardStreams = true
-    }
 }
