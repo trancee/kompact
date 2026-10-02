@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-10-02
+
+### ✨ Features
+- feat: add generated sequential framed views (#70) (545f965)
+
 ## [0.4.0] - 2026-09-27
 
 ### ⚠️ Breaking
