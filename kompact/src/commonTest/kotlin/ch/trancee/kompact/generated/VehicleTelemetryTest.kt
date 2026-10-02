@@ -145,6 +145,18 @@ class VehicleTelemetryTest {
         assertEquals(0x40, tel.raw[1].toInt() and 0xFF)
     }
 
+    @Test
+    fun copy_preservesSpeedWhenAnotherFieldIsOverridden() {
+        val tel = VehicleTelemetry.create(batteryStatus = 5, speed = 500, isMalfunctioning = true)
+
+        val modified = tel.copy(batteryStatus = 3)
+
+        assertEquals(3, modified.batteryStatus)
+        assertEquals(500, modified.speed)
+        assertEquals(true, modified.isMalfunctioning)
+        assertEquals(500, tel.speed)
+    }
+
     // === MutableVehicleTelemetry write-through setters (opt-in, ADR-0006 D3) ===
     // The default view is immutable (val); mutation goes through the
     // MutableVehicleTelemetry sibling, which writes fields in place on `raw`.

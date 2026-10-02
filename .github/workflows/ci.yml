@@ -87,6 +87,14 @@ jobs:
             :kompact-ksp:koverVerify \
             :kompact-ksp-integration:test \
             :kompact-gradle-plugin:validatePlugins \
+            --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+
+      # This TestKit suite launches nested Gradle builds that compile the
+      # consumer for JVM, Android, iOS, and Android Native. Keep it separate
+      # from the root multiplatform build to avoid overlapping compiler daemons.
+      - name: Test Gradle plugin KMP consumer
+        run: |
+          ./gradlew \
             :kompact-gradle-plugin:test \
             --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
