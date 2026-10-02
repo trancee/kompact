@@ -1,8 +1,6 @@
 package ch.trancee.kompact.runtime
 
-// Ticket 08 — iOS actuals: plain value class (Kotlin/Native, no @JvmInline).
-// Same encoding logic as JVM; value classes over primitive Long are
-// zero-alloc on Kotlin/Native (inline value).
+// Ticket 08 — Native actuals use plain value classes over the packed Long.
 
 public actual value class IntResult(
     public actual val packed: Long,

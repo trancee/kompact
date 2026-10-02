@@ -9,8 +9,7 @@ package ch.trancee.kompact.runtime
  * [KompactDecodeException] into a `KompactFrameResult`.
  *
  * Accessing `.error` on a packed scalar result reconstructs the concrete case
- * lazily — singletons on the common path, `UnknownEnumCode` allocates only the
- * data-class payload.
+ * lazily. `UnknownEnumCode` carries its raw code in a data-class payload.
  */
 public sealed class KompactDecodeError {
     public object BoundsError : KompactDecodeError()
@@ -29,8 +28,7 @@ public sealed class KompactDecodeError {
 /**
  * Thrown by result `getOrThrow()` / `readOrThrow()` and by direct framed-reader
  * methods when decoding fails. The block overload of `KompactFrame.decode`
- * converts it to a typed `KompactFrameResult` failure. Allocation is limited
- * to failure paths.
+ * converts it to a typed `KompactFrameResult` failure.
  */
 public class KompactDecodeException(
     public val error: KompactDecodeError,

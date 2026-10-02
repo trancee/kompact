@@ -8,17 +8,14 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * ADR-0005 two-tier diagnostics path: `decodeFull*` is opt-in and may allocate,
- * while `readScalar`/`readScalarAsLong`/`readFloat`/`readDouble`/`readBool`
- * (the hot path) stay zero-alloc (Tickets 03/10).
+ * ADR-0005 two-tier diagnostics path: `decodeFull*` returns extra offset detail,
+ * while the basic checked read methods return the decoded value or typed error.
  *
  * Each `decodeFull*` pins one behavior per scalar shape and reuses the matching
- * zero-alloc `read*` on success (so success semantics are identical by
- * construction). On failure it returns a [DetailedResult] carrying a
- * [DetailedDecodeError] with the byte offset of the failure
- * (`bitOffset ushr 3`) — the offset ticket 08 deliberately omitted from the
- * fast path. `decodeFull*` is the opt-in diagnostics path, so it (and its
- * Double success) may box; that is out of the zero-alloc contract.
+ * checked `read*` method (so value semantics are identical by construction).
+ * On failure it returns a [DetailedResult] carrying a [DetailedDecodeError]
+ * with the byte offset of the failure (`bitOffset ushr 3`) — the offset ticket
+ * 08 deliberately omitted from the basic result types.
  */
 class KompactResultDecodeFullTest {
     // === Int (<=32-bit, via ScalarType) — wraps readScalar ===

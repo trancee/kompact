@@ -3,11 +3,10 @@ package ch.trancee.kompact.runtime
 /**
  * Forward-only, growable write builder for Kompact wire output (Ticket 07).
  *
- * The write path is **not** bound by the zero-allocation hot-path discipline
- * (Ticket 03) — allocation/lambda overhead is acceptable here. The binary
- * shape is a straight translation of Ticket 05's framing: fixed-width LE
- * length prefixes, length-delimited nested sub-regions (child length computed
- * first, then prefix + bytes — no back-patch), and count-prefixed repeats
+ * The writer grows its output buffer and provides lambda-based nested and
+ * repeated builders. Its framing uses fixed-width little-endian length
+ * prefixes, length-delimited nested sub-regions (child length computed first,
+ * then prefix + bytes — no back-patch), and count-prefixed repeats
  * `<count><elem₀><elem₁>…`.
  *
  * `build()` returns an exact-length snapshot without exposing the backing

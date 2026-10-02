@@ -1,15 +1,13 @@
-# Security Policy
+# Security policy
 
 ## Reporting a vulnerability
 
 Please do not open a public GitHub issue for a suspected security problem.
 
-Use GitHub's private vulnerability reporting for this repository when it is
-available.
-
-If that private reporting path is not available to you, do not disclose the
-issue publicly. Instead, open a GitHub issue that contains no vulnerability
-details and requests a private reporting route from the maintainers.
+If GitHub offers private vulnerability reporting for this repository, use it.
+If that option is unavailable, do not include vulnerability details in a public
+issue. Ask the maintainers for a private reporting route using a message that
+contains no sensitive information.
 
 Include as much of the following as you can:
 
@@ -19,14 +17,16 @@ Include as much of the following as you can:
 - expected impact
 - any known mitigations or workarounds
 
-## Supported versions
+## Versions
 
-MeshLink has not cut a public stable release yet.
+Kompact is pre-1.0. The latest published release is `0.4.0`; the current
+development version is not a published release.
 
-Until `0.1.0` ships, security fixes are expected to land on the default branch
-and the latest maintained release-preparation branch.
+Report issues affecting the latest published release or the current default
+branch. Maintainers assess older versions individually; do not assume they
+receive backported fixes.
 
 ## Disclosure expectations
 
-Please give the maintainers reasonable time to confirm the issue, prepare a
-fix, and coordinate disclosure guidance before publishing full details.
+Give maintainers time to confirm the issue, prepare a fix, and agree on
+disclosure timing before publishing technical details.

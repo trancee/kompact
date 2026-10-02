@@ -1,217 +1,116 @@
-# How to pack strings, blobs, nested composites, and repeated fields
+# How to encode and read long-form payloads
 
-Goal: use Kompact's length-delimited framing to write and parse
-variable-length fields on top of the fixed-width bit stream.
+Use the writer and bounded frame reader when a message contains strings, byte
+arrays, nested records, or repeated values. This guide uses the low-level
+runtime API; for generated properties, see
+[How to define a framed schema](define-framed-schema.md).
 
-For generated sequential model views, see
-[`define-message.md`](define-message.md#generate-a-sequential-framed-schema-050).
-This guide covers the lower-level writer and framing helpers.
+The `KompactFrame` reader used below is part of `0.5.0-SNAPSHOT`, not the
+published `0.4.0` release. Follow
+[Consume Kompact](consume-from-another-project.md) to install the snapshot.
 
-Kompact's framing is **sequential, parse-forward, no random access** —
-a wire field is either fixed-width (one of the scalar types) or
-length-delimited with a fixed-width little-endian byte-count prefix.
-The fixed-width choices are `{8, 16, 32}` bits
-([`KompactFraming.VALID_PREFIX_WIDTHS`](../api-reference.md#kompactframing)).
+## Encode strings, blobs, and repeated values
 
-## 1. Write a length-prefixed string
-
-`KompactWriter.writeString(countWidth, value)` emits
-`<countWidth>-bit LE byte count><UTF-8 bytes>`.
+Write fields in wire order. Strings and blobs have a fixed-width little-endian
+byte-count prefix. Repeats have a fixed-width count prefix followed by their
+elements.
 
 ```kotlin
+import ch.trancee.kompact.runtime.KompactFrame
 import ch.trancee.kompact.runtime.KompactWriter
 
-val w = KompactWriter()
-w.writeString(countWidth = 8, value = "hello")  // 1-byte count + "hello"
-// 1-byte count; countWidth = 8 allows up to 255 UTF-8 bytes
-val bytes = w.build()                            // 6 bytes
-```
-
-The reader side:
-
-```kotlin
-import ch.trancee.kompact.runtime.KompactFraming
-
-// After reading the previous fixed-width fields, the byte cursor sits
-// at the start of the length prefix. readLengthPrefix gives you the
-// declared byte count.
-val byteCount = KompactFraming.readLengthPrefix(bytes, currentBitOffset, 8)
-// → 5  ("hello" in UTF-8)
-```
-
-**Pick `countWidth` for the worst case.** A 16-bit prefix holds strings
-up to 65 535 bytes; an 8-bit prefix holds up to 255. `writeString`
-rejects an unrepresentable length with `IllegalArgumentException` before
-changing the writer.
-
-## 2. Write a length-prefixed blob
-
-`KompactWriter.writeBlob(countWidth, bytes)` is identical to
-`writeString` but takes raw bytes:
-
-```kotlin
-val sig = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)  // PNG header
-val w = KompactWriter()
-w.writeBlob(countWidth = 16, bytes = sig)  // 2-byte count + 8 payload bytes
-```
-
-Reading a blob is the same two-step as a string: read the length
-prefix, then consume the declared number of bytes.
-
-## 3. Write a nested composite (sub-region)
-
-A nested composite is a sub-region of the same wire format, prefixed
-by its byte length. Use `KompactWriter.writeNested` to encode it
-forward-only (the child writer computes its length first, then the
-parent writes the prefix + the child bytes — no back-patch).
-
-```kotlin
-val w = KompactWriter()
-// 4-byte fixed header: 8 bits version + 8 bits flags + 16 bits type
-w.writeBits(bitWidth = 8, value = 1)               // version
-w.writeBits(bitWidth = 8, value = 0b0000_0010)     // flags
-w.writeBits(bitWidth = 16, value = 42)             // type
-// Nested body: another timestamped record, 16-bit length prefix
-w.writeNested(lengthPrefixWidth = 16) {
-    writeBits(bitWidth = 8, value = 1)              // inner version
-    writeBitsLong(bitWidth = 32, value = 1700000000L)    // inner timestamp
+val payload = byteArrayOf(0x50, 0x4E, 0x47)
+val writer = KompactWriter()
+writer.writeString(countWidth = 8, value = "image")
+writer.writeBlob(countWidth = 16, bytes = payload)
+writer.writeRepeated(count = 2, countWidth = 8) {
+    writeBits(bitWidth = 16, value = 42)
 }
-// = 4-byte header + 2-byte length prefix + 5-byte inner body = 11 bytes
-val bytes = w.build()
-```
+val bytes = writer.build()
 
-Reading a nested region on the other side:
-
-```kotlin
-import ch.trancee.kompact.runtime.KompactFraming
-
-// `cursorBit` sits at the start of the nested length prefix.
-val region = KompactFraming.readNested(bytes, cursorBit, prefixBitWidth = 16)
-if (region.isSuccess) {
-    val innerStart = region.startBit            // bit offset of the inner payload
-    val innerBits  = region.bitLength           // payload length in bits
-    // Read the inner record's fields starting at innerStart,
-    // consuming up to innerBits bits. A generated @KompactModel
-    // value class or a hand-written one that wraps the same buffer works:
-    val inner = InnerRecord(bytes)              // any value class over `bytes`
-}
-```
-
-`readNested` always returns a [`NestedRegionResult`](../api-reference.md#nestedregionresult):
-on success it carries the `(startBit, bitLength)` of the payload; on failure
-(a prefix that overruns the buffer, or a count that overflows the remaining
-buffer) it carries a typed `KompactDecodeError.BadLengthPrefix`. It never
-throws on the hot path. See [`handle-decode-errors.md`](handle-decode-errors.md).
-
-## 4. Write a count-prefixed repeated field
-
-A repeated field emits `<countWidth>-bit LE count><elem₀>…<elem_{n-1}>`.
-`KompactWriter.writeRepeated(count, countWidth) { ... }` runs the
-block `count` times against the parent writer. Each invocation of the
-block writes one element's worth of bits.
-
-```kotlin
-val w = KompactWriter()
-// 3 samples, each a 16-bit signed value, count width = 8
-w.writeRepeated(count = 3, countWidth = 8) {
-    writeBits(bitWidth = 16, value = 100)   // every element is the same value
-}
-// = 1 byte count (0x03) + 3 × 2 bytes = 7 bytes
-val bytes = w.build()
-```
-
-If each element needs a **different** value, use a manual `for` loop
-instead of `writeRepeated` — the block is a plain lambda with no
-index parameter:
-
-```kotlin
-val w = KompactWriter()
-w.writeBits(bitWidth = 8, value = 100)      // version
-val readings = intArrayOf(100, -200, 1500)
-w.writeScalar(ScalarType.of(8, signed = false), readings.size.toLong())  // count prefix
-for (v in readings) {
-    w.writeScalar(ScalarType.of(16, signed = true), v.toLong())
-}
-val bytes = w.build()
-```
-
-The reader walks the count first, then `count` elements in a loop:
-
-```kotlin
-import ch.trancee.kompact.runtime.KompactRuntime
-import ch.trancee.kompact.runtime.KompactFraming
-
-val n = KompactFraming.readLengthPrefix(bytes, cursorBit, bitWidth = 8).also {
-    require(it >= 0) { "truncated or invalid prefix" }
-}
-var bit = cursorBit + 8
-val samples = IntArray(n) { idx ->
-    val v = KompactRuntime.readScalar(bytes, bit, ScalarType.of(16, signed = true)).getOrThrow()
-    bit += 16
-    v
-}
-```
-
-## 5. One frame with everything
-
-A realistic log frame: 16-bit timestamp + 8-bit level + 16-bit
-length-prefixed message + 8-bit count + N × 32-bit readings.
-
-```kotlin
-import ch.trancee.kompact.runtime.KompactRuntime
-import ch.trancee.kompact.runtime.KompactWriter
-import ch.trancee.kompact.runtime.ScalarType
-
-fun encodeLog(
-    ts: Int, level: Int, message: String, readings: IntArray,
-): ByteArray {
-    val w = KompactWriter()
-    w.writeScalar(ScalarType.of(16, signed = false), ts.toLong())
-    w.writeBits(bitWidth = 8, value = level)
-    w.writeString(countWidth = 16, value = message)
-    // Manual count prefix + loop: writeRepeated cannot index its elements.
-    w.writeScalar(ScalarType.of(8, signed = false), readings.size.toLong())
-    for (v in readings) {
-        w.writeScalar(ScalarType.of(32, signed = true), v.toLong())
+val decoded = KompactFrame.decode(bytes) { frame ->
+    val name = frame.readString(prefixWidth = 8)
+    val image = frame.readBlob(prefixWidth = 16).toByteArray()
+    val readings = frame.readRepeated(
+        countWidth = 8,
+        elementWidth = 16,
+        elementPrefixWidth = 0,
+    ) { element ->
+        element.readBits(width = 16).toInt()
     }
-    return w.build()
-}
+    Triple(name, image, readings)
+}.getOrThrow()
+
+check(decoded.first == "image")
+check(decoded.second.contentEquals(payload))
+check(decoded.third.size == 2)
+check(decoded.third[0] == 42)
 ```
 
-**Index-dependent writes.** The `writeRepeated` block is re-run `count`
-times against the parent writer, but the block is a plain lambda — it
-cannot read its own index. If each element needs a different value,
-write the count prefix manually and use a `for` loop with `writeScalar`
-(as shown above). Use `writeRepeated` only when every element has the
-same shape and content.
+The `readRepeated` call validates the count and element boundaries, then
+decodes each element when you access it. Use a manual count prefix and loop
+instead of `writeRepeated` when each element has a different value; its block
+does not receive an element index.
 
-## Common pitfalls
+## Encode and read a nested record
 
-- **Mismatched prefix widths.** Writer and reader must agree on
-  `countWidth` / `lengthPrefixWidth`. If the writer uses 8 and the
-  reader uses 16, the first read returns a garbage length.
-- **Block scope in `writeNested` vs `writeRepeated`.** These two
-  differ in which writer the block writes to:
-  - `writeRepeated` calls `block()` against the **parent** writer — you
-    write to `this` and `this` IS the parent.
-  - `writeNested` calls `block(child)` against a **throwaway child**
-    writer — you write to `this` but `this` is the child, not the
-    parent. The child's bytes are emitted as a length-prefixed blob.
-  In both cases the block can still capture outer variables for
-  indexing (e.g. reading `readings[i]` in a `for` loop), but
-  `writeRepeated`'s block has no index parameter — use a manual loop
-  for index-dependent writes.
-- **Truncated nested payloads.** If the inner block would write
-  beyond the declared length, Kompact's writer trusts your `block`.
-  Validate input sizes before passing them in, or use
-  [`KompactFraming.readNested`](../api-reference.md#kompactframing)
-  on the reader side to surface a typed `TruncatedNested`.
-- **Count overflow.** `countWidth = 8` caps the repeat at 255.
-  `writeRepeated` rejects a larger count before changing the writer.
-  When writing a count manually with `writeScalar`, validate it first;
-  the scalar writer does not know that the value is a repeat count.
+`writeNested` builds the child first, then writes its byte length and bytes.
+`readNested` returns a borrowed slice bounded to that child payload. Decode the
+slice separately so the nested reader cannot cross into the following field.
 
-## What's next
+```kotlin
+import ch.trancee.kompact.runtime.KompactFrame
+import ch.trancee.kompact.runtime.KompactWriter
 
-- Decode-error patterns: [`handle-decode-errors.md`](handle-decode-errors.md).
-- Send the frame over BLE: [`integrate-ble.md`](integrate-ble.md).
+val writer = KompactWriter()
+writer.writeNested(lengthPrefixWidth = 16) {
+    writeBits(bitWidth = 8, value = 1) // child version
+    writeBits(bitWidth = 16, value = 42)
+}
+val bytes = writer.build()
+
+val childValue = KompactFrame.decode(bytes) { frame ->
+    val child = frame.readNested(prefixWidth = 16)
+    KompactFrame.decode(child.raw, child.start, child.end) { nested ->
+        val version = nested.readBits(width = 8).toInt()
+        val value = nested.readBits(width = 16).toInt()
+        check(version == 1)
+        value
+    }.getOrThrow()
+}.getOrThrow()
+
+check(childValue == 42)
+```
+
+The block overload of `KompactFrame.decode` returns a typed failure for
+malformed prefixes, truncated data, invalid UTF-8, or out-of-bounds reads.
+Direct `read*` calls throw `KompactDecodeException` on malformed input; see
+[Handle decode errors](handle-decode-errors.md) to choose a recovery path.
+
+## Choose prefix widths
+
+`countWidth` and `lengthPrefixWidth` are widths in bits. Kompact accepts `8`,
+`16`, or `32`:
+
+| Prefix width | Maximum count or byte length |
+| ---: | ---: |
+| 8 | 255 |
+| 16 | 65,535 |
+| 32 | `Int.MAX_VALUE` |
+
+Choose a width that can represent the largest valid payload. The writer rejects
+an invalid width or a value that does not fit before it appends that field.
+Writer and reader must use the same width.
+
+When reading variable-length values with `KompactFrame`, start each one at a
+byte boundary. Keep the backing `ByteArray` unchanged while using a borrowed
+slice or lazy repeated view.
+
+## Next steps
+
+- Define the same fields as generated view properties:
+  [Framed schema guide](define-framed-schema.md).
+- Choose a malformed-input recovery strategy:
+  [Decode errors](handle-decode-errors.md).
+- Pass the resulting `ByteArray` to a transport:
+  [BLE integration](integrate-ble.md).

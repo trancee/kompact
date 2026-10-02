@@ -82,8 +82,7 @@ class VehicleTelemetryTest {
     // The 16-bit layout ([0..15]) requires >= 2 bytes. A truncated/untrusted
     // buffer must fail fast at construction with a clear IllegalArgumentException
     // (fail-fast, Ticket 06) rather than a delayed ArrayIndexOutOfBoundsException
-    // at field-access time. The raw getters remain the zero-alloc fast path
-    // (Ticket 08:39); untrusted input should use the checked accessors instead.
+    // at field-access time. Untrusted input should use the checked accessors.
 
     @Test
     fun constructorRejectsTruncatedBuffer() {
@@ -141,7 +140,7 @@ class VehicleTelemetryTest {
         assertEquals(5, modified.batteryStatus) // preserved
         assertEquals(30, modified.speed) // overridden
         assertEquals(true, modified.isMalfunctioning) // preserved
-        // copy allocates a fresh buffer; the original frame is untouched
+        // copy returns a fresh buffer; the original frame is untouched
         assertEquals(0xA5, tel.raw[0].toInt() and 0xFF)
         assertEquals(0x40, tel.raw[1].toInt() and 0xFF)
     }
@@ -201,7 +200,7 @@ class VehicleTelemetryTest {
         assertEquals(true, received.isMalfunctioning)
 
         // Modify a field in place by wrapping the same backing buffer in the
-        // opt-in Mutable sibling (no allocation, re-send the same bytes).
+        // opt-in Mutable sibling, then re-send the same backing bytes.
         val mutable = MutableVehicleTelemetry(received.raw)
         mutable.speed = 30
 

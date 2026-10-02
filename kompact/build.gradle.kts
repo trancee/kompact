@@ -237,7 +237,7 @@ publishing {
                 pom {
                     name.set("Kompact")
                     description.set(
-                        "Zero-allocation bit-stream pack/unpack primitives and generated model views " +
+                        "Bit-stream packing and unpacking primitives with generated model views " +
                             "for Kotlin Multiplatform.",
                     )
                 }

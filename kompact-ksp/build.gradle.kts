@@ -108,8 +108,7 @@ publishing {
             pom {
                 name.set("Kompact KSP")
                 description.set(
-                    "KSP processor for Kompact @KompactModel schemas — " +
-                        "generates value-class views with zero-alloc bit-stream reads.",
+                    "KSP processor for Kompact @KompactModel schemas that generates Kotlin views.",
                 )
             }
         }

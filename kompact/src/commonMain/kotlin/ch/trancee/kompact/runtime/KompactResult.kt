@@ -14,7 +14,8 @@ package ch.trancee.kompact.runtime
 //   canonical NaN (payload 0) = success; quiet NaN with non-zero payload
 //   in bits 3..0 = failure (error kind encoded as payload 1..4).
 //
-// These packed results are zero-alloc on both JVM and Kotlin/Native.
+// These result types use value classes over packed values; this is a type
+// representation, not a measured allocation guarantee for every call shape.
 // ====================================================================
 
 // --- ≤32-bit result encoding ---
@@ -144,8 +145,8 @@ internal fun throwDecodeErrorFromDouble(packed: Long): Nothing = throw KompactDe
 //                  width at read time — readScalar already returns IntResult),
 //   FloatResult   (32-bit float, NaN-canonical success),
 //   DoubleResult  (64-bit float, reserved quiet-NaN payload for errors),
-//   BooleanResult (single bit), and LongResult (a full-domain allocating result).
-// The four packed result types each wrap a Long and are zero-alloc.
+//   BooleanResult (single bit), and LongResult (a full-domain result).
+// The four packed result types each wrap a Long; LongResult is a regular class.
 // ====================================================================
 
 public expect value class IntResult(
@@ -200,10 +201,9 @@ public expect value class BooleanResult(
  * Checked 64-bit integer result (Ticket 08).
  *
  * Holds either any [Long] value or a [KompactDecodeError]. This regular class
- * allocates so success and failure remain distinct without reserving valid
- * values as sentinels. Unlike the other scalar result types, it is not a
- * zero-allocation value class. Equality and hashing use the held value and
- * error, not object identity.
+ * stores success and failure separately without reserving valid values as
+ * sentinels. Unlike the other scalar result types, it is not a value class.
+ * Equality and hashing use the held value and error, not object identity.
  */
 public class LongResult private constructor(
     private val successValue: Long,
@@ -262,12 +262,11 @@ public expect value class DoubleResult(
     }
 }
 
-// === ADR-0005 — opt-in diagnostics tier (allocates; NOT the zero-alloc hot path) ===
+// === ADR-0005 — opt-in diagnostics tier ===
 
 /**
- * Full diagnostic on the opt-in `decodeFull` path (ADR-0005 §2). Allocated only
- * on the rare failure path, and only when the caller explicitly requests
- * diagnostics — the `readScalar` hot path is unaffected (Ticket 03/10).
+ * Extra detail returned by the opt-in `decodeFull` path (ADR-0005 §2).
+ * Unlike [KompactDecodeError], this includes the byte offset and raw enum code.
  *
  * - [error]: the typed `KompactDecodeError` kind.
  * - [offset]: byte index of the failure (`bitOffset ushr 3`).
@@ -281,9 +280,8 @@ public data class DetailedDecodeError(
 
 /**
  * Opt-in diagnostics result (ADR-0005 §2). Holds either a success [value] or a
- * [DetailedDecodeError]; unlike the packed `*Result` value classes it is a plain
- * class and therefore allocates — use it only for diagnostics/recovery, never on
- * the read hot path ([KompactRuntime.readScalar]).
+ * [DetailedDecodeError]. It is a regular class with explicit value and error
+ * state; use it when the additional diagnostic context is useful.
  *
  * Constructed only from `decodeFull` ([KompactRuntime]); the constructor is
  * `internal` so external callers cannot create an inconsistent (value+error)

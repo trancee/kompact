@@ -1,212 +1,105 @@
-# How to handle decode errors
+# How to handle malformed input
 
-Goal: recover from a malformed wire buffer (truncated, bad length
-prefix, unknown enum code) without throwing on the hot path, and
-without silently misreading.
+Use checked reads for data from a peer, file, or other untrusted source. Keep a
+decode failure visible to the caller so malformed data cannot silently become
+a plausible field value.
 
-Kompact's read API is **typed-result-shaped** — every checked accessor
-returns a specialized `*Result` instead of a primitive and never throws
-on success. Most result types are value classes; `LongResult` is an
-allocating regular class so it can represent the complete `Long` domain.
-`getOrThrow()` throws only on failure. The error is carried as a
-[`KompactDecodeError`](../api-reference.md#kompactdecodeerror) sealed-class instance.
+## Handle a checked scalar read
 
-## 1. Inspect the result with `isSuccess` / `isFailure`
-
-The simplest pattern is the `Result`-style branching:
+Checked scalar accessors return a result with either a value or a
+`KompactDecodeError`. Return that error from your own decoding boundary, or map
+it to an explicit application outcome.
 
 ```kotlin
 import ch.trancee.kompact.runtime.KompactDecodeError
 import ch.trancee.kompact.runtime.KompactRuntime
 import ch.trancee.kompact.runtime.ScalarType
 
-val r = KompactRuntime.readScalar(raw, 0, ScalarType.of(10, signed = false))
-if (r.isSuccess) {
-    val speed: Int = r.getOrThrow()          // safe — we just checked
-    println("speed=$speed")
-} else {
-    when (val err = r.error) {
-        KompactDecodeError.BoundsError      -> println("buffer too short")
-        KompactDecodeError.TruncatedNested  -> println("nested truncated")
-        is KompactDecodeError.UnknownEnumCode -> println("unknown enum ${err.rawCode}")
-        KompactDecodeError.BadLengthPrefix  -> println("length prefix overruns")
-        KompactDecodeError.InvalidUtf8      -> println("string payload is not UTF-8")
+sealed interface SpeedDecode {
+    data class Success(val value: Int) : SpeedDecode
+    data class Failure(val error: KompactDecodeError) : SpeedDecode
+}
+
+fun decodeSpeed(raw: ByteArray, bitOffset: Int): SpeedDecode {
+    val result = KompactRuntime.readScalar(
+        raw,
+        bitOffset,
+        ScalarType.of(10, signed = false),
+    )
+    return if (result.isSuccess) {
+        SpeedDecode.Success(result.getOrThrow())
+    } else {
+        SpeedDecode.Failure(checkNotNull(result.error))
     }
 }
 ```
 
-The five subtypes are
-[documented here](../api-reference.md#kompactdecodeerror).
+The failure is observable and retains the error type. Do not replace it with a
+magic value such as `0` or `-1` unless your application deliberately defines
+that fallback and also preserves a separate failure signal.
 
-## 2. Use `getOrElse` for a single fallback
+## Handle a framed message
 
-`getOrElse` mirrors `kotlin.Result.getOrElse` — same shape. Packed scalar
-results stay allocation-free on the success path; `LongResult` itself
-allocates to preserve all `Long` values:
+For a generated framed view, call its `decode` factory. It returns
+`KompactFrameResult`; malformed prefixes, truncated data, invalid UTF-8, and
+out-of-bounds reads are returned as typed failures.
+
+Assuming `PacketSchemaView` is the generated view from the
+[framed schema guide](define-framed-schema.md), preserve the failure in your
+own return type:
 
 ```kotlin
-val speed: Int = KompactRuntime.readScalar(raw, 0, ScalarType.of(10, signed = false))
-    .getOrElse { err ->
-        // log the error, then return a safe default
-        logger.warn("decode failed: $err")
-        0
+import ch.trancee.kompact.runtime.KompactDecodeError
+import ch.trancee.kompact.runtime.KompactFrameResult
+import example.PacketSchemaView
+
+sealed interface PacketOutcome {
+    data class Valid(val packet: PacketSchemaView) : PacketOutcome
+    data class Invalid(val error: KompactDecodeError) : PacketOutcome
+}
+
+fun decodePacket(receivedBytes: ByteArray): PacketOutcome =
+    when (val result = PacketSchemaView.decode(receivedBytes)) {
+        is KompactFrameResult.Success -> PacketOutcome.Valid(result.value)
+        is KompactFrameResult.Failure -> PacketOutcome.Invalid(result.error)
     }
 ```
 
-`getOrElse` is defined as an extension on every result value class —
-see [`api-reference.md#extension-functions`](../api-reference.md#extension-functions).
+At the application boundary, choose what an invalid packet means: for example,
+discard the whole frame and wait for the next message, or report a
+domain-specific error. Do not continue reading later fields after the parse has
+lost its boundary.
 
-## 3. Chain with `map`
+## Choose between results and exceptions
 
-`map` transforms the success value without touching the error — same
-as `kotlin.Result.map`:
+- Use typed results when malformed input is expected and the caller should
+  choose a recovery action.
+- Use `getOrThrow()` or a `*OrThrow` accessor when an exception is the intended
+  boundary behavior.
+- Direct `KompactFrame.read*` calls throw `KompactDecodeException` on malformed
+  input. The block overload of `KompactFrame.decode` translates that exception
+  into `KompactFrameResult.Failure`.
 
-```kotlin
-val r = KompactRuntime.readScalar(raw, 0, ScalarType.of(10, signed = false))
-    .map { speed -> speed.coerceIn(0, 200) }   // still IntResult, errors pass through
+`KompactDecodeError` has these cases:
 
-// Later, in the same call site:
-val safeSpeed = r.getOrElse { 0 }
-```
+| Error | Typical source |
+| --- | --- |
+| `BoundsError` | A checked read exceeds the available bytes or bits. |
+| `BadLengthPrefix` | A prefix has an unsupported width or declares more bytes than remain. |
+| `TruncatedNested` | A repeated or nested region ends before its declared contents. |
+| `InvalidUtf8` | A framed string payload is not valid UTF-8. |
+| `UnknownEnumCode(rawCode)` | Application code maps a scalar to an enum and rejects an unknown code. |
 
-## 4. Throw on error with `getOrThrow` (when you want exceptions)
+`UnknownEnumCode` is not an automatic enum decoder: read the scalar, map its
+wire value to your enum, and decide how your protocol handles unknown values.
 
-If you prefer exceptions over pattern-matching, every accessor has an
-`OrThrow` variant:
+## Lazy repeated values
 
-```kotlin
-val speed: Int = KompactRuntime.readScalarOrThrow(raw, 0, ScalarType.of(10, signed = false))
-// throws KompactDecodeException on bounds / enum / prefix error
-```
+Generated repeated fields decode elements when accessed. Use `getResult(index)`
+when you want an element failure as a result; ordinary indexing is the
+throwing convenience. Do not keep using a lazy view after changing its
+backing array's variable-length prefixes.
 
-The throwing variants are sugar — they call `getOrThrow()` internally.
-They exist for callers that prefer try/catch over `when` chains.
-
-## 5. Nested regions
-
-`KompactFraming.readNested` returns a `NestedRegionResult` (a
-zero-alloc result type for nested reads) with the same
-`isSuccess` / `error` shape:
-
-```kotlin
-import ch.trancee.kompact.runtime.KompactFraming
-import ch.trancee.kompact.runtime.NestedRegionResult
-import ch.trancee.kompact.runtime.NestedRegion
-
-val region: NestedRegionResult = KompactFraming.readNested(raw, bitOffset = 24, prefixBitWidth = 16)
-when {
-    region.isSuccess -> {
-        val (startBit, bitLength) = region.getOrThrow()  // NestedRegion = Pair<Int, Int>
-        // read the inner record starting at startBit, up to bitLength bits
-    }
-    else -> when (val err = region.error) {
-        KompactDecodeError.BadLengthPrefix  -> logger.warn("nested length overruns buffer")
-        KompactDecodeError.TruncatedNested  -> logger.warn("nested region truncated")
-        else -> logger.error("unexpected: $err")
-    }
-}
-```
-
-A throwing variant exists too:
-`KompactFraming.readNestedOrThrow` returns `NestedRegion` (a
-`Pair<Int, Int>`) directly.
-
-## 6. Common patterns
-
-### Pattern A — silently substitute a default, keep the original
-
-```kotlin
-val battery = KompactRuntime.readScalar(raw, 0, ScalarType.of(4, signed = false))
-    .getOrElse { 0 }
-```
-
-### Pattern B — collect, don't fail, across many fields
-
-When decoding a partial buffer where some fields may be valid and
-others not, don't fail on the first error — collect successes and
-report failures at the end:
-
-```kotlin
-sealed class FieldResult<out T> {
-    data class Ok<T>(val value: T) : FieldResult<T>()
-    data object Err : FieldResult<Nothing>()
-}
-
-fun readField(raw: ByteArray, off: Int, t: ScalarType): FieldResult<Int> {
-    val r = KompactRuntime.readScalar(raw, off, t)
-    return if (r.isSuccess) FieldResult.Ok(r.getOrThrow()) else FieldResult.Err
-}
-```
-
-### Pattern C — propagate the error up with a custom exception
-
-```kotlin
-class DecodeFailure(val error: KompactDecodeError, val field: String) : RuntimeException(
-    "decode failed on $field: $error"
-)
-
-fun readOrFail(raw: ByteArray, off: Int, t: ScalarType, name: String): Int =
-    KompactRuntime.readScalar(raw, off, t).getOrElse { err ->
-        throw DecodeFailure(err, name)
-    }
-```
-
-### Pattern D — fail fast on the first field (BLE re-sync)
-
-When a BLE stream goes out of sync, the simplest recovery is to
-discard the buffer and wait for the next one. Skip the per-field
-recovery and throw:
-
-```kotlin
-val speed = KompactRuntime.readScalarOrThrow(raw, 0, ScalarType.of(10, signed = false))
-// throws → caller drops the buffer, resyncs on the next characteristic notification
-```
-
-## 7. Enum codes
-
-Kompact does not have a built-in `enum` type for the wire. Enums are
-modelled as a fixed-width integer field plus a hand-written check
-against the declared set, producing `UnknownEnumCode(rawCode)`:
-
-```kotlin
-val statusResult = KompactRuntime.readScalar(raw, 0, ScalarType.of(4, signed = false))
-val code: Int = statusResult.getOrElse { return@decodeFrame DecodeResult.Malformed }
-when (code) {
-    0 -> BatteryStatus.OK
-    1 -> BatteryStatus.LOW
-    2 -> BatteryStatus.CRITICAL
-    3 -> BatteryStatus.CHARGING
-    else -> return DecodeResult.UnknownEnum(BatteryStatus, code)
-}
-```
-
-`UnknownEnumCode` is a data-class variant of `KompactDecodeError` —
-it carries the raw wire value so the caller can decide whether to
-treat it as a schema version mismatch (unknown → drop) or as data
-corruption (unknown → log and drop).
-
-## Common pitfalls
-
-- **Catching `KompactDecodeException` on the hot path.** The whole
-  point of the typed-result API is that the success path never
-  throws. If you find yourself writing a try/catch around every read,
-  switch to `isSuccess` / `getOrElse` instead — the cost is one
-  branch per read, no allocation.
-- **Boxing through a generic `Result<Int>`.** The seven result types
-  are specialized to keep the success path unboxed. Don't write
-  `Result<Int>` yourself; use `IntResult` (or `Kompact.Result.Int`).
-- **Forgetting `error` is nullable.** `result.error` is
-  `KompactDecodeError?` — `null` on success, non-null on failure.
-  Branch on `isSuccess` first to avoid the null.
-- **`LongResult` allocation.** Unlike the other scalar result value
-  classes, `LongResult` allocates so no valid `Long` values need to be
-  reserved as failure sentinels — see
-  [architecture — runtime error encoding](../architecture.md#runtime-error-encoding).
-
-## What's next
-
-- The wire format and error encoding rationale:
-  [architecture — runtime error encoding](../architecture.md#runtime-error-encoding).
-- The full API surface for results and errors:
-  [`api-reference.md`](../api-reference.md#typed-result-value-classes).
-- Send / receive over BLE: [`integrate-ble.md`](integrate-ble.md).
+For a lower-level framing example, see
+[Long-form payloads](long-form-payloads.md). For the wire-format error model,
+see [Architecture](../architecture.md).

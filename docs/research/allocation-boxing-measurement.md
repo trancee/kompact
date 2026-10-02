@@ -16,6 +16,10 @@ Use three measurement layers:
 
 The iOS simulator is useful for repeatable diagnostics and functional smoke runs. Physical iPhone measurements remain the acceptance evidence for latency and allocation budgets.
 
+> **Status:** this is a measurement plan, not an executed benchmark report.
+> No retained Android or iOS benchmark results or numeric performance budgets
+> are recorded here.
+
 ## Verified facts
 
 ### Value classes have conditional representation

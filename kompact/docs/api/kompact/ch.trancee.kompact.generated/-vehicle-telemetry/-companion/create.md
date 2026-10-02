@@ -9,4 +9,4 @@ expect fun [create](create.md)(batteryStatus: [Int](https://kotlinlang.org/api/c
 [jvmCommon, native]\
 actual fun [create](create.md)(batteryStatus: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), speed: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), isMalfunctioning: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)): [VehicleTelemetry](../index.md)
 
-Creates a fully-encoded frame from individual field values. Allocates on the write path (`KompactWriter`'s growable buffer); use this for outbound frames, not the read hot path.
+Encodes the supplied fields into a frame backed by a fresh buffer.

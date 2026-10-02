@@ -8,7 +8,7 @@ Runtime decode error taxonomy for checked scalar reads and framed decoding.
 
 Checked scalar accessors return a typed `Kompact*Result` value class whose [packed](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html) encodes the error kind. Framed readers expose throwing `read*` methods; the block overload of `KompactFrame.decode` translates [KompactDecodeException](../-kompact-decode-exception/index.md) into a `KompactFrameResult`.
 
-Accessing `.error` on a packed scalar result reconstructs the concrete case lazily — singletons on the common path, `UnknownEnumCode` allocates only the data-class payload.
+Accessing `.error` on a packed scalar result reconstructs the concrete case lazily. `UnknownEnumCode` carries its raw code in a data-class payload.
 
 #### Inheritors
 

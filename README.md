@@ -1,173 +1,90 @@
 # Kompact
 
-A bit-packed serialization framework for Kotlin Multiplatform, with zero-allocation
-reads for its packed scalar result types. Built for tiny, dense wire payloads
-(think BLE characteristics) that still need to be safely decoded on the hot path
-without exceptions or intermediate copies. Checked 64-bit integer reads use an
-allocating result to preserve the complete `Long` domain.
+Kompact is a Kotlin Multiplatform library for reading and writing compact,
+LSB-first bit-packed messages. Use the runtime directly for small fixed layouts,
+or generate typed views from schemas. The framed API adds strings, byte arrays,
+nested messages, and repeated fields with explicit length boundaries.
 
-```
+## Quick start
+
+```kotlin
+import ch.trancee.kompact.runtime.KompactRuntime
+import ch.trancee.kompact.runtime.KompactWriter
 import ch.trancee.kompact.runtime.ScalarType
 
-// Write 16 bits: 4 bits battery + 10 bits speed + 1 bit flag + 1 bit reserved
-val w = KompactWriter()
-w.writeScalar(ScalarType.of(4,  signed = false), 5L)  // battery = 5
-w.writeScalar(ScalarType.of(10, signed = false), 10L)  // speed = 10
-w.writeBool(true)                                       // malfunction = true
-val bytes: ByteArray = w.build()                        // 2 bytes: 0xA5 0x40
+val writer = KompactWriter()
+writer.writeScalar(ScalarType.of(4, signed = false), 5L) // battery status
+writer.writeScalar(ScalarType.of(10, signed = false), 10L) // speed
+writer.writeBool(true) // malfunction flag
+val bytes = writer.build() // [0xA5, 0x40]
 
-// Read them back as typed results — no exceptions on the success path
-val battery: Int      = KompactRuntime.readScalar(bytes, 0,  ScalarType.of(4,  signed = false)).getOrThrow()
-val speed:    Int      = KompactRuntime.readScalar(bytes, 4, ScalarType.of(10, signed = false)).getOrThrow()
-val flag:     Boolean  = KompactRuntime.readBool    (bytes, 14          ).getOrThrow()
+val battery = KompactRuntime.readScalar(bytes, 0, ScalarType.of(4, signed = false)).getOrThrow()
+val speed = KompactRuntime.readScalar(bytes, 4, ScalarType.of(10, signed = false)).getOrThrow()
+val malfunction = KompactRuntime.readBool(bytes, 14).getOrThrow()
 ```
 
-## Why the reader/writer pattern (not serialize/deserialize)
+The [getting-started tutorial](docs/getting-started.md) walks through this
+frame and shows the expected bytes and decoded values.
 
-Kompact's `ByteArray` **is** the data structure. The value
-class `@KompactModel value class VehicleTelemetry(val raw: ByteArray)` stores
-the wire bytes directly. Field getters call the checked
-`readScalar` / `readBool` accessors on that same buffer
-(the unchecked `readBits` primitives are available for trusted
-in-memory frames — see [`architecture.md`](docs/architecture.md#codegen-output-reference)). There is no step that
-turns bytes into a separate object, because that step allocates.
+## Install
 
-This matters because BLE characteristics are tiny (a few bytes) and
-arrive frequently. The decoder runs on battery-powered devices. Every
-heap allocation costs power and stalls the radio. Traditional frameworks
-pay that cost twice: once on decode (allocate a data class, box every
-field) and once on encode (build an object tree, then walk it).
-
-Kompact avoids both by reading a primitive directly from the buffer with
-zero heap activity. The result value classes (`IntResult`, `LongResult`,
-`BooleanResult`, `FloatResult`, `DoubleResult`, and the rest) are
-`@JvmInline` / `value class` wrappers over a single packed `Long`. On
-success they cost exactly a `Long` on the stack — no object header, no
-GC pressure.
-
-Reads are also **lazy**. You pull only the fields you need. A 2-byte
-telemetry frame with a 4-bit battery status and a 10-bit speed lets you
-read `speed` without ever decoding `batteryStatus`. A
-`deserialize(bytes) → FullObject` forces you to parse everything first.
-
-This design also **cannot** be FlatBuffers-style random access.
-FlatBuffers stores offset pointers so you can jump to any field. That
-breaks when a field before it changes size. Kompact's v1 type set
-includes variable-length strings, blobs, nested composites, and repeats.
-So offsets would shift on every schema change. Reads are sequential,
-parse-forward instead — the deliberate tradeoff: no random-access field
-jumps, but lazy sequential reads with allocation-free packed scalar
-results (`LongResult` is the full-domain allocating exception).
-
-## Creating and modifying frames
-
-Construct a frame from field values with `VehicleTelemetry.create(...)`:
+The latest Maven Central release is `0.4.0`:
 
 ```kotlin
-val tel = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true)
-// tel.raw is the 2-byte wire buffer: [0xA5, 0x40]
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation("ch.trancee.kompact:kompact:0.4.0")
+}
 ```
 
-Modify a field without copying — opt into the `MutableVehicleTelemetry`
-sibling, whose `var` setter writes directly to the shared `ByteArray`:
+The repository's current development version is `0.5.0-SNAPSHOT`. It includes
+generated sequential framed views and the KMP code-generation plugin, which are
+not yet part of the published `0.4.0` API. To try those features, publish the
+snapshot modules to Maven Local and follow the
+[consumer setup guide](docs/how-to/consume-from-another-project.md).
 
-```kotlin
-import ch.trancee.kompact.generated.MutableVehicleTelemetry
+## Choose a schema
 
-val mutable = MutableVehicleTelemetry(tel.raw)
-mutable.speed = 30
-// tel.raw is now updated; no new allocation
-```
+- **Fixed layout:** use `bitOffset` and `bitWidth` when every field has a
+  stable position. Generated value-class views are described in
+  [How to define a fixed-layout schema](docs/how-to/define-message.md).
+- **Sequential framed layout:** use `order` and length/count prefixes when a
+  message contains strings, byte arrays, nested messages, or repeated values.
+  See [How to define a framed schema](docs/how-to/define-framed-schema.md).
 
-Send the buffer over BLE:
+Both forms use the same runtime writer and checked decode APIs. The
+[architecture guide](docs/architecture.md) explains the wire format, borrowed
+data, and the tradeoffs between the two layouts.
 
-```kotlin
-bleCharacteristic.value = tel.raw
-```
+## Documentation
 
-Receive a frame from BLE and decode it:
-
-```kotlin
-val tel = VehicleTelemetry(bleCharacteristic.value)
-val speed = tel.speed      // 30
-val flag  = tel.isMalfunctioning  // true
-```
-
-The default view is immutable (`val` fields + a `copy(...)` builder). Mutation
-goes through the opt-in `MutableVehicleTelemetry` sibling: wrap an existing
-`raw` buffer with `MutableVehicleTelemetry(raw)` and its `var` setters write in
-place to the backing array. You read one field, modify one field, and transmit
-the same buffer — no intermediate objects, no copy.
-
-**Quick reference** — all four operations in one snippet:
-
-```kotlin
-// 1. One-liner create → raw bytes
-val raw: ByteArray = VehicleTelemetry.create(batteryStatus = 5, speed = 10, isMalfunctioning = true).raw
-
-// 2. Construct from raw bytes (e.g. received from BLE)
-val tel = VehicleTelemetry(raw)
-
-// 3. Overwrite a field in-place (Mutable sibling, writes to the backing buffer)
-val mutable = MutableVehicleTelemetry(raw)
-mutable.speed = 30
-
-// 4. Get the raw bytes again — no copy
-bleCharacteristic.value = tel.raw
-```
-
-
-## What's in this repo
-
-- **`:kompact`** — the KMP runtime: bit primitives, a forward-only writer, framing
-  helpers, four zero-alloc scalar result value classes and an allocating
-  full-domain `LongResult` — 8/16-bit widths decode into `IntResult` via
-  `ScalarType` (no `Byte`/`Short` result type).
-- **`:kompact-ksp`** — the KSP annotation processor (`@KompactModel` /
-  `@KompactField`) that generates fixed-layout scalar value classes or, with
-  `framed = true`, bounded `SchemaView` classes for ordered strings, blobs,
-  nested models and lazy repeats. The framed decoder returns typed failures;
-  nested and blob slices can borrow the original array. Use the standard KSP
-  plugin for single-target processing; use the Kompact Gradle plugin for
-  common-source KMP generation.
-- **`:kompact-gradle-plugin`** — the `ch.trancee.kompact.codegen` Gradle
-  plugin. It runs common KSP processing once and registers generated common
-  and platform sources for JVM, Android JVM, iOS Arm64, iOS Simulator Arm64,
-  and Android Native Arm64 consumers.
-- **Targets**: `jvm` (JVM 21), `androidNativeArm64`, `iosArm64`, `iosSimulatorArm64`.
-  Android JVM consumers use the `jvm` artifact; Android native ARM64 consumers
-  use the `androidNativeArm64` klib — see
-  [consume from another project](docs/how-to/consume-from-another-project.md).
-
-## Where to go next
-
-| If you want to … | Read |
+| If you want to… | Start here |
 | --- | --- |
-| Try it end-to-end (write a frame, read it back) | **[`docs/getting-started.md`](docs/getting-started.md)** |
-| Look up an exact API signature, parameter, or error | **[`docs/api-reference.md`](docs/api-reference.md)** |
-| Understand the design choices (LSB-first, zero-alloc, value classes, framing) | **[`docs/architecture.md`](docs/architecture.md)** |
-| Run / understand the CI gates and goldens | **[`docs/ci.md`](docs/ci.md)** |
-| See all of the above at a glance | **[`docs/README.md`](docs/README.md)** |
-| Define your own message (with code snippets for common cases) | **[`docs/how-to/define-message.md`](docs/how-to/define-message.md)** |
-| Pack / parse strings, blobs, nested composites, or repeated fields | **[`docs/how-to/long-form-payloads.md`](docs/how-to/long-form-payloads.md)** |
-| Handle a `KompactDecodeError` without throwing on the hot path | **[`docs/how-to/handle-decode-errors.md`](docs/how-to/handle-decode-errors.md)** |
-| Send a frame over BLE / receive one back | **[`docs/how-to/integrate-ble.md`](docs/how-to/integrate-ble.md)** |
-| Consume Kompact from a separate Kotlin / KMP project | **[`docs/how-to/consume-from-another-project.md`](docs/how-to/consume-from-another-project.md)** |
-| All how-to guides (task-oriented recipes) | **[`docs/how-to/README.md`](docs/how-to/README.md)** |
-| Read the original product brief | [`PROMPT.md`](PROMPT.md) |
+| Build and decode your first frame | [Getting started](docs/getting-started.md) |
+| Add Kompact to a Kotlin or KMP project | [Consume Kompact](docs/how-to/consume-from-another-project.md) |
+| Define a fixed-layout model | [Fixed-layout schema guide](docs/how-to/define-message.md) |
+| Define a sequential framed model | [Framed schema guide](docs/how-to/define-framed-schema.md) |
+| Read or write strings, blobs, nested data, and repeats | [Long-form payloads](docs/how-to/long-form-payloads.md) |
+| Handle malformed input | [Decode errors](docs/how-to/handle-decode-errors.md) |
+| Pass frames across a BLE boundary | [BLE integration](docs/how-to/integrate-ble.md) |
+| Look up public signatures and behavior | [API reference](docs/api-reference.md) |
+| Understand design decisions | [Architecture](docs/architecture.md) |
+| Contribute or run project checks | [Contributing](CONTRIBUTING.md) |
 
-## Status
+The generated, per-symbol API reference is also available in
+[`kompact/docs/api/`](kompact/docs/api/index.md).
 
-`v0.4.0` is available from Maven Central. The current development version is
-`0.5.0-SNAPSHOT`; it adds framed schemas and the common-source Gradle plugin.
-The runtime, KSP processor, and Gradle plugin are staged through the existing
-Central Portal release pipeline. To try the snapshot locally, publish all
-three modules with
-`./gradlew :kompact:publishToMavenLocal :kompact-ksp:publishToMavenLocal :kompact-gradle-plugin:publishToMavenLocal`
-and add `mavenLocal()` to both `pluginManagement.repositories` and
-`dependencyResolutionManagement.repositories`.
+## Project modules
+
+| Module | Purpose |
+| --- | --- |
+| `:kompact` | KMP runtime, annotations, and generated API documentation |
+| `:kompact-ksp` | KSP processor for fixed-layout and framed schemas |
+| `:kompact-gradle-plugin` | Common-source generation for supported KMP targets |
 
 ## License
 
-This is free and unencumbered software released into the public domain.
-See [`LICENSE`](LICENSE) for the full license text.
+Kompact is released into the public domain. See [`LICENSE`](LICENSE).

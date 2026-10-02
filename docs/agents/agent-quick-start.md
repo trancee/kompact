@@ -10,7 +10,7 @@ For sequential string/blob/nested/repeated fields in 0.5.0, opt in with
 The generated `SchemaView` exposes bounded `decode(raw, start, end)` typed
 results, borrowed nested/blob slices and lazy repeated values. Fixed-layout
 `bitOffset` fields retain the scalar fast path. See
-[the message guide](../how-to/define-message.md#generate-a-sequential-framed-schema-050)
+[the framed schema guide](../how-to/define-framed-schema.md)
 and [ADR-0008](../adr/0008-framed-generated-views.md).
 
 ## What is Kompact (10 s)

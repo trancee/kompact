@@ -5,7 +5,7 @@
 [common]\
 data class [DetailedDecodeError](index.md)(val error: [KompactDecodeError](../-kompact-decode-error/index.md), val offset: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), val rawCode: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html))
 
-Full diagnostic on the opt-in `decodeFull` path (ADR-0005 §2). Allocated only on the rare failure path, and only when the caller explicitly requests diagnostics — the `readScalar` hot path is unaffected (Ticket 03/10).
+Extra detail returned by the opt-in `decodeFull` path (ADR-0005 §2). Unlike [KompactDecodeError](../-kompact-decode-error/index.md), this includes the byte offset and raw enum code.
 
 - 
    error: the typed `KompactDecodeError` kind.

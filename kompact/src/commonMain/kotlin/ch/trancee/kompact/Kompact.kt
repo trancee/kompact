@@ -14,10 +14,10 @@ import ch.trancee.kompact.runtime.LongResult
  * so a newcomer can `import ch.trancee.kompact.Kompact` instead of naming all
  * five result types. There is no `Byte`/`Short` result type — 8- and 16-bit
  * reads are decoded by `readScalar`, which returns `IntResult` (width and
- * signedness come from `ScalarType`). Four result types are zero-alloc packed
- * value classes; `LongResult` allocates to preserve the full signed domain.
- * See `architecture.md` § "Zero-allocation reads" and `api-reference.md` §
- * "Typed result value classes".
+ * signedness come from `ScalarType`). Four result types are value classes over
+ * packed values; `LongResult` is a regular class so it can represent the full
+ * signed domain. A value-class declaration alone does not guarantee allocation
+ * behavior at every call site or on every platform.
  *
  * See `KompactResult.kt` for the packed encodings and `LongResult` representation.
  */

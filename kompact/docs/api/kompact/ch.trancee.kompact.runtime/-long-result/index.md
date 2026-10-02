@@ -7,7 +7,7 @@ class [LongResult](index.md)
 
 Checked 64-bit integer result (Ticket 08).
 
-Holds either any [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html) value or a [KompactDecodeError](../-kompact-decode-error/index.md). This regular class allocates so success and failure remain distinct without reserving valid values as sentinels. Unlike the other scalar result types, it is not a zero-allocation value class. Equality and hashing use the held value and error, not object identity.
+Holds either any [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html) value or a [KompactDecodeError](../-kompact-decode-error/index.md). This regular class stores success and failure separately without reserving valid values as sentinels. Unlike the other scalar result types, it is not a value class. Equality and hashing use the held value and error, not object identity.
 
 ## Types
 
