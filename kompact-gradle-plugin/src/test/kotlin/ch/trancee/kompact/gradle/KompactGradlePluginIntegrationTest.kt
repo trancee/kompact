@@ -109,9 +109,10 @@ class KompactGradlePluginIntegrationTest {
                     ":compileKotlinAndroidNativeArm64",
                     "--build-cache",
                     "--configuration-cache",
+                    "--info",
                     // Keep the multi-target nested build within the CI runner's memory budget.
                     "--max-workers=1",
-                ).build()
+                ).forwardOutput().build()
 
             assertEquals(TaskOutcome.UP_TO_DATE, firstRun.task(":generateKompactSources")?.outcome)
 
