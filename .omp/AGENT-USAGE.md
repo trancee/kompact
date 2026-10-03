@@ -32,15 +32,22 @@ Use the target wrapper when available, otherwise installed Gradle. For a
 multi-module setup, keep the configured module path explicit:
 
 For this Kompact evaluation, pass `-PmutationTest.jvmOnly=true` with
-`:kompact:mutationResults`. It omits `iosArm64`, `iosSimulatorArm64`, and
-`androidNativeArm64` only for that task because MutFlow `1.6.0` does not publish
-compatible Native variants. The property is rejected for other task requests;
-this run covers the JVM target only and provides no Android or Native evidence.
-Invocations without the property retain the full target set.
+`:kompact:mutationResults`. MutFlow is applied only for that guarded invocation
+because MutFlow `1.6.0` injects dependencies into common source sets and does
+not publish variants for Kompact's iOS or Android Native targets. The opt-in
+omits `iosArm64`, `iosSimulatorArm64`, and `androidNativeArm64`; ordinary builds
+keep the full target set, do not apply the MutFlow plugin, and do not add its
+common-source-set dependencies.
+
+The mutation-only test adapters call the existing common tests inside
+`MutFlow.underTest`. They are added only to MutFlow's generated JVM test
+compilation; regular common tests remain framework-neutral. By default, the
+results task selects these adapters. This run covers the JVM target only and
+provides no Android or Native evidence.
 
 ```bash
 ./gradlew -PmutationTest.jvmOnly=true :kompact:mutationResults \
-  '-PmutationTest.includes=ch.trancee.kompact.runtime.KompactRuntimeTest,ch.trancee.kompact.runtime.KompactRuntimeLongBitsTest' \
+  '-PmutationTest.includes=ch.trancee.kompact.runtime.KompactRuntimeMutationTest,ch.trancee.kompact.runtime.KompactRuntimeLongBitsMutationTest' \
   --console=plain
 ```
 

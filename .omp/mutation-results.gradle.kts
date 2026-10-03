@@ -14,7 +14,10 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.testing.Test
 
 val includesProperty = providers.gradleProperty("mutationTest.includes").orNull
-val mutationTestIncludes = includesProperty?.split(',')?.map(String::trim).orEmpty()
+val mutationTestIncludes = includesProperty?.split(',')?.map(String::trim) ?: listOf(
+    "ch.trancee.kompact.runtime.KompactRuntimeMutationTest",
+    "ch.trancee.kompact.runtime.KompactRuntimeLongBitsMutationTest",
+)
 require(includesProperty == null || mutationTestIncludes.all { it.isNotEmpty() }) {
     "mutationTest.includes must contain nonempty comma-separated Gradle test patterns"
 }

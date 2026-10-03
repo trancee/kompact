@@ -5,12 +5,13 @@
 
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
 import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
+import io.github.anschnapp.mutflow.gradle.MutflowExtension
 import org.gradle.api.GradleException
 import org.gradle.api.publish.maven.MavenPublication
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
 plugins {
-    id("io.github.anschnapp.mutflow") version "1.6.0"
+    id("io.github.anschnapp.mutflow") version "1.6.0" apply false
     alias(libs.plugins.kmp)
     alias(libs.plugins.agp)
     alias(libs.plugins.kotlinPowerAssert)
@@ -18,10 +19,6 @@ plugins {
     id("portal-publish")
 }
 
-apply(from = rootProject.file(".omp/mutation-results.gradle.kts"))
-
-// MutFlow 1.6.0 has no iOS or Android Native variants; keep this reduced model
-// opt-in and confined to a mutation-results invocation.
 val mutationJvmOnly =
     providers.gradleProperty("mutationTest.jvmOnly").map(String::toBooleanStrict).getOrElse(false)
 if (mutationJvmOnly) {
@@ -33,6 +30,24 @@ if (mutationJvmOnly) {
         throw GradleException(
             "-PmutationTest.jvmOnly=true is only valid for the :kompact:mutationResults task."
         )
+    }
+    // MutFlow 1.6.0 injects dependencies into common source sets. Apply it only
+    // when the reduced model contains JVM, the target for which it publishes variants.
+    pluginManager.apply("io.github.anschnapp.mutflow")
+    apply(from = rootProject.file(".omp/mutation-results.gradle.kts"))
+    extensions.configure<MutflowExtension>("mutflow") {
+        targets.add("ch.trancee.kompact.runtime.KompactRuntime")
+        maxMutationRuns.set(30)
+    }
+} else {
+    tasks.register("mutationResults") {
+        group = "verification"
+        description = "Requires -PmutationTest.jvmOnly=true for this MutFlow 1.6.0 evaluation."
+        doLast {
+            throw GradleException(
+                "Run :kompact:mutationResults with -PmutationTest.jvmOnly=true."
+            )
+        }
     }
 }
 
@@ -122,6 +137,7 @@ kotlin {
 if (mutationJvmOnly) {
     val mutatedTest = kotlin.targets.getByName<KotlinJvmTarget>("jvm")
         .compilations.getByName("mutatedTest")
+    mutatedTest.defaultSourceSet.kotlin.srcDir(layout.projectDirectory.dir("src/mutflowTest/kotlin"))
     // MutFlow's generated test compilation omits the regular JVM Java output.
     mutatedTest.defaultSourceSet.dependencies {
         implementation(files(tasks.named<JavaCompile>("compileJvmMainJava").map { it.destinationDirectory }))
@@ -333,9 +349,4 @@ tasks.withType<JavaCompile>().configureEach {
         sourceCompatibility = "21"
         targetCompatibility = "21"
     }
-}
-
-mutflow {
-    enabled = true
-    maxMutationRuns = 30
 }
