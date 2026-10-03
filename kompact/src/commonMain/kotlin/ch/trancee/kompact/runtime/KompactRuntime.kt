@@ -1,5 +1,7 @@
 package ch.trancee.kompact.runtime
 
+import io.github.anschnapp.mutflow.MutationTarget
+
 /**
  * Bit-stream primitives for Kompact.
  *
@@ -14,6 +16,7 @@ package ch.trancee.kompact.runtime
  * accessors add a typed result. `LongResult` is a regular class so it can
  * represent the full `Long` domain without reserving sentinel values.
  */
+@MutationTarget
 public object KompactRuntime {
     /** Reads [bitWidth] bits (1..31) from [raw] starting at [bitOffset], LSB-first. */
     public fun readBits(

@@ -161,3 +161,5 @@ Canonical triage labels, each role mapped to its matching string (`needs-triage`
 ### Domain docs
 
 Single-context: one root `CONTEXT.md` plus `docs/adr/` for system-wide decisions. See `docs/agents/domain.md`.
+
+For mutation-testing setup, execution, audits, or troubleshooting, read [.omp/AGENT-USAGE.md](.omp/AGENT-USAGE.md) first.
