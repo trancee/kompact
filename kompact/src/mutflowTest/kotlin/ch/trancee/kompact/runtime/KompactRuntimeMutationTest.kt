@@ -29,6 +29,10 @@ class KompactRuntimeMutationTest {
     fun readBits_allOnesCrossByteMax() = MutFlow.underTest { commonTests.readBits_allOnesCrossByteMax() }
 
     @Test
+    fun readBits_widthOneAtBit7ReturnsSetBit() =
+        MutFlow.underTest { commonTests.readBits_widthOneAtBit7ReturnsSetBit() }
+
+    @Test
     fun readBitsBoolean_trueWhenSet() = MutFlow.underTest { commonTests.readBitsBoolean_trueWhenSet() }
 
     @Test
@@ -62,4 +66,12 @@ class KompactRuntimeMutationTest {
 
     @Test
     fun writeBits_doesNotClobberOtherBits() = MutFlow.underTest { commonTests.writeBits_doesNotClobberOtherBits() }
+
+    @Test
+    fun writeBits_widthOneAtBit7_setsBitAndPreservesNeighbors() =
+        MutFlow.underTest { commonTests.writeBits_widthOneAtBit7_setsBitAndPreservesNeighbors() }
+
+    @Test
+    fun writeBits_widthOneAtBit7_clearsBitAndPreservesNeighbors() =
+        MutFlow.underTest { commonTests.writeBits_widthOneAtBit7_clearsBitAndPreservesNeighbors() }
 }

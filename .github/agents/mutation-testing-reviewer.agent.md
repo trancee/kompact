@@ -20,18 +20,35 @@ never build shell syntax from untrusted input.
 ## Setup flow
 
 Run setup only when the user explicitly requested the `setup` subcommand. Invoke
-`.omp/bootstrap-mutation-testing.sh` from the mutation-testing repository with
-the target root and requested `--module`, `--kmp`, and/or `--junit4` options.
+the toolkit checkout root command as
+`"/absolute/toolkit/bootstrap.sh" install "<target-root>" [--module :path] [--kmp] [--junit4]`.
 `--junit4` selects the plain JVM JUnit 4 runner; KMP JVM uses its generated
 JUnit 6 integration. Surface any conflict or failure; do not continue after a
 failed bootstrap. Report the installed paths and tell the user to reload
 Copilot skills or start a new CLI session before using the installed adapter.
+
+For an existing installation, run
+`"/absolute/toolkit/bootstrap.sh" update "<target-root>" --dry-run` from a
+fast-forwarded toolkit checkout. Review conflicts before applying. A valid
+`.mutation-testing/manifest.json` is required; if it is absent, stop without
+writing. Never invoke the internal install manager directly.
 
 ## Mutation-testing flow
 
 The supported paths are plain JVM/JUnit 4 or JUnit 6 and KMP JVM mutation
 tasks. KMP uses DSL `maxMutationRuns` (10/30/unlimited), not annotations in
 common tests. The JUnit 4 runner is not the KMP JVM adapter.
+
+Before a KMP run, inspect the full target set declared by the selected module:
+MutFlow dependencies attach to common source sets, so every declared target
+must resolve them. In the validated MutFlow `1.6.1` baseline, iOS and Android
+Native variants are absent; selecting only `mutflowJvmTest` does not bypass
+variant resolution. Stop and report unsupported targets unless the user
+approves a separate JVM-only build model.
+Kompact's `:kompact` module has a guarded `mutationTest.jvmOnly` model documented
+in `.omp/AGENT-USAGE.md`; use it only for the explicitly selected
+`:kompact:mutationResults` invocation. This provides JVM-only evidence, not
+Android or Native evidence.
 Require schema 2 reports, preserve class-qualified test identities, and report
 discovered/evaluated/untested counts separately. Scores and intervals are null
 when execution gaps exist. Never trust old JSON after compilation failure.

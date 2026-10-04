@@ -15,9 +15,23 @@ authority to install, overwrite configuration, or delete tests.
 
 Use the current runtime's native delegation. Missing profiles/tools are a
 limitation to report, not a reason to substitute another client's dispatch.
-Supported paths are plain JVM/JUnit 4, plain JVM/JUnit 6, and KMP JVM mutation
-tasks through MutFlow's generated JUnit 6 integration. Native, Android, and JS
-are outside toolkit support.
+Supported paths are plain JVM/JUnit 4, plain JVM/JUnit 6, and KMP JVM
+mutation tasks through MutFlow's generated JUnit 6 integration. Before a KMP run,
+inspect the complete declared target set: MutFlow dependencies attach to common
+source sets, so every target must resolve them. In the validated MutFlow `1.6.1`
+baseline, artifacts publish JVM, `linuxX64`, and `mingwX64`, but not iOS or
+Android Native variants; selecting only a JVM mutation task does not avoid that
+resolution. The toolkit does not prune unsupported targets or provide Native,
+Android, or JS execution adapters.
+
+## Update installed files
+
+This Kompact installation predates manifest-managed updates and has no
+`.mutation-testing/manifest.json`. The current `bootstrap.sh update` command
+stops before writing. Update the copied OMP and Copilot assets manually from a
+reviewed toolkit checkout. Preserve this module's guarded
+`mutationTest.jvmOnly` model and selected test-class filters. The generic
+installer does not model this project's conditional Gradle wiring.
 
 ## Execute
 
@@ -28,12 +42,13 @@ budgets and exact approval rules. Quick skips refactoring, not targeting edits.
 Additive/assertion-level changes require applicable approval; deletion or
 consolidation always requires explicit approval.
 
-Use the target wrapper when available, otherwise installed Gradle. For a
-multi-module setup, keep the configured module path explicit:
+This repository's checked-in `gradlew` parses JVM options with `eval`; do not
+execute it for this run. Use installed Gradle 9.8.0. For a multi-module setup,
+keep the configured module path explicit:
 
 For this Kompact evaluation, pass `-PmutationTest.jvmOnly=true` with
 `:kompact:mutationResults`. MutFlow is applied only for that guarded invocation
-because MutFlow `1.6.0` injects dependencies into common source sets and does
+because MutFlow `1.6.1` injects dependencies into common source sets and does
 not publish variants for Kompact's iOS or Android Native targets. The opt-in
 omits `iosArm64`, `iosSimulatorArm64`, and `androidNativeArm64`; ordinary builds
 keep the full target set, do not apply the MutFlow plugin, and do not add its
@@ -46,7 +61,7 @@ results task selects these adapters. This run covers the JVM target only and
 provides no Android or Native evidence.
 
 ```bash
-./gradlew -PmutationTest.jvmOnly=true :kompact:mutationResults \
+gradle -PmutationTest.jvmOnly=true :kompact:mutationResults \
   '-PmutationTest.includes=ch.trancee.kompact.runtime.KompactRuntimeMutationTest,ch.trancee.kompact.runtime.KompactRuntimeLongBitsMutationTest' \
   --console=plain
 ```
@@ -60,7 +75,10 @@ Keep Gradle invocations sharing build/report paths sequential.
 
 Record configured budgets and effective `MUTFLOW_*` overrides. Changing
 environment-based settings requires `--rerun-tasks` to avoid reused XML.
-Capture command, exit status, current JUnit XML, and current JSON when available.
+Capture command, exit status, current JUnit XML, current JSON, and the
+readable `build/reports/mutation-results.md` when available. In GitHub Actions,
+the task appends the summary to the workflow job summary through
+`GITHUB_STEP_SUMMARY` when that file is available.
 The results adapter does not support Gradle configuration cache; use
 `--no-configuration-cache` when enabled globally in the target.
 

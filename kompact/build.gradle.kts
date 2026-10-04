@@ -11,7 +11,7 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
 plugins {
-    id("io.github.anschnapp.mutflow") version "1.6.0" apply false
+    id("io.github.anschnapp.mutflow") version "1.6.1" apply false
     alias(libs.plugins.kmp)
     alias(libs.plugins.agp)
     alias(libs.plugins.kotlinPowerAssert)
@@ -31,7 +31,7 @@ if (mutationJvmOnly) {
             "-PmutationTest.jvmOnly=true is only valid for the :kompact:mutationResults task."
         )
     }
-    // MutFlow 1.6.0 injects dependencies into common source sets. Apply it only
+    // MutFlow 1.6.1 injects dependencies into common source sets. Apply it only
     // when the reduced model contains JVM, the target for which it publishes variants.
     pluginManager.apply("io.github.anschnapp.mutflow")
     apply(from = rootProject.file(".omp/mutation-results.gradle.kts"))
@@ -42,7 +42,7 @@ if (mutationJvmOnly) {
 } else {
     tasks.register("mutationResults") {
         group = "verification"
-        description = "Requires -PmutationTest.jvmOnly=true for this MutFlow 1.6.0 evaluation."
+        description = "Requires -PmutationTest.jvmOnly=true for this MutFlow 1.6.1 evaluation."
         doLast {
             throw GradleException(
                 "Run :kompact:mutationResults with -PmutationTest.jvmOnly=true."

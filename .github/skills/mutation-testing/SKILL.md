@@ -23,17 +23,23 @@ OMP's `task`, `hub`, or `tasks[]` interfaces.
 - `--mode deep` runs all available mutations per selected class and includes detailed killer data.
 - `--auto-approve` permits applying proposed test refactors; it never permits deleting
   zombie tests or redundant groups without explicit user approval.
-- `setup` runs the bootstrap script and changes the target project's Gradle, `.omp`,
-  `buildSrc`, and Copilot configuration. Run it only when the user explicitly asks
-  for setup.
+- `setup` uses the toolkit checkout's root `bootstrap.sh install` command and
+  changes Gradle files, `.mutation-testing/`, `buildSrc/`, and both native
+  client adapters. Run it only when the user explicitly asks for setup.
 - `--kmp` is setup-only; this toolkit validates the KMP JVM mutation task.
-  The bootstrap supports a conventional `gradle/libs.versions.toml` Kotlin
-  plugin alias and a selected module using its default directory mapping.
+  The `bootstrap.sh install` command supports a conventional
+  `gradle/libs.versions.toml` Kotlin plugin alias and a selected module using
+  its default directory mapping.
 - `--junit4` is setup-only and selects MutFlow's JUnit 4 runner for a plain
   Kotlin/JVM module. The default is JUnit 6; KMP JVM uses MutFlow's generated
   JUnit 6 integration. Select one adapter per module.
 - Supported execution includes plain JVM/JUnit 4, plain JVM/JUnit 6, and KMP
-  JVM. Native, Android, and JS execution are not toolkit adapters.
+  JVM when every declared KMP target can resolve MutFlow's common-source-set
+  dependencies. In the validated MutFlow `1.6.1` baseline, artifacts publish
+  JVM, `linuxX64`, and `mingwX64`, but not iOS or Android Native variants;
+  selecting only the JVM task does not avoid dependency resolution. The toolkit
+  does not prune unsupported targets or provide Native, Android, and JS
+  execution adapters.
 - Plain JVM/JUnit 4 test classes use `@RunWith(MutFlowRunner::class)` from
   `io.github.anschnapp.mutflow.junit4`; do not add the JUnit 6 `@MutFlowTest`
   annotation to those classes. KMP common tests remain plain `kotlin.test`.
@@ -43,6 +49,17 @@ OMP's `task`, `hub`, or `tasks[]` interfaces.
   untested totals, and null scores for gaps. Never reuse a report left by an
   earlier invocation after compilation or discovery failure.
 
+Setup and update require Python 3.10 or newer in the toolkit checkout. To update
+an existing installation, run
+`"/absolute/toolkit/bootstrap.sh" update "/absolute/target" --dry-run` from a
+fast-forwarded checkout. Apply after reviewing conflicts. Updates require a valid
+`.mutation-testing/manifest.json`; an absent manifest stops the update before
+writing.
+
 If the Copilot agent profiles are unavailable, report that limitation rather than
 falling back to OMP-specific dispatch. Preserve existing user changes and present
 the affected paths and diffs in the final report.
+
+The `mutationResults` task prints and writes a human-readable Markdown summary in
+addition to schema 2 JSON. In GitHub Actions, it also appends the summary table
+to the workflow job summary when `GITHUB_STEP_SUMMARY` is available.

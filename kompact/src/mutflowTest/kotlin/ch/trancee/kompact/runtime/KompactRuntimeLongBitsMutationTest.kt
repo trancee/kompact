@@ -54,4 +54,12 @@ class KompactRuntimeLongBitsMutationTest {
     @Test
     fun writeBitsLong_doesNotClobberOtherBits() =
         MutFlow.underTest { commonTests.writeBitsLong_doesNotClobberOtherBits() }
+
+    @Test
+    fun writeBitsLong_widthOneAtBit63_setsBitAndPreservesNeighbors() =
+        MutFlow.underTest { commonTests.writeBitsLong_widthOneAtBit63_setsBitAndPreservesNeighbors() }
+
+    @Test
+    fun writeBitsLong_widthOneAtBit63_clearsBitAndPreservesNeighbors() =
+        MutFlow.underTest { commonTests.writeBitsLong_widthOneAtBit63_clearsBitAndPreservesNeighbors() }
 }
