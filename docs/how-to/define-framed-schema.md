@@ -4,9 +4,9 @@ Use a framed schema when a message contains strings, byte arrays, nested
 messages, or repeated values. Fields are read in order, so a variable-length
 field does not require guessed offsets for the fields that follow it.
 
-This guide uses the `0.5.0-SNAPSHOT` framed API. The snapshot is not on Maven
-Central yet; follow [Consume Kompact](consume-from-another-project.md) to
-publish it to Maven Local before trying the example.
+The framed runtime and code-generation plugin are available from Maven Central
+at `0.6.1`. Follow [Consume Kompact](consume-from-another-project.md) to
+configure the published dependencies.
 
 ## 1. Declare the schema
 
@@ -73,7 +73,7 @@ for the same schemas.
 ```kotlin
 plugins {
     kotlin("multiplatform") version "2.4.20"
-    id("ch.trancee.kompact.codegen") version "0.5.0-SNAPSHOT"
+    id("ch.trancee.kompact.codegen") version "0.6.1"
 }
 
 kotlin {
@@ -85,17 +85,17 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.5.0-SNAPSHOT")
+                implementation("ch.trancee.kompact:kompact:0.6.1")
             }
         }
     }
 }
 ```
 
-For the current snapshot, add `mavenLocal()` to both plugin and dependency
-repositories after publishing the runtime, KSP processor, and Gradle plugin
-locally. The [consumer setup guide](consume-from-another-project.md) has the
-exact commands and repository blocks.
+To try unreleased changes from the current `0.7.0-SNAPSHOT` checkout, publish
+the runtime, KSP processor, and Gradle plugin to Maven Local. The
+[consumer setup guide](consume-from-another-project.md) has the exact commands
+and repository blocks.
 
 The supported plugin targets are JVM, Android JVM, iOS Arm64, iOS Simulator
 Arm64, and Android Native Arm64. Add only the targets your application uses.

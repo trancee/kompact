@@ -5,8 +5,9 @@ serialization library. Covers setup, core concepts, the most common
 API calls, and the traps that cause compile errors or runtime
 failures.
 
-For sequential string/blob/nested/repeated fields in 0.5.0, opt in with
-`@KompactModel(framed = true)` and contiguous `@KompactField(order = ...)`.
+For sequential string/blob/nested/repeated fields in the published `0.6.1`
+release, opt in with `@KompactModel(framed = true)` and contiguous
+`@KompactField(order = ...)`.
 The generated `SchemaView` exposes bounded `decode(raw, start, end)` typed
 results, borrowed nested/blob slices and lazy repeated values. Fixed-layout
 `bitOffset` fields retain the scalar fast path. See
@@ -15,10 +16,12 @@ and [ADR-0008](../adr/0008-framed-generated-views.md).
 
 ## What is Kompact (10 s)
 
-Kompact is a Kotlin Multiplatform (JVM + iOS) library that serializes
-structured data into **bit-packed, LSB-first** byte buffers for
-low-latency, zero-allocation reads — originally built for BLE
-characteristics where every byte and every micro-allocation matters.
+Kompact is a Kotlin Multiplatform library that serializes structured data into
+**bit-packed, LSB-first** byte buffers. It supports JVM, Android JVM, iOS
+Arm64, iOS Simulator Arm64, and Android Native Arm64, and was designed for
+compact payloads such as BLE characteristics. Latency and allocation behavior
+depend on the API, call shape, compiler, and platform; see the
+[allocation research note](../research/allocation-boxing-measurement.md).
 
 ```
 ┌───────────────┐  KompactWriter  ┌─────────┐  BLE  ┌──────────────┐
@@ -27,17 +30,17 @@ characteristics where every byte and every micro-allocation matters.
                                               ◄────  characteristic
 ┌───────────────┐  value class   ┌─────────┐  BLE  ┌────────────────┐
 │  tel.battery  │ ◄───────────── │  bytes  │ ◄──── │  notification  │
-└───────────────┘  (zero-alloc)  └─────────┘       └────────────────┘
+└───────────────┘     (view)     └─────────┘       └────────────────┘
 ```
 
 - **Write side:** `KompactWriter` — forward-only, growable,
   length-prefixed framing for strings/blobs/nested/repeated.
-- **Read side:** value-class getters over a raw `ByteArray` —
-  zero-copy, zero-allocation on the success hot path.
-- **No JVM-specific annotations** (`.kt`/`.kts` source files use the
-  multiplatform `value class` keyword — `@JvmInline` only appears in
-  platform `actual`s, which you do not write by hand if you use the
-  KSP processor).
+- **Read side:** typed results and generated views read the caller-owned
+  `ByteArray`; borrowed slices and lazy repeated views avoid materializing
+  values where their API documents borrowing. Some properties copy their
+  payload, and no general zero-allocation guarantee is made.
+- **Platform actuals:** common declarations use multiplatform value-class
+  syntax; JVM actuals use `@JvmInline`, while Kotlin/Native actuals do not.
 
 ## Project structure (at a glance)
 
@@ -46,12 +49,12 @@ build-logic/                    convention plugins (portal-publish, dokka-markdo
 ├── src/main/kotlin/
 │   ├── portal-publish.gradle.kts   ← Maven Central Portal API tasks
 │   └── dokka-markdown.gradle.kts   ← GFM Markdown Dokka output
-kompact/                        the runtime library (KMP: JVM + Android + iOS)
+kompact/                        the runtime library (JVM, Android JVM, iOS, Android Native)
 ├── src/commonMain/kotlin/…/runtime/  ← KompactRuntime, KompactWriter, KompactFraming,
 │                                     ←   KompactResult*, ScalarType, KompactDecodeError
 ├── src/commonMain/kotlin/…/generated/VehicleTelemetry.kt  ← example model (expect/actual)
 ├── src/jvmCommon/kotlin/…/         ← @JvmInline actuals (shared by JVM + Android)
-├── src/iosMain/kotlin/…/           ← plain value class actuals
+├── src/nativeMain/kotlin/…/        ← plain actuals shared by iOS + Android Native
 └── api/                              ← committed ABI goldens (jvm/ + android/ + kompact.klib.api)
 kompact-ksp/                    the KSP code generator
 ├── src/main/kotlin/…/gen/ValueClassGenerator.kt  ← generates expect/actual from annotations
@@ -67,10 +70,9 @@ kompact-gradle-plugin/           common-source KMP code-generation plugin
 ## Setup (consumer)
 
 ```kotlin
-// settings.gradle.kts (mavenLocal() is needed only for the unpublished snapshot)
+// settings.gradle.kts
 pluginManagement {
     repositories {
-        mavenLocal()
         gradlePluginPortal()
         mavenCentral()
     }
@@ -78,7 +80,6 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
-        mavenLocal()
         mavenCentral()
     }
 }
@@ -88,7 +89,7 @@ dependencyResolutionManagement {
 // build.gradle.kts (consumer module)
 plugins {
     kotlin("multiplatform") version "2.4.20"
-    id("ch.trancee.kompact.codegen") version "0.5.0-SNAPSHOT"
+    id("ch.trancee.kompact.codegen") version "0.6.1"
 }
 
 kotlin {
@@ -100,7 +101,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.5.0-SNAPSHOT")
+                implementation("ch.trancee.kompact:kompact:0.6.1")
             }
         }
     }
@@ -111,10 +112,13 @@ kotlin {
 The Kompact plugin must follow the Kotlin Multiplatform plugin in the `plugins`
 block. It runs common processing once and adds generated common/platform
 sources; do not add the standard KSP plugin for the same Kompact schemas.
-For the unpublished snapshot, run
+To try unreleased changes, publish the current snapshot modules locally with
+the commands in the
+[consumer setup guide](../how-to/consume-from-another-project.md).
+
+For the current checkout, run
 `./gradlew :kompact:publishToMavenLocal :kompact-ksp:publishToMavenLocal :kompact-gradle-plugin:publishToMavenLocal`
-from the Kompact checkout. Remove `mavenLocal()` after using a released
-version from Maven Central.
+from the Kompact checkout, then use `0.7.0-SNAPSHOT` and `mavenLocal()`.
 
 ## Core API cheat sheet
 
@@ -130,7 +134,7 @@ version from Maven Central.
 ### KompactRuntime — the 80/20 reads
 
 ```kotlin
-// Raw primitives (zero-alloc, no bounds check — use when you proved bounds)
+// Raw primitives (no bounds check — use only when you have proved the bounds)
 val bits: Int = KompactRuntime.readBits(raw, bitOffset, bitWidth)    // 1..31 bits
 val bitsL: Long = KompactRuntime.readBitsLong(raw, bitOffset, bitWidth)  // 1..64 bits
 val bit: Boolean = KompactRuntime.readBitsBoolean(raw, bitOffset)
@@ -152,9 +156,10 @@ val mapped: IntResult = speed.map { it * 2 }
 - `readBits` / `writeBits` accept `bitWidth` in `1..31` only.
 - `readBitsLong` / `writeBitsLong` accept `1..64`.
 - `readScalar` accepts `1..32`; use `readScalarAsLong` for wider.
-- `LongResult` is a regular allocating class so every `Long` value,
-  including `Long.MIN_VALUE`, is representable. The other scalar result
-  types use packed value classes.
+- `LongResult` is a regular class so every `Long` value, including
+  `Long.MIN_VALUE`, is representable. Other scalar result types use value
+  classes, which may box at nullable, generic, or interface boundaries.
+  Do not infer allocation behavior from representation alone.
 - `Float` uses the packed-Long layout (32-bit IEEE-754 in the low 48
   bits). `Double` uses a NaN-payload scheme (canonical quiet-NaN =
   success, non-zero NaN payload = failure).
@@ -206,7 +211,7 @@ val bytes: ByteArray = w.build()  // exact-length snapshot; repeated calls prese
 val n: Int = KompactFraming.readLengthPrefix(bytes, bitCursor, bitWidth = 8)
 // Returns INVALID_LENGTH_PREFIX (-1) if the prefix is invalid or overruns the buffer.
 
-// Nested regions: returns a NestedRegionResult (zero-alloc, never throws on hot path)
+// Nested regions: returns a typed result instead of throwing on malformed input
 val region = KompactFraming.readNested(bytes, bitCursor, prefixBitWidth = 16)
 if (region.isSuccess) {
     val (startBit, bitLength) = region.getOrThrow()  // NestedRegion = Pair<Int, Int>
@@ -331,14 +336,15 @@ public expect value class SensorFrame(public val raw: ByteArray) {
 }
 ```
 
-The processor emits three files: `<Name>.kt` (commonMain),
-`<Name>JvmActual.kt` (jvmMain), `<Name>IosActual.kt` (iosMain).
-The default view's fields are `val` (read-only); generated getters use
-the **raw** `readBits` / `readBitsBoolean` path (zero-alloc, no bounds
-check) because the processor proves bounds at compile time. Write-through
+The common-generation plugin processes schemas once and registers generated
+common and platform sources for the selected targets. The runtime's JVM
+actuals live in `jvmCommon`; plain Kotlin/Native actuals live in `nativeMain`.
+The default view's fields are `val` (read-only). Fixed-layout getters use raw
+bit readers, so the platform actual constructor's minimum-buffer check is
+important; the getter itself does not bounds-check each field. Write-through
 `var` setters live on the opt-in `Mutable<Name>` sibling emitted when
-`@KompactModel(mutable = true)`, via `writeBits` / `writeBitsBoolean`
-(see [ADR-0006](../../docs/adr/0006-immutable-default-models.md)).
+`@KompactModel(mutable = true)` (see
+[ADR-0006](../../docs/adr/0006-immutable-default-models.md)).
 
 **Supported field types:** fixed-layout schemas support `Boolean`, `Int`,
 `Long`, `Float`, and `Double`. Sequential schemas declared with
@@ -379,8 +385,10 @@ framed views, and lazy repeated fields. See
    the low 4 bits only — `v = 16` silently truncates to 0. Validate
    before writing if the input is untrusted.
 
-5. **`LongResult` allocates.** It preserves every signed `Long` value;
-   the other scalar result value classes are allocation-free.
+5. **`LongResult` representation.** It is a regular class so it can preserve
+   every signed `Long` value; other scalar result types use value classes.
+   Boxing and allocation depend on call shape and platform, so do not treat
+   the type distinction as a performance guarantee.
 
 6. **`writeNested` vs `writeRepeated` receiver.** `writeNested`
    passes a **child** writer to the block; `writeRepeated` passes the
@@ -402,32 +410,20 @@ framed views, and lazy repeated fields. See
     `Level.WARNING`, so missing it doesn't fail the build — but
     produces warnings.
 
-## CI gates (what must stay green)
+## Focused verification
 
 ```bash
-# Local
-./gradlew spotlessCheck                              # ktlint formatting check
-./gradlew :kompact:checkKotlinAbi                     # ABI golden check (jvmMain)
-./gradlew :kompact-jvmTest                            # unit tests
-./gradlew :kompact:koverVerify                        # 100% line + branch coverage
-./gradlew :kompact:bundleAndroidMainAar               # Android AAR assembly
-./gradlew :kompact:dokkaGeneratePublicationMarkdown   # regenerate docs/api/
-
-# KSP module
-./gradlew :kompact-ksp:checkKotlinAbi
+./gradlew :kompact:jvmTest
 ./gradlew :kompact-ksp:test
-./gradlew :kompact-ksp:koverVerify
-
-# Full CI-equivalent chain
-./gradlew clean spotlessCheck \
-  :kompact:checkKotlinAbi :kompact:jvmTest :kompact:koverVerify \
-  :kompact:bundleAndroidMainAar :kompact:dokkaGeneratePublicationMarkdown \
-  :kompact:publishAllPublicationsToBundleDirRepository \
-  :kompact:generateChecksums :kompact:assembleCentralBundle \
-  :kompact-ksp:checkKotlinAbi :kompact-ksp:test :kompact-ksp:koverVerify \
-  :kompact-ksp:generateChecksums :kompact-ksp:assembleCentralBundle \
-  :kompact-ksp:publishAllPublicationsToBundleDirRepository --no-daemon --rerun-tasks
+./gradlew :kompact-ksp-integration:test
+./gradlew :kompact-gradle-plugin:test
+./gradlew spotlessCheck
 ```
+
+CI splits required checks across Linux and macOS. The
+[CI guide](../ci.md) has the complete host-specific commands, and
+[the workflow](../../.github/workflows/ci.yml) is authoritative; these focused
+commands are not a CI-equivalent gate.
 
 When you add or remove a public declaration, update the ABI goldens:
 `./gradlew :kompact:updateKotlinAbi :kompact-ksp:updateKotlinAbi`
@@ -447,4 +443,4 @@ then commit the updated `*.api` files.
 | Wire format, error encoding, value-class layout | [`docs/architecture.md`](../architecture.md) |
 | KSP codegen internals | [`docs/research/ksp-kmp-generation.md`](../research/ksp-kmp-generation.md) |
 | ABI validation, release automation | [`docs/ci.md`](../ci.md) |
-| Design decisions | [`docs/adr/`](../adr/) (4 ADRs) |
+| Design decisions | [`docs/adr/`](../adr/) |

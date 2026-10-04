@@ -8,7 +8,15 @@ Can Kompact process each `commonMain` schema once, generate Kotlin consumed by A
 
 The standard KSP Gradle integration does not provide that contract. Its documented KMP model creates a processing task for every configured compilation, so target configurations process shared sources repeatedly. `kspCommonMainMetadata` exists, but common generated-source wiring remains an open upstream problem and depends on fragile manual task relationships.
 
-Kompact's `0.5.0-SNAPSHOT` implementation addresses common Kotlin generation with the separate `:kompact-gradle-plugin`. Its cacheable task invokes KSP2's `KSPCommonConfig` path once, routes common and platform Kotlin outputs, and registers them through task-backed source directories. The plugin implementation and marker are configured for the existing Maven Central Portal pipeline. It does not generate C99 headers; that part of the original research question remains out of scope. Do not also apply standard target-specific KSP processing to the same Kompact schemas.
+Kompact's published code-generation plugin (`0.6.1`; this checkout is
+`0.7.0-SNAPSHOT`) addresses common Kotlin generation with the separate
+`:kompact-gradle-plugin`. Its cacheable task invokes KSP2's `KSPCommonConfig`
+path once, routes common and platform Kotlin outputs, and registers them
+through task-backed source directories. The plugin implementation and marker
+are published alongside the runtime and processor. It does not generate C99
+headers; that part of the original research question remains out of scope. Do
+not also apply standard target-specific KSP processing to the same Kompact
+schemas.
 
 ## Verified facts
 
@@ -111,7 +119,7 @@ Do not also add the processor to `kspAndroid`, `kspIosArm64`, or `kspIosSimulato
 This matrix records the conservative intersection used during the original
 research; it is not the repository's current toolchain or an instruction to
 downgrade. The repository currently uses Kotlin 2.4.20, KSP 2.3.12, Gradle
-9.7.1, and AGP 9.4.1. Before implementing a custom integration, verify the
+9.8.0, and AGP 9.4.1. Before implementing a custom integration, verify the
 then-current official compatibility ranges and retain the repository's stable
 toolchain unless a documented blocker requires a holdback.
 
@@ -163,7 +171,7 @@ Upstream common-generation issues remain open, so Kompact owns more Gradle integ
 ## Addendum: KSP 2.3.12 common-processing API (focused prototype findings)
 
 This addendum answers the question the "Remaining risks" section above left open. It is
-scoped to the repository's current tuple (Kotlin 2.4.20, KSP 2.3.12, Gradle 9.7.1, AGP 9.4.1,
+scoped to the repository's current tuple (Kotlin 2.4.20, KSP 2.3.12, Gradle 9.8.0, AGP 9.4.1,
 JDK 21) and verified directly against the KSP 2.3.12 tag
 ([`a3c38590`](https://github.com/google/ksp/tree/a3c38590913b863cc6b73b41d54ff8afa625f642),
 commit `a3c38590913b863cc6b73b41d54ff8afa625f642`), Maven Central artifact metadata, and current
@@ -395,18 +403,19 @@ Sources:
 ### Incompatibility with the current repository tuple
 
 None of the following are hard failures; all are version-ceiling/provenance gaps worth tracking.
-All version numbers below were re-verified live during this pass (not assumed from the base
-research), against Maven Central, Google's Maven, Gradle's version service, and kotlinlang.org:
+The repository tuple was checked against its version catalog, wrapper, and CI
+configuration on 2026-10-04. Kotlin's compatibility bounds below were checked
+against its live documentation on the same date.
 
 | Component | Repository tuple | What KSP 2.3.12 / Kotlin currently document |
 | --- | --- | --- |
 | Kotlin | `2.4.20` (stable, confirmed released) | KSP 2.3.12's own `gradle.properties`/`libs.versions.toml` pin `kotlinBaseVersion`/`kotlin-base = 2.3.20` for its Gradle-plugin-facing build+test matrix — one minor behind. Its Analysis-API engine (module `kotlin-analysis-api`) is separately pinned to `aa-kotlin-base = "2.4.20-dev-6138"` — a **pre-release development snapshot** of the repository's exact Kotlin line, not the final stable build. This snapshot version string is also literally embedded as a jar resource, `META-INF/ksp.compiler.version`, inside the published `symbol-processing-aa-embeddable:2.3.12` artifact. Net: plausible but unproven parsing/analysis parity with stable `2.4.20`. |
-| Gradle | `9.7.1` (confirmed released, build `20260819`) | kotlinlang.org's live KGP compatibility table lists Kotlin `2.4.20`'s fully-supported Gradle range as `7.6.3–9.7.0`. `9.7.1` is one patch above that documented ceiling (Kotlin's own docs note newer Gradle/AGP "might" still work but can show deprecation warnings or miss new features). |
+| Gradle | `9.8.0` (wrapper; released 2026-09-24) | kotlinlang.org's KGP compatibility table lists Kotlin `2.4.20`'s fully-supported Gradle range as `7.6.3–9.7.0`. The wrapper is one minor version above that documented ceiling (Kotlin's own docs note newer Gradle/AGP "might" still work but can show deprecation warnings or miss new features). |
 | AGP | `9.4.1` (confirmed released stable, not alpha) | Same table lists Kotlin `2.4.20`'s fully-supported AGP range as `8.5.2–9.3.1`. `9.4.1` is one minor above that ceiling. KSP 2.3.12's own integration matrix separately pins `agpBaseVersion`/`agp-base = "9.3.0-alpha01"` — also behind. Positive signal: KSP's gradle-plugin module already hard-codes recognition of the exact AGP plugin id the repository uses, `com.android.kotlin.multiplatform.library` (`KspSubplugin.kt`, `agpKmpPluginId`), and the `2.3.12` release notes list "Update minimum supported AGP version to 8.12.0" as a floor bump, not a ceiling — `9.4.1` clears that floor. |
-| JDK | `21` | Not a KSP-specific constraint for a programmatic task: `symbol-processing-common-deps`/`symbol-processing-aa-embeddable` are plain JVM libraries with no Gradle-API dependency, so this only has to satisfy whatever JDK the Gradle 9.7.1 daemon itself requires (not re-verified in this pass beyond confirming no KSP artifact declares a higher `Bundle/Require` constraint in its POM). |
+| JDK | `21` | CI runs Gradle 9.8.0 on JDK 21. The exact Gradle runtime JDK range was not independently checked for this tuple; no KSP artifact declares a higher `Bundle/Require` constraint in its POM. |
 | Kotlin Gradle Plugin API | n/a | Not applicable to a Kompact-owned task: the KGP-API binary-compatibility risk only exists if Kompact reuses KSP's own `gradle-plugin` module/classes (`KotlinCompilation`, `KotlinPlatformType`, etc., which **are** compiled against `kotlin-base = 2.3.20`). Kompact's planned architecture (a bespoke task calling `KotlinSymbolProcessing` directly) never touches that module, so this specific skew does not apply to it. |
 
-Sources (all fetched live during this pass):
+Sources for this version comparison:
 
 - [KSP `2.3.12` release notes](https://github.com/google/ksp/releases/tag/2.3.12)
 - [KSP `gradle.properties` at `2.3.12`](https://github.com/google/ksp/blob/a3c38590913b863cc6b73b41d54ff8afa625f642/gradle.properties)
@@ -414,7 +423,7 @@ Sources (all fetched live during this pass):
 - [`symbol-processing-aa-embeddable/build.gradle.kts`](https://github.com/google/ksp/blob/a3c38590913b863cc6b73b41d54ff8afa625f642/symbol-processing-aa-embeddable/build.gradle.kts) (shading prefix list; `generateKSPVersions` task writing `META-INF/ksp.compiler.version` from `aaKotlinBaseVersion`)
 - [Kotlin/Gradle/AGP compatibility table (live)](https://kotlinlang.org/docs/gradle-configure-project.html)
 - [Kotlin release-line table confirming `2.4.20` is the current stable release (live)](https://kotlinlang.org/docs/releases.html)
-- [Gradle version service, confirms `9.7.1` released `2026-08-19`](https://services.gradle.org/versions/all)
+- [Gradle version service, confirms `9.8.0` released `2026-09-24`](https://services.gradle.org/versions/all)
 - [Google Maven AGP metadata, confirms `9.4.1` is a released stable version](https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/maven-metadata.xml)
 - [`KspSubplugin.kt`, `agpKmpPluginId` constant and `2.3.12` AGP floor bump](https://github.com/google/ksp/blob/a3c38590913b863cc6b73b41d54ff8afa625f642/gradle-plugin/src/main/kotlin/com/google/devtools/ksp/gradle/KspSubplugin.kt)
 
@@ -430,6 +439,6 @@ The `:kompact-gradle-plugin` TestKit fixture now supplies the runnable behaviora
 - Whether `symbol-processing-aa` (non-embeddable) behaves identically for this purpose — only the
   `-embeddable` variant's shading config was inspected directly; `ksp2entrypoints.md` states they
   are otherwise equivalent, which this pass did not independently re-derive.
-- The Gradle daemon's exact minimum/maximum JDK support window for Gradle `9.7.1` was not
+- The Gradle daemon's exact minimum/maximum JDK support window for Gradle `9.8.0` was not
   independently re-verified against Gradle's own documentation in this pass; JDK 21 is assumed
   compatible based on general Gradle 9.x JDK-support knowledge, not a fetched source.
