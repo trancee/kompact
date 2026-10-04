@@ -28,7 +28,7 @@ frame and shows the expected bytes and decoded values.
 
 ## Install
 
-The latest Maven Central release is `0.4.0`:
+The latest Maven Central release is `0.6.1`:
 
 ```kotlin
 repositories {
@@ -36,14 +36,13 @@ repositories {
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.4.0")
+    implementation("ch.trancee.kompact:kompact:0.6.1")
 }
 ```
 
-The repository's current development version is `0.5.0-SNAPSHOT`. It includes
-generated sequential framed views and the KMP code-generation plugin, which are
-not yet part of the published `0.4.0` API. To try those features, publish the
-snapshot modules to Maven Local and follow the
+The current development version in this checkout is `0.7.0-SNAPSHOT`; it is
+not published to Maven Central. To try unreleased changes, publish the snapshot
+modules to Maven Local and follow the
 [consumer setup guide](docs/how-to/consume-from-another-project.md).
 
 ## Choose a schema

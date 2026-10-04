@@ -34,10 +34,10 @@ from the runtime source; do not edit the generated pages by hand.
 - Schema annotations are preview API and require opting in to
   `KompactPreview`. Runtime reader and writer APIs do not require that opt-in.
 
-The `0.5.0-SNAPSHOT` reference includes framed schemas and the KMP generation
-plugin. Those additions are not part of the published `0.4.0` release; see the
-[consumer setup guide](how-to/consume-from-another-project.md) for the version
-available from Maven Central.
+This reference tracks the current checkout (`0.7.0-SNAPSHOT`); the latest
+published release is `0.6.1`. See the
+[consumer setup guide](how-to/consume-from-another-project.md) for the
+published coordinates or instructions for trying this checkout.
 
 ## Update the generated reference
 

@@ -5,9 +5,9 @@ arrays, nested records, or repeated values. This guide uses the low-level
 runtime API; for generated properties, see
 [How to define a framed schema](define-framed-schema.md).
 
-The `KompactFrame` reader used below is part of `0.5.0-SNAPSHOT`, not the
-published `0.4.0` release. Follow
-[Consume Kompact](consume-from-another-project.md) to install the snapshot.
+The `KompactFrame` reader used below is included in the published `0.6.1`
+release. Follow [Consume Kompact](consume-from-another-project.md) to add the
+runtime dependency.
 
 ## Encode strings, blobs, and repeated values
 

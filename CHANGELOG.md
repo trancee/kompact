@@ -66,20 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### 🐛 Fixes
 - fix: mark generated value-class companion object as 'actual' (#51) (5639d1a)
 
-
-### 🐛 Fixes
-- fix: mark generated value-class companion object as 'actual' (#51) (5639d1a)
-
-
 ### 📦 Other
 - fix(ksp): emit model raw backing field as primary-constructor val (defect #3) (#48) (3c24aa3)
-
-
-### 📦 Other
-- fix(ksp): emit model raw backing field as primary-constructor val (defect #3) (#48) (3c24aa3)
-
-
-### 📦 Other
 - Merge branch 'main' of https://github.com/trancee/kompact (143ee28)
 - fix(ci): use packages input for setup-android@v4 in release-publish workflow (ce203a3)
 - chore(deps): bump ksp from 2.3.10 to 2.3.12 (#45) (29d963f)
@@ -87,45 +75,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - fix(ci): use packages input for setup-android@v4 on macOS (b398167)
 - fix(ksp): restore 100% kover coverage after round-safety refactor (f6ae98e)
 - fix(ksp): round-safety + KMP expect/actual split via kompact.generate mode (b11a1b4)
-
-
-### 📦 Other
-- Merge branch 'main' of https://github.com/trancee/kompact (143ee28)
-- fix(ci): use packages input for setup-android@v4 in release-publish workflow (ce203a3)
-- chore(deps): bump ksp from 2.3.10 to 2.3.12 (#45) (29d963f)
-- fix(deps): ignore kotlin-gradle-plugin in Dependabot config (dbaf3fd)
-- fix(ci): use packages input for setup-android@v4 on macOS (b398167)
-- fix(ksp): restore 100% kover coverage after round-safety refactor (f6ae98e)
-- fix(ksp): round-safety + KMP expect/actual split via kompact.generate mode (b11a1b4)
-
-
-### 📦 Other
-- chore(deps): bump ksp from 2.3.10 to 2.3.12 (#45) (29d963f)
-- fix(deps): ignore kotlin-gradle-plugin in Dependabot config (dbaf3fd)
-- fix(ci): use packages input for setup-android@v4 on macOS (b398167)
-- fix(ksp): restore 100% kover coverage after round-safety refactor (f6ae98e)
-- fix(ksp): round-safety + KMP expect/actual split via kompact.generate mode (b11a1b4)
-
-
-### 📦 Other
 - fix(ksp): compile against KSP 2.3.10 for cross-version compatibility (826578c)
-
-
-### 📦 Other
-- fix(ksp): compile against KSP 2.3.10 for cross-version compatibility (826578c)
-
-
-### 📦 Other
 - fix(ksp): correct KSP 2.x service file path for provider discovery (5d34fdd)
 - Merge branch 'main' of https://github.com/trancee/kompact (994c5e5)
-
-
-### 📦 Other
-- fix(ksp): correct KSP 2.x service file path for provider discovery (5d34fdd)
-- Merge branch 'main' of https://github.com/trancee/kompact (994c5e5)
-
-
-
 
 ### ✨ Features
 - feat: Kompact v1 — KMP bit-packing serializer, KSP processor, release automation, full docs (2571014)

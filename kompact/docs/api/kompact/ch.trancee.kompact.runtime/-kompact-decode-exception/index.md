@@ -17,6 +17,4 @@ Thrown by result `getOrThrow()` / `readOrThrow()` and by direct framed-reader me
 
 | Name | Summary |
 |---|---|
-| [cause](index.md#-654012527%2FProperties%2F-476770652) | [common]<br>expect open val [cause](index.md#-654012527%2FProperties%2F-476770652): [Throwable](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html)? |
 | [error](error.md) | [common]<br>val [error](error.md): [KompactDecodeError](../-kompact-decode-error/index.md) |
-| [message](index.md#1824300659%2FProperties%2F-476770652) | [common]<br>expect open val [message](index.md#1824300659%2FProperties%2F-476770652): [String](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html)? |

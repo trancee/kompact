@@ -19,6 +19,12 @@ plugins {
     id("portal-publish")
 }
 
+dokka {
+    dokkaPublications.configureEach {
+        suppressInheritedMembers.set(true)
+    }
+}
+
 val mutationJvmOnly =
     providers.gradleProperty("mutationTest.jvmOnly").map(String::toBooleanStrict).getOrElse(false)
 if (mutationJvmOnly) {

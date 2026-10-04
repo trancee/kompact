@@ -8,9 +8,9 @@
 ## Current implementation status
 
 This ADR records the original release design for the runtime and KSP
-processor. The `0.5.0-SNAPSHOT` development cycle also adds
-`:kompact-gradle-plugin`; the current workflows publish its implementation and
-plugin marker alongside the runtime and processor. See
+processor. The current checkout is `0.7.0-SNAPSHOT` and includes
+`:kompact-gradle-plugin`; the workflows publish its implementation and plugin
+marker alongside the runtime and processor. See
 [`docs/ci.md`](../ci.md) for the current CI task list. Historical version and
 module references below describe the state when this decision was made.
 
