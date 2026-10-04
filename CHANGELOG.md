@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-10-03
+
+### ✨ Features
+- feat(mutation-testing): add JVM-only Kompact evaluation setup (#76) (b10f049)
+
 ## [0.5.0] - 2026-10-02
 
 ### ✨ Features
