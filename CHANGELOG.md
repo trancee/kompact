@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - feat(mutation-testing): update Kompact integration to MutFlow 1.6.1 (e1458ac)
 
 ### 📦 Other
+- Merge pull request #83 from trancee/release/ongoing (72cc28f)
 - Merge pull request #84 from trancee/feat/kompact-mutflow-1.6.1 (a1e9cfc)
 - docs: align guides with published 0.6.1 release (d199b5b)
 - Merge pull request #82 from trancee/feat/kompact-mutflow-1.6.1 (4c05ca4)
