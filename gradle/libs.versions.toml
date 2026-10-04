@@ -6,7 +6,7 @@ kotlinpoet = "2.4.0"
 agp = "9.4.1"
 dokka = "2.2.0"
 kover = "0.9.11"
-spotless = "8.10.2"
+spotless = "8.10.3"
 skie = "0.10.14"
 
 [plugins]
