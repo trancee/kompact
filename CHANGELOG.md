@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.1] - 2026-10-04
+
+### 📦 Other
+- Merge pull request #75 from trancee/dependabot/gradle/co.touchlab.skie-0.10.15 (4b98b77)
+- Merge branch 'main' into dependabot/gradle/co.touchlab.skie-0.10.15 (9ef120c)
+- Merge pull request #74 from trancee/dependabot/gradle/com.diffplug.spotless-8.10.3 (99a541e)
+- Merge branch 'main' into dependabot/gradle/com.diffplug.spotless-8.10.3 (21b8647)
+- Merge branch 'main' into dependabot/gradle/co.touchlab.skie-0.10.15 (4740288)
+- Merge pull request #73 from trancee/dependabot/gradle/org.jetbrains.kotlinx.kover-0.9.11 (36f25c8)
+- chore(deps): bump org.jetbrains.kotlinx.kover from 0.9.9 to 0.9.11 (f9b552a)
+- chore(deps): bump com.diffplug.spotless from 8.10.2 to 8.10.3 (68381e1)
+- chore(deps): bump co.touchlab.skie from 0.10.14 to 0.10.15 (cff4539)
+- Merge pull request #72 from trancee/dependabot/gradle/gradle-wrapper-9.8.0 (02fd80f)
+- chore(deps): bump gradle-wrapper from 9.7.1 to 9.8.0 (c51ab5f)
+- docs: require docs alignment before PRs (#79) (e3b96db)
+
 ## [0.6.0] - 2026-10-04
 
 ### ✨ Features
