@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [0.6.1] - 2026-10-04
 
 ### 📦 Other
+- Merge pull request #80 from trancee/release/ongoing (65ea349)
 - Merge pull request #75 from trancee/dependabot/gradle/co.touchlab.skie-0.10.15 (4b98b77)
 - Merge branch 'main' into dependabot/gradle/co.touchlab.skie-0.10.15 (9ef120c)
 - Merge pull request #74 from trancee/dependabot/gradle/com.diffplug.spotless-8.10.3 (99a541e)
