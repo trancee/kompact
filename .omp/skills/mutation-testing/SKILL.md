@@ -29,17 +29,29 @@ Runs a mutation-testing analysis on a Kotlin (JVM-first) project using mutflow a
 `/mutation-testing setup [project path] [--kmp] [--junit4] [--module :path]`
 bootstraps the system into the selected project or Gradle module:
 
-1. **`.omp/` files copied**: agents, skills, `mutation-results.gradle.kts`, `mutation-results-src/` copied to `project-path/.omp/`
+1. **Shared toolkit payload**: the guide, results script, typed sources, and
+   manifest are installed under `project-path/.mutation-testing/`; OMP agents
+   and skills remain under `.omp/`
 2. **`settings.gradle.kts`**: `pluginManagement` block added with `mavenCentral()` + `gradlePluginPortal()`
 3. **Selected module `build.gradle.kts`**: mutflow plugin, results script, and framework-specific wiring; `--junit4` installs the JUnit 4 runner for plain JVM, while the default and KMP JVM use JUnit 6
-4. **`buildSrc/` generated**: typed `MutationResults` module copied from `.omp/mutation-results-src/` with Kotlin JVM and serialization plugins
+4. **`buildSrc/` generated**: typed `MutationResults` module copied from `.mutation-testing/mutation-results-src/` with Kotlin JVM and serialization plugins
 5. **`test-saboteur`** (via `task`) annotates business-logic and test classes, applies the per-class mode budget, and wraps applicable calls in `MutFlow.underTest { }`
+
+Setup and update use the toolkit checkout's root `bootstrap.sh` command. To
+update, fast-forward the checkout and run
+`"/absolute/toolkit/bootstrap.sh" update "/absolute/target" --dry-run`.
+Review conflicts before applying. Updates require a valid
+`.mutation-testing/manifest.json`; if it is absent, the updater stops before
+writing.
 
 ### What happens (full mutation test run, standard mode by default)
 
 1. **`test-quality-reviewer`** (orchestrator) receives the task and coordinates the pipeline
 2. **`test-saboteur`** analyzes source code, adds `@MutationTarget` to business-logic classes, uses the selected JUnit integration (`@MutFlowTest`, JUnit 4 `@RunWith(MutFlowRunner::class)`, or KMP common tests), and adds suppression comments to framework noise
-3. **`test-executor`** runs one `mutationResults` Gradle invocation in the selected module, optionally filtered by `--targets`; this produces the aggregate report and avoids concurrent Gradle processes writing shared results
+3. **`test-executor`** runs one `mutationResults` Gradle invocation in the
+   selected module, optionally filtered by `--targets`; this produces aggregate
+   JSON and a readable Markdown summary, which is also added to the GitHub
+   Actions job summary when available
 4. **`test-auditor`** parses JSON results + JUnit XML, calculates mutation score, identifies zombie test candidates, detects over-mocked tests
 5. **`test-refactor-specialist`** generates improved test code for flagged issues
 
@@ -50,14 +62,21 @@ bootstraps the system into the selected project or Gradle module:
 ### Prerequisites
 
 - Kotlin JVM project with Gradle
-- Java 26, Gradle 9.8.0, Kotlin 2.4.20, mutflow 1.6.0 (validated baseline)
+- Python 3.10 or newer for setup/update
+- Java 26, Gradle 9.8.0, Kotlin 2.4.20, MutFlow 1.6.1 (validated baseline)
 - For fresh projects, use `/mutation-testing setup` first
 
 ### mutflow architecture notes
 
 Key mutflow constraints that affect orchestration:
 
-- Toolkit support: plain JVM/JUnit 4 or JUnit 6, plus KMP JVM through MutFlow's generated JUnit 6 integration. Native, Android, and JS execution are not toolkit adapters.
+- Toolkit support: plain JVM/JUnit 4 or JUnit 6, plus KMP JVM through the
+  generated JUnit 6 integration when every declared target can resolve the
+  common-source-set dependencies. In the validated MutFlow `1.6.1` baseline,
+  artifacts publish JVM, `linuxX64`, and `mingwX64`, but not iOS or Android
+  Native variants. Inspect the full target set before a KMP run: selecting only
+  the JVM task does not avoid dependency resolution. The toolkit does not prune
+  targets or provide Native, Android, or JS execution adapters.
 - Test-only mutation compilation — production artifacts stay free of mutation code
 - Per-JVM overlap guard — avoid concurrent sessions; separate test JVMs are independent
 - Per-mutation killer evidence — mutflow records all tests that kill each mutation, supporting zombie-candidate analysis but not a complete test-outcome matrix

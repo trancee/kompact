@@ -59,6 +59,13 @@ class KompactRuntimeTest {
         assertEquals(1023, result)
     }
 
+    @Test
+    fun readBits_widthOneAtBit7ReturnsSetBit() {
+        val buf = byteArrayOf(0x80.toByte())
+        val result = KompactRuntime.readBits(buf, 7, 1)
+        assertEquals(1, result)
+    }
+
     // --- readBitsBoolean (single bit) ---
 
     @Test
@@ -155,5 +162,19 @@ class KompactRuntimeTest {
         val high = KompactRuntime.readBits(buf, 4, 4)
         assertEquals(0b0101, low)
         assertEquals(0b1111, high)
+    }
+
+    @Test
+    fun writeBits_widthOneAtBit7_setsBitAndPreservesNeighbors() {
+        val buf = byteArrayOf(0b0101_0101)
+        KompactRuntime.writeBits(buf, 7, 1, 1)
+        assertEquals(0xD5, buf[0].toInt() and 0xFF)
+    }
+
+    @Test
+    fun writeBits_widthOneAtBit7_clearsBitAndPreservesNeighbors() {
+        val buf = byteArrayOf(0xD5.toByte())
+        KompactRuntime.writeBits(buf, 7, 1, 0)
+        assertEquals(0x55, buf[0].toInt() and 0xFF)
     }
 }

@@ -107,4 +107,24 @@ class KompactRuntimeLongBitsTest {
         // Byte 1 untouched
         assertEquals(0x0FL, KompactRuntime.readBitsLong(buf, 8, 8))
     }
+
+    @Test
+    fun writeBitsLong_widthOneAtBit63_setsBitAndPreservesNeighbors() {
+        val buf = ByteArray(9)
+        // Bit 62 and bit 64 bracket the one-bit field at bit 63.
+        buf[7] = 0x40.toByte()
+        buf[8] = 0x01.toByte()
+        KompactRuntime.writeBitsLong(buf, 63, 1, 1L)
+        assertEquals(0b111L, KompactRuntime.readBitsLong(buf, 62, 3))
+    }
+
+    @Test
+    fun writeBitsLong_widthOneAtBit63_clearsBitAndPreservesNeighbors() {
+        val buf = ByteArray(9)
+        // Bit 62 and bit 64 bracket the one-bit field at bit 63.
+        buf[7] = 0xC0.toByte()
+        buf[8] = 0x01.toByte()
+        KompactRuntime.writeBitsLong(buf, 63, 1, 0L)
+        assertEquals(0b101L, KompactRuntime.readBitsLong(buf, 62, 3))
+    }
 }
