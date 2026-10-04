@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-10-04
+
+### ✨ Features
+- feat(mutation-testing): update Kompact integration to MutFlow 1.6.1 (e1458ac)
+
+### 📦 Other
+- Merge pull request #84 from trancee/feat/kompact-mutflow-1.6.1 (a1e9cfc)
+- docs: align guides with published 0.6.1 release (d199b5b)
+- Merge pull request #82 from trancee/feat/kompact-mutflow-1.6.1 (4c05ca4)
+
 ## [0.6.1] - 2026-10-04
 
 ### 📦 Other
