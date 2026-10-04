@@ -59,6 +59,7 @@ Failure => incomplete; fix cause+rerun. External prerequisite failure => finish 
 ## GIT/EXTERNAL
 
 - R feature branch; X protected-default direct commit.
+- Before opening a PR, R reconcile the change with affected docs/specs/ADRs/examples/release metadata and update them in the same change set. Open only after those updates are complete and consistent; if no documentation change is warranted, R record why in the PR description.
 - Without explicit user approval X commit/push/open-or-merge PR/publish/change external service.
 - X discard unrelated work/rewrite history/force-push/destructive cleanup without explicit approval.
 - Approved commit => repository format, else Conventional Commits; AI co-author trailer if repository requires.
