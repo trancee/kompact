@@ -64,6 +64,47 @@ changes but does not implement them.
   ADR-0002 is current; the old scratch-map header decision is historical.
   Current framing is versionless, strict, positional, and lacks the old
   uniform-prefix/additive-skip contract. See [research](research/schema-evolution-evidence.md).
+- [Choosing initial wire-versioning policy](issues/10-schema-versioning-policy.md):
+  Kompact remains versionless; applications needing mixed versions define an
+  outer envelope and migration policy. Add an illustrative caller-owned
+  envelope example, but no Kompact header or helper.
+- [Designing the guaranteed byte-oriented API](issues/11-low-allocation-api-shape.md):
+  caller-owned bounded cursors and reusable generated holders/workspaces form
+  the checked no-allocation path; UTF-8 strings/convenience wrappers may
+  allocate, while Android Native proof gates its claim.
+- [Validating generated field writes](issues/14-generated-write-validation.md):
+  checked/generated writes reject out-of-range values and unknown enum codes
+  without mutation; convenience `create`/`copy` throw, while truncation/raw
+  codes require an explicit unchecked path.
+- [Removing the legacy nested-region API](issues/15-nested-region-api-surface.md):
+  remove `NestedRegion`/`NestedRegionResult` and their unique APIs/tests from
+  the next artifact; retain Frame/slice as allocating conveniences, with the
+  cursor path owning no-allocation nested reads.
+- [Defining generated-view equality](issues/13-generated-view-equality.md):
+  preserve identity-based equality/hash, document that views are not
+  content keys, test fixed/framed behavior, and do not format payload values.
+- [Setting the Gradle plugin compatibility boundary](issues/16-gradle-plugin-compatibility-contract.md):
+  support only tested Kotlin/KSP pairs; validate KGP at configuration and KSP2
+  immediately before task execution with actionable diagnostics.
+- [Defining codegen diagnostics](issues/17-codegen-diagnostics-contract.md):
+  empty annotated models and resolved invalid fields are errors with no partial
+  model output; unresolved symbols may defer and unrelated valid models
+  continue.
+- [Setting cross-platform release gates](issues/18-cross-platform-release-gates.md):
+  PRs test JVM/Android JVM and iOS Simulator; device tests are required before
+  release, allocation claims need per-target validated zero counters, and
+  Linux/macOS CI checks must be required statuses.
+- [Setting artifact and plugin quality gates](issues/19-release-artifact-gates.md):
+  every PR dry-runs the `:kompact` bundle; the published Gradle plugin gets a
+  Linux JVM ABI check and 100% production line/branch coverage with no
+  production exclusions.
+- [Aligning release automation with G1](issues/20-release-policy-alignment.md):
+  preserve G1; require human-reviewed release PRs for all version commits and
+  prohibit post-publication bot commits directly to protected `main`.
+- [Selecting the first supported release version](issues/21-published-version-and-first-release.md):
+  release `0.8.0` from the current `0.8.0-SNAPSHOT`, leave published `0.7.0`
+  immutable, use the root Gradle version as the canonical candidate, and gate
+  consumer-doc version drift against that version and the changelog.
 - [Assessing allocation-contract feasibility](issues/06-platform-allocation-feasibility.md):
   the required caller-buffer primitive path cannot be met by current wrapper
   APIs; byte-oriented operations and caller-supplied repeat workspaces are
@@ -84,8 +125,37 @@ changes but does not implement them.
 
 ## Not yet specified
 
-The audit has graduated the currently visible questions into open child
-tickets. New decision questions may still emerge as those tickets are resolved.
+All identified audit and decision tickets (01–11, 13–21) are resolved. The
+implementation work is now decomposed into the ordered task tickets below.
+Reopen Wayfinding if implementation evidence exposes a material unanswered
+decision; do not silently weaken the resolved contracts.
+
+## Implementation route
+
+The following tickets are the implementation plan, not authorization to start
+implementation in this planning effort. Keep one implementation task active
+at a time and use TDD for behavior changes.
+
+1. [Building the caller-owned codec path](issues/22-caller-owned-codec-api.md):
+   bounded runtime cursors, reusable generated holders and repeat workspace,
+   with failure-atomic checked operations and no fresh wrappers.
+2. [Enforcing generated API contracts](issues/23-generated-api-contracts.md):
+   checked write validation, explicit unchecked APIs, removal of the legacy
+   nested-region surface, and tested/documented generated-view identity
+   equality.
+3. [Hardening KSP and Gradle integration](issues/24-ksp-gradle-contracts.md):
+   tested Kotlin/KSP pairs, actionable compatibility failures, and the
+   resolved KSP model-diagnostic behavior.
+4. [Proving platform behavior and allocation claims](issues/25-platform-proof.md):
+   target-specific behavioral tests, allocation measurement with positive
+   controls, and required device evidence before release or per-target claims.
+5. [Aligning consumer docs and version references](issues/26-consumer-docs-and-version-drift.md):
+   public API/schema documentation, explicit copy/unchecked semantics,
+   release/version references, and an automated drift check.
+6. [Gating artifacts and release governance](issues/27-release-and-ci-gates.md):
+   runtime bundle dry-run, plugin ABI/coverage, required CI checks, and
+   human-reviewed release PR flow; publish `0.8.0` only after all required
+   gates pass.
 
 ## Out of scope
 
