@@ -80,13 +80,24 @@ allocation methodology and current proof status are tracked in
 the proof gate remains open until each claimed target has a validated
 allocation counter, positive control, and retained environment metadata.
 
-Mutation testing is an opt-in JVM-only workflow, not a CI gate. The current
-configuration selects two `KompactRuntime` test adapters; it does not mutate
-the caller-owned cursor/range code or the KSP generators. MutFlow also provides
-no Android or Native mutation evidence. Therefore a passing mutation run is
-not evidence for those excluded modules. See the repository's
-[mutation-testing execution guide](../.omp/AGENT-USAGE.md) for the supported
-command and limits.
+Mutation testing is an opt-in workflow, not a CI gate. Ordinary JVM test
+runs in `:kompact:jvmTest`, `:kompact-ksp:test`,
+`:kompact-ksp-integration:test`, and `:kompact-gradle-plugin:test` use JUnit 6.
+The Kotlin test adapter retains its historical `kotlin-test-junit5` artifact
+name, but its JUnit 5 transitive dependencies are excluded and JUnit 6 is used
+at runtime. The mutation setup targets `KompactRuntime`, `KompactCursor`,
+`KompactCursorByteRanges`, `KompactCursorRepeats`, and `KompactByteRange` in
+the runtime module, plus the changed KSP generator classes in
+`:kompact-ksp`. The runtime guarded `mutationTest.jvmOnly` model
+removes iOS and Android Native variants only for its explicit mutation task;
+ordinary builds keep their declared targets. MutFlow 1.6.1 does not publish the
+required iOS or Android Native variants, so these runs provide neither Android
+nor Native mutation evidence. Run the two qualified `mutationResults` tasks
+sequentially with their module-specific adapter class filters, as documented in
+the [mutation-testing execution guide](../.omp/AGENT-USAGE.md).
+The KSP mutation task is opt-in with
+`-PmutationTest.enabled=true`; ordinary `:kompact-ksp:test` remains a JUnit 6
+unit-test run.
 
 ## Run a smaller check while developing
 

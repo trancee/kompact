@@ -54,16 +54,28 @@ omits `iosArm64`, `iosSimulatorArm64`, and `androidNativeArm64`; ordinary builds
 keep the full target set, do not apply the MutFlow plugin, and do not add its
 common-source-set dependencies.
 
-The mutation-only test adapters call the existing common tests inside
-`MutFlow.underTest`. They are added only to MutFlow's generated JVM test
-compilation; regular common tests remain framework-neutral. By default, the
-results task selects these adapters. This run covers the JVM target only and
-provides no Android or Native evidence.
+Ordinary JVM tests in both `:kompact:jvmTest` and `:kompact-ksp:test` use
+JUnit 6. The runtime mutation target set is `KompactRuntime`, `KompactCursor`,
+`KompactCursorByteRanges`, `KompactCursorRepeats`, and `KompactByteRange`. The
+adapters call existing common cursor and byte-range tests inside
+`MutFlow.underTest`; they are added only to MutFlow generated JVM test
+compilation, while ordinary common tests remain framework-neutral. The KSP
+module uses plain-JVM MutFlow JUnit 6 adapters around existing generator tests.
+Both mutation tasks run with an unlimited mutation budget. Pass explicit
+module-specific adapter filters because the shared report script also serves
+the pre-existing runtime adapters.
+
+Run these aggregate invocations sequentially. They provide JVM-target evidence
+only; the runtime run provides no Android or Native evidence.
 
 ```bash
 gradle -PmutationTest.jvmOnly=true :kompact:mutationResults \
-  '-PmutationTest.includes=ch.trancee.kompact.runtime.KompactRuntimeMutationTest,ch.trancee.kompact.runtime.KompactRuntimeLongBitsMutationTest' \
-  --console=plain
+  "-PmutationTest.includes=ch.trancee.kompact.runtime.KompactCursorMutationTest,ch.trancee.kompact.runtime.KompactCursorBoundaryMutationTest,ch.trancee.kompact.runtime.KompactCursorByteRangeMutationTest" \
+  --no-configuration-cache --console=plain
+
+gradle -PmutationTest.enabled=true :kompact-ksp:mutationResults \
+  "-PmutationTest.includes=ch.trancee.kompact.ksp.gen.FramedScalarHolderGeneratorMutationTest,ch.trancee.kompact.ksp.gen.FramedClassGeneratorMutationTest,ch.trancee.kompact.ksp.gen.ValueClassGeneratorMutationTest,ch.trancee.kompact.ksp.gen.ValueHolderGeneratorMutationTest" \
+  --no-configuration-cache --console=plain
 ```
 
 `mutationTest.includes` selects whole test classes; production mutation targets

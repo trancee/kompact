@@ -163,7 +163,16 @@ class FramedClassGeneratorTest {
         assertTrue(output.contains("captureRegion(this.textsElement, validateUtf8 = true)"))
         assertTrue(holder.contains("Parent"))
         assertTrue(decoder.contains("probeCursor.skipVariableRepeat(8, 8"))
+        assertTrue(decoder.contains("cursor.readUtf8Range(8, this.text)"))
+        assertTrue(decoder.contains("cursor.readByteRange(8, this.bytes)"))
+        assertTrue(decoder.contains("cursor.readByteRange(8, this.child)"))
+        assertTrue(decoder.contains("this.number = numberDecoded"))
         assertTrue(encoder.contains("probeCursor.preflightRawByteRange(this.childrenBytes)"))
+        assertTrue(encoder.contains("probeCursor.preflightByteRangeWrite(8, this.text, validateUtf8 = true)"))
+        assertTrue(encoder.contains("probeCursor.preflightByteRangeWrite(8, this.bytes, validateUtf8 = false)"))
+        assertTrue(encoder.contains("cursor.writeByteRange(8, this.text)"))
+        assertTrue(encoder.contains("cursor.writeByteRange(8, this.bytes)"))
+        assertTrue(encoder.contains("cursor.writeRawByteRange(this.childrenBytes)"))
         assertTrue(nestedDecoder.contains("decodeChildInto("))
         assertTrue(repeatedDecoder.contains("decodeNumbersElement("))
         assertTrue(nestedRepeatedDecoder.contains("decodeChildrenElementInto("))
@@ -234,6 +243,29 @@ class FramedClassGeneratorTest {
         assertEquals("Parent", "parent".capitalizedFirstChar())
         assertEquals("Parent", "Parent".capitalizedFirstChar())
         assertEquals("SSpecial", "ßpecial".capitalizedFirstChar())
+    }
+
+    @Test
+    fun borrowedStringPreflightValidatesUtf8WhileBlobPreflightDoesNot() {
+        val stringSpec =
+            ModelSpec(
+                packageName = "example",
+                className = "TextOnly",
+                framed = true,
+                fields = listOf(field("text", KompactFieldType.StringType, 0, 0)),
+            )
+        val blobSpec =
+            stringSpec.copy(
+                className = "BlobOnly",
+                fields = listOf(field("bytes", KompactFieldType.Blob, 0, 0)),
+            )
+
+        val stringOutput = FramedClassGenerator.generateExpect(stringSpec)
+        val blobOutput = FramedClassGenerator.generateExpect(blobSpec)
+
+        assertTrue(stringOutput.contains("probeCursor.skipByteRange(8, validateUtf8 = true)"))
+        assertTrue(blobOutput.contains("probeCursor.skipByteRange(8)"))
+        assertFalse(blobOutput.contains("validateUtf8 = true"))
     }
 
     private fun field(

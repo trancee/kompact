@@ -4,6 +4,7 @@ import ch.trancee.kompact.ksp.model.KompactFieldInfo
 import ch.trancee.kompact.ksp.model.ModelSpec
 import ch.trancee.kompact.ksp.model.scalarType
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -99,6 +100,10 @@ class ValueClassGeneratorTest {
             output.contains("KompactRuntime.writeBitsBoolean(raw, 14, isMalfunctioning)"),
             "Should write isMalfunctioning at its declared bit offset",
         )
+        assertTrue(output.contains("batteryStatus: Int"))
+        assertTrue(output.contains("speed: Int"))
+        assertTrue(output.contains("isMalfunctioning: Boolean"))
+        assertTrue(output.contains("KompactRuntime.writeBits(raw, 4, 10, speed)"))
         assertTrue(
             output.contains("return raw"),
             "Should return the allocated frame",
@@ -114,6 +119,9 @@ class ValueClassGeneratorTest {
         assertTrue(output.contains("fun VehicleTelemetryHolder.encodeFrom(cursor: KompactCursor): Int"))
         assertTrue(output.contains("cursor.ensureAvailable(16)"))
         assertTrue(output.contains("cursor.validateUnsigned(10, speedInput.toLong())"))
+        val expect = ValueClassGenerator.generateExpect(vehicleTelemetrySpec())
+        assertTrue(expect.contains("class VehicleTelemetryHolder"))
+        assertTrue(expect.contains("fun encodeVehicleTelemetry("))
     }
 
     // --- jvm actual output tests ---
@@ -133,6 +141,8 @@ class ValueClassGeneratorTest {
         val spec = vehicleTelemetrySpec()
         val output = ValueClassGenerator.generateJvmActual(spec)
 
+        assertTrue(output.contains("actual fun create("), "JVM factory must implement the expect factory")
+        assertTrue(output.contains("encodeVehicleTelemetry("))
         assertTrue(
             output.contains("actual companion object"),
             "Companion object in JVM actual must be marked 'actual'. " +
@@ -146,6 +156,8 @@ class ValueClassGeneratorTest {
         val spec = vehicleTelemetrySpec()
         val output = ValueClassGenerator.generateIosActual(spec)
 
+        assertTrue(output.contains("actual fun create("), "iOS factory must implement the expect factory")
+        assertTrue(output.contains("encodeVehicleTelemetry("))
         assertTrue(
             output.contains("actual companion object"),
             "Companion object in iOS actual must be marked 'actual'. " +
@@ -194,6 +206,7 @@ class ValueClassGeneratorTest {
             output.contains("VehicleTelemetry(encodeVehicleTelemetry("),
             "copy must wrap a fresh raw buffer via encode, got:\n$output",
         )
+        assertTrue(output.contains("encodeVehicleTelemetry(batteryStatus, speed, isMalfunctioning)"))
         assertFalse(
             output.contains("set(value)"),
             "Default view stays val (no setter), got:\n$output",
@@ -221,6 +234,7 @@ class ValueClassGeneratorTest {
         val expectOut = ValueClassGenerator.generateExpect(spec)
         val jvmOut = ValueClassGenerator.generateJvmActual(spec)
         val iosOut = ValueClassGenerator.generateIosActual(spec)
+        val androidNativeOut = ValueClassGenerator.generateAndroidArm64Actual(spec)
 
         // Default immutable view is unchanged (val + copy).
         assertTrue(expectOut.contains("expect value class AllTypes"))
@@ -255,6 +269,52 @@ class ValueClassGeneratorTest {
             iosOut.contains("actual value class MutableAllTypes"),
             "ios actual must declare the Mutable sibling, got:\n$iosOut",
         )
+        assertTrue(jvmOut.contains("@JvmInline"), "JVM value-class actual uses the JVM inline representation")
+        assertFalse(iosOut.contains("JvmInline"), "iOS actual must not use the JVM-only annotation")
+        assertTrue(androidNativeOut.contains("actual value class MutableAllTypes"))
+        assertFalse(androidNativeOut.contains("JvmInline"), "Android Native actual must not use JVM inline metadata")
+    }
+
+    @Test
+    fun generatedFactoryEncoderAndCopyPreserveEveryFieldAndActualBody() {
+        val spec =
+            ModelSpec(
+                packageName = "test",
+                className = "FactoryContract",
+                fields =
+                    listOf(
+                        field("first", 0, 3),
+                        field("last", 5, 3),
+                    ),
+            )
+        val expect = ValueClassGenerator.generateExpect(spec)
+        val actual = ValueClassGenerator.generateJvmActual(spec)
+        val expectFactory = expect.substringAfter("fun create(").substringBefore("): FactoryContract")
+        val actualFactory = actual.substringAfter("actual fun create(").substringBefore("): FactoryContract")
+        val encoder = expect.substringAfter("fun encodeFactoryContract(").substringBefore("): ByteArray")
+        val actualCopy = actual.substringAfter("actual fun copy(").substringBefore("): FactoryContract")
+
+        listOf(expectFactory, actualFactory, encoder, actualCopy).forEach { signature ->
+            assertTrue(signature.contains("first: Int"))
+            assertTrue(signature.contains("last: Int"))
+        }
+        assertEquals(2, Regex("encodeFactoryContract\\(first, last\\)").findAll(actual).count())
+    }
+
+    @Test
+    fun mutableSiblingDoesNotExposeImmutableCopyBuilder() {
+        val spec = allTypesSpec(mutable = true)
+        val expect = ValueClassGenerator.generateExpect(spec)
+        val jvm = ValueClassGenerator.generateJvmActual(spec)
+        val immutableExpect = expect.substringBefore("expect value class MutableAllTypes")
+        val mutableExpect = expect.substringAfter("expect value class MutableAllTypes")
+        val immutableJvm = jvm.substringBefore("actual value class MutableAllTypes")
+        val mutableJvm = jvm.substringAfter("actual value class MutableAllTypes")
+
+        assertTrue(immutableExpect.contains("fun copy("))
+        assertFalse(mutableExpect.contains("fun copy("))
+        assertTrue(immutableJvm.contains("actual fun copy("))
+        assertFalse(mutableJvm.contains("fun copy("))
     }
 
     @Test
@@ -442,6 +502,77 @@ class ValueClassGeneratorTest {
             output.contains("readBitsLong(raw, 0, 64)"),
             "Expected readBitsLong for Double field",
         )
+    }
+
+    @Test
+    fun generatedFieldAnnotationsPreserveSignednessOnlyForSignedFields() {
+        val spec =
+            ModelSpec(
+                packageName = "test",
+                className = "SignednessModel",
+                fields =
+                    listOf(
+                        field("signed", 0, 5, "Int", signed = true),
+                        field("unsigned", 5, 5, "Int"),
+                    ),
+            )
+
+        val output = ValueClassGenerator.generateExpect(spec)
+
+        assertTrue(output.contains("signed = true"))
+        assertTrue(output.contains("bitWidth = 5"))
+        assertEquals(1, Regex("signed = true").findAll(output).count())
+    }
+
+    @Test
+    fun generatedSignednessAnnotationRemainsAttachedToItsField() {
+        val spec =
+            ModelSpec(
+                packageName = "test",
+                className = "SignednessAssociation",
+                fields =
+                    listOf(
+                        field("signed", 0, 5, "Int", signed = true),
+                        field("unsigned", 5, 5, "Int"),
+                    ),
+            )
+        val output = ValueClassGenerator.generateExpect(spec)
+
+        val signedPropertyIndex = output.indexOf("public val signed: Int")
+        val unsignedPropertyIndex = output.indexOf("public val unsigned: Int")
+        assertTrue(signedPropertyIndex >= 0)
+        assertTrue(unsignedPropertyIndex > signedPropertyIndex)
+        val signedAnnotationStart = output.lastIndexOf("@KompactField", signedPropertyIndex)
+        val unsignedAnnotationStart = output.lastIndexOf("@KompactField", unsignedPropertyIndex)
+        val signedAnnotation = output.substring(signedAnnotationStart, signedPropertyIndex)
+        val unsignedAnnotation = output.substring(unsignedAnnotationStart, unsignedPropertyIndex)
+
+        assertTrue(signedAnnotation.contains("signed = true"))
+        assertFalse(unsignedAnnotation.contains("signed = true"))
+    }
+
+    @Test
+    fun commonEncoderSignExtendsNarrowSignedLongHolderFields() {
+        val spec =
+            ModelSpec(
+                packageName = "test",
+                className = "NarrowSignedHolder",
+                fields =
+                    listOf(
+                        field("signedValue", 0, 63, "Long", signed = true),
+                        field("unsignedValue", 63, 1, "Long"),
+                        field("signedInt", 64, 31, "Int", signed = true),
+                    ),
+            )
+
+        val output = ValueClassGenerator.generateCommonEncoder(spec)
+
+        assertTrue(output.contains("signedValueDecoded = (cursor.valueBits shl 1) shr 1"))
+        assertTrue(output.contains("unsignedValueDecoded = cursor.valueBits"))
+        assertTrue(output.contains("cursor.validateSigned(63, signedValueInput)"))
+        assertTrue(output.contains("cursor.validateUnsigned(1, unsignedValueInput)"))
+        assertTrue(output.contains("signedIntDecoded = (cursor.valueBits.toInt() shl 1) shr 1"))
+        assertTrue(output.contains("cursor.validateSigned(31, signedIntInput.toLong())"))
     }
 
     // `expect` exposes raw as an abstract property; platform actuals back it with the primary constructor.

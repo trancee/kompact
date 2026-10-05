@@ -4,9 +4,12 @@
 
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
 import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
+import io.github.anschnapp.mutflow.gradle.MutflowExtension
+import org.gradle.api.GradleException
 import org.gradle.api.publish.maven.MavenPublication
 
 plugins {
+    alias(libs.plugins.mutflow) apply false
     alias(libs.plugins.kotlinJvm)
     id("dokka-markdown")
     id("portal-publish")
@@ -32,6 +35,46 @@ kotlin {
     abiValidation {}
 }
 
+val mutationEnabled =
+    providers.gradleProperty("mutationTest.enabled").map(String::toBooleanStrict).getOrElse(false)
+if (mutationEnabled) {
+    val requestedTasks = gradle.startParameter.taskNames
+    val onlyMutationResultsRequested =
+        requestedTasks.size == 1 &&
+            requestedTasks.single() in setOf("mutationResults", "kompact-ksp:mutationResults", ":kompact-ksp:mutationResults")
+    if (!onlyMutationResultsRequested) {
+        throw GradleException(
+            "-PmutationTest.enabled=true is only valid for the :kompact-ksp:mutationResults task."
+        )
+    }
+    pluginManager.apply("io.github.anschnapp.mutflow")
+    apply(from = rootProject.file(".omp/mutation-results.gradle.kts"))
+    extensions.configure<MutflowExtension>("mutflow") {
+        enabled = true
+        maxMutationRuns.set(Int.MAX_VALUE)
+        targets.addAll(
+            listOf(
+                "ch.trancee.kompact.ksp.gen.FramedClassGenerator",
+                "ch.trancee.kompact.ksp.gen.FramedHolderGenerator",
+                "ch.trancee.kompact.ksp.gen.FramedScalarHolderGenerator",
+                "ch.trancee.kompact.ksp.gen.ValueClassGenerator",
+                "ch.trancee.kompact.ksp.gen.ValueHolderGenerator",
+            ),
+        )
+    }
+    sourceSets.getByName("test").kotlin.srcDir("src/mutflowTest/kotlin")
+} else {
+    tasks.register("mutationResults") {
+        group = "verification"
+        description = "Requires -PmutationTest.enabled=true for this MutFlow JVM evaluation."
+        doLast {
+            throw GradleException(
+                "Run :kompact-ksp:mutationResults with -PmutationTest.enabled=true."
+            )
+        }
+    }
+}
+
 // Align Java compilation target with Kotlin's JVM_17 to satisfy KGP's
 // cross-task validation (JDK 25 host defaults to v69 for Java, v67 for Kotlin
 // with KGP 2.4.10; both must match for ABI validation to parse class files).
@@ -51,7 +94,28 @@ dependencies {
     // testImplementation needs the KSP API on the runtime classpath so test
     // harness can construct mock SymbolProcessorEnvironment instances.
     testImplementation(libs.symbolProcessingApi)
-    testImplementation(kotlin("test"))
+    // Kotlin 2.4.20 exposes its Jupiter binding under the legacy junit5 artifact name.
+    // Exclude its JUnit 5 transitives and bind the tests to JUnit 6 explicitly.
+    testImplementation(libs.kotlinTestJupiter) {
+        exclude(group = "org.junit.jupiter")
+        exclude(group = "org.junit.platform")
+    }
+    testImplementation(libs.junitJupiterApi)
+    testRuntimeOnly(libs.junitJupiterEngine)
+    testRuntimeOnly(libs.junitPlatformLauncher)
+}
+
+// Keep Kotlin internal-name mangling stable between main and MutFlow mutatedMain.
+// Test sources call internal generator helpers; the default mutatedMain module
+// name changes their JVM signatures and breaks those test calls at runtime.
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    if (name == "compileMutatedMainKotlin") {
+        compilerOptions.moduleName.set("ch.trancee.kompact_kompact-ksp")
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
 
 // --- Kover (100 % line + branch coverage on the KSP processor) ---

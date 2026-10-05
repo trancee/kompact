@@ -1,7 +1,9 @@
 package ch.trancee.kompact.runtime
 
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertSame
 
 class KompactCursorRepeatsTest {
     @Test
@@ -181,12 +183,308 @@ class KompactCursorRepeatsTest {
         val bytes = ByteArray(66)
         bytes[0] = 65
         val parent = KompactCursor(bytes)
-        val workspace = KompactRepeatWorkspace(IntArray(2))
+        val checkpointStorage = IntArray(2) { -1 }
+        val workspace = KompactRepeatWorkspace(checkpointStorage)
         assertEquals(KompactCursor.STATUS_OK, parent.readFixedRepeat(8, 8, workspace))
+        assertContentEquals(intArrayOf(8, 520), checkpointStorage)
 
         val element = KompactCursor(ByteArray(0))
         assertEquals(KompactCursor.STATUS_OK, parent.readRepeatedElement(64, workspace, element))
         assertEquals(520, element.startBit)
         assertEquals(528, element.endBit)
     }
+
+    @Test
+    fun corruptedCheckpointAtTheEndReportsTheNextMissingPrefixOffset() {
+        val source = byteArrayOf(2, 0, 0)
+        val checkpointStorage = IntArray(1)
+        val cursor = KompactCursor(source)
+        val workspace = KompactRepeatWorkspace(checkpointStorage)
+        assertEquals(KompactCursor.STATUS_OK, cursor.readVariableRepeat(8, 8, workspace))
+        checkpointStorage[0] = workspace.endBit - 8
+        val element = KompactCursor(ByteArray(0))
+
+        val status = cursor.readRepeatedElement(1, workspace, element)
+
+        assertEquals(KompactCursor.STATUS_BAD_LENGTH_PREFIX, status)
+        assertEquals(workspace.endBit, cursor.errorBitOffset)
+        assertEquals(8, cursor.errorDetail)
+        assertEquals(24, cursor.position)
+    }
+
+    @Test
+    fun corruptedCheckpointElementEndingAtTheRegionBoundaryReportsTheNextPrefix() {
+        val source = byteArrayOf(2, 0, 0)
+        val checkpointStorage = IntArray(1)
+        val cursor = KompactCursor(source)
+        val workspace = KompactRepeatWorkspace(checkpointStorage)
+        assertEquals(KompactCursor.STATUS_OK, cursor.readVariableRepeat(8, 8, workspace))
+        checkpointStorage[0] = 0
+        val element = KompactCursor(ByteArray(0))
+
+        val status = cursor.readRepeatedElement(1, workspace, element)
+
+        assertEquals(KompactCursor.STATUS_BAD_LENGTH_PREFIX, status)
+        assertEquals(workspace.endBit, cursor.errorBitOffset)
+        assertEquals(8, cursor.errorDetail)
+        assertEquals(24, cursor.position)
+    }
+
+    @Test
+    fun repeatedElementLookupAtIntMaxSkippedLengthKeepsBadPrefixDiagnostics() {
+        val source = byteArrayOf(2, 0, 0, 0, 4, 0, 0, 0, 0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0x7F, 0, 0, 0, 0)
+        val checkpointStorage = IntArray(1)
+        val cursor = KompactCursor(source)
+        val workspace = KompactRepeatWorkspace(checkpointStorage)
+        assertEquals(KompactCursor.STATUS_OK, cursor.readVariableRepeat(32, 32, workspace))
+        checkpointStorage[0] = 64
+        val element = KompactCursor(ByteArray(0))
+
+        val status = cursor.readRepeatedElement(1, workspace, element)
+
+        assertEquals(KompactCursor.STATUS_BAD_LENGTH_PREFIX, status)
+        assertEquals(64, cursor.errorBitOffset)
+        assertEquals(32, cursor.errorDetail)
+        assertEquals(128, cursor.position)
+    }
+
+    @Test
+    fun repeatedElementLookupAtIntMaxPayloadLengthKeepsBadPrefixDiagnostics() {
+        val source = byteArrayOf(2, 0, 0, 0, 4, 0, 0, 0, 0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0x7F, 0, 0, 0, 0)
+        val checkpointStorage = IntArray(1)
+        val cursor = KompactCursor(source)
+        val workspace = KompactRepeatWorkspace(checkpointStorage)
+        assertEquals(KompactCursor.STATUS_OK, cursor.readVariableRepeat(32, 32, workspace))
+        checkpointStorage[0] = 64
+        val element = KompactCursor(ByteArray(0))
+
+        val status = cursor.readRepeatedElement(0, workspace, element)
+
+        assertEquals(KompactCursor.STATUS_BAD_LENGTH_PREFIX, status)
+        assertEquals(64, cursor.errorBitOffset)
+        assertEquals(32, cursor.errorDetail)
+        assertEquals(128, cursor.position)
+    }
+
+    @Test
+    fun variableRepeatAcceptsEmptyElementEndingExactlyAtTheRegionBoundary() {
+        val encoded = byteArrayOf(1, 0)
+        val skipper = KompactCursor(encoded)
+
+        assertEquals(KompactCursor.STATUS_OK, skipper.skipVariableRepeat(8, 8, workspaceCapacity = 1))
+        assertEquals(16, skipper.position)
+        assertEquals(1L, skipper.valueBits)
+
+        val reader = KompactCursor(encoded)
+        val workspace = KompactRepeatWorkspace(IntArray(1))
+        assertEquals(KompactCursor.STATUS_OK, reader.readVariableRepeat(8, 8, workspace))
+        assertEquals(16, reader.position)
+        assertEquals(1, workspace.count)
+
+        val element = KompactCursor(byteArrayOf(0x55))
+        assertEquals(KompactCursor.STATUS_OK, reader.readRepeatedElement(0, workspace, element))
+        assertSame(encoded, element.buffer)
+        assertEquals(16, element.startBit)
+        assertEquals(16, element.position)
+        assertEquals(16, element.endBit)
+    }
+
+    @Test
+    fun repeatCountsAndLengthsAtIntMaximumKeepTheirSpecificFailureStatus() {
+        val maxCount = byteArrayOf(0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0x7F)
+        val variableSkip = KompactCursor(maxCount)
+        assertEquals(
+            KompactCursor.STATUS_WORKSPACE_TOO_SMALL,
+            variableSkip.skipVariableRepeat(32, 8, workspaceCapacity = 0),
+        )
+        val fixedSkip = KompactCursor(maxCount)
+        assertEquals(
+            KompactCursor.STATUS_WORKSPACE_TOO_SMALL,
+            fixedSkip.skipFixedRepeat(32, 1, workspaceCapacity = 0),
+        )
+        val variableRead = KompactCursor(maxCount)
+        assertEquals(
+            KompactCursor.STATUS_WORKSPACE_TOO_SMALL,
+            variableRead.readVariableRepeat(32, 8, KompactRepeatWorkspace(IntArray(0))),
+        )
+        val fixedRead = KompactCursor(maxCount)
+        assertEquals(
+            KompactCursor.STATUS_WORKSPACE_TOO_SMALL,
+            fixedRead.readFixedRepeat(32, 1, KompactRepeatWorkspace(IntArray(0))),
+        )
+
+        val maxElementLength = KompactCursor(byteArrayOf(1, 0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0x7F))
+        assertEquals(
+            KompactCursor.STATUS_TRUNCATED_INPUT,
+            maxElementLength.skipVariableRepeat(8, 32, workspaceCapacity = 1),
+        )
+        assertEquals(0, maxElementLength.position)
+        val maxElementRead = KompactCursor(byteArrayOf(1, 0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0x7F))
+        assertEquals(
+            KompactCursor.STATUS_TRUNCATED_INPUT,
+            maxElementRead.readVariableRepeat(8, 32, KompactRepeatWorkspace(IntArray(1))),
+        )
+        assertEquals(0, maxElementRead.position)
+    }
+
+    @Test
+    fun repeatArgumentFailuresReportTheFirstInvalidWidth() {
+        val cursor = KompactCursor(ByteArray(0))
+        val workspace = KompactRepeatWorkspace(IntArray(0))
+
+        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.skipVariableRepeat(7, 9, 0))
+        assertEquals(7, cursor.errorDetail)
+        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.skipVariableRepeat(8, 7, 0))
+        assertEquals(7, cursor.errorDetail)
+        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.skipFixedRepeat(7, 0, 0))
+        assertEquals(7, cursor.errorDetail)
+        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.skipFixedRepeat(8, 0, 0))
+        assertEquals(0, cursor.errorDetail)
+        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.readVariableRepeat(7, 9, workspace))
+        assertEquals(7, cursor.errorDetail)
+        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.readVariableRepeat(8, 7, workspace))
+        assertEquals(7, cursor.errorDetail)
+        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.readFixedRepeat(7, 0, workspace))
+        assertEquals(7, cursor.errorDetail)
+        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.readFixedRepeat(8, 0, workspace))
+        assertEquals(0, cursor.errorDetail)
+    }
+
+    @Test
+    fun variableRepeatCheckpointCapacityHandlesZeroAndExactSixtyFourCount() {
+        val empty = KompactCursor(byteArrayOf(0))
+        val noCheckpoints = KompactRepeatWorkspace(IntArray(0))
+        assertEquals(KompactCursor.STATUS_OK, empty.readVariableRepeat(8, 8, noCheckpoints))
+        assertEquals(0, noCheckpoints.count)
+        assertEquals(8, empty.position)
+
+        val sixtyFourEmptyElements = KompactCursor(byteArrayOf(64) + ByteArray(64))
+        val oneCheckpoint = KompactRepeatWorkspace(IntArray(1))
+        assertEquals(KompactCursor.STATUS_OK, sixtyFourEmptyElements.readVariableRepeat(8, 8, oneCheckpoint))
+        assertEquals(64, oneCheckpoint.count)
+        assertEquals(520, sixtyFourEmptyElements.position)
+        val lastElement = KompactCursor(ByteArray(0))
+        assertEquals(KompactCursor.STATUS_OK, sixtyFourEmptyElements.readRepeatedElement(63, oneCheckpoint, lastElement))
+        assertEquals(520, lastElement.startBit)
+        assertEquals(520, lastElement.endBit)
+    }
+
+    @Test
+    fun fixedRepeatCheckpointLoopAcceptsAnExactSixtyFourElementCapacity() {
+        val raw = ByteArray(9)
+        raw[0] = 64
+        val cursor = KompactCursor(raw)
+        val workspace = KompactRepeatWorkspace(IntArray(1))
+
+        assertEquals(KompactCursor.STATUS_OK, cursor.readFixedRepeat(8, 1, workspace))
+        assertEquals(64, workspace.count)
+        assertEquals(72, cursor.position)
+
+        val element = KompactCursor(ByteArray(0))
+        assertEquals(KompactCursor.STATUS_OK, cursor.readRepeatedElement(63, workspace, element))
+        assertEquals(71, element.startBit)
+        assertEquals(72, element.endBit)
+    }
+
+    @Test
+    fun variableRepeatLookupAtIndex63ReturnsItsPayload() {
+        assertVariableRepeatLookup(63)
+    }
+
+    @Test
+    fun variableRepeatLookupAtIndex64ReturnsItsPayload() {
+        assertVariableRepeatLookup(64)
+    }
+
+    @Test
+    fun variableRepeatLookupAtIndex65ReturnsItsPayload() {
+        assertVariableRepeatLookup(65)
+    }
+
+    @Test
+    fun fixedRepeatLookupAtIndex63ReturnsItsPayload() {
+        assertFixedRepeatLookup(63)
+    }
+
+    @Test
+    fun fixedRepeatLookupAtIndex64ReturnsItsPayload() {
+        assertFixedRepeatLookup(64)
+    }
+
+    @Test
+    fun fixedRepeatLookupAtIndex65ReturnsItsPayload() {
+        assertFixedRepeatLookup(65)
+    }
+
+    @Test
+    fun outOfRangeRepeatLookupRetainsElementBindingAndReportsDiagnostics() {
+        val source = byteArrayOf(1, 0x44)
+        val parent = KompactCursor(source)
+        val workspace = KompactRepeatWorkspace(IntArray(1))
+        assertEquals(KompactCursor.STATUS_OK, parent.readFixedRepeat(8, 8, workspace))
+
+        val previousBuffer = byteArrayOf(0x55, 0x66)
+        val element = KompactCursor(previousBuffer)
+        element.reset(previousBuffer, startBit = 1, position = 3, endBit = 15)
+        val previousParentPosition = parent.position
+
+        val status = parent.readRepeatedElement(1, workspace, element)
+
+        assertEquals(KompactCursor.STATUS_BOUNDS_ERROR, status)
+        assertEquals(workspace.startBit, parent.errorBitOffset)
+        assertEquals(1, parent.errorDetail)
+        assertEquals(previousParentPosition, parent.position)
+        assertSame(previousBuffer, element.buffer)
+        assertEquals(1, element.startBit)
+        assertEquals(3, element.position)
+        assertEquals(15, element.endBit)
+    }
+
+    private fun assertFixedRepeatLookup(index: Int) {
+        val bytes = ByteArray(67)
+        bytes[0] = 66
+        repeat(66) { elementIndex -> bytes[elementIndex + 1] = (elementIndex + 1).toByte() }
+        val parent = KompactCursor(bytes)
+        val workspace = KompactRepeatWorkspace(IntArray(2))
+        assertEquals(KompactCursor.STATUS_OK, parent.readFixedRepeat(8, 8, workspace))
+        val element = KompactCursor(ByteArray(0))
+
+        val status = parent.readRepeatedElement(index, workspace, element)
+
+        assertEquals(KompactCursor.STATUS_OK, status)
+        assertSame(bytes, element.buffer)
+        assertEquals(8 + index * 8, element.startBit)
+        assertEquals(8 + (index + 1) * 8, element.endBit)
+        assertEquals((index + 1).toByte(), bytes[element.startBit / 8])
+    }
+
+    private fun assertVariableRepeatLookup(index: Int) {
+        val payloadLength = { elementIndex: Int -> elementIndex % 3 + 1 }
+        val bytes = ArrayList<Byte>()
+        bytes.add(66)
+        repeat(66) { elementIndex ->
+            val length = payloadLength(elementIndex)
+            bytes.add(length.toByte())
+            repeat(length) { payloadIndex -> bytes.add((elementIndex + payloadIndex + 1).toByte()) }
+        }
+        val source = bytes.toByteArray()
+        val parent = KompactCursor(source)
+        val workspace = KompactRepeatWorkspace(IntArray(2))
+        assertEquals(KompactCursor.STATUS_OK, parent.readVariableRepeat(8, 8, workspace))
+        val element = KompactCursor(ByteArray(0))
+        var expectedStartBit = 8
+        for (elementIndex in 0 until index) {
+            expectedStartBit += 8 + payloadLength(elementIndex) * 8
+        }
+        val expectedEndBit = expectedStartBit + 8 + payloadLength(index) * 8
+
+        val status = parent.readRepeatedElement(index, workspace, element)
+
+        assertEquals(KompactCursor.STATUS_OK, status)
+        assertSame(source, element.buffer)
+        assertEquals(expectedStartBit + 8, element.startBit)
+        assertEquals(expectedEndBit, element.endBit)
+        assertEquals((index + 1).toByte(), source[element.startBit / 8])
+    }
+
 }

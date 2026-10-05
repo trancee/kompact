@@ -52,7 +52,11 @@ public class KompactCursor(
      *
      * The default [position] is [startBit]; the default [endBit] is the
      * complete buffer. Invalid bounds leave the previous buffer and region
-     * intact and set [status] to [STATUS_INVALID_BOUNDS].
+     * intact and set [status] to [STATUS_INVALID_BOUNDS]. Diagnostics use the
+     * first violated bound in this order: negative [startBit], [position]
+     * before [startBit], then [endBit] before [position]. If no specific
+     * detail is selected, or the selected detail is zero, [errorDetail] is
+     * [endBit]. [errorBitOffset] is the non-negative requested [position].
      */
     public fun reset(
         buffer: ByteArray,
