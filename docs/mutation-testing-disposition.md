@@ -4,13 +4,13 @@ This disposition preserves the source-level audit of all 38 earlier `EQUIV` rows
 
 ## Fresh aggregate union runs
 
-Each selected module originally had multiple independent MutFlow adapter classes. The matching `*UnionMutationTest` adapter now contains every existing selected delegate method in one class-level scope; original adapters and behavior tests remain intact. Runtime has 81 methods; KSP has 66, including its existing edge-case and boundary delegates. Fresh JSON lists every union method and paired XML contains one suite per aggregate class.
+Each selected module originally had multiple independent MutFlow adapter classes. The matching `*UnionMutationTest` adapter now contains every existing selected behavior test in one class-level scope; original adapters and behavior tests remain intact. Runtime has 81 methods; KSP has 66, including its existing edge-case and boundary tests. Adapter methods use descriptive behavior names, which also appear in fresh JSON and paired XML.
 
 ### Runtime union: `:kompact`
 
 - Adapter: `ch.trancee.kompact.runtime.KompactCursorUnionMutationTest`; filter is `-PmutationTest.includes=ch.trancee.kompact.runtime.KompactCursorUnionMutationTest`. Command used `gradle -PmutationTest.jvmOnly=true :kompact:mutationResults` with `--rerun-tasks --no-build-cache --no-configuration-cache --console=plain`.
 - Configured deep budget: `maxMutationRuns = Int.MAX_VALUE`; all discovered mutations were evaluated.
-- Fresh JSON UTC: `2026-10-05T12:48:25.170Z`; schema **2**; discovered/evaluated/untested **413/413/0**.
+- Fresh JSON UTC after adapter method renaming: `2026-10-05T13:24:48.522Z`; schema **2**; discovered/evaluated/untested **413/413/0**.
 - Killed/survived/timed out **393/12/8**; gaps **0**; score **95.16%**, Excellent, High confidence; recorded 95% interval **92.64–96.84%**.
 - Paired XML suite: **33,546 testcases**, **116 failures**, **0 errors**, **0 skipped**. Failures are 104 timed-out test invocations plus 12 survivor outcomes, not baseline failures.
 - Gradle exited nonzero under strict MutFlow policy due to survivors/timeouts; compilation and discovery completed.
@@ -19,7 +19,7 @@ Each selected module originally had multiple independent MutFlow adapter classes
 
 - Adapter: `ch.trancee.kompact.ksp.gen.GeneratorUnionMutationTest`; filter is `-PmutationTest.includes=ch.trancee.kompact.ksp.gen.GeneratorUnionMutationTest`. Command used `gradle -PmutationTest.enabled=true :kompact-ksp:mutationResults` with `--rerun-tasks --no-build-cache --no-configuration-cache --console=plain`.
 - Configured deep budget: unlimited (`Int.MAX_VALUE`); all discovered mutations were evaluated.
-- Fresh JSON UTC: `2026-10-05T12:52:33.503Z`; schema **2**; discovered/evaluated/untested **233/233/0**.
+- Fresh JSON UTC after adapter method renaming: `2026-10-05T13:25:55.724Z`; schema **2**; discovered/evaluated/untested **233/233/0**.
 - Killed/survived/timed out **229/4/0**; gaps **0**; score **98.28%**, Excellent, High confidence; recorded 95% interval **95.67–99.33%**.
 - Paired XML suite: **15,448 testcases**, **4 failures**, **0 errors**, **0 skipped**. Each failure is a survivor, not a baseline failure.
 - Gradle exited nonzero under strict survivor policy; compilation and discovery completed.
@@ -347,14 +347,14 @@ The JSON has **8 distinct `TimedOut` mutation records**. Paired XML has **104 ti
 
 | Source location | Mutation | Timeout invocations | Method identities |
 |---|---|---:|---|
-| `KompactRuntime.kt:28` | `> → >=` | 1 | `delegates_union_043` |
-| `KompactRuntime.kt:28` | `0 → -1` | 1 | `delegates_union_043` |
+| `KompactRuntime.kt:28` | `> → >=` | 1 | `readsAndWritesMatchIndependentBitOrderAcrossOffsetsAndWidths` |
+| `KompactRuntime.kt:28` | `0 → -1` | 1 | `readsAndWritesMatchIndependentBitOrderAcrossOffsetsAndWidths` |
 | `KompactRuntime.kt:105` | `> → >=` | 34 | Same 34 methods as the paired `0 → -1` mutation |
 | `KompactRuntime.kt:105` | `0 → -1` | 34 | 34 delegated methods |
 | `KompactRuntime.kt:130` | `> → >=` | 15 | Same 15 methods as the paired `0 → -1` mutation |
 | `KompactRuntime.kt:130` | `0 → -1` | 15 | 15 delegated methods |
-| `KompactCursor.kt:315` | `> → >=` | 2 | `delegates_union_055`, `delegates_union_061` |
-| `KompactCursor.kt:315` | `0 → -1` | 2 | `delegates_union_055`, `delegates_union_061` |
+| `KompactCursor.kt:315` | `> → >=` | 2 | `successfulWriteClearsPriorCursorDiagnostics`, `zeroWritesHandleEmptyLargeAndInsufficientRegions` |
+| `KompactCursor.kt:315` | `0 → -1` | 2 | `successfulWriteClearsPriorCursorDiagnostics`, `zeroWritesHandleEmptyLargeAndInsufficientRegions` |
 
 Each loop processes `remaining` bits. The mutant admits `remaining == 0`; then `chunk = minOf(0, bitsAvailable)` is zero and subtracting it leaves `remaining` at zero forever. These are mutant-induced nontermination results, not untested mutants, equivalences, or build gaps. A longer allowance only delays the zero-progress loop, so the finite invocation timeout remains appropriate and unchanged.
 
