@@ -196,23 +196,11 @@ internal object FramedHolderGenerator {
     private fun borrowedDecodePlan(field: KompactFieldInfo): BorrowedDecodePlan =
         when (val type = field.type) {
             is KompactFieldType.Scalar -> {
-                val statusName = "${field.name}ReadStatus"
-                val decodeName = "${field.name}Decoded"
-                val decode =
-                    CodeBlock.builder()
-                        .addStatement("val %N = cursor.readBits(%L)", statusName, field.bitWidth)
-                        .beginControlFlow("if (%N != %T.STATUS_OK)", statusName, CURSOR)
-                        .addStatement("return %N", statusName)
-                        .endControlFlow()
-                        .addStatement("val %N = %L", decodeName, FramedScalarHolderGenerator.scalarDecodedValue(field))
-                        .build()
+                val decode = FramedScalarHolderGenerator.scalarDecodePlan(field)
                 BorrowedDecodePlan(
                     preflight = CodeBlock.of("probeCursor.skipBits(%L)", field.bitWidth),
-                    decode = decode,
-                    commit =
-                        CodeBlock.builder()
-                            .addStatement("this.%N = %N", field.name, decodeName)
-                            .build(),
+                    decode = decode.decode,
+                    commit = decode.commit,
                 )
             }
             KompactFieldType.StringType, KompactFieldType.Blob, is KompactFieldType.Nested -> {

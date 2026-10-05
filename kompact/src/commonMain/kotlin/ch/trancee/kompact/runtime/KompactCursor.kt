@@ -103,6 +103,23 @@ public class KompactCursor(
     }
 
     /**
+     * Bind a region whose byte bounds and bit-offset conversion were validated
+     * by the caller before any operation state was committed.
+     */
+    internal fun bindValidatedByteRange(
+        buffer: ByteArray,
+        startByte: Int,
+        endByte: Int,
+    ) {
+        this.buffer = buffer
+        startBit = startByte * 8
+        position = startBit
+        endBit = endByte * 8
+        valueBits = 0L
+        clearError()
+    }
+
+    /**
      * Read [bitWidth] bits into [valueBits], advancing only when the entire
      * read fits in this cursor's region.
      */

@@ -116,6 +116,9 @@ class KompactCursorByteRangeTest {
         val successful = KompactCursor(ByteArray(2))
         assertEquals(KompactCursor.STATUS_OK, successful.writeNested(8, 1, child))
         assertEquals(1, successful.buffer[0].toInt())
+        assertSame(successful.buffer, child.buffer)
+        assertEquals(8, child.startBit)
+        assertEquals(8, child.position)
         assertEquals(16, child.endBit)
     }
 

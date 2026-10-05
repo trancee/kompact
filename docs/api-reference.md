@@ -38,13 +38,19 @@ from the runtime source; do not edit the generated pages by hand.
   caller-provided storage. `KompactRepeatWorkspace` borrows caller-provided
   checkpoint storage.
 - Generated `*Holder` codec operations take caller-owned cursors, ranges, and
-  repeat workspaces. Framed holder operations also take a distinct probe
-  cursor so they can validate the complete operation before committing changes.
-  Keep borrowed buffers unchanged while a holder or workspace refers to them.
+  repeat workspaces. Probe-taking framed-holder operations, including
+  scalar-only schemas, require a distinct probe cursor and preflight capacity
+  and scalar value constraints before committing changes. Keep borrowed
+  buffers unchanged while a holder or workspace refers to them.
 - A repeat workspace needs `ceil(count / 64)` checkpoint slots; an empty repeat
   needs none. `readVariableRepeat` and `readFixedRepeat` return
   `STATUS_WORKSPACE_TOO_SMALL` without committing the cursor or workspace
   binding when capacity is insufficient.
+- Variable-width repeats are validated before generated-holder decoding
+  commits. The preflight and workspace-building decode each traverse the
+  repeat, so this checked path favors failure atomicity over a single scan; no
+  performance budget or allocation claim follows without target-specific
+  measurement.
 - Generated framed encoders reject range sources backed by the destination
   buffer. The low-level `writeByteRange` operation rejects overlapping
   in-place copies. These cursor APIs are available in the current checkout;

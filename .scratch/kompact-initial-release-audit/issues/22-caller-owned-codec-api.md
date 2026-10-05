@@ -18,6 +18,9 @@ holders.
 - Checked operations are failure-atomic. Nested writes use known-length bounded
   regions. UTF-8 `String` object conversion and explicit owned snapshots/copies
   are outside the allocation guarantee.
+- Probe-taking generated framed-holder operations, including scalar-only
+  schemas, require distinct cursors and preflight capacity and scalar value
+  constraints before mutating the destination or holder.
 
 ## Acceptance criteria
 

@@ -34,3 +34,12 @@ publishing platform support or making a zero-allocation claim.
   of zero allocation.
 - Keep representative performance measurements reproducible and tied to the
   exact workload and environment.
+
+## Execution status (2026-10-05)
+
+The caller-owned API is implemented, but this task's measurement acceptance
+criteria are not yet met. The available host is Linux; `adb devices` returned
+no connected devices, and `xcrun`/`xcodebuild` are unavailable. No target
+allocation harness or retained measurement report has been produced, and the
+Android Native Arm64 positive-control spike remains unvalidated. Do not claim
+zero allocations for any target until the required evidence is retained.

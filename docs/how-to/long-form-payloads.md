@@ -139,6 +139,13 @@ the published `0.6.1` artifact. These APIs have not yet been verified for
 cross-platform allocation behavior; do not infer an allocation guarantee from
 this example.
 
+Probe-taking generated framed-holder operations use distinct cursors and
+preflight the complete bounded input or output before committing. Scalar-only
+framed schemas use the same checked call shape and validate scalar ranges on
+the probe cursor. Variable-width repeats are traversed once for preflight and
+again while building their reusable workspace during decode; this preserves
+failure atomicity but has not been performance-measured.
+
 ## Next steps
 
 - Define the same fields as generated view properties:

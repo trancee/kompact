@@ -6,6 +6,7 @@ import ch.trancee.kompact.ksp.model.KompactScalarKind
 import ch.trancee.kompact.ksp.model.ModelSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
@@ -17,6 +18,15 @@ private val KOMPACT_CURSOR = ClassName("ch.trancee.kompact.runtime", "KompactCur
 private val INT_TYPE = ClassName("kotlin", "Int")
 
 internal object ValueHolderGenerator {
+    fun addTo(
+        file: FileSpec.Builder,
+        spec: ModelSpec,
+    ) {
+        file.addType(buildHolder(spec))
+        file.addFunction(buildDecodeInto(spec))
+        file.addFunction(buildEncodeFrom(spec))
+    }
+
     fun buildHolder(spec: ModelSpec): TypeSpec {
         val className = "${spec.className}Holder"
         val constructor =

@@ -20,6 +20,31 @@ The iOS simulator is useful for repeatable diagnostics and functional smoke runs
 > No retained Android or iOS benchmark results or numeric performance budgets
 > are recorded here.
 
+## Current proof status
+
+The checked caller-owned cursor and generated-holder APIs now exist, but there
+is still no committed allocation harness or retained measurement report for
+them. Compilation, functional tests, and 100% line/branch coverage do not prove
+zero per-operation allocations.
+
+The available execution environment for this verification is Linux. `adb
+devices` reports no attached devices, and neither `xcrun` nor `xcodebuild` is
+installed. Therefore this environment cannot run Android ART measurements or
+Apple Instruments device captures. No Android Native Arm64 allocation counter
+has passed the required positive-control validation spike. Allocation-free
+behavior remains unproven for every target; do not make a target-specific
+zero-allocation claim from these checks.
+
+## Checked variable-repeat tradeoff
+
+Generated framed-holder decoding preflights the complete operation before it
+commits holder state. Variable-width repeat preflight validates element
+boundaries and workspace capacity without binding the workspace; the decode
+pass then traverses those elements again to populate the caller-owned sparse
+index. This is an intentional failure-atomicity tradeoff, not a measured
+performance result. Measure representative repeat sizes on each target before
+setting or claiming a performance budget.
+
 ## Verified facts
 
 ### Value classes have conditional representation

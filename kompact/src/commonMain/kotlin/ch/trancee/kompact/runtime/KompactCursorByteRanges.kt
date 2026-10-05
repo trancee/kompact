@@ -79,7 +79,7 @@ internal object KompactCursorByteRanges {
 
         val payloadStartBit = payloadStart.toInt()
         val payloadEndBit = payloadEnd.toInt()
-        nestedCursor.reset(cursor.buffer, payloadStartBit, payloadStartBit, payloadEndBit)
+        nestedCursor.bindValidatedByteRange(cursor.buffer, payloadStartBit / 8, payloadEndBit / 8)
         cursor.position = payloadEndBit
         cursor.valueBits = length
         cursor.clearError()
