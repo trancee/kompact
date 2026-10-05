@@ -33,7 +33,13 @@ tasks.withType<JavaCompile>().configureEach {
 dependencies {
     implementation("com.google.devtools.ksp:symbol-processing-common-deps:$kspVersion")
     testImplementation(gradleTestKit())
-    testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinTestJupiter) {
+        exclude(group = "org.junit.jupiter")
+        exclude(group = "org.junit.platform")
+    }
+    testImplementation(libs.junitJupiterApi)
+    testRuntimeOnly(libs.junitJupiterEngine)
+    testRuntimeOnly(libs.junitPlatformLauncher)
 }
 
 tasks.processResources {
@@ -82,5 +88,6 @@ publishing {
 }
 
 tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
     systemProperty("kompact.repository.root", rootProject.projectDir.absolutePath)
 }

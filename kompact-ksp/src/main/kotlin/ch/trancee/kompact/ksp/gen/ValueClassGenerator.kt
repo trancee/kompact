@@ -56,10 +56,12 @@ internal object ValueClassGenerator {
     fun generateExpect(spec: ModelSpec): String {
         requireValidLayout(spec)
         if (spec.framed) return FramedClassGenerator.generateExpect(spec)
+        spec.fields.forEach(::requireSupportedType)
         return com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, spec.className)
             .addType(buildExpect(spec))
             .apply { if (spec.mutable) addType(buildMutableExpect(spec)) }
+            .apply { ValueHolderGenerator.addTo(this, spec) }
             .addFunction(buildEncodeFunction(spec))
             .build()
             .toString()
@@ -69,8 +71,10 @@ internal object ValueClassGenerator {
     fun generateCommonEncoder(spec: ModelSpec): String {
         requireValidLayout(spec)
         require(!spec.framed) { "Framed models do not use the fixed-layout shared encoder" }
+        spec.fields.forEach(::requireSupportedType)
         return com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, "${spec.className}Encoder")
+            .apply { ValueHolderGenerator.addTo(this, spec) }
             .addFunction(buildEncodeFunction(spec))
             .build()
             .toString()

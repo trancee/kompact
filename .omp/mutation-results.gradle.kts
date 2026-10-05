@@ -61,12 +61,14 @@ afterEvaluate {
         }
         reports.junitXml.required.set(true)
         testLogging.showStandardStreams = true
-        mutationTestIncludes.forEach { filter.includeTestsMatching(it) }
     }
     gradle.taskGraph.whenReady {
         if (hasTask(mutationResults.get())) {
             // Allow XML collection, then restore the failure exit status after writing JSON.
-            selectedTests.forEach { it.ignoreFailures = true }
+            selectedTests.forEach { testTask ->
+                testTask.ignoreFailures = true
+                mutationTestIncludes.forEach { testTask.filter.includeTestsMatching(it) }
+            }
         }
     }
     mutationResults.configure {

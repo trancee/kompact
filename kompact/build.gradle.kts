@@ -11,7 +11,7 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
 plugins {
-    id("io.github.anschnapp.mutflow") version "1.6.1" apply false
+    alias(libs.plugins.mutflow) apply false
     alias(libs.plugins.kmp)
     alias(libs.plugins.agp)
     alias(libs.plugins.kotlinPowerAssert)
@@ -42,8 +42,16 @@ if (mutationJvmOnly) {
     pluginManager.apply("io.github.anschnapp.mutflow")
     apply(from = rootProject.file(".omp/mutation-results.gradle.kts"))
     extensions.configure<MutflowExtension>("mutflow") {
-        targets.add("ch.trancee.kompact.runtime.KompactRuntime")
-        maxMutationRuns.set(30)
+        targets.addAll(
+            listOf(
+                "ch.trancee.kompact.runtime.KompactRuntime",
+                "ch.trancee.kompact.runtime.KompactCursor",
+                "ch.trancee.kompact.runtime.KompactCursorByteRanges",
+                "ch.trancee.kompact.runtime.KompactCursorRepeats",
+                "ch.trancee.kompact.runtime.KompactByteRange",
+            ),
+        )
+        maxMutationRuns.set(Int.MAX_VALUE)
     }
 } else {
     tasks.register("mutationResults") {
@@ -91,8 +99,7 @@ kotlin {
         val commonTest =
             getByName("commonTest") {
                 dependencies {
-                    // kotlin("test") is version-aligned to the Kotlin Gradle plugin (catalog'd).
-                    implementation(kotlin("test"))
+                    implementation("org.jetbrains.kotlin:kotlin-test:${libs.versions.kotlin.get()}")
                 }
             }
         // Shared JVM+Android source set: @JvmInline actuals + generated views
@@ -101,8 +108,15 @@ kotlin {
         val jvmTest =
             getByName("jvmTest") {
                 dependencies {
-                    // kotlin("test") (from commonTest) provides kotlin.test assertions
-                    // and JUnit 4 transitively on the JVM. No explicit JUnit dep needed.
+                    // Kotlin 2.4.20 exposes its Jupiter binding under the legacy junit5 artifact name.
+                    // Exclude its JUnit 5 transitives and bind the tests to JUnit 6 explicitly.
+                    implementation(kotlin("test-junit5")) {
+                        exclude(group = "org.junit.jupiter")
+                        exclude(group = "org.junit.platform")
+                    }
+                    implementation("org.junit.jupiter:junit-jupiter-api:${libs.versions.junit.get()}")
+                    runtimeOnly("org.junit.jupiter:junit-jupiter-engine:${libs.versions.junit.get()}")
+                    runtimeOnly("org.junit.platform:junit-platform-launcher:${libs.versions.junit.get()}")
                 }
             }
         if (!mutationJvmOnly) {
@@ -339,6 +353,7 @@ afterEvaluate {
 // Power-Assert's expression diagram renderer needs additional headroom for
 // the 256 MiB ByteArray captured in assertion expressions.
 tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
     maxHeapSize = "4g"
 }
 

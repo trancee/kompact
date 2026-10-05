@@ -65,6 +65,40 @@ The iOS klib ABI check and Dokka generation run on macOS because they analyze
 Apple target outputs. When KDoc changes, regenerate the API pages with the
 Dokka task above; do not edit files under `kompact/docs/api/` directly.
 
+## Platform behavior and allocation evidence
+
+The Linux and macOS CI checks compile or validate target artifacts where the
+host toolchain permits, but they do not substitute for runtime behavior tests
+on physical iOS Arm64 or Android Native Arm64 devices. The runtime's common
+tests currently execute on the JVM; compiling generated consumers for a
+Native target is not evidence that the runtime was exercised there.
+
+Allocation measurements are not part of either CI job. Do not infer a
+zero-allocation guarantee from compilation, unit tests, or coverage. The
+allocation methodology and current proof status are tracked in
+[allocation and boxing measurement](research/allocation-boxing-measurement.md);
+the proof gate remains open until each claimed target has a validated
+allocation counter, positive control, and retained environment metadata.
+
+Mutation testing is an opt-in workflow, not a CI gate. Ordinary JVM test
+runs in `:kompact:jvmTest`, `:kompact-ksp:test`,
+`:kompact-ksp-integration:test`, and `:kompact-gradle-plugin:test` use JUnit 6.
+The Kotlin test adapter retains its historical `kotlin-test-junit5` artifact
+name, but its JUnit 5 transitive dependencies are excluded and JUnit 6 is used
+at runtime. The mutation setup targets `KompactRuntime`, `KompactCursor`,
+`KompactCursorByteRanges`, `KompactCursorRepeats`, and `KompactByteRange` in
+the runtime module, plus the changed KSP generator classes in
+`:kompact-ksp`. The runtime guarded `mutationTest.jvmOnly` model
+removes iOS and Android Native variants only for its explicit mutation task;
+ordinary builds keep their declared targets. MutFlow 1.6.1 does not publish the
+required iOS or Android Native variants, so these runs provide neither Android
+nor Native mutation evidence. Run the two qualified `mutationResults` tasks
+sequentially with their module-specific adapter class filters, as documented in
+the [mutation-testing execution guide](../.omp/AGENT-USAGE.md).
+The KSP mutation task is opt-in with
+`-PmutationTest.enabled=true`; ordinary `:kompact-ksp:test` remains a JUnit 6
+unit-test run.
+
 ## Run a smaller check while developing
 
 Start with the task for the module you changed:

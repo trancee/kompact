@@ -27,6 +27,7 @@ internal object FramedClassGenerator {
         com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, spec.generatedName())
             .addType(buildExpect(spec))
+            .apply { FramedHolderGenerator.addTo(this, spec) }
             .build()
             .toString()
 
@@ -260,6 +261,4 @@ internal object FramedClassGenerator {
                 }
             }.build()
     }
-
-    private fun ModelSpec.orderedFields(): List<KompactFieldInfo> = fields.sortedBy { it.order }
 }

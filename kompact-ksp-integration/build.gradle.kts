@@ -1,5 +1,6 @@
 import com.google.devtools.ksp.gradle.KspAATask
 import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.tasks.testing.Test
 import org.gradle.process.CommandLineArgumentProvider
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -18,7 +19,13 @@ kotlin {
 dependencies {
     implementation(project(":kompact"))
     ksp(project(":kompact-ksp"))
-    testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinTestJupiter) {
+        exclude(group = "org.junit.jupiter")
+        exclude(group = "org.junit.platform")
+    }
+    testImplementation(libs.junitJupiterApi)
+    testRuntimeOnly(libs.junitJupiterEngine)
+    testRuntimeOnly(libs.junitPlatformLauncher)
 }
 
 tasks.withType<KspAATask>().configureEach {
@@ -48,4 +55,8 @@ tasks.named<KotlinCompile>("compileKotlin") {
 tasks.withType<JavaCompile>().configureEach {
     sourceCompatibility = "21"
     targetCompatibility = "21"
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
