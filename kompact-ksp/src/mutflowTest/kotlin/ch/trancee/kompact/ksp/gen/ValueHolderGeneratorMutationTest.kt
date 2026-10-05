@@ -10,11 +10,11 @@ class ValueHolderGeneratorMutationTest {
     private val sourceTests = ValueHolderGeneratorTest()
 
     @Test
-    fun delegates_01() = MutFlow.underTest { sourceTests.commonEncoderCoversScalarKindsSignedWidthsAndReservedBits() }
+    fun commonEncoderCoversScalarKindsSignedWidthsAndReservedBits() = MutFlow.underTest { sourceTests.commonEncoderCoversScalarKindsSignedWidthsAndReservedBits() }
 
     @Test
-    fun delegates_03() = MutFlow.underTest { sourceTests.generatedHolderConsumesOnlyRealGapsAndTheExactDeclaredFrame() }
+    fun generatedHolderConsumesOnlyRealGapsAndTheExactDeclaredFrame() = MutFlow.underTest { sourceTests.generatedHolderConsumesOnlyRealGapsAndTheExactDeclaredFrame() }
 
     @Test
-    fun delegates_02() = MutFlow.underTest { sourceTests.decodeCommitsSignedValuesAndEncodeValidatesBeforeWritingReservedBits() }
+    fun decodeCommitsSignedValuesAndEncodeValidatesBeforeWritingReservedBits() = MutFlow.underTest { sourceTests.decodeCommitsSignedValuesAndEncodeValidatesBeforeWritingReservedBits() }
 }

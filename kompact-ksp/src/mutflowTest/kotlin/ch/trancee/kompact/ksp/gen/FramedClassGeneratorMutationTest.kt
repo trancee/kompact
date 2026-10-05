@@ -13,44 +13,44 @@ class FramedClassGeneratorMutationTest {
     private val scalarTests = FramedScalarHolderGeneratorTest()
 
     @Test
-    fun delegates_01() = MutFlow.underTest { sourceTests.readExpression_forBlobMakesCopyExplicit() }
+    fun readExpressionForBlobMakesCopyExplicit() = MutFlow.underTest { sourceTests.readExpression_forBlobMakesCopyExplicit() }
 
     @Test
-    fun delegates_02() = MutFlow.underTest { sourceTests.readExpression_rejectsUnsupportedFramedFieldType() }
+    fun readExpressionRejectsUnsupportedFramedFieldType() = MutFlow.underTest { sourceTests.readExpression_rejectsUnsupportedFramedFieldType() }
 
     @Test
-    fun delegates_03() = MutFlow.underTest { sourceTests.writeExpression_rejectsUnsupportedFramedFieldType() }
+    fun writeExpressionRejectsUnsupportedFramedFieldType() = MutFlow.underTest { sourceTests.writeExpression_rejectsUnsupportedFramedFieldType() }
 
     @Test
-    fun delegates_04() = MutFlow.underTest { sourceTests.repeatedExpressions_rejectNestedOrUnsupportedElementShapes() }
+    fun repeatedExpressionsRejectNestedOrUnsupportedElementShapes() = MutFlow.underTest { sourceTests.repeatedExpressions_rejectNestedOrUnsupportedElementShapes() }
 
     @Test
-    fun delegates_05() = MutFlow.underTest { sourceTests.scalarReadExpression_coversEveryKindAndSignedWidthBand() }
+    fun scalarReadExpressionCoversEveryKindAndSignedWidthBand() = MutFlow.underTest { sourceTests.scalarReadExpression_coversEveryKindAndSignedWidthBand() }
 
     @Test
-    fun delegates_06() = MutFlow.underTest { sourceTests.borrowedHolderGenerationCoversRangesRepeatsAndNestedFields() }
+    fun borrowedHolderGenerationCoversRangesRepeatsAndNestedFields() = MutFlow.underTest { sourceTests.borrowedHolderGenerationCoversRangesRepeatsAndNestedFields() }
 
     @Test
-    fun delegates_12() = MutFlow.underTest { scalarTests.scalarDecodedValuesCoverEveryKindAndSignedWidthBoundary() }
+    fun scalarDecodedValuesCoverEveryKindAndSignedWidthBoundary() = MutFlow.underTest { scalarTests.scalarDecodedValuesCoverEveryKindAndSignedWidthBoundary() }
 
     @Test
-    fun delegates_13() = MutFlow.underTest { scalarTests.scalarHolderGenerationCoversEveryScalarKindAndValidationShape() }
+    fun scalarHolderGenerationCoversEveryScalarKindAndValidationShape() = MutFlow.underTest { scalarTests.scalarHolderGenerationCoversEveryScalarKindAndValidationShape() }
 
     @Test
-    fun delegates_14() = MutFlow.underTest { scalarTests.signedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() }
+    fun signedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() = MutFlow.underTest { scalarTests.signedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() }
 
     @Test
-    fun delegates_11() = MutFlow.underTest { actualTests.platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() }
+    fun platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() = MutFlow.underTest { actualTests.platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() }
 
     @Test
-    fun delegates_10() = MutFlow.underTest { sourceTests.borrowedStringPreflightValidatesUtf8WhileBlobPreflightDoesNot() }
+    fun borrowedStringPreflightValidatesUtf8WhileBlobPreflightDoesNot() = MutFlow.underTest { sourceTests.borrowedStringPreflightValidatesUtf8WhileBlobPreflightDoesNot() }
 
     @Test
-    fun delegates_09() = MutFlow.underTest { repeatPrefixWidthTests.repeatPrefixWidthsAreUsedByPreflightAndDecodeOperations() }
+    fun repeatPrefixWidthsAreUsedByPreflightAndDecodeOperations() = MutFlow.underTest { repeatPrefixWidthTests.repeatPrefixWidthsAreUsedByPreflightAndDecodeOperations() }
 
     @Test
-    fun delegates_07() = MutFlow.underTest { sourceTests.holderGenerationOmitsUnsupportedFieldsAndSupportsEmptySchemas() }
+    fun holderGenerationOmitsUnsupportedFieldsAndSupportsEmptySchemas() = MutFlow.underTest { sourceTests.holderGenerationOmitsUnsupportedFieldsAndSupportsEmptySchemas() }
 
     @Test
-    fun delegates_08() = MutFlow.underTest { sourceTests.capitalizedFirstCharHandlesEmptyAndUnicodeNames() }
+    fun capitalizedFirstCharHandlesEmptyAndUnicodeNames() = MutFlow.underTest { sourceTests.capitalizedFirstCharHandlesEmptyAndUnicodeNames() }
 }

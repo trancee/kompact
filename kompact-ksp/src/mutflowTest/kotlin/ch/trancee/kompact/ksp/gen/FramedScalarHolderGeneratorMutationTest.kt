@@ -12,17 +12,17 @@ class FramedScalarHolderGeneratorMutationTest {
     private val framedTests = FramedClassGeneratorTest()
 
     @Test
-    fun delegates_01() = MutFlow.underTest { sourceTests.scalarDecodedValuesCoverEveryKindAndSignedWidthBoundary() }
+    fun scalarDecodedValuesCoverEveryKindAndSignedWidthBoundary() = MutFlow.underTest { sourceTests.scalarDecodedValuesCoverEveryKindAndSignedWidthBoundary() }
 
     @Test
-    fun delegates_02() = MutFlow.underTest { sourceTests.scalarHolderGenerationCoversEveryScalarKindAndValidationShape() }
+    fun scalarHolderGenerationCoversEveryScalarKindAndValidationShape() = MutFlow.underTest { sourceTests.scalarHolderGenerationCoversEveryScalarKindAndValidationShape() }
 
     @Test
-    fun delegates_03() = MutFlow.underTest { sourceTests.signedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() }
+    fun signedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() = MutFlow.underTest { sourceTests.signedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() }
     @Test
-    fun delegates_05() = MutFlow.underTest { framedTests.borrowedHolderGenerationCoversRangesRepeatsAndNestedFields() }
+    fun borrowedHolderGenerationCoversRangesRepeatsAndNestedFields() = MutFlow.underTest { framedTests.borrowedHolderGenerationCoversRangesRepeatsAndNestedFields() }
 
     @Test
-    fun delegates_04() = MutFlow.underTest { actualTests.platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() }
+    fun platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() = MutFlow.underTest { actualTests.platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() }
 
 }

@@ -20,200 +20,200 @@ class GeneratorUnionMutationTest {
     private val valueHolderSourceTests = ValueHolderGeneratorTest()
 
     @Test
-    fun delegates_union_001() = MutFlow.underTest { framedClassSourceTests.readExpression_forBlobMakesCopyExplicit() }
+    fun readExpressionForBlobMakesCopyExplicit() = MutFlow.underTest { framedClassSourceTests.readExpression_forBlobMakesCopyExplicit() }
 
     @Test
-    fun delegates_union_002() = MutFlow.underTest { framedClassSourceTests.readExpression_rejectsUnsupportedFramedFieldType() }
+    fun readExpressionRejectsUnsupportedFramedFieldType() = MutFlow.underTest { framedClassSourceTests.readExpression_rejectsUnsupportedFramedFieldType() }
 
     @Test
-    fun delegates_union_003() = MutFlow.underTest { framedClassSourceTests.writeExpression_rejectsUnsupportedFramedFieldType() }
+    fun writeExpressionRejectsUnsupportedFramedFieldType() = MutFlow.underTest { framedClassSourceTests.writeExpression_rejectsUnsupportedFramedFieldType() }
 
     @Test
-    fun delegates_union_004() = MutFlow.underTest { framedClassSourceTests.repeatedExpressions_rejectNestedOrUnsupportedElementShapes() }
+    fun repeatedExpressionsRejectNestedOrUnsupportedElementShapes() = MutFlow.underTest { framedClassSourceTests.repeatedExpressions_rejectNestedOrUnsupportedElementShapes() }
 
     @Test
-    fun delegates_union_005() = MutFlow.underTest { framedClassSourceTests.scalarReadExpression_coversEveryKindAndSignedWidthBand() }
+    fun scalarReadExpressionCoversEveryKindAndSignedWidthBand() = MutFlow.underTest { framedClassSourceTests.scalarReadExpression_coversEveryKindAndSignedWidthBand() }
 
     @Test
-    fun delegates_union_006() = MutFlow.underTest { framedClassSourceTests.borrowedHolderGenerationCoversRangesRepeatsAndNestedFields() }
+    fun framedClassSourceTestsBorrowedHolderGenerationCoversRangesRepeatsAndNestedFields() = MutFlow.underTest { framedClassSourceTests.borrowedHolderGenerationCoversRangesRepeatsAndNestedFields() }
 
     @Test
-    fun delegates_union_007() = MutFlow.underTest { framedClassScalarTests.scalarDecodedValuesCoverEveryKindAndSignedWidthBoundary() }
+    fun framedClassScalarTestsScalarDecodedValuesCoverEveryKindAndSignedWidthBoundary() = MutFlow.underTest { framedClassScalarTests.scalarDecodedValuesCoverEveryKindAndSignedWidthBoundary() }
 
     @Test
-    fun delegates_union_008() = MutFlow.underTest { framedClassScalarTests.scalarHolderGenerationCoversEveryScalarKindAndValidationShape() }
+    fun framedClassScalarTestsScalarHolderGenerationCoversEveryScalarKindAndValidationShape() = MutFlow.underTest { framedClassScalarTests.scalarHolderGenerationCoversEveryScalarKindAndValidationShape() }
 
     @Test
-    fun delegates_union_009() = MutFlow.underTest { framedClassScalarTests.signedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() }
+    fun framedClassScalarTestsSignedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() = MutFlow.underTest { framedClassScalarTests.signedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() }
 
     @Test
-    fun delegates_union_010() = MutFlow.underTest { framedClassActualTests.platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() }
+    fun framedClassActualTestsPlatformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() = MutFlow.underTest { framedClassActualTests.platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() }
 
     @Test
-    fun delegates_union_011() = MutFlow.underTest { framedClassSourceTests.borrowedStringPreflightValidatesUtf8WhileBlobPreflightDoesNot() }
+    fun borrowedStringPreflightValidatesUtf8WhileBlobPreflightDoesNot() = MutFlow.underTest { framedClassSourceTests.borrowedStringPreflightValidatesUtf8WhileBlobPreflightDoesNot() }
 
     @Test
-    fun delegates_union_012() = MutFlow.underTest { framedClassRepeatPrefixWidthTests.repeatPrefixWidthsAreUsedByPreflightAndDecodeOperations() }
+    fun repeatPrefixWidthsAreUsedByPreflightAndDecodeOperations() = MutFlow.underTest { framedClassRepeatPrefixWidthTests.repeatPrefixWidthsAreUsedByPreflightAndDecodeOperations() }
 
     @Test
-    fun delegates_union_013() = MutFlow.underTest { framedClassSourceTests.holderGenerationOmitsUnsupportedFieldsAndSupportsEmptySchemas() }
+    fun holderGenerationOmitsUnsupportedFieldsAndSupportsEmptySchemas() = MutFlow.underTest { framedClassSourceTests.holderGenerationOmitsUnsupportedFieldsAndSupportsEmptySchemas() }
 
     @Test
-    fun delegates_union_014() = MutFlow.underTest { framedClassSourceTests.capitalizedFirstCharHandlesEmptyAndUnicodeNames() }
+    fun capitalizedFirstCharHandlesEmptyAndUnicodeNames() = MutFlow.underTest { framedClassSourceTests.capitalizedFirstCharHandlesEmptyAndUnicodeNames() }
 
     @Test
-    fun delegates_union_015() = MutFlow.underTest { framedScalarSourceTests.scalarDecodedValuesCoverEveryKindAndSignedWidthBoundary() }
+    fun framedScalarSourceTestsScalarDecodedValuesCoverEveryKindAndSignedWidthBoundary() = MutFlow.underTest { framedScalarSourceTests.scalarDecodedValuesCoverEveryKindAndSignedWidthBoundary() }
 
     @Test
-    fun delegates_union_016() = MutFlow.underTest { framedScalarSourceTests.scalarHolderGenerationCoversEveryScalarKindAndValidationShape() }
+    fun framedScalarSourceTestsScalarHolderGenerationCoversEveryScalarKindAndValidationShape() = MutFlow.underTest { framedScalarSourceTests.scalarHolderGenerationCoversEveryScalarKindAndValidationShape() }
 
     @Test
-    fun delegates_union_017() = MutFlow.underTest { framedScalarSourceTests.signedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() }
+    fun framedScalarSourceTestsSignedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() = MutFlow.underTest { framedScalarSourceTests.signedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() }
 
     @Test
-    fun delegates_union_018() = MutFlow.underTest { framedScalarFramedTests.borrowedHolderGenerationCoversRangesRepeatsAndNestedFields() }
+    fun framedScalarFramedTestsBorrowedHolderGenerationCoversRangesRepeatsAndNestedFields() = MutFlow.underTest { framedScalarFramedTests.borrowedHolderGenerationCoversRangesRepeatsAndNestedFields() }
 
     @Test
-    fun delegates_union_019() = MutFlow.underTest { framedScalarActualTests.platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() }
+    fun framedScalarActualTestsPlatformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() = MutFlow.underTest { framedScalarActualTests.platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() }
 
     @Test
-    fun delegates_union_020() = MutFlow.underTest { valueClassSourceTests.`expect value class declares expect keyword`() }
+    fun expectValueClassDeclaresExpectKeyword() = MutFlow.underTest { valueClassSourceTests.`expect value class declares expect keyword`() }
 
     @Test
-    fun delegates_union_021() = MutFlow.underTest { valueClassSourceTests.`expect value class declares companion create factory`() }
+    fun expectValueClassDeclaresCompanionCreateFactory() = MutFlow.underTest { valueClassSourceTests.`expect value class declares companion create factory`() }
 
     @Test
-    fun delegates_union_022() = MutFlow.underTest { valueClassSourceTests.`encode function writes each field at its declared offset`() }
+    fun encodeFunctionWritesEachFieldAtItsDeclaredOffset() = MutFlow.underTest { valueClassSourceTests.`encode function writes each field at its declared offset`() }
 
     @Test
-    fun delegates_union_023() = MutFlow.underTest { valueClassSourceTests.`common encoder emits reusable holder cursor operations`() }
+    fun commonEncoderEmitsReusableHolderCursorOperations() = MutFlow.underTest { valueClassSourceTests.`common encoder emits reusable holder cursor operations`() }
 
     @Test
-    fun delegates_union_024() = MutFlow.underTest { valueClassSourceTests.`jvm actual has JvmInline annotation`() }
+    fun jvmActualHasJvmInlineAnnotation() = MutFlow.underTest { valueClassSourceTests.`jvm actual has JvmInline annotation`() }
 
     @Test
-    fun delegates_union_025() = MutFlow.underTest { valueClassSourceTests.`jvm actual companion object is marked actual`() }
+    fun jvmActualCompanionObjectIsMarkedActual() = MutFlow.underTest { valueClassSourceTests.`jvm actual companion object is marked actual`() }
 
     @Test
-    fun delegates_union_026() = MutFlow.underTest { valueClassSourceTests.`ios actual companion object is marked actual`() }
+    fun iosActualCompanionObjectIsMarkedActual() = MutFlow.underTest { valueClassSourceTests.`ios actual companion object is marked actual`() }
 
     @Test
-    fun delegates_union_027() = MutFlow.underTest { valueClassSourceTests.`jvm actual default view is immutable (val, no write-through setter)`() }
+    fun jvmActualDefaultViewIsImmutableValNoWriteThroughSetter() = MutFlow.underTest { valueClassSourceTests.`jvm actual default view is immutable (val, no write-through setter)`() }
 
     @Test
-    fun delegates_union_028() = MutFlow.underTest { valueClassSourceTests.`jvm actual default view emits copy builder delegating to encode`() }
+    fun jvmActualDefaultViewEmitsCopyBuilderDelegatingToEncode() = MutFlow.underTest { valueClassSourceTests.`jvm actual default view emits copy builder delegating to encode`() }
 
     @Test
-    fun delegates_union_029() = MutFlow.underTest { valueClassSourceTests.`expect default view copy carries field defaults for callers`() }
+    fun expectDefaultViewCopyCarriesFieldDefaultsForCallers() = MutFlow.underTest { valueClassSourceTests.`expect default view copy carries field defaults for callers`() }
 
     @Test
-    fun delegates_union_030() = MutFlow.underTest { valueClassSourceTests.`generate with mutable model emits Mutable sibling with write-through var setters`() }
+    fun generateWithMutableModelEmitsMutableSiblingWithWriteThroughVarSetters() = MutFlow.underTest { valueClassSourceTests.`generate with mutable model emits Mutable sibling with write-through var setters`() }
 
     @Test
-    fun delegates_union_031() = MutFlow.underTest { valueClassSourceTests.`jvm actual uses raw readBits for Int fields`() }
+    fun jvmActualUsesRawReadBitsForIntFields() = MutFlow.underTest { valueClassSourceTests.`jvm actual uses raw readBits for Int fields`() }
 
     @Test
-    fun delegates_union_032() = MutFlow.underTest { valueClassSourceTests.`signed Int getter sign extends its declared bit width`() }
+    fun signedIntGetterSignExtendsItsDeclaredBitWidth() = MutFlow.underTest { valueClassSourceTests.`signed Int getter sign extends its declared bit width`() }
 
     @Test
-    fun delegates_union_033() = MutFlow.underTest { valueClassSourceTests.`signed Long getter sign extends its declared bit width`() }
+    fun signedLongGetterSignExtendsItsDeclaredBitWidth() = MutFlow.underTest { valueClassSourceTests.`signed Long getter sign extends its declared bit width`() }
 
     @Test
-    fun delegates_union_034() = MutFlow.underTest { valueClassSourceTests.`create encoder writes fields at declared offsets including gaps`() }
+    fun createEncoderWritesFieldsAtDeclaredOffsetsIncludingGaps() = MutFlow.underTest { valueClassSourceTests.`create encoder writes fields at declared offsets including gaps`() }
 
     @Test
-    fun delegates_union_035() = MutFlow.underTest { valueClassSourceTests.`jvm actual uses readBitsBoolean for Boolean fields`() }
+    fun jvmActualUsesReadBitsBooleanForBooleanFields() = MutFlow.underTest { valueClassSourceTests.`jvm actual uses readBitsBoolean for Boolean fields`() }
 
     @Test
-    fun delegates_union_036() = MutFlow.underTest { valueClassSourceTests.`jvm actual create delegates to encode function`() }
+    fun jvmActualCreateDelegatesToEncodeFunction() = MutFlow.underTest { valueClassSourceTests.`jvm actual create delegates to encode function`() }
 
     @Test
-    fun delegates_union_037() = MutFlow.underTest { valueClassSourceTests.`ios actual does NOT have JvmInline`() }
+    fun iosActualDoesNOTHaveJvmInline() = MutFlow.underTest { valueClassSourceTests.`ios actual does NOT have JvmInline`() }
 
     @Test
-    fun delegates_union_038() = MutFlow.underTest { valueClassSourceTests.`ios actual uses raw readBits`() }
+    fun iosActualUsesRawReadBits() = MutFlow.underTest { valueClassSourceTests.`ios actual uses raw readBits`() }
 
     @Test
-    fun delegates_union_039() = MutFlow.underTest { valueClassSourceTests.`Long field uses readBitsLong`() }
+    fun longFieldUsesReadBitsLong() = MutFlow.underTest { valueClassSourceTests.`Long field uses readBitsLong`() }
 
     @Test
-    fun delegates_union_040() = MutFlow.underTest { valueClassSourceTests.`Float field uses Float fromBits`() }
+    fun floatFieldUsesFloatFromBits() = MutFlow.underTest { valueClassSourceTests.`Float field uses Float fromBits`() }
 
     @Test
-    fun delegates_union_041() = MutFlow.underTest { valueClassSourceTests.`Double field uses Double fromBits`() }
+    fun doubleFieldUsesDoubleFromBits() = MutFlow.underTest { valueClassSourceTests.`Double field uses Double fromBits`() }
 
     @Test
-    fun delegates_union_042() = MutFlow.underTest { valueClassSourceTests.`jvm actual emits raw as a constructor backing val (defect #3)`() }
+    fun jvmActualEmitsRawAsAConstructorBackingValDefect3() = MutFlow.underTest { valueClassSourceTests.`jvm actual emits raw as a constructor backing val (defect #3)`() }
 
     @Test
-    fun delegates_union_043() = MutFlow.underTest { valueClassSourceTests.`ios actual emits raw as a constructor backing val (defect #3)`() }
+    fun iosActualEmitsRawAsAConstructorBackingValDefect3() = MutFlow.underTest { valueClassSourceTests.`ios actual emits raw as a constructor backing val (defect #3)`() }
 
     @Test
-    fun delegates_union_044() = MutFlow.underTest { valueClassSourceTests.`expect emits raw without the invalid actual modifier (defect #3)`() }
+    fun expectEmitsRawWithoutTheInvalidActualModifierDefect3() = MutFlow.underTest { valueClassSourceTests.`expect emits raw without the invalid actual modifier (defect #3)`() }
 
     @Test
-    fun delegates_union_045() = MutFlow.underTest { valueClassEdgeCaseTests.fixedLayoutStringFieldSuggestsFramedMode() }
+    fun fixedLayoutStringFieldSuggestsFramedMode() = MutFlow.underTest { valueClassEdgeCaseTests.fixedLayoutStringFieldSuggestsFramedMode() }
 
     @Test
-    fun delegates_union_046() = MutFlow.underTest { valueClassEdgeCaseTests.`invalid layout throws before generation`() }
+    fun invalidLayoutThrowsBeforeGeneration() = MutFlow.underTest { valueClassEdgeCaseTests.`invalid layout throws before generation`() }
 
     @Test
-    fun delegates_union_047() = MutFlow.underTest { valueClassEdgeCaseTests.`common encoder rejects framed models`() }
+    fun commonEncoderRejectsFramedModels() = MutFlow.underTest { valueClassEdgeCaseTests.`common encoder rejects framed models`() }
 
     @Test
-    fun delegates_union_048() = MutFlow.underTest { valueClassEdgeCaseTests.`signed Int encoder writes its low bits directly at the declared offset`() }
+    fun signedIntEncoderWritesItsLowBitsDirectlyAtTheDeclaredOffset() = MutFlow.underTest { valueClassEdgeCaseTests.`signed Int encoder writes its low bits directly at the declared offset`() }
 
     @Test
-    fun delegates_union_049() = MutFlow.underTest { valueClassEdgeCaseTests.`F-001 init guard uses correct min buffer size`() }
+    fun f001InitGuardUsesCorrectMinBufferSize() = MutFlow.underTest { valueClassEdgeCaseTests.`F-001 init guard uses correct min buffer size`() }
 
     @Test
-    fun delegates_union_050() = MutFlow.underTest { valueClassEdgeCaseTests.`fixed-layout ByteArray field directs callers to framed mode`() }
+    fun fixedLayoutByteArrayFieldDirectsCallersToFramedMode() = MutFlow.underTest { valueClassEdgeCaseTests.`fixed-layout ByteArray field directs callers to framed mode`() }
 
     @Test
-    fun delegates_union_051() = MutFlow.underTest { valueClassEdgeCaseTests.`unknown type fails generation with descriptive error`() }
+    fun unknownTypeFailsGenerationWithDescriptiveError() = MutFlow.underTest { valueClassEdgeCaseTests.`unknown type fails generation with descriptive error`() }
 
     @Test
-    fun delegates_union_052() = MutFlow.underTest { valueClassEdgeCaseTests.`model with no fields generates valid expect`() }
+    fun modelWithNoFieldsGeneratesValidExpect() = MutFlow.underTest { valueClassEdgeCaseTests.`model with no fields generates valid expect`() }
 
     @Test
-    fun delegates_union_053() = MutFlow.underTest { valueClassEdgeCaseTests.`model with no fields generates valid jvm actual`() }
+    fun modelWithNoFieldsGeneratesValidJvmActual() = MutFlow.underTest { valueClassEdgeCaseTests.`model with no fields generates valid jvm actual`() }
 
     @Test
-    fun delegates_union_054() = MutFlow.underTest { valueClassEdgeCaseTests.`fixed-layout expect encoder directs String fields to framed mode`() }
+    fun fixedLayoutExpectEncoderDirectsStringFieldsToFramedMode() = MutFlow.underTest { valueClassEdgeCaseTests.`fixed-layout expect encoder directs String fields to framed mode`() }
 
     @Test
-    fun delegates_union_055() = MutFlow.underTest { valueClassEdgeCaseTests.`fixed-layout expect encoder directs ByteArray fields to framed mode`() }
+    fun fixedLayoutExpectEncoderDirectsByteArrayFieldsToFramedMode() = MutFlow.underTest { valueClassEdgeCaseTests.`fixed-layout expect encoder directs ByteArray fields to framed mode`() }
 
     @Test
-    fun delegates_union_056() = MutFlow.underTest { valueClassEdgeCaseTests.`expect with unknown type fails generation with descriptive error`() }
+    fun expectWithUnknownTypeFailsGenerationWithDescriptiveError() = MutFlow.underTest { valueClassEdgeCaseTests.`expect with unknown type fails generation with descriptive error`() }
 
     @Test
-    fun delegates_union_057() = MutFlow.underTest { valueClassBoundaryTests.signed31BitIntGetterPreservesItsSignBit() }
+    fun signed31BitIntGetterPreservesItsSignBit() = MutFlow.underTest { valueClassBoundaryTests.signed31BitIntGetterPreservesItsSignBit() }
 
     @Test
-    fun delegates_union_058() = MutFlow.underTest { valueClassBoundaryTests.signed63BitLongGetterPreservesItsSignBit() }
+    fun signed63BitLongGetterPreservesItsSignBit() = MutFlow.underTest { valueClassBoundaryTests.signed63BitLongGetterPreservesItsSignBit() }
 
     @Test
-    fun delegates_union_059() = MutFlow.underTest { valueClassSourceTests.mutableSiblingDoesNotExposeImmutableCopyBuilder() }
+    fun mutableSiblingDoesNotExposeImmutableCopyBuilder() = MutFlow.underTest { valueClassSourceTests.mutableSiblingDoesNotExposeImmutableCopyBuilder() }
 
     @Test
-    fun delegates_union_060() = MutFlow.underTest { valueClassSourceTests.generatedFactoryEncoderAndCopyPreserveEveryFieldAndActualBody() }
+    fun generatedFactoryEncoderAndCopyPreserveEveryFieldAndActualBody() = MutFlow.underTest { valueClassSourceTests.generatedFactoryEncoderAndCopyPreserveEveryFieldAndActualBody() }
 
     @Test
-    fun delegates_union_061() = MutFlow.underTest { valueClassSourceTests.generatedSignednessAnnotationRemainsAttachedToItsField() }
+    fun generatedSignednessAnnotationRemainsAttachedToItsField() = MutFlow.underTest { valueClassSourceTests.generatedSignednessAnnotationRemainsAttachedToItsField() }
 
     @Test
-    fun delegates_union_062() = MutFlow.underTest { valueClassSourceTests.generatedFieldAnnotationsPreserveSignednessOnlyForSignedFields() }
+    fun generatedFieldAnnotationsPreserveSignednessOnlyForSignedFields() = MutFlow.underTest { valueClassSourceTests.generatedFieldAnnotationsPreserveSignednessOnlyForSignedFields() }
 
     @Test
-    fun delegates_union_063() = MutFlow.underTest { valueClassSourceTests.commonEncoderSignExtendsNarrowSignedLongHolderFields() }
+    fun commonEncoderSignExtendsNarrowSignedLongHolderFields() = MutFlow.underTest { valueClassSourceTests.commonEncoderSignExtendsNarrowSignedLongHolderFields() }
 
     @Test
-    fun delegates_union_064() = MutFlow.underTest { valueHolderSourceTests.commonEncoderCoversScalarKindsSignedWidthsAndReservedBits() }
+    fun commonEncoderCoversScalarKindsSignedWidthsAndReservedBits() = MutFlow.underTest { valueHolderSourceTests.commonEncoderCoversScalarKindsSignedWidthsAndReservedBits() }
 
     @Test
-    fun delegates_union_065() = MutFlow.underTest { valueHolderSourceTests.generatedHolderConsumesOnlyRealGapsAndTheExactDeclaredFrame() }
+    fun generatedHolderConsumesOnlyRealGapsAndTheExactDeclaredFrame() = MutFlow.underTest { valueHolderSourceTests.generatedHolderConsumesOnlyRealGapsAndTheExactDeclaredFrame() }
 
     @Test
-    fun delegates_union_066() = MutFlow.underTest { valueHolderSourceTests.decodeCommitsSignedValuesAndEncodeValidatesBeforeWritingReservedBits() }
+    fun decodeCommitsSignedValuesAndEncodeValidatesBeforeWritingReservedBits() = MutFlow.underTest { valueHolderSourceTests.decodeCommitsSignedValuesAndEncodeValidatesBeforeWritingReservedBits() }
 }

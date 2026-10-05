@@ -8,125 +8,125 @@ class KompactCursorMutationTest {
     private val repeatTests = KompactCursorRepeatsTest()
 
     @Test
-    fun delegates_01() = MutFlow.underTest { commonTests.byteRangeConstructorInitiallyBorrowsTheWholeBuffer() }
+    fun byteRangeConstructorInitiallyBorrowsTheWholeBuffer() = MutFlow.underTest { commonTests.byteRangeConstructorInitiallyBorrowsTheWholeBuffer() }
 
     @Test
-    fun delegates_02() = MutFlow.underTest { commonTests.resetRejectsOutOfBoundsWithoutChangingTheBoundRegion() }
+    fun resetRejectsOutOfBoundsWithoutChangingTheBoundRegion() = MutFlow.underTest { commonTests.resetRejectsOutOfBoundsWithoutChangingTheBoundRegion() }
 
     @Test
-    fun delegates_03() = MutFlow.underTest { commonTests.readBitsStopsAtTheBoundAndPreservesTheLastValueOnFailure() }
+    fun readBitsStopsAtTheBoundAndPreservesTheLastValueOnFailure() = MutFlow.underTest { commonTests.readBitsStopsAtTheBoundAndPreservesTheLastValueOnFailure() }
 
     @Test
-    fun delegates_04() = MutFlow.underTest { commonTests.uncheckedWritePreservesNeighboringBitsAndRejectsOutOfBoundsAtomically() }
+    fun uncheckedWritePreservesNeighboringBitsAndRejectsOutOfBoundsAtomically() = MutFlow.underTest { commonTests.uncheckedWritePreservesNeighboringBitsAndRejectsOutOfBoundsAtomically() }
 
     @Test
-    fun delegates_05() = MutFlow.underTest { commonTests.checkedWritesRejectValuesOutsideTheirDeclaredWidthWithoutMutation() }
+    fun checkedWritesRejectValuesOutsideTheirDeclaredWidthWithoutMutation() = MutFlow.underTest { commonTests.checkedWritesRejectValuesOutsideTheirDeclaredWidthWithoutMutation() }
 
     @Test
-    fun delegates_06() = MutFlow.underTest { commonTests.nestedReadUsesASeparateBoundedCursorAndDoesNotEnterTheFollowingField() }
+    fun nestedReadUsesASeparateBoundedCursorAndDoesNotEnterTheFollowingField() = MutFlow.underTest { commonTests.nestedReadUsesASeparateBoundedCursorAndDoesNotEnterTheFollowingField() }
 
     @Test
-    fun delegates_07() = MutFlow.underTest { commonTests.malformedNestedReadLeavesParentAndChildBindingsUnchanged() }
+    fun malformedNestedReadLeavesParentAndChildBindingsUnchanged() = MutFlow.underTest { commonTests.malformedNestedReadLeavesParentAndChildBindingsUnchanged() }
 
     @Test
-    fun delegates_08() = MutFlow.underTest { commonTests.nestedWriteReservesKnownLengthAndBoundsTheChildCursor() }
+    fun nestedWriteReservesKnownLengthAndBoundsTheChildCursor() = MutFlow.underTest { commonTests.nestedWriteReservesKnownLengthAndBoundsTheChildCursor() }
 
     @Test
-    fun delegates_09() = MutFlow.underTest { commonTests.byteRangeReadAndWriteBorrowAndAppendWithoutAResultWrapper() }
+    fun byteRangeReadAndWriteBorrowAndAppendWithoutAResultWrapper() = MutFlow.underTest { commonTests.byteRangeReadAndWriteBorrowAndAppendWithoutAResultWrapper() }
 
     @Test
-    fun delegates_10() = MutFlow.underTest { commonTests.borrowedUtf8RangeCanBeCopiedIntoCallerOwnedStorage() }
+    fun borrowedUtf8RangeCanBeCopiedIntoCallerOwnedStorage() = MutFlow.underTest { commonTests.borrowedUtf8RangeCanBeCopiedIntoCallerOwnedStorage() }
 
     @Test
-    fun delegates_11() = MutFlow.underTest { commonTests.utf8ByteRangeValidatesBeforeChangingCursorOrRange() }
+    fun utf8ByteRangeValidatesBeforeChangingCursorOrRange() = MutFlow.underTest { commonTests.utf8ByteRangeValidatesBeforeChangingCursorOrRange() }
 
     @Test
-    fun delegates_12() = MutFlow.underTest { commonTests.variableRepeatReportsInsufficientWorkspaceWithoutAdvancing() }
+    fun variableRepeatReportsInsufficientWorkspaceWithoutAdvancing() = MutFlow.underTest { commonTests.variableRepeatReportsInsufficientWorkspaceWithoutAdvancing() }
 
     @Test
-    fun delegates_13() = MutFlow.underTest { commonTests.variableRepeatIndexesPayloadsInCallerOwnedWorkspace() }
+    fun variableRepeatIndexesPayloadsInCallerOwnedWorkspace() = MutFlow.underTest { commonTests.variableRepeatIndexesPayloadsInCallerOwnedWorkspace() }
 
     @Test
-    fun delegates_14() = MutFlow.underTest { commonTests.variableRepeatRequiresOneCheckpointPer64Elements() }
+    fun variableRepeatRequiresOneCheckpointPer64Elements() = MutFlow.underTest { commonTests.variableRepeatRequiresOneCheckpointPer64Elements() }
 
     @Test
-    fun delegates_15() = MutFlow.underTest { commonTests.fixedRepeatIndexesElementsWithoutAllocatingAnIndexArray() }
+    fun fixedRepeatIndexesElementsWithoutAllocatingAnIndexArray() = MutFlow.underTest { commonTests.fixedRepeatIndexesElementsWithoutAllocatingAnIndexArray() }
 
     @Test
-    fun delegates_16() = MutFlow.underTest { commonTests.fixedRepeatRejectsInsufficientWorkspaceWithoutChangingWorkspaceOrCursor() }
+    fun fixedRepeatRejectsInsufficientWorkspaceWithoutChangingWorkspaceOrCursor() = MutFlow.underTest { commonTests.fixedRepeatRejectsInsufficientWorkspaceWithoutChangingWorkspaceOrCursor() }
 
     @Test
-    fun delegates_17() = MutFlow.underTest { commonTests.variableRepeatRejects65ElementsWhenOnlyOneCheckpointIsAvailable() }
+    fun variableRepeatRejects65ElementsWhenOnlyOneCheckpointIsAvailable() = MutFlow.underTest { commonTests.variableRepeatRejects65ElementsWhenOnlyOneCheckpointIsAvailable() }
 
     @Test
-    fun delegates_18() = MutFlow.underTest { commonTests.truncatedVariableRepeatDoesNotAdvanceOrReplaceWorkspace() }
+    fun truncatedVariableRepeatDoesNotAdvanceOrReplaceWorkspace() = MutFlow.underTest { commonTests.truncatedVariableRepeatDoesNotAdvanceOrReplaceWorkspace() }
 
     @Test
-    fun delegates_19() = MutFlow.underTest { repeatTests.variableRepeatLookupAtIndex63ReturnsItsPayload() }
+    fun variableRepeatLookupAtIndex63ReturnsItsPayload() = MutFlow.underTest { repeatTests.variableRepeatLookupAtIndex63ReturnsItsPayload() }
 
     @Test
-    fun delegates_20() = MutFlow.underTest { repeatTests.variableRepeatLookupAtIndex64ReturnsItsPayload() }
+    fun variableRepeatLookupAtIndex64ReturnsItsPayload() = MutFlow.underTest { repeatTests.variableRepeatLookupAtIndex64ReturnsItsPayload() }
 
     @Test
-    fun delegates_21() = MutFlow.underTest { repeatTests.variableRepeatLookupAtIndex65ReturnsItsPayload() }
+    fun variableRepeatLookupAtIndex65ReturnsItsPayload() = MutFlow.underTest { repeatTests.variableRepeatLookupAtIndex65ReturnsItsPayload() }
 
     @Test
-    fun delegates_22() = MutFlow.underTest { repeatTests.fixedRepeatLookupAtIndex63ReturnsItsPayload() }
+    fun fixedRepeatLookupAtIndex63ReturnsItsPayload() = MutFlow.underTest { repeatTests.fixedRepeatLookupAtIndex63ReturnsItsPayload() }
 
     @Test
-    fun delegates_23() = MutFlow.underTest { repeatTests.fixedRepeatLookupAtIndex64ReturnsItsPayload() }
+    fun fixedRepeatLookupAtIndex64ReturnsItsPayload() = MutFlow.underTest { repeatTests.fixedRepeatLookupAtIndex64ReturnsItsPayload() }
 
     @Test
-    fun delegates_24() = MutFlow.underTest { repeatTests.fixedRepeatLookupAtIndex65ReturnsItsPayload() }
+    fun fixedRepeatLookupAtIndex65ReturnsItsPayload() = MutFlow.underTest { repeatTests.fixedRepeatLookupAtIndex65ReturnsItsPayload() }
 
     @Test
-    fun delegates_25() = MutFlow.underTest { repeatTests.outOfRangeRepeatLookupRetainsElementBindingAndReportsDiagnostics() }
+    fun outOfRangeRepeatLookupRetainsElementBindingAndReportsDiagnostics() = MutFlow.underTest { repeatTests.outOfRangeRepeatLookupRetainsElementBindingAndReportsDiagnostics() }
     @Test
-    fun delegates_26() = MutFlow.underTest { repeatTests.variableRepeatSkipRejectsInvalidWidthsAlignmentAndMalformedPrefixes() }
+    fun variableRepeatSkipRejectsInvalidWidthsAlignmentAndMalformedPrefixes() = MutFlow.underTest { repeatTests.variableRepeatSkipRejectsInvalidWidthsAlignmentAndMalformedPrefixes() }
 
     @Test
-    fun delegates_27() = MutFlow.underTest { repeatTests.fixedRepeatSkipChecksCountWidthCapacityAndPayloadBounds() }
+    fun fixedRepeatSkipChecksCountWidthCapacityAndPayloadBounds() = MutFlow.underTest { repeatTests.fixedRepeatSkipChecksCountWidthCapacityAndPayloadBounds() }
 
     @Test
-    fun delegates_28() = MutFlow.underTest { repeatTests.variableRepeatReadIsFailureAtomicAndIndexesEmptyAndNonemptyRepeats() }
+    fun variableRepeatReadIsFailureAtomicAndIndexesEmptyAndNonemptyRepeats() = MutFlow.underTest { repeatTests.variableRepeatReadIsFailureAtomicAndIndexesEmptyAndNonemptyRepeats() }
 
     @Test
-    fun delegates_29() = MutFlow.underTest { repeatTests.fixedRepeatReadValidatesArgumentsCapacityAndElementBounds() }
+    fun fixedRepeatReadValidatesArgumentsCapacityAndElementBounds() = MutFlow.underTest { repeatTests.fixedRepeatReadValidatesArgumentsCapacityAndElementBounds() }
 
     @Test
-    fun delegates_30() = MutFlow.underTest { repeatTests.repeatedElementReadRejectsWrongBindingAndOutOfRangeIndexes() }
+    fun repeatedElementReadRejectsWrongBindingAndOutOfRangeIndexes() = MutFlow.underTest { repeatTests.repeatedElementReadRejectsWrongBindingAndOutOfRangeIndexes() }
 
     @Test
-    fun delegates_31() = MutFlow.underTest { repeatTests.indexedElementReadChecksFixedAndVariableOffsetsAgainstWorkspaceBounds() }
+    fun indexedElementReadChecksFixedAndVariableOffsetsAgainstWorkspaceBounds() = MutFlow.underTest { repeatTests.indexedElementReadChecksFixedAndVariableOffsetsAgainstWorkspaceBounds() }
 
     @Test
-    fun delegates_32() = MutFlow.underTest { repeatTests.fixedRepeatIndexingStoresSparseCheckpointsAcrossBlocks() }
+    fun fixedRepeatIndexingStoresSparseCheckpointsAcrossBlocks() = MutFlow.underTest { repeatTests.fixedRepeatIndexingStoresSparseCheckpointsAcrossBlocks() }
 
     @Test
-    fun delegates_33() = MutFlow.underTest { repeatTests.variableRepeatAcceptsEmptyElementEndingExactlyAtTheRegionBoundary() }
+    fun variableRepeatAcceptsEmptyElementEndingExactlyAtTheRegionBoundary() = MutFlow.underTest { repeatTests.variableRepeatAcceptsEmptyElementEndingExactlyAtTheRegionBoundary() }
 
     @Test
-    fun delegates_34() = MutFlow.underTest { repeatTests.repeatCountsAndLengthsAtIntMaximumKeepTheirSpecificFailureStatus() }
+    fun repeatCountsAndLengthsAtIntMaximumKeepTheirSpecificFailureStatus() = MutFlow.underTest { repeatTests.repeatCountsAndLengthsAtIntMaximumKeepTheirSpecificFailureStatus() }
 
     @Test
-    fun delegates_35() = MutFlow.underTest { repeatTests.variableRepeatCheckpointCapacityHandlesZeroAndExactSixtyFourCount() }
+    fun variableRepeatCheckpointCapacityHandlesZeroAndExactSixtyFourCount() = MutFlow.underTest { repeatTests.variableRepeatCheckpointCapacityHandlesZeroAndExactSixtyFourCount() }
 
     @Test
-    fun delegates_36() = MutFlow.underTest { repeatTests.fixedRepeatCheckpointLoopAcceptsAnExactSixtyFourElementCapacity() }
+    fun fixedRepeatCheckpointLoopAcceptsAnExactSixtyFourElementCapacity() = MutFlow.underTest { repeatTests.fixedRepeatCheckpointLoopAcceptsAnExactSixtyFourElementCapacity() }
 
     @Test
-    fun delegates_37() = MutFlow.underTest { repeatTests.repeatArgumentFailuresReportTheFirstInvalidWidth() }
+    fun repeatArgumentFailuresReportTheFirstInvalidWidth() = MutFlow.underTest { repeatTests.repeatArgumentFailuresReportTheFirstInvalidWidth() }
 
     @Test
-    fun delegates_38() = MutFlow.underTest { repeatTests.corruptedCheckpointAtTheEndReportsTheNextMissingPrefixOffset() }
+    fun corruptedCheckpointAtTheEndReportsTheNextMissingPrefixOffset() = MutFlow.underTest { repeatTests.corruptedCheckpointAtTheEndReportsTheNextMissingPrefixOffset() }
 
     @Test
-    fun delegates_39() = MutFlow.underTest { repeatTests.corruptedCheckpointElementEndingAtTheRegionBoundaryReportsTheNextPrefix() }
+    fun corruptedCheckpointElementEndingAtTheRegionBoundaryReportsTheNextPrefix() = MutFlow.underTest { repeatTests.corruptedCheckpointElementEndingAtTheRegionBoundaryReportsTheNextPrefix() }
 
     @Test
-    fun delegates_40() = MutFlow.underTest { repeatTests.repeatedElementLookupAtIntMaxSkippedLengthKeepsBadPrefixDiagnostics() }
+    fun repeatedElementLookupAtIntMaxSkippedLengthKeepsBadPrefixDiagnostics() = MutFlow.underTest { repeatTests.repeatedElementLookupAtIntMaxSkippedLengthKeepsBadPrefixDiagnostics() }
 
     @Test
-    fun delegates_41() = MutFlow.underTest { repeatTests.repeatedElementLookupAtIntMaxPayloadLengthKeepsBadPrefixDiagnostics() }
+    fun repeatedElementLookupAtIntMaxPayloadLengthKeepsBadPrefixDiagnostics() = MutFlow.underTest { repeatTests.repeatedElementLookupAtIntMaxPayloadLengthKeepsBadPrefixDiagnostics() }
 
 }
