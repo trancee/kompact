@@ -1,6 +1,7 @@
 package ch.trancee.kompact.ksp.gen
 
 import ch.trancee.kompact.ksp.model.KompactFieldInfo
+import ch.trancee.kompact.ksp.model.KompactScalarKind
 import ch.trancee.kompact.ksp.model.KompactFieldType
 import ch.trancee.kompact.ksp.model.LayoutValidator
 import ch.trancee.kompact.ksp.model.ModelSpec
@@ -19,6 +20,8 @@ private val KOMPAT_FIELD = ClassName("ch.trancee.kompact.annotations", "KompactF
 private val KOMPAT_PREVIEW = ClassName("ch.trancee.kompact.annotations", "KompactPreview")
 private val JVM_INLINE = ClassName("kotlin.jvm", "JvmInline")
 private val BYTE_ARRAY_TYPE = ClassName("kotlin", "ByteArray")
+private val KOMPACT_CURSOR = ClassName("ch.trancee.kompact.runtime", "KompactCursor")
+private val INT_TYPE = ClassName("kotlin", "Int")
 
 /**
  * Generates fixed-layout value-class sources and delegates framed schemas to [FramedClassGenerator].
@@ -56,10 +59,14 @@ internal object ValueClassGenerator {
     fun generateExpect(spec: ModelSpec): String {
         requireValidLayout(spec)
         if (spec.framed) return FramedClassGenerator.generateExpect(spec)
+        spec.fields.forEach(::requireSupportedType)
         return com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, spec.className)
             .addType(buildExpect(spec))
             .apply { if (spec.mutable) addType(buildMutableExpect(spec)) }
+            .addType(ValueHolderGenerator.buildHolder(spec))
+            .addFunction(ValueHolderGenerator.buildDecodeInto(spec))
+            .addFunction(ValueHolderGenerator.buildEncodeFrom(spec))
             .addFunction(buildEncodeFunction(spec))
             .build()
             .toString()
@@ -69,8 +76,12 @@ internal object ValueClassGenerator {
     fun generateCommonEncoder(spec: ModelSpec): String {
         requireValidLayout(spec)
         require(!spec.framed) { "Framed models do not use the fixed-layout shared encoder" }
+        spec.fields.forEach(::requireSupportedType)
         return com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, "${spec.className}Encoder")
+            .addType(ValueHolderGenerator.buildHolder(spec))
+            .addFunction(ValueHolderGenerator.buildDecodeInto(spec))
+            .addFunction(ValueHolderGenerator.buildEncodeFrom(spec))
             .addFunction(buildEncodeFunction(spec))
             .build()
             .toString()

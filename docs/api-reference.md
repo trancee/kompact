@@ -12,6 +12,7 @@ from the runtime source; do not edit the generated pages by hand.
 | Read or write packed bits and numeric fields | [`KompactRuntime`, `KompactWriter`, and `ScalarType`](../kompact/docs/api/kompact/ch.trancee.kompact.runtime/index.md) |
 | Read length-delimited fields and nested frames | [`KompactFrame` and `KompactFraming`](../kompact/docs/api/kompact/ch.trancee.kompact.runtime/index.md) |
 | Read repeated fields or borrow a byte range | [`KompactRepeatedView` and `KompactByteSlice`](../kompact/docs/api/kompact/ch.trancee.kompact.runtime/index.md) |
+| Use caller-owned checked codec state | [`KompactCursor`, `KompactByteRange`, and `KompactRepeatWorkspace`](../kompact/docs/api/kompact/ch.trancee.kompact.runtime/index.md) |
 | Handle a malformed value | [`KompactDecodeError` and result types](../kompact/docs/api/kompact/ch.trancee.kompact.runtime/index.md) |
 | Declare a generated model | [`@KompactModel`, `@KompactField`, and `@KompactPreview`](../kompact/docs/api/kompact/ch.trancee.kompact.annotations/index.md) |
 | See the bundled telemetry model | [`VehicleTelemetry`](../kompact/docs/api/kompact/ch.trancee.kompact.generated/index.md) |
@@ -31,6 +32,23 @@ from the runtime source; do not edit the generated pages by hand.
 - Generated views retain their backing `ByteArray`; borrowed slices and lazy
   repeated values depend on that array remaining unchanged while they are in
   use. The [architecture guide](architecture.md) explains this ownership tradeoff.
+- `KompactCursor` stores its buffer and bit bounds, and reports checked
+  operation status and error details through primitive properties. A
+  `KompactByteRange` borrows its buffer; `copyTo` is an explicit copy into
+  caller-provided storage. `KompactRepeatWorkspace` borrows caller-provided
+  checkpoint storage.
+- Generated `*Holder` codec operations take caller-owned cursors, ranges, and
+  repeat workspaces. Framed holder operations also take a distinct probe
+  cursor so they can validate the complete operation before committing changes.
+  Keep borrowed buffers unchanged while a holder or workspace refers to them.
+- A repeat workspace needs `ceil(count / 64)` checkpoint slots; an empty repeat
+  needs none. `readVariableRepeat` and `readFixedRepeat` return
+  `STATUS_WORKSPACE_TOO_SMALL` without committing the cursor or workspace
+  binding when capacity is insufficient.
+- Generated framed encoders reject range sources backed by the destination
+  buffer. The low-level `writeByteRange` operation rejects overlapping
+  in-place copies. These cursor APIs are available in the current checkout;
+  they are not part of the published `0.6.1` artifact.
 - Schema annotations are preview API and require opting in to
   `KompactPreview`. Runtime reader and writer APIs do not require that opt-in.
 

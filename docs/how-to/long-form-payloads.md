@@ -106,6 +106,39 @@ When reading variable-length values with `KompactFrame`, start each one at a
 byte boundary. Keep the backing `ByteArray` unchanged while using a borrowed
 slice or lazy repeated view.
 
+## Read a borrowed UTF-8 range with caller-owned state
+
+The current checkout also provides `KompactCursor` for checked operations
+without returning wrapper results. `readUtf8Range` validates the complete
+length-prefixed payload and binds a caller-created `KompactByteRange` to the
+original buffer. The range borrows those bytes; copy them only when you need
+independent ownership.
+
+```kotlin
+import ch.trancee.kompact.runtime.KompactByteRange
+import ch.trancee.kompact.runtime.KompactCursor
+
+val encoded = byteArrayOf(2, 0xC3.toByte(), 0xA9.toByte())
+val cursor = KompactCursor(encoded)
+val textBytes = KompactByteRange(ByteArray(0))
+
+check(cursor.readUtf8Range(prefixWidth = 8, range = textBytes) == KompactCursor.STATUS_OK)
+check(textBytes.size == 2)
+
+val ownedCopy = ByteArray(textBytes.size)
+check(textBytes.copyTo(ownedCopy))
+check(ownedCopy.contentEquals(byteArrayOf(0xC3.toByte(), 0xA9.toByte())))
+```
+
+Keep `encoded` unchanged while `textBytes` is in use. `KompactByteRange.copyTo`
+copies into storage you supply; it does not allocate a destination. For
+generated reusable holders, nested payloads, and repeated-field workspaces,
+see the [caller-owned codec API reference](../api-reference.md). The
+caller-owned cursor API is available in this checkout and is not included in
+the published `0.6.1` artifact. These APIs have not yet been verified for
+cross-platform allocation behavior; do not infer an allocation guarantee from
+this example.
+
 ## Next steps
 
 - Define the same fields as generated view properties:

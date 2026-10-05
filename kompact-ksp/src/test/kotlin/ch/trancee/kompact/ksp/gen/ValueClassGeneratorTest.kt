@@ -105,6 +105,17 @@ class ValueClassGeneratorTest {
         )
     }
 
+    @Test
+    fun `common encoder emits reusable holder cursor operations`() {
+        val output = ValueClassGenerator.generateCommonEncoder(vehicleTelemetrySpec())
+
+        assertTrue(output.contains("class VehicleTelemetryHolder"))
+        assertTrue(output.contains("fun VehicleTelemetryHolder.decodeInto(cursor: KompactCursor): Int"))
+        assertTrue(output.contains("fun VehicleTelemetryHolder.encodeFrom(cursor: KompactCursor): Int"))
+        assertTrue(output.contains("cursor.ensureAvailable(16)"))
+        assertTrue(output.contains("cursor.validateUnsigned(10, speedInput.toLong())"))
+    }
+
     // --- jvm actual output tests ---
 
     @Test
