@@ -141,22 +141,7 @@ internal object FramedScalarHolderGenerator {
         code.addStatement("return checked")
         code.endControlFlow()
         fields.forEach { field ->
-            val scalar = field.type as KompactFieldType.Scalar
-            val validation = when (scalar.kind) {
-                KompactScalarKind.BOOLEAN, KompactScalarKind.FLOAT, KompactScalarKind.DOUBLE -> null
-                KompactScalarKind.INT ->
-                    if (field.signed) {
-                        CodeBlock.of("cursor.validateSigned(%L, this.%N.toLong())", field.bitWidth, field.name)
-                    } else {
-                        CodeBlock.of("cursor.validateUnsigned(%L, this.%N.toLong())", field.bitWidth, field.name)
-                    }
-                KompactScalarKind.LONG ->
-                    if (field.signed) {
-                        CodeBlock.of("cursor.validateSigned(%L, this.%N)", field.bitWidth, field.name)
-                    } else {
-                        CodeBlock.of("cursor.validateUnsigned(%L, this.%N)", field.bitWidth, field.name)
-                    }
-            }
+            val validation = scalarValidation(field)
             if (validation != null) {
                 val validationName = "${field.name}Validation"
                 code.addStatement("val %N = %L", validationName, validation)
