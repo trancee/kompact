@@ -47,13 +47,15 @@ iOS check.
 
 ## macOS checks
 
-The macOS job checks formatting and ABI baselines, then regenerates the
-committed API Markdown and fails if the generated tree changes:
+The macOS job checks formatting and ABI baselines, runs the shared runtime
+behavioral tests on iOS Simulator Arm64, then regenerates the committed API
+Markdown and fails if the generated tree changes:
 
 ```bash
 ./gradlew \
   spotlessCheck \
   :kompact:checkKotlinAbi \
+  :kompact:iosSimulatorArm64Test \
   :kompact-ksp:checkKotlinAbi \
   --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
@@ -61,9 +63,11 @@ committed API Markdown and fails if the generated tree changes:
 git diff --exit-code -- kompact/docs/api/
 ```
 
-The iOS klib ABI check and Dokka generation run on macOS because they analyze
-Apple target outputs. When KDoc changes, regenerate the API pages with the
-Dokka task above; do not edit files under `kompact/docs/api/` directly.
+The iOS Simulator task executes the common runtime test suite against the
+Kotlin/Native implementation. The iOS klib ABI check and Dokka generation run
+on macOS because they analyze Apple target outputs. When KDoc changes,
+regenerate the API pages with the Dokka task above; do not edit files under
+`kompact/docs/api/` directly.
 
 ## Platform behavior and allocation evidence
 

@@ -34,8 +34,8 @@ Run the formatter check before opening a pull request:
 
 The CI workflow also checks public ABI baselines, coverage, Android compilation,
 generated-code integration, and publication bundles. The full task list differs
-by host; see [CI checks and local commands](docs/ci.md). iOS ABI and Dokka
-validation run on macOS.
+by host; see [CI checks and local commands](docs/ci.md). iOS Simulator tests,
+iOS ABI validation, and Dokka generation run on macOS.
 
 ## Update documentation
 

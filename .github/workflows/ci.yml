@@ -1,9 +1,9 @@
 name: CI
 
-# Validates the public ABI goldens, runs the JVM/KSP/Gradle-plugin test suites,
-# verifies Kover coverage thresholds, tests release-version calculation,
-# generates Markdown API docs, and dry-runs Maven Central Portal bundles for
-# the KSP processor and Gradle plugin with an ephemeral PGP key.
+# Validates the public ABI goldens, runs JVM/KSP/Gradle-plugin and iOS Simulator
+# tests, verifies Kover coverage thresholds, tests release-version calculation,
+# generates Markdown API docs, and dry-runs Maven Central Portal bundles for the
+# KSP processor and Gradle plugin with an ephemeral PGP key.
 #
 # ABI validation:
 #   - Built-in KGP checkKotlinAbi (replaces BCV apiCheck/apiDump).
@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   api-check:
-    name: ABI + Markdown + spotless (macOS)
+    name: ABI + iOS Simulator tests + Markdown + spotless (macOS)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
@@ -53,7 +53,7 @@ jobs:
           packages: "platform-tools"
       - name: Set ANDROID_HOME
         run: echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-      - run: ./gradlew spotlessCheck :kompact:checkKotlinAbi :kompact-ksp:checkKotlinAbi --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+      - run: ./gradlew spotlessCheck :kompact:checkKotlinAbi :kompact:iosSimulatorArm64Test :kompact-ksp:checkKotlinAbi --no-daemon --rerun-tasks --no-build-cache --warning-mode all
       # The committed GFM Markdown reference in kompact/docs/api/ must stay in sync
       # with the KDoc in commonMain. Regenerate and fail if the committed tree
       # drifts (up-to-date checking means dokka only re-runs when KDoc changes).
