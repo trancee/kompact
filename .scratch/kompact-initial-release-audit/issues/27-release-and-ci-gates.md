@@ -71,7 +71,11 @@ compliant reviewed workflow.
 - Physical iOS execution is still blocked: the linked Kotlin test executable
   is unsigned and no local provisioning profile matches an available signing
   identity. Xcode-managed profile creation needs explicit Apple Developer
-  account approval. Per-target allocation proof also remains open.
+  account approval. The Android Native counter-method review found no suitable
+  validated per-object counter: ART metrics do not cover Native, Perfetto
+  samples system-allocator calls, and Kotlin/Native suballocates from pages.
+  No profile or positive-control run was performed; per-target allocation
+  proof remains open.
 - A general documentation link/spelling/markup checker is not configured in
   the repository, so those checks remain unverified. Do not publish until
   every required gate has passing evidence.

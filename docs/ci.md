@@ -146,7 +146,11 @@ The local Android Native link still fails because Kotlin/Native invokes an
 x86_64 `clang` toolchain (`Bad CPU type in executable`); Linux CI builds the
 Android device binary instead.
 
-Allocation measurements are not part of either CI job. Do not infer a
+Allocation measurements are not part of either CI job. A feasibility review
+found that AndroidX Microbenchmark measures ART rather than the Native
+executable, while Perfetto heapprofd observes sampled system-allocator calls
+rather than per-object allocations served from Kotlin/Native pages. No
+allocation profile or positive-control run was performed. Do not infer a
 zero-allocation guarantee from compilation, unit tests, or coverage. The
 allocation methodology and current proof status are tracked in
 [allocation and boxing measurement](research/allocation-boxing-measurement.md);

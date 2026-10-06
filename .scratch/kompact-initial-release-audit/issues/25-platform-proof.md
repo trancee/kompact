@@ -65,7 +65,13 @@ invokes an x86_64 `clang` on this arm64 Mac (`Bad CPU type in executable`).
 Linux CI builds the Android test binary and avoids that host limitation.
 
 No per-target allocation harness, validated counter, positive control, or
-retained allocation measurement report has been produced. Android Native
-allocation measurement and iOS device behavior/allocation evidence remain
-open release blockers. Do not claim zero allocations for any target until
-the required per-target evidence is retained.
+retained allocation measurement report has been produced. The Android Native
+counter-method review rejected AndroidX Microbenchmark (ART-only) and Perfetto
+heapprofd (system-allocator sampling; Kotlin/Native suballocates from pages,
+and standalone `test.kexe` is not an eligible app on this production build).
+`GC.lastGCInfo()` only reports retained heap after collection. No allocation
+profile or positive-control run was performed; none of these methods has
+passed per-object validation. Android Native allocation measurement and iOS
+device behavior/allocation evidence remain open release blockers. Do not claim
+zero allocations for any target until the required per-target evidence is
+retained.

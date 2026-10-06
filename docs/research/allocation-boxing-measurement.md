@@ -27,13 +27,42 @@ is still no committed allocation harness or retained measurement report for
 them. Compilation, functional tests, and 100% line/branch coverage do not prove
 zero per-operation allocations.
 
-The available execution environment for this verification is Linux. `adb
-devices` reports no attached devices, and neither `xcrun` nor `xcodebuild` is
-installed. Therefore this environment cannot run Android ART measurements or
-Apple Instruments device captures. No Android Native Arm64 allocation counter
-has passed the required positive-control validation spike. Allocation-free
-behavior remains unproven for every target; do not make a target-specific
-zero-allocation claim from these checks.
+On 2026-10-06, the available host is Apple Silicon macOS 27.0 with Xcode 27.0
+and a connected Android 15 API 35 arm64 device. Android Native behavior tests
+passed on that device using the Linux CI-built test executable; this is not
+allocation evidence. Physical iOS execution remains blocked by the absence of
+a locally usable signing profile.
+
+### Android Native allocation-counter feasibility
+
+The Android 15 device is a production `user` build with Perfetto v46 and the
+`android.heapprofd` data source available. Heapprofd is not a validated
+per-operation counter for Kompact's Android Native target:
+
+- Perfetto's [heapprofd documentation](https://perfetto.dev/docs/data-sources/native-heap-profiler)
+  describes sampled `malloc`/`free` and `new`/`delete` activity. Kotlin
+  Native's default allocator suballocates objects from pages, so per-object
+  allocations need not call the system allocator and therefore need not
+  appear as heap-profiler events.
+- On Android `user` builds, Perfetto documents profiling only debuggable or
+  profileable Java apps. The current `test.kexe` is a standalone Native test
+  executable run as the ADB shell user, not such an app.
+- Kotlin/Native [`GC.lastGCInfo()`](https://kotlinlang.org/docs/native-memory-manager.html#check-for-memory-leaks)
+  reports statistics from the last completed collection and is intended for
+  testing/debugging and leak checks. It does not count temporary objects
+  allocated and collected between observations.
+- [AndroidX Microbenchmark](https://developer.android.com/topic/performance/benchmarking/microbenchmark-overview)
+  reports Android runtime/ART behavior; it does not instrument the separate
+  Kotlin/Native executable.
+
+This is a tool-eligibility and allocator mismatch assessment; no allocation
+profile or positive-control run was performed. None of these candidate methods
+has passed the required positive-control validation for individual
+Kotlin/Native object allocations. Do not treat an empty profile, unchanged
+retained heap, or successful Native device test as zero-allocation evidence.
+The Android Native allocation claim remains blocked until a counter observes
+per-object allocations in the same allocator configuration used by the
+measured target and reliably detects the intentional allocation control.
 
 ## Checked variable-repeat tradeoff
 
@@ -166,7 +195,7 @@ Require allocation profiler availability. Compare direct paths with all boxing c
 
 ### Android acceptance
 
-Use a dedicated Android Microbenchmark module and stable AndroidX Benchmark 1.4.1. Run a non-debuggable, AOT-compiled benchmark APK on one pinned physical device model and OS build. Prefer a rooted lab device with locked clocks; otherwise require sustained-performance mode, no thermal-throttle sleep, stable power, and repeated interleaved baseline and candidate runs.
+Use a dedicated Android Microbenchmark module and stable AndroidX Benchmark 1.4.1 for the Android/JVM target. Run a non-debuggable, AOT-compiled benchmark APK on one pinned physical device model and OS build. Prefer a rooted lab device with locked clocks; otherwise require sustained-performance mode, no thermal-throttle sleep, stable power, and repeated interleaved baseline and candidate runs. This does not measure the Android Native executable.
 
 Store benchmark JSON and profiling traces. Gate allocations on the direct path only after a positive allocation control is detected in the same APK. Use the Java/Kotlin allocation profiler to identify unexpected classes and stacks, never to produce latency numbers.
 
@@ -215,6 +244,7 @@ The later performance-budget decision should set numeric thresholds. Until then,
 - `value class` alone does not guarantee zero allocation.
 - Omitting `@JvmInline` is incompatible with the JVM value-class contract.
 - A HotSpot JMH result does not prove ART or Kotlin/Native behavior.
+- AndroidX Microbenchmark/ART allocation results do not prove Android Native allocation behavior.
 - A flat retained heap after `GC.collect()` does not prove that no temporary object was allocated.
 - Simulator timing does not establish physical-device latency.
 - Timing and allocation profiling should not be collected in one run and treated as unperturbed latency.
@@ -222,4 +252,4 @@ The later performance-budget decision should set numeric thresholds. Until then,
 
 ## Remaining risks
 
-Kotlin/Native exposes no documented stable per-operation object-allocation counter comparable to JMH or AndroidX Microbenchmark. Instruments provides the best available first-party evidence, but the exact automation and export path must be proven on the selected Xcode version. Native optimizer behavior may differ between an isolated benchmark and real application call sites. The generated Kotlin interface can also introduce boxing through nullable results, common interfaces, or generic helpers; its prototype must retain direct concrete paths and run the negative-control matrix before the allocation contract is frozen.
+Kotlin/Native exposes no documented stable per-operation object-allocation counter comparable to JMH or AndroidX Microbenchmark. Perfetto heapprofd does not see allocations served from Kotlin/Native allocator pages, and user-build eligibility excludes the current standalone Android Native test process. Instruments provides the best available first-party evidence for iOS, but the exact automation and export path must be proven on the selected Xcode version and a correctly signed device host. Native optimizer behavior may differ between an isolated benchmark and real application call sites. The generated Kotlin interface can also introduce boxing through nullable results, common interfaces, or generic helpers; its prototype must retain direct concrete paths and run the negative-control matrix before the allocation contract is frozen.
