@@ -105,6 +105,21 @@ jobs:
             :kompact-gradle-plugin:test \
             --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
+      # Produce a device-runnable binary on Linux; Apple Silicon's cached
+      # Kotlin/Native Android clang is x86_64 and cannot link this target.
+      - name: Link Android Native device-test binary
+        run: |
+          ./gradlew \
+            :kompact:androidNativeArm64TestBinaries \
+            --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+      - name: Upload Android Native device-test binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: kompact-android-native-arm64-test
+          path: kompact/build/bin/androidNativeArm64/debugTest/test.kexe
+          if-no-files-found: error
+          retention-days: 7
+
       # Portal dry-run: generate checksums + assemble bundles with an ephemeral
       # PGP key (never real credentials). Verifies both JVM module pipelines
       # without publishing to Maven Central.

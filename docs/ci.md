@@ -10,7 +10,8 @@ targeting `main` or `master`. It uses JDK 21.
 ## Linux checks
 
 The Linux job tests release-version calculation, runs the JVM/KSP/plugin
-checks, and assembles Central Portal bundles without publishing them:
+checks, links an Android Native arm64 device-test binary, and assembles
+Central Portal bundles without publishing them:
 
 ```bash
 bash .github/scripts/release/version-bump-test.sh
@@ -33,6 +34,10 @@ bash .github/scripts/docs/check-version-references.sh .
   :kompact-gradle-plugin:checkKotlinAbi \
   :kompact-gradle-plugin:koverVerify \
   :kompact-gradle-plugin:test \
+  --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+
+./gradlew \
+  :kompact:androidNativeArm64TestBinaries \
   --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
 ./gradlew \
@@ -101,14 +106,21 @@ The Kotlin/Native binary-link tasks are:
 ./gradlew :kompact:androidNativeArm64TestBinaries
 ```
 
-These tasks build test binaries, not device test runs. The repository does not
-yet provide a signed iOS device-test host or an Android Native device runner.
-On the inspected Apple Silicon Mac, iOS Arm64 test binaries linked, but the
-Android Native link failed because Kotlin/Native invoked an x86_64 `clang`
-toolchain (`Bad CPU type in executable`). Consequently, no physical-device
-behavior result is available yet. Both device executions remain mandatory
-release blockers until an execution procedure is implemented and the tests
-are run on the target hardware.
+CI links and uploads the Android Native `test.kexe` as the
+`kompact-android-native-arm64-test` artifact. After downloading that artifact
+from a successful Linux CI run, execute
+`scripts/test-android-native-device.sh <path-to-test.kexe>` on a host with
+exactly one authorized USB Android arm64 device. The script validates the
+binary and device ABI, copies the executable to a unique path under
+`/data/local/tmp`, runs it, and removes that exact temporary file.
+
+On the inspected Apple Silicon Mac, iOS Arm64 test binaries link, but there is
+no signed iOS device-test host or procedure to execute them on an iPhone. The
+local Android Native link also fails because Kotlin/Native invokes an x86_64
+`clang` toolchain (`Bad CPU type in executable`); CI builds the device binary
+on Linux to make the physical Android run possible. Device binary creation is
+not a device test run. Physical iOS and Android Native behavior executions
+remain mandatory release blockers until tests run on target hardware.
 
 Allocation measurements are not part of either CI job. Do not infer a
 zero-allocation guarantee from compilation, unit tests, or coverage. The
