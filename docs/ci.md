@@ -125,10 +125,12 @@ ready USB device, verifies the copied binary's SHA-256, runs it with a
 10-minute timeout, and removes its unique temporary directory under
 `/data/local/tmp`.
 
-On 2026-10-06, the Linux CI artifact from commit `856284c` ran on an Android 15
-arm64 device (API 35, build `AQ3A.240929.001`): all 387 tests in 35 test cases
-passed. The device runner verified artifact integrity and confirmed cleanup.
-The artifact SHA-256 was
+On 2026-10-06, the Linux CI artifact from commit `f3bb4ae` (run
+`37508992609`) ran on an Android 15 arm64 device (API 35, build
+`AQ3A.240929.001`): all 387 tests in 35 test cases passed using Kotlin
+`2.4.20`. The device runner ran on macOS `27.0.0` arm64 with ADB
+`37.0.1-15733141`, verified artifact integrity, and confirmed cleanup. The
+artifact SHA-256 was
 `d32408f65a719d58ca5fd20cf3bdff2b0f6a71dec144c1d173fb957d02e9d31e`.
 
 On the inspected Apple Silicon Mac, iOS Arm64 test binaries link, but no

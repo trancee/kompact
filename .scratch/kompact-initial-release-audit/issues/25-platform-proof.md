@@ -38,15 +38,17 @@ publishing platform support or making a zero-allocation claim.
 ## Execution status (2026-10-06)
 
 The caller-owned API is implemented. Linux CI linked and uploaded the Android
-Native `test.kexe` for commit `856284ce4aa6261ebdd1a1d25975cbf5febcd615`
-(run `37507658565`). The artifact SHA-256 was
+Native `test.kexe` for commit `f3bb4aeeacd325905c8589e3a856a88599758090`
+(run `37508992609`). The artifact SHA-256 was
 `d32408f65a719d58ca5fd20cf3bdff2b0f6a71dec144c1d173fb957d02e9d31e`.
 `scripts/test-android-native-device.sh` verified the ELF and transfer
 checksum, then executed all 387 tests in 35 test cases successfully on the
 connected Android 15 `arm64-v8a` device (model `A063`, API 35, build
-`AQ3A.240929.001`). The runner reported successful removal of its unique
-temporary device directory. Its documented download-and-run procedure now
-provides reproducible Android Native behavior evidence.
+`AQ3A.240929.001`). The artifact was built with Kotlin `2.4.20`; execution
+used macOS `27.0.0` arm64 and ADB `37.0.1-15733141`. The runner reported
+successful removal of its unique temporary device directory. Its documented
+download-and-run procedure now provides reproducible Android Native behavior
+evidence.
 
 Physical iOS behavior remains unverified. `:kompact:iosArm64TestBinaries`
 links successfully but produces a standalone `test.kexe`; there is no

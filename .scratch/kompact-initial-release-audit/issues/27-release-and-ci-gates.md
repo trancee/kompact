@@ -59,7 +59,7 @@ compliant reviewed workflow.
 - Physical iOS/Android Native execution and allocation evidence remain open
   release blockers as recorded in [platform proof](25-platform-proof.md).
 - GitHub CI passed both required Linux and macOS jobs on PR #89 commit
-  `856284c`; the Linux run also linked and uploaded the Android Native arm64
+  `f3bb4ae`; the Linux run also linked and uploaded the Android Native arm64
   test executable. The exact artifact passed all 387 tests on the physical
   Android 15 arm64 device; evidence and the reproducible runner are recorded
   in [platform proof](25-platform-proof.md). CodeQL passed after the release
