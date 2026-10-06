@@ -51,6 +51,9 @@ android_release="$(run_adb 30 -d shell -T getprop ro.build.version.release)"
 android_api="$(run_adb 30 -d shell -T getprop ro.build.version.sdk)"
 android_build="$(run_adb 30 -d shell -T getprop ro.build.id)"
 
+echo "ADB: $(adb version | sed -n '2p')"
+echo "Target: sole authorized USB Android device; model=$device_model; release=$android_release; API=$android_api; build=$android_build; ABI=$device_abi"
+
 remote_dir="/data/local/tmp/kompact-android-native-tests-$$-$RANDOM"
 if ! run_adb 30 -d shell -T mkdir "$remote_dir"; then
   echo "Could not reserve a unique temporary directory on the USB device." >&2
@@ -75,14 +78,13 @@ cleanup() {
     echo "Could not remove temporary test files from the device: $remote_dir" >&2
     exit 1
   fi
+  echo "Removed temporary test files from the device."
   exit 0
 }
 trap cleanup EXIT
 
 echo "Local test binary SHA-256:"
 shasum -a 256 "$binary"
-echo "ADB: $(adb version | sed -n '2p')"
-echo "Android device: model=$device_model; release=$android_release; API=$android_api; build=$android_build; ABI=$device_abi"
 run_adb 60 -d push "$binary" "$remote_binary"
 run_adb 30 -d shell -T chmod 700 "$remote_binary"
 echo "Running Android Native tests on the sole authorized USB device."
