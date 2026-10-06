@@ -62,6 +62,7 @@ jobs:
             exit 1
           fi
           bash .github/scripts/release/version-bump-test.sh
+          bash .github/scripts/release/release-pr-test.sh
           bash .github/scripts/docs/version-docs-check-test.sh
           bash .github/scripts/docs/check-version-references.sh .
           echo "release=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
@@ -73,6 +74,7 @@ jobs:
             spotlessCheck \
             :kompact:checkKotlinAbi \
             :kompact:jvmTest \
+            :kompact:testAndroidHostTest \
             :kompact:koverVerify \
             :kompact:bundleAndroidMainAar \
             :kompact-ksp:checkKotlinAbi \

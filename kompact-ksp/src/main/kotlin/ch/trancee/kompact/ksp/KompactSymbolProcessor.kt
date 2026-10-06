@@ -111,12 +111,7 @@ internal class KompactSymbolProcessor(
             } catch (_: UnresolvedKompactSymbolException) {
                 deferred.add(declaration)
             } catch (e: IllegalArgumentException) {
-                // Deterministic schema/layout/type error (overlapping fields,
-                // unsupported types, invalid widths). Retrying the same input
-                // across KSP rounds cannot fix it, so we must NOT defer it —
-                // deferring would only repeat the identical error every round.
-                // Report a specific, non-generic diagnostic attributed to the
-                // declaration so it localises to the schema (S3/S4 fail closed).
+                // Deterministic schema errors cannot be resolved in a later KSP round, so report once without deferring.
                 logger.error(
                     "KompactKSP: invalid layout for ${declaration.simpleName}: ${e.message}",
                     declaration,

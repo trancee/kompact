@@ -9,7 +9,6 @@ import org.gradle.api.GradleException
 import org.gradle.testfixtures.ProjectBuilder
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GenerateKompactSourcesTest {
@@ -96,7 +95,7 @@ class GenerateKompactSourcesTest {
         val projectDirectory = Files.createTempDirectory("kompact-work-directory-failure")
         try {
             val blockingFile = Files.writeString(projectDirectory.resolve("not-a-directory"), "file")
-            val task = task(projectDirectory)
+            val task = createUnconfiguredGenerateKompactSourcesTask(projectDirectory)
             task.outputDirectory.set(projectDirectory.resolve("generated").toFile())
             task.workDirectory.set(blockingFile.resolve("work").toFile())
 
@@ -118,7 +117,7 @@ class GenerateKompactSourcesTest {
                 outputDirectory,
                 setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_EXECUTE),
             )
-            val task = task(projectDirectory)
+            val task = createUnconfiguredGenerateKompactSourcesTask(projectDirectory)
             task.outputDirectory.set(outputDirectory.toFile())
             task.workDirectory.set(projectDirectory.resolve("work").toFile())
 
@@ -155,59 +154,6 @@ class GenerateKompactSourcesTest {
             assertGeneratedSource(projectDirectory, "ios", "ScalarSchemaGenIos.kt")
             assertGeneratedSource(projectDirectory, "androidArm64", "PacketSchemaViewGenAndroidArm64.kt")
             assertGeneratedSource(projectDirectory, "androidArm64", "ScalarSchemaGenAndroidArm64.kt")
-        } finally {
-            projectDirectory.toFile().deleteRecursively()
-        }
-    }
-
-    @Test
-    fun ignoresMissingKotlinOutputDirectory() {
-        val projectDirectory = Files.createTempDirectory("kompact-missing-kotlin-output")
-        try {
-            val task = task(projectDirectory)
-            val outputDirectory = projectDirectory.resolve("generated")
-
-            task.routeGeneratedSources(projectDirectory.resolve("missing").toFile(), outputDirectory.toFile())
-
-            assertFalse(Files.exists(outputDirectory), "Routing absent KSP output must not create an output directory.")
-        } finally {
-            projectDirectory.toFile().deleteRecursively()
-        }
-    }
-
-    @Test
-    fun rejectsUnsupportedKspOutputFiles() {
-        val projectDirectory = Files.createTempDirectory("kompact-unsupported-ksp-output")
-        try {
-            val kotlinOutput = Files.createDirectories(projectDirectory.resolve("kotlin"))
-            Files.writeString(kotlinOutput.resolve("Unexpected.txt"), "not Kotlin")
-            val task = task(projectDirectory)
-
-            val failure =
-                assertFailsWith<GradleException> {
-                    task.routeGeneratedSources(kotlinOutput.toFile(), projectDirectory.resolve("generated").toFile())
-                }
-
-            assertTrue(failure.message.orEmpty().contains("Unexpected.txt"), failure.message.orEmpty())
-        } finally {
-            projectDirectory.toFile().deleteRecursively()
-        }
-    }
-
-    @Test
-    fun rejectsKotlinFilesWithoutARecognizedGeneratedSuffix() {
-        val projectDirectory = Files.createTempDirectory("kompact-unexpected-generated-name")
-        try {
-            val kotlinOutput = Files.createDirectories(projectDirectory.resolve("kotlin"))
-            Files.writeString(kotlinOutput.resolve("UnexpectedGenName.kt"), "package example")
-            val task = task(projectDirectory)
-
-            val failure =
-                assertFailsWith<GradleException> {
-                    task.routeGeneratedSources(kotlinOutput.toFile(), projectDirectory.resolve("generated").toFile())
-                }
-
-            assertTrue(failure.message.orEmpty().contains("UnexpectedGenName.kt"), failure.message.orEmpty())
         } finally {
             projectDirectory.toFile().deleteRecursively()
         }
@@ -304,15 +250,6 @@ class GenerateKompactSourcesTest {
         }
     }
 
-    private fun task(projectDirectory: Path): GenerateKompactSources =
-        ProjectBuilder
-            .builder()
-            .withProjectDir(projectDirectory.toFile())
-            .build()
-            .tasks
-            .register("generateKompactSources", GenerateKompactSources::class.java)
-            .get()
-
     private fun assertGeneratedSource(
         projectDirectory: Path,
         sourceSet: String,
@@ -322,3 +259,12 @@ class GenerateKompactSourcesTest {
         assertTrue(Files.exists(generated), "Expected generated source $generated.")
     }
 }
+
+internal fun createUnconfiguredGenerateKompactSourcesTask(projectDirectory: Path): GenerateKompactSources =
+    ProjectBuilder
+        .builder()
+        .withProjectDir(projectDirectory.toFile())
+        .build()
+        .tasks
+        .register("generateKompactSources", GenerateKompactSources::class.java)
+        .get()
