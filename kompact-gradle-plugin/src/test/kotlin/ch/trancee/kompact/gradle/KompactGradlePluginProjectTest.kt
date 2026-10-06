@@ -1,16 +1,15 @@
 package ch.trancee.kompact.gradle
 
 import java.nio.file.Files
-import org.gradle.api.tasks.Internal
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.FileCollection
+import org.gradle.api.tasks.Internal
 import org.gradle.testfixtures.ProjectBuilder
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class KompactGradlePluginProjectTest {
@@ -67,6 +66,42 @@ class KompactGradlePluginProjectTest {
     }
 
     @Test
+    fun registersGeneratedJvmSourcesForKotlinTarget() {
+        val projectDirectory = Files.createTempDirectory("kompact-generated-jvm-sources")
+        try {
+            val project =
+                ProjectBuilder
+                    .builder()
+                    .withProjectDir(projectDirectory.toFile())
+                    .build()
+            project.pluginManager.apply("org.jetbrains.kotlin.multiplatform")
+            val kotlin = project.extensions.getByType(KotlinMultiplatformExtension::class.java)
+            val plugin = KompactGradlePlugin()
+            plugin.apply(project)
+
+            kotlin.jvm()
+            plugin.configureTargetSources(
+                kotlin.targets.getByName("jvm"),
+                "test",
+                project.tasks.named("generateKompactSources", GenerateKompactSources::class.java),
+            )
+
+            val generatedJvmDirectory = projectDirectory.resolve("build/generated/kompact/main/jvm")
+            Files.createDirectories(generatedJvmDirectory)
+            val jvmGeneratedSources = kotlin.sourceSets.getByName("jvmMain").kotlin.srcDirs
+
+            assertTrue(
+                jvmGeneratedSources.any {
+                    it.canonicalFile == generatedJvmDirectory.toFile().canonicalFile
+                },
+                "Expected the generated JVM source directory in $jvmGeneratedSources",
+            )
+        } finally {
+            projectDirectory.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
     fun resolvesGenerationInputsFromKotlinMultiplatformProject() {
         val projectDirectory = Files.createTempDirectory("kompact-project-inputs")
         try {
@@ -88,18 +123,32 @@ class KompactGradlePluginProjectTest {
             KompactGradlePlugin().apply(project)
 
             val task = project.tasks.getByName("generateKompactSources") as GenerateKompactSources
-            val sourceRoots = task.commonSourceRoots.files
             val generatedRoot = projectDirectory.resolve("build/generated/kompact/main/common").toFile()
             val generatedFile = generatedRoot.resolve("example/Generated.kt")
             Files.createDirectories(generatedFile.parentFile.toPath())
             Files.writeString(generatedFile.toPath(), "package example\nclass Generated")
+            val sourceRoots = task.commonSourceRoots.files
             task.commonClasspath.files
 
             assertTrue(sourceRoots.any { it.toPath().normalize() == commonSourceFile.normalize() })
-            assertFalse(sourceRoots.any { it.toPath().normalize().startsWith(generatedRoot.toPath().normalize()) })
+            assertTrue(sourceRoots.none { it.toPath().normalize().startsWith(generatedRoot.toPath().normalize()) })
         } finally {
             projectDirectory.toFile().deleteRecursively()
         }
+    }
+
+    @Test
+    fun reportsInvalidMetadataLibrariesInput() {
+        val project = ProjectBuilder.builder().build()
+        project.pluginManager.apply("org.jetbrains.kotlin.multiplatform")
+        project.extensions.getByType(KotlinMultiplatformExtension::class.java).jvm()
+        project.tasks.register("compileCommonMainKotlinMetadata", InvalidCommonMetadataCompileTask::class.java)
+        KompactGradlePlugin().apply(project)
+
+        val task = project.tasks.getByName("generateKompactSources") as GenerateKompactSources
+        val failure = assertFailsWith<GradleException> { task.commonClasspath.files }
+
+        assertTrue(failure.message.orEmpty().contains("expected common metadata compilation libraries"))
     }
 
     abstract class TestCommonMetadataCompileTask : DefaultTask() {
@@ -107,4 +156,11 @@ class KompactGradlePluginProjectTest {
         val libraries: FileCollection
             get() = project.objects.fileCollection()
     }
+
+    abstract class InvalidCommonMetadataCompileTask : DefaultTask() {
+        @get:Internal
+        val libraries: Any
+            get() = "not-a-file-collection"
+    }
+
 }

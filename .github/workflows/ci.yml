@@ -84,6 +84,7 @@ jobs:
             spotlessCheck \
             :kompact:checkKotlinAbi \
             :kompact:jvmTest \
+            :kompact:testAndroidHostTest \
             :kompact:koverVerify \
             :kompact:bundleAndroidMainAar \
             :kompact-ksp:checkKotlinAbi \

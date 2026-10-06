@@ -45,6 +45,10 @@ produces a standalone `test.kexe`; there is no repository Gradle task or signed
 device-test host to execute it on an iPhone. The Android Native link task
 fails before producing a binary because the cached Kotlin/Native toolchain
 invokes an x86_64 `clang` on this arm64 host (`Bad CPU type in executable`).
+`:kompact:androidNativeArm64TestBinaries` was retried after refreshing the
+Native distribution and failed at
+`linkDebugTestAndroidNativeArm64` with the same toolchain error. ADB detected
+one authorized USB Android device, but no test binary was produced or run.
 
 No physical-device behavior test, per-target allocation harness, positive
 control, or retained measurement report has been produced. Android Native

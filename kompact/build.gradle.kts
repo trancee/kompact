@@ -74,6 +74,7 @@ kotlin {
         compileSdk = 36
         minSdk = 21
         withJava()
+        withHostTest {}
     }
     jvm {
         compilerOptions {
@@ -102,6 +103,17 @@ kotlin {
                     implementation("org.jetbrains.kotlin:kotlin-test:${libs.versions.kotlin.get()}")
                 }
             }
+        getByName("androidHostTest") {
+            dependencies {
+                implementation(kotlin("test-junit5")) {
+                    exclude(group = "org.junit.jupiter")
+                    exclude(group = "org.junit.platform")
+                }
+                implementation(libs.junitJupiterApi)
+                runtimeOnly(libs.junitJupiterEngine)
+                runtimeOnly(libs.junitPlatformLauncher)
+            }
+        }
         // Shared JVM+Android source set: @JvmInline actuals + generated views
         // that compile for both JVM and Android targets (agp.com.android.kotlin.multiplatform.library).
         val jvmMain = getByName("jvmMain")

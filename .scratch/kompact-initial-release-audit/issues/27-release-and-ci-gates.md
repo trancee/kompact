@@ -42,17 +42,20 @@ compliant reviewed workflow.
 
 ## Latest verification
 
-- The Gradle-plugin test suite passes, but
-  `:kompact-gradle-plugin:koverVerify` still fails its required threshold:
-  96.4143% line coverage and 86.4583% branch coverage versus 100% for each.
+- Forced `:kompact-gradle-plugin:koverVerify` passes its required 100% line
+  and branch coverage thresholds after the plugin contract tests were expanded.
   Production plugin code has no coverage exclusions.
+- The forced Linux CI-quality task set passes locally, including runtime/JVM
+  and Android host tests, KSP and Gradle-plugin suites, ABI checks, coverage,
+  plugin validation, and Android AAR assembly. The macOS
+  `:kompact:iosSimulatorArm64Test` and ABI checks also pass.
 - `spotlessCheck`, Dokka Markdown generation, workflow linting, release-script
   fixtures, documentation-version checks, and `git diff --check` pass.
 - The inspected CI/Gradle configuration has no relative-link or spelling/markup
   checker; those documentation checks have not been verified.
-- Android main compilation/bundling is configured, but no Android JVM
-  behavioral test runs in CI. A forced `:kompact:androidConnectedCheck`
-  completed without executing device-test work.
+- Android-KMP host-side runtime tests are now configured and included in Linux
+  CI via `:kompact:testAndroidHostTest`; a forced local run passed. This is not
+  physical Android Native device evidence.
 - Physical iOS/Android Native execution and allocation evidence remain open
   release blockers as recorded in [platform proof](25-platform-proof.md).
 - A clean-checkout CI-equivalent run and the final external branch-protection

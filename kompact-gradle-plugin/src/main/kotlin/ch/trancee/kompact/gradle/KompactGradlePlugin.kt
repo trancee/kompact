@@ -7,11 +7,12 @@ import org.gradle.api.GradleException
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.logging.LogLevel
 import org.gradle.api.file.FileCollection
+import org.gradle.api.logging.LogLevel
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.TaskProvider
 
 /**
  * Internal compatibility helpers are shared with contract tests so supported KGP behavior and
@@ -25,21 +26,12 @@ public class KompactGradlePlugin : Plugin<Project> {
 
         val versions = KompactPluginVersions.load(javaClass.classLoader)
         val kotlinPlugin = target.plugins.findPlugin(KOTLIN_MULTIPLATFORM_PLUGIN)
-        val detectedKotlinVersion = kotlinPlugin?.javaClass?.`package`?.implementationVersion
-            ?: "<unknown>"
+        val detectedKotlinVersion = detectedKotlinVersion(kotlinPlugin)
         val compatibility = compatibilityDetails(versions, detectedKotlinVersion)
-        val kotlin = target.extensions.findByName("kotlin")
-            ?: throw GradleException(
-                "The Kotlin Multiplatform plugin did not create its 'kotlin' extension. $compatibility",
-            )
-        if (detectedKotlinVersion != versions.kotlin) {
-            throw GradleException("Kompact code generation is incompatible. $compatibility")
-        }
+        val kotlin = requireKotlinExtension(target.extensions.findByName("kotlin"), compatibility)
+        requireSupportedKotlinVersion(detectedKotlinVersion, versions.kotlin, compatibility)
         val sourceSets = namedObjects(kotlin, "sourceSets", compatibility)
-        val commonMain = sourceSets.findByName("commonMain")
-            ?: throw GradleException(
-                "The Kotlin Multiplatform plugin did not create the 'commonMain' source set. $compatibility",
-            )
+        val commonMain = requireCommonMain(sourceSets, compatibility)
         val commonMainKotlin = kotlinSources(commonMain, compatibility)
         val commonOutput = target.layout.buildDirectory.dir("generated/kompact/main")
         val workDirectory = target.layout.buildDirectory.dir("kspCaches/kompact/commonMain")
@@ -121,16 +113,23 @@ public class KompactGradlePlugin : Plugin<Project> {
         commonMainKotlin.srcDir(generateSources.flatMap { it.outputDirectory.dir("common") })
 
         forEachObject(namedObjects(kotlin, "targets", compatibility)) { kotlinTarget ->
-            if (platformType(kotlinTarget, compatibility) == COMMON_PLATFORM_TYPE) return@forEachObject
-            val outputName = actualOutputName(kotlinTarget, compatibility) ?: return@forEachObject
-            val main =
-                namedObjects(kotlinTarget, "compilations", compatibility).findByName("main")
-                    ?: return@forEachObject
-            val mainSourceSet = readKotlinProperty(main, "defaultSourceSet", compatibility)
-            kotlinSources(mainSourceSet, compatibility).srcDir(
-                generateSources.flatMap { it.outputDirectory.dir(outputName) },
-            )
+            configureTargetSources(kotlinTarget, compatibility, generateSources)
         }
+    }
+
+    internal fun configureTargetSources(
+        kotlinTarget: Any,
+        compatibility: String,
+        generateSources: TaskProvider<GenerateKompactSources>,
+    ) {
+        val outputName = actualOutputName(kotlinTarget, compatibility) ?: return
+        val main =
+            namedObjects(kotlinTarget, "compilations", compatibility).findByName("main")
+                ?: return
+        val mainSourceSet = readKotlinProperty(main, "defaultSourceSet", compatibility)
+        kotlinSources(mainSourceSet, compatibility).srcDir(
+            generateSources.flatMap { it.outputDirectory.dir(outputName) },
+        )
     }
 
     internal fun actualOutputName(
@@ -155,6 +154,38 @@ public class KompactGradlePlugin : Plugin<Project> {
                 throw GradleException(
                     "Kompact code generation does not support Kotlin target '$targetName'.",
                 )
+        }
+    }
+
+    internal fun detectedKotlinVersion(kotlinPlugin: Any?): String {
+        if (kotlinPlugin == null) return "<unknown>"
+        return kotlinPlugin.javaClass.`package`.implementationVersion ?: "<unknown>"
+    }
+
+    internal fun requireKotlinExtension(
+        kotlin: Any?,
+        compatibility: String,
+    ): Any =
+        kotlin ?: throw GradleException(
+            "The Kotlin Multiplatform plugin did not create its 'kotlin' extension. $compatibility",
+        )
+
+    internal fun requireCommonMain(
+        sourceSets: NamedDomainObjectCollection<*>,
+        compatibility: String,
+    ): Any =
+        sourceSets.findByName("commonMain")
+            ?: throw GradleException(
+                "The Kotlin Multiplatform plugin did not create the 'commonMain' source set. $compatibility",
+            )
+
+    internal fun requireSupportedKotlinVersion(
+        detectedKotlinVersion: String,
+        supportedKotlinVersion: String,
+        compatibility: String,
+    ) {
+        if (detectedKotlinVersion != supportedKotlinVersion) {
+            throw GradleException("Kompact code generation is incompatible. $compatibility")
         }
     }
 

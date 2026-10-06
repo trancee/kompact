@@ -22,6 +22,7 @@ bash .github/scripts/docs/check-version-references.sh .
   spotlessCheck \
   :kompact:checkKotlinAbi \
   :kompact:jvmTest \
+  :kompact:testAndroidHostTest \
   :kompact:koverVerify \
   :kompact:bundleAndroidMainAar \
   :kompact-ksp:checkKotlinAbi \
@@ -41,9 +42,11 @@ bash .github/scripts/docs/check-version-references.sh .
   --no-daemon --console=plain
 ```
 
-`jvmTest` runs the runtime's common tests on the JVM. The KSP integration and
-Gradle TestKit tests compile generated consumers and exercise the code
-generation plugin. Kover enforces line and branch thresholds for the runtime,
+`jvmTest` runs the runtime's common tests on the JVM, and
+`testAndroidHostTest` runs them on the Android-KMP host test target without
+requiring a connected device. The KSP integration and Gradle TestKit tests
+compile generated consumers and exercise the code generation plugin. Kover
+enforces line and branch thresholds for the runtime,
 KSP processor, and Gradle plugin; the plugin's required threshold is 100% with
 no production exclusions. The Portal tasks use an ephemeral signing key in CI
 and only build bundles; they do not upload or publish artifacts. The release
@@ -86,10 +89,10 @@ on physical iOS Arm64 or Android Native Arm64 devices. The shared runtime suite
 executes on both the JVM and iOS Simulator in CI; simulator execution is not
 physical-device evidence.
 
-The Android JVM target is currently compiled and bundled on Linux, but CI does
-not yet run its behavioral tests on an Android host. The local
-`:kompact:androidConnectedCheck` task currently has no configured Android
-device-test work, so its success is not Android runtime evidence.
+Android-KMP host-side tests exercise runtime behavior on the Android JVM
+target in CI. The separate `:kompact:androidConnectedCheck` task currently has
+no configured device-test work; its success is not physical-device runtime
+evidence.
 
 The Kotlin/Native binary-link tasks are:
 
