@@ -169,10 +169,11 @@ development-version references. No release workflow pushes commits directly
 to protected `main`; release-version, changelog, and next-snapshot changes are
 all reviewed through PRs. See [ADR-0004](adr/0004-release-pr-automation.md).
 
-The last inspected external branch-protection configuration enabled strict
-status checks but required only the `CI` context. That configuration is outside
-this repository and has not been changed; maintainers should verify that the
-macOS and Linux CI jobs are both required before release.
+As of 2026-10-06, `main` has strict required status checks for both
+`JVM tests + Android assemble + Portal dry-run (Linux)` and
+`ABI + iOS Simulator tests + Markdown + spotless (macOS)`. Branch protection is
+configured outside this repository; verify both contexts remain required
+before release.
 
 Before `1.0.0`, a breaking change increments the minor version. From `1.0.0`,
 it increments the major version. Features increment minor, compatible fixes

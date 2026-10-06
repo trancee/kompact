@@ -58,6 +58,13 @@ compliant reviewed workflow.
   physical Android Native device evidence.
 - Physical iOS/Android Native execution and allocation evidence remain open
   release blockers as recorded in [platform proof](25-platform-proof.md).
-- A clean-checkout CI-equivalent run and the final external branch-protection
-  configuration have not been verified. Do not publish until every required
-  gate has passing evidence.
+- GitHub CI passed both required Linux and macOS jobs on PR #89 head
+  `9ede274`; CodeQL also passes after the release workflow switched to checking
+  out only the trusted event SHA. The PR remains a draft.
+- On 2026-10-06, `main` branch protection was verified in strict mode and
+  updated to require exactly `JVM tests + Android assemble + Portal dry-run
+  (Linux)` and `ABI + iOS Simulator tests + Markdown + spotless (macOS)`.
+- A general documentation link/spelling/markup checker is not configured in
+  the repository, so those checks remain unverified. Physical iOS/Android
+  Native execution and per-target allocation proof remain open release
+  blockers; do not publish until every required gate has passing evidence.
