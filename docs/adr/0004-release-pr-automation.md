@@ -43,8 +43,9 @@ branches and release tags; it never pushes a commit to protected `main`.
 
 - Trigger only when a PR labelled `release` is merged into `main`.
 - Use `pull_request_target` for the trusted workflow definition, then check
-  out and validate the already-merged commit. Never execute an unmerged PR
-  head with release permissions.
+  that the event's trusted base-branch commit exactly matches the PR's merge
+  commit before checkout. Check out only the trusted event SHA; never use a
+  PR-controlled ref or execute an unmerged PR head with release permissions.
 - Require the merged root version to be stable and consistent with the
   changelog and maintained docs. Rerun release fixtures, Linux CI gates,
   plugin ABI and coverage checks, TestKit integration tests, and the
