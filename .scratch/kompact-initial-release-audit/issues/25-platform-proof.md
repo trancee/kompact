@@ -37,21 +37,27 @@ publishing platform support or making a zero-allocation claim.
 
 ## Execution status (2026-10-06)
 
-The caller-owned API is implemented, but this task's device-execution and
-allocation-measurement acceptance criteria are not yet met. This macOS host
-has an Android 15 `arm64-v8a` device and connected iPhone 12 mini and iPhone SE
-(2020) devices. `:kompact:iosArm64TestBinaries` links successfully, but it
-produces a standalone `test.kexe`; there is no repository Gradle task or signed
-device-test host to execute it on an iPhone. The Android Native link task
-fails before producing a binary because the cached Kotlin/Native toolchain
-invokes an x86_64 `clang` on this arm64 host (`Bad CPU type in executable`).
-`:kompact:androidNativeArm64TestBinaries` was retried after refreshing the
-Native distribution and failed at
-`linkDebugTestAndroidNativeArm64` with the same toolchain error. ADB detected
-one authorized USB Android device, but no test binary was produced or run.
+The caller-owned API is implemented. Linux CI linked and uploaded the Android
+Native `test.kexe` for commit `856284ce4aa6261ebdd1a1d25975cbf5febcd615`
+(run `37507658565`). The artifact SHA-256 was
+`d32408f65a719d58ca5fd20cf3bdff2b0f6a71dec144c1d173fb957d02e9d31e`.
+`scripts/test-android-native-device.sh` verified the ELF and transfer
+checksum, then executed all 387 tests in 35 test cases successfully on the
+connected Android 15 `arm64-v8a` device (model `A063`, API 35, build
+`AQ3A.240929.001`). The runner reported successful removal of its unique
+temporary device directory. Its documented download-and-run procedure now
+provides reproducible Android Native behavior evidence.
 
-No physical-device behavior test, per-target allocation harness, positive
-control, or retained measurement report has been produced. Android Native
-device execution and its allocation-counter positive-control spike remain
-unvalidated. Do not claim zero allocations for any target until the required
-per-target evidence is retained.
+Physical iOS behavior remains unverified. `:kompact:iosArm64TestBinaries`
+links successfully but produces a standalone `test.kexe`; there is no
+repository Gradle device-test task or signed iOS test host to execute it on an
+iPhone. The local Android Native link still fails at
+`linkDebugTestAndroidNativeArm64` because the cached Kotlin/Native toolchain
+invokes an x86_64 `clang` on this arm64 Mac (`Bad CPU type in executable`).
+Linux CI builds the Android test binary and avoids that host limitation.
+
+No per-target allocation harness, validated counter, positive control, or
+retained allocation measurement report has been produced. Android Native
+allocation measurement and iOS device behavior/allocation evidence remain
+open release blockers. Do not claim zero allocations for any target until
+the required per-target evidence is retained.

@@ -50,9 +50,11 @@ device_model="$(run_adb 30 -d shell -T getprop ro.product.model)"
 android_release="$(run_adb 30 -d shell -T getprop ro.build.version.release)"
 android_api="$(run_adb 30 -d shell -T getprop ro.build.version.sdk)"
 android_build="$(run_adb 30 -d shell -T getprop ro.build.id)"
+local_sha256="$(shasum -a 256 "$binary" | awk '{ print $1 }')"
 
 echo "ADB: $(adb version | sed -n '2p')"
 echo "Target: sole authorized USB Android device; model=$device_model; release=$android_release; API=$android_api; build=$android_build; ABI=$device_abi"
+echo "Test binary SHA-256: $local_sha256"
 
 remote_dir="/data/local/tmp/kompact-android-native-tests-$$-$RANDOM"
 if ! run_adb 30 -d shell -T mkdir "$remote_dir"; then
@@ -83,9 +85,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "Local test binary SHA-256:"
-shasum -a 256 "$binary"
 run_adb 60 -d push "$binary" "$remote_binary"
 run_adb 30 -d shell -T chmod 700 "$remote_binary"
+remote_sha256="$(run_adb 30 -d shell -T toybox sha256sum "$remote_binary" | awk '{ print $1 }')"
+if [[ "$remote_sha256" != "$local_sha256" ]]; then
+  echo "The device test binary checksum does not match the downloaded artifact." >&2
+  exit 1
+fi
+echo "Device test binary SHA-256 verified."
 echo "Running Android Native tests on the sole authorized USB device."
 run_adb 600 -d shell -T "$remote_binary"
