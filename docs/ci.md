@@ -149,13 +149,14 @@ Android device binary instead.
 Allocation measurements are not part of either CI job. AndroidX Microbenchmark
 measures ART rather than the Native executable, while Perfetto heapprofd
 observes sampled system-allocator calls rather than per-object allocations
-served from Kotlin/Native pages. Kotlin/Native GC sweep statistics are under
-positive-control evaluation as an alternative. Do not infer a zero-allocation
-guarantee from compilation, unit tests, or coverage. The
-allocation methodology and current proof status are tracked in
-[allocation and boxing measurement](research/allocation-boxing-measurement.md);
-the proof gate remains open until each claimed target has a validated
-allocation counter, positive control, and retained environment metadata.
+served from Kotlin/Native pages. A test-only Android Native GC sweep-statistics
+probe passed physical-device positive controls and measured generated speed
+reads/writes against a primitive baseline in the debug test executable; these
+results do not establish release-optimized or universal zero-allocation
+behavior. Do not infer a zero-allocation guarantee from compilation, unit
+tests, or coverage. The allocation methodology and current proof status are
+tracked in [allocation and boxing measurement](research/allocation-boxing-measurement.md);
+release-grade per-target evidence remains open.
 
 Mutation testing is an opt-in workflow, not a CI gate. Ordinary JVM test
 runs in `:kompact:jvmTest`, `:kompact-ksp:test`,

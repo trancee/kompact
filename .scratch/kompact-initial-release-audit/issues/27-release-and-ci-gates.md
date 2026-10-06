@@ -71,11 +71,12 @@ compliant reviewed workflow.
 - Physical iOS execution is still blocked: the linked Kotlin test executable
   is unsigned and no local provisioning profile matches an available signing
   identity. Xcode-managed profile creation needs explicit Apple Developer
-  account approval. The Android Native counter-method review found no suitable
-  validated per-object counter: ART metrics do not cover Native, Perfetto
-  samples system-allocator calls, and Kotlin/Native suballocates from pages.
-  Kotlin/Native GC sweep counts are being evaluated with a positive control;
-  no device result is available yet. Per-target allocation proof remains open.
+  account approval. The Android Native GC sweep-statistics test probe now
+  passes physical positive controls and detects no swept-object delta in the
+  direct speed getter/writer loops versus a primitive baseline in the debug
+  test binary. This is bounded test/debug evidence, not release-optimized or
+  universal zero-allocation proof; release-grade Android Native and physical
+  iOS allocation evidence remain open.
 - A general documentation link/spelling/markup checker is not configured in
   the repository, so those checks remain unverified. Do not publish until
   every required gate has passing evidence.

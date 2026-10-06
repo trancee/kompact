@@ -64,14 +64,24 @@ The local Android Native link still fails at
 invokes an x86_64 `clang` on this arm64 Mac (`Bad CPU type in executable`).
 Linux CI builds the Android test binary and avoids that host limitation.
 
-No per-target allocation harness, validated counter, positive control, or
-retained allocation measurement report has been produced. The Android Native
-counter-method review rejected AndroidX Microbenchmark (ART-only) and Perfetto
-heapprofd (system-allocator sampling; Kotlin/Native suballocates from pages,
-and standalone `test.kexe` is not an eligible app on this production build).
-Retained-heap values from `GC.lastGCInfo()` are insufficient, but Kotlin 2.4.20
-also exposes per-collection sweep counts. An Android Native positive-control
-test is being prepared to validate those counts; no device result is available
-yet. Android Native allocation measurement and iOS device behavior/allocation
-evidence remain open release blockers. Do not claim zero allocations for any
-target until the required per-target evidence is retained.
+The Linux CI artifact for commit `a948f1a2f79d61a08e6869e6229ca62bf35df2d7`
+(run `37519625779`, SHA-256
+`c1e84a6f1e326b5686db9ec5352f78c51bd7ac6c8411cd1ec9dffac6d959c723`) was run
+twice on the Android 15 arm64 device (model `A063`, API 35, build
+`AQ3A.240929.001`). Both runs passed all 390 tests in 36 test cases and
+reported `keptCount=6031`, `sweptCount=2288` for the known-object positive
+control. In each run, three samples of 4,096 direct generated speed reads and
+three samples of 4,096 direct generated speed writes each reported zero
+swept-object delta, matching a zero-object primitive baseline; the
+4,096-instance allocation control reported 4,098 swept objects in every
+sample. The device runner verified the artifact checksum and removed its
+temporary files.
+
+This is bounded evidence for the direct getter/writer loops in the debug test
+binary. Kotlin/Native GC statistics are testing/debugging data, so this does
+not establish release-optimized behavior, other call shapes, a timing budget,
+or a universal zero-allocation guarantee. The Android Native release-grade
+allocation claim remains open. Physical iOS behavior and allocation evidence
+also remain open; the unsigned iOS test executable still requires a usable
+signing profile, and changing Apple Developer account provisioning remains
+deferred.

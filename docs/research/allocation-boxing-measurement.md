@@ -12,20 +12,24 @@ Use three measurement layers:
 
 1. Android acceptance measurements with AndroidX Microbenchmark 1.4.1 on a dedicated physical device. It measures timing and allocation counts and writes machine-readable JSON.
 2. Host-JVM diagnostics with kotlinx-benchmark and JMH's GC profiler. This catches JVM boxing and reports normalized allocated bytes per operation, but it does not prove Android ART behavior.
-3. Kotlin/Native iOS acceptance with a release `iosArm64` harness that executes the measured loop inside Kotlin. Measure timing without Instruments, then run a separate Xcode Instruments Allocations capture for allocation count, bytes, and call stacks. Kotlin/Native GC statistics are a leak and retained-heap check, not a per-operation allocation counter.
+3. Kotlin/Native iOS acceptance with a release `iosArm64` harness that executes the measured loop inside Kotlin. Measure timing without Instruments, then run a separate Xcode Instruments Allocations capture for allocation count, bytes, and call stacks. On Android Native, a test-only Kotlin/Native GC sweep-statistics probe now detects a known allocation control and distinguishes the measured getter/writer loops from a primitive baseline. This is bounded debug-test evidence, not a release-optimized allocation guarantee.
 
 The iOS simulator is useful for repeatable diagnostics and functional smoke runs. Physical iPhone measurements remain the acceptance evidence for latency and allocation budgets.
 
-> **Status:** this is a measurement plan, not an executed benchmark report.
-> No retained Android or iOS benchmark results or numeric performance budgets
-> are recorded here.
+> **Status:** this is a measurement plan, not an executed timing benchmark
+> report. The bounded Android Native allocation-probe result is recorded below;
+> no Android or iOS timing results or numeric performance budgets are recorded
+> here.
 
 ## Current proof status
 
-The checked caller-owned cursor and generated-holder APIs now exist, but there
-is still no committed allocation harness or retained measurement report for
-them. Compilation, functional tests, and 100% line/branch coverage do not prove
-zero per-operation allocations.
+The checked caller-owned cursor and generated-holder APIs now exist. An
+Android Native test-only probe compares direct generated speed reads and writes
+with a primitive baseline and an intentional-allocation control. Its physical
+device results are recorded below; they are limited to the exact debug test
+binary, operations, iteration count, and runtime. Compilation, functional
+tests, and 100% line/branch coverage do not prove zero per-operation
+allocations.
 
 On 2026-10-06, the available host is Apple Silicon macOS 27.0 with Xcode 27.0
 and a connected Android 15 API 35 arm64 device. Android Native behavior tests
@@ -52,20 +56,36 @@ per-operation counter for Kompact's Android Native target:
   testing/debugging. Retained-heap values alone do not count temporary objects.
   Kotlin 2.4.20's [`GCInfo`](https://github.com/JetBrains/kotlin/blob/v2.4.20/kotlin-native/runtime/src/main/kotlin/kotlin/native/runtime/GCInfo.kt)
   also exposes per-collection `sweepStatistics` with `sweptCount` and
-  `keptCount`; this is a candidate object-count signal, not yet validated for
-  measurement.
+  `keptCount`. A physical-device test detected both retained and released
+  known objects and distinguished the measured loops from a primitive
+  baseline. This testing/debugging API remains a bounded signal, not a stable
+  production allocation contract.
 - [AndroidX Microbenchmark](https://developer.android.com/topic/performance/benchmarking/microbenchmark-overview)
   reports Android runtime/ART behavior; it does not instrument the separate
   Kotlin/Native executable.
 
-An exploratory test now checks whether the Kotlin/Native GC's per-collection
-`sweptCount` and `keptCount` detect a known allocation control on the Android
-Native target. The API is explicitly intended for testing/debugging, and the
-device run has not yet validated the positive controls. Do not treat an empty
-Perfetto profile, unchanged retained heap, or successful Native device test as
-zero-allocation evidence. The Android Native allocation claim remains blocked
-until an on-device positive control validates the GC counter and the actual
-measured operations are compared against it using the same allocator settings.
+On 2026-10-06, the Linux CI artifact for commit `a948f1a2f79d61a08e6869e6229ca62bf35df2d7`
+(run `37519625779`, SHA-256
+`c1e84a6f1e326b5686db9ec5352f78c51bd7ac6c8411cd1ec9dffac6d959c723`) ran
+twice on the Android 15 arm64 device (model `A063`, API 35, build
+`AQ3A.240929.001`). Both runs passed all 390 tests in 36 test cases. Each run
+reported `keptCount=6031` and `sweptCount=2288` for the known-object probe.
+For three samples of 4,096 operations per run, direct generated `speed` reads
+and writes each reported `[0, 0, 0]` swept objects, matching the primitive
+baseline `[0, 0, 0]`; the 4,096-instance intentional-allocation control
+reported `[4098, 4098, 4098]` for both operations. The runner verified the
+artifact checksum on-device and removed its temporary files.
+
+This validates that the test binary's GC sweep statistics detect the known
+allocation controls and that these direct getter/writer loops did not produce
+a detectable swept-object delta in this debug-test environment. It does not
+establish a release-optimized result, a timing budget, behavior for other
+operations or call shapes, or a universal zero-allocation guarantee. The
+counter is explicitly testing/debugging data and may change across compiler or
+runtime versions. Do not treat an empty Perfetto profile, unchanged retained
+heap, or successful Native device test alone as zero-allocation evidence.
+Release-grade Android Native and physical iOS allocation measurements remain
+open.
 
 ## Checked variable-repeat tradeoff
 
@@ -122,11 +142,11 @@ Sources:
 - [kotlinx-benchmark guide at the reviewed revision](https://github.com/Kotlin/kotlinx-benchmark/blob/73284a133f1c3546668764a48d4b57663786d04b/README.md)
 - [JMH `GCProfiler` allocation implementation](https://github.com/openjdk/jmh/blob/a194eead0136bb66e5e59e4fdb2e18543e730929/jmh-core/src/main/java/org/openjdk/jmh/profile/GCProfiler.java)
 
-### Kotlin/Native GC sweep statistics are an unvalidated counter candidate
+### Kotlin/Native GC sweep statistics provide a bounded test-only signal
 
 Kotlin/Native uses a tracing garbage collector and a page-based allocator. `GC.collect()` and `GC.lastGCInfo()` can compare retained heap size after completed collections. The official example uses this to detect leaks. GC logs and Apple signposts expose collection behavior and pauses.
 
-The Kotlin 2.4.20 `GCInfo.sweepStatistics` contains per-pool `sweptCount` (objects freed) and `keptCount` (objects processed and retained). This could detect a batch of known short-lived allocations after a forced collection without changing the default allocator. The runtime source labels GC statistics as testing/debugging data, however, and the signal has not yet passed a physical Android positive-control run. Retained-heap values alone still cannot detect temporary allocations, and no zero-allocation claim follows from `GC.lastGCInfo()` without that validation.
+The Kotlin 2.4.20 `GCInfo.sweepStatistics` contains per-pool `sweptCount` (objects freed) and `keptCount` (objects processed and retained). On the physical Android Native test binary, this detected a batch of retained and released known objects, and three repeated 4,096-operation samples each separated the direct speed getter and writer loops (zero swept objects) from an intentional-allocation control (4,098 swept objects), with the same zero-object primitive baseline. This validates the signal only for that test binary, runtime, and workload. The runtime source labels GC statistics as testing/debugging data; it is not a stable per-operation allocation API. Retained-heap values alone still cannot detect temporary allocations, and these results do not establish release-optimized or cross-platform zero-allocation behavior.
 
 Sources:
 
