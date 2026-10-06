@@ -2,11 +2,17 @@
 # Manages the release PR lifecycle: creates or syncs a release/ongoing branch
 # and opens/updates a release PR against main. Called by release-pr.yml.
 #
-# The release/ongoing branch includes a generated CHANGELOG.md so the release
-# PR always has a meaningful diff for reviewers to check.
+# The release/ongoing branch carries the release version, changelog, and
+# synchronized consumer documentation for human review before publishing.
 set -euo pipefail
 
 RELEASE_BRANCH="release/ongoing"
+CURRENT_VERSION="$(.github/scripts/release/version-bump.sh extract-version)"
+if [[ "$CURRENT_VERSION" != *-SNAPSHOT ]]; then
+  echo "Main is at ${CURRENT_VERSION}, not a SNAPSHOT; no release candidate PR is needed."
+  exit 0
+fi
+
 VERSION="$(.github/scripts/release/version-bump.sh extract-release)"
 PR_TITLE="Release: ${VERSION}"
 
@@ -20,12 +26,16 @@ fi
 
 # Write PR body to a temp file to avoid YAML heredoc escaping issues.
 PR_BODY_FILE="$(mktemp)"
+trap 'rm -f "$PR_BODY_FILE"' EXIT
 cat > "$PR_BODY_FILE" <<EOF
 ## Release PR
 
-Accumulating changes from \`main\` for release **${VERSION}**.
+Prepares **${VERSION}** for release from the canonical candidate in
+\`build.gradle.kts\`. The release version, generated changelog, and synchronized
+consumer documentation are included in this human-reviewed PR.
 
-_Merge this PR to trigger the release pipeline (version bump + Central Portal publish)._
+_Merging this PR triggers the release gates and creates the \`v${VERSION}\` tag.
+Publishing to Maven Central requires approval through the \`release\` environment._
 
 ### Changes since last release
 
@@ -35,29 +45,37 @@ ${LOG}
 
 ### Next steps after merge
 
-1. The \`Release Publish\` workflow will run quality gates on the merged code.
-2. Version will be bumped from \`${VERSION}-SNAPSHOT\` to **${VERSION}** and tagged \`v${VERSION}\`.
-3. Artifacts will be built, signed, and deployed to Central Portal. *(requires approval)*
+1. The \`Release Publish\` workflow reruns required quality and artifact gates on the merge commit.
+2. After the gates pass, that reviewed merge commit is tagged \`v${VERSION}\`.
+3. Artifacts are built, signed, and deployed to Central Portal. *(requires approval)*
 4. After approval, the bundle is published to Maven Central.
-5. Version is bumped to the next \`-SNAPSHOT\` and the release branch is deleted.
+5. A separate PR advances the development version and documentation to the next \`-SNAPSHOT\`.
 EOF
+
+prepare_release_candidate() {
+  .github/scripts/release/version-bump.sh bump-release
+  .github/scripts/release/version-bump.sh changelog
+  python3 .github/scripts/docs/sync-version-references.py .
+  bash .github/scripts/docs/check-version-references.sh .
+}
+
+commit_release_candidate() {
+  git add CHANGELOG.md build.gradle.kts README.md SECURITY.md docs
+  if ! git diff --cached --quiet; then
+    git commit -m "chore(release): prepare ${VERSION}"
+  fi
+}
 
 if git ls-remote --heads origin "${RELEASE_BRANCH}" | grep -q "${RELEASE_BRANCH}"; then
   echo "::group::Syncing release branch with main"
-  git fetch origin "${RELEASE_BRANCH}"
-  git checkout "${RELEASE_BRANCH}"
-  # Reset to origin/main (discards stale CHANGELOG commit) then regenerate.
+  git fetch origin main "${RELEASE_BRANCH}"
+  git checkout -B "${RELEASE_BRANCH}" "origin/${RELEASE_BRANCH}"
   git reset --hard origin/main
 
-  # Generate CHANGELOG.md from Conventional Commits since the last tag.
-  # This file is committed to release/ongoing to give the PR a meaningful diff.
-  .github/scripts/release/version-bump.sh changelog
+  prepare_release_candidate
+  commit_release_candidate
 
-  # If the CHANGELOG differs from main, commit and push (force, since we
-  # reset the branch above).
-  if ! git diff --quiet; then
-    git add CHANGELOG.md
-    git commit -m "docs(release): add CHANGELOG for v${VERSION}"
+  if ! git diff --quiet origin/main...HEAD; then
     git push origin "${RELEASE_BRANCH}" --force-with-lease
   fi
 
@@ -79,31 +97,15 @@ else
   echo "::group::Creating initial release PR"
   git checkout -b "${RELEASE_BRANCH}"
 
-  # Generate CHANGELOG.md from Conventional Commits since the last tag.
-  .github/scripts/release/version-bump.sh changelog
-
-  # Guard against an empty commit (false-negative failure): after a release PR
-  # merge, GitHub auto-deletes release/ongoing and the generated CHANGELOG is
-  # already on main (released via the merge squash or the concurrent
-  # release-publish prepare job). Regenerating it yields no diff, so the
-  # unguarded `git commit` below died with "nothing to commit" under
-  # `set -euo pipefail`. Mirror the sync-branch guard: only commit + push +
-  # open a PR when there is an actual diff.
-  if ! git diff --quiet; then
-    git add CHANGELOG.md
-    git commit -m "docs(release): add CHANGELOG for v${VERSION}"
-    git push origin "${RELEASE_BRANCH}"
-    gh pr create \
-      --head "${RELEASE_BRANCH}" \
-      --base main \
-      --title "$PR_TITLE" \
-      --body-file "$PR_BODY_FILE" \
-      --label release
-    echo "Created new release PR"
-  else
-    echo "release/ongoing is identical to main; CHANGELOG already present, no release PR to create."
-  fi
+  prepare_release_candidate
+  commit_release_candidate
+  git push origin "${RELEASE_BRANCH}"
+  gh pr create \
+    --head "${RELEASE_BRANCH}" \
+    --base main \
+    --title "$PR_TITLE" \
+    --body-file "$PR_BODY_FILE" \
+    --label release
+  echo "Created new release PR"
   echo "::endgroup::"
 fi
-
-rm -f "$PR_BODY_FILE"

@@ -14,6 +14,9 @@ checks, and assembles Central Portal bundles without publishing them:
 
 ```bash
 bash .github/scripts/release/version-bump-test.sh
+bash .github/scripts/release/release-pr-test.sh
+bash .github/scripts/docs/version-docs-check-test.sh
+bash .github/scripts/docs/check-version-references.sh .
 
 ./gradlew \
   spotlessCheck \
@@ -26,10 +29,13 @@ bash .github/scripts/release/version-bump-test.sh
   :kompact-ksp:koverVerify \
   :kompact-ksp-integration:test \
   :kompact-gradle-plugin:validatePlugins \
+  :kompact-gradle-plugin:checkKotlinAbi \
+  :kompact-gradle-plugin:koverVerify \
   :kompact-gradle-plugin:test \
   --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
 ./gradlew \
+  :kompact:generateChecksums :kompact:assembleCentralBundle \
   :kompact-ksp:generateChecksums :kompact-ksp:assembleCentralBundle \
   :kompact-gradle-plugin:generateChecksums :kompact-gradle-plugin:assembleCentralBundle \
   --no-daemon --console=plain
@@ -37,9 +43,12 @@ bash .github/scripts/release/version-bump-test.sh
 
 `jvmTest` runs the runtime's common tests on the JVM. The KSP integration and
 Gradle TestKit tests compile generated consumers and exercise the code
-generation plugin. The Kover tasks enforce 100% line and branch coverage for the runtime and KSP
-modules. The Portal tasks use an ephemeral signing key in CI and
-only build bundles; they do not upload or publish artifacts.
+generation plugin. Kover enforces line and branch thresholds for the runtime,
+KSP processor, and Gradle plugin; the plugin's required threshold is 100% with
+no production exclusions. The Portal tasks use an ephemeral signing key in CI
+and only build bundles; they do not upload or publish artifacts. The release
+fixture also verifies that the managed release PR contains the stable version,
+changelog, and synchronized consumer documentation.
 
 On Linux, ABI validation checks the JVM and Android targets. The iOS klib
 golden is inferred rather than compiled; use the macOS job for the authoritative
@@ -73,9 +82,30 @@ regenerate the API pages with the Dokka task above; do not edit files under
 
 The Linux and macOS CI checks compile or validate target artifacts where the
 host toolchain permits, but they do not substitute for runtime behavior tests
-on physical iOS Arm64 or Android Native Arm64 devices. The runtime's common
-tests currently execute on the JVM; compiling generated consumers for a
-Native target is not evidence that the runtime was exercised there.
+on physical iOS Arm64 or Android Native Arm64 devices. The shared runtime suite
+executes on both the JVM and iOS Simulator in CI; simulator execution is not
+physical-device evidence.
+
+The Android JVM target is currently compiled and bundled on Linux, but CI does
+not yet run its behavioral tests on an Android host. The local
+`:kompact:androidConnectedCheck` task currently has no configured Android
+device-test work, so its success is not Android runtime evidence.
+
+The Kotlin/Native binary-link tasks are:
+
+```bash
+./gradlew :kompact:iosArm64TestBinaries
+./gradlew :kompact:androidNativeArm64TestBinaries
+```
+
+These tasks build test binaries, not device test runs. The repository does not
+yet provide a signed iOS device-test host or an Android Native device runner.
+On the inspected Apple Silicon Mac, iOS Arm64 test binaries linked, but the
+Android Native link failed because Kotlin/Native invoked an x86_64 `clang`
+toolchain (`Bad CPU type in executable`). Consequently, no physical-device
+behavior result is available yet. Both device executions remain mandatory
+release blockers until an execution procedure is implemented and the tests
+are run on the target hardware.
 
 Allocation measurements are not part of either CI job. Do not infer a
 zero-allocation guarantee from compilation, unit tests, or coverage. The
@@ -121,13 +151,25 @@ Linux commands above and, when available, the macOS commands.
 
 ## Release checks
 
-The release workflow is separate from pull-request CI. A push to `main`
-creates or updates the `release/ongoing` pull request. Merging that PR starts
-the release workflow: it calculates the version from Conventional Commits,
-generates the changelog, runs quality gates, and tags the release. Publishing
-to Maven Central requires approval through the `release` environment; after
-publication, the workflow advances the development version to the next
-snapshot.
+The release workflow is separate from pull-request CI. When `main` contains a
+development `-SNAPSHOT`, a push creates or updates a human-reviewed
+`release/ongoing` PR. That PR changes the canonical Gradle candidate to its
+stable release version and includes the generated changelog and synchronized
+consumer-document versions. Conventional Commits group changelog entries; they
+do not calculate a competing release version.
+
+After merge, the workflow validates the reviewed merge commit, reruns Linux
+quality and artifact gates, and tags that commit. Publishing to Maven Central
+requires approval through the `release` environment. Only after publication
+does automation open a separate PR for the next `-SNAPSHOT` and its updated
+development-version references. No release workflow pushes commits directly
+to protected `main`; release-version, changelog, and next-snapshot changes are
+all reviewed through PRs. See [ADR-0004](adr/0004-release-pr-automation.md).
+
+The last inspected external branch-protection configuration enabled strict
+status checks but required only the `CI` context. That configuration is outside
+this repository and has not been changed; maintainers should verify that the
+macOS and Linux CI jobs are both required before release.
 
 Before `1.0.0`, a breaking change increments the minor version. From `1.0.0`,
 it increments the major version. Features increment minor, compatible fixes

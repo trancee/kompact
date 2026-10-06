@@ -35,11 +35,19 @@ publishing platform support or making a zero-allocation claim.
 - Keep representative performance measurements reproducible and tied to the
   exact workload and environment.
 
-## Execution status (2026-10-05)
+## Execution status (2026-10-06)
 
-The caller-owned API is implemented, but this task's measurement acceptance
-criteria are not yet met. The available host is Linux; `adb devices` returned
-no connected devices, and `xcrun`/`xcodebuild` are unavailable. No target
-allocation harness or retained measurement report has been produced, and the
-Android Native Arm64 positive-control spike remains unvalidated. Do not claim
-zero allocations for any target until the required evidence is retained.
+The caller-owned API is implemented, but this task's device-execution and
+allocation-measurement acceptance criteria are not yet met. This macOS host
+has an Android 15 `arm64-v8a` device and connected iPhone 12 mini and iPhone SE
+(2020) devices. `:kompact:iosArm64TestBinaries` links successfully, but it
+produces a standalone `test.kexe`; there is no repository Gradle task or signed
+device-test host to execute it on an iPhone. The Android Native link task
+fails before producing a binary because the cached Kotlin/Native toolchain
+invokes an x86_64 `clang` on this arm64 host (`Bad CPU type in executable`).
+
+No physical-device behavior test, per-target allocation harness, positive
+control, or retained measurement report has been produced. Android Native
+device execution and its allocation-counter positive-control spike remain
+unvalidated. Do not claim zero allocations for any target until the required
+per-target evidence is retained.

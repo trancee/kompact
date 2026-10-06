@@ -5,6 +5,7 @@ import ch.trancee.kompact.ksp.testing.FakeKSAnnotation
 import ch.trancee.kompact.ksp.testing.FakeKSClassDeclaration
 import ch.trancee.kompact.ksp.testing.FakeKSPLogger
 import ch.trancee.kompact.ksp.testing.FakeKSPropertyDeclaration
+import ch.trancee.kompact.ksp.testing.FakeKSTypeReference
 import ch.trancee.kompact.ksp.testing.FakeResolver
 import ch.trancee.kompact.ksp.testing.buildModelDeclaration
 import ch.trancee.kompact.ksp.testing.createTestEnvironment
@@ -33,7 +34,7 @@ class KompactSymbolProcessorFlowTest {
     }
 
     @Test
-    fun process_modelWithNoFields_logsWarningAndSkipsFiles() {
+    fun process_modelWithNoFields_reportsErrorAndSkipsFiles() {
         val (processor, codeGen, logger) = createTestSetup()
 
         val model =
@@ -50,7 +51,7 @@ class KompactSymbolProcessorFlowTest {
 
         processor.process(resolver)
 
-        assertTrue(logger.warnings.any { it.contains("EmptyModel has no @KompactField fields") })
+        assertTrue(logger.errors.any { it.contains("EmptyModel has no @KompactField fields") })
         assertTrue(codeGen.generatedFiles.isEmpty())
     }
 
@@ -113,6 +114,55 @@ class KompactSymbolProcessorFlowTest {
             "deterministic layout error must not use the transient-error prefix",
         )
         assertTrue(codeGen.generatedFiles.isEmpty())
+    }
+
+    @Test
+    fun process_modelWithMultipleInvalidFieldsReportsEachIssueWithoutOutput() {
+        val (processor, codeGen, logger) = createTestSetup()
+        val model =
+            buildModelDeclaration(
+                className = "MultipleInvalidFields",
+                packageName = "ch.trancee.test",
+                fields =
+                    listOf(
+                        Triple("first", "Int", -1 to 8),
+                        Triple("second", "Int", -2 to 8),
+                    ),
+            )
+
+        processor.process(FakeResolver(listOf(model)))
+
+        val diagnostic = logger.errors.single()
+        assertTrue(diagnostic.contains("first"), diagnostic)
+        assertTrue(diagnostic.contains("second"), diagnostic)
+        assertTrue(codeGen.generatedFiles.isEmpty())
+    }
+
+    @Test
+    fun process_invalidModelDoesNotPreventIndependentValidModelGeneration() {
+        val (processor, codeGen, logger) = createTestSetup()
+        val invalidModel =
+            buildModelDeclaration(
+                className = "InvalidModel",
+                packageName = "ch.trancee.test",
+                fields =
+                    listOf(
+                        Triple("first", "Int", 0 to 16),
+                        Triple("overlapping", "Int", 8 to 4),
+                    ),
+            )
+        val validModel =
+            buildModelDeclaration(
+                className = "ValidModel",
+                packageName = "ch.trancee.test",
+                fields = listOf(Triple("value", "Int", 0 to 16)),
+            )
+
+        processor.process(FakeResolver(listOf(invalidModel, validModel)))
+
+        assertTrue(logger.errors.any { it.contains("InvalidModel") })
+        assertTrue(codeGen.generatedFiles.keys.none { it.contains("InvalidModel") })
+        assertTrue(codeGen.generatedFiles.keys.any { it == "ch.trancee.test.ValidModelGen.kt" })
     }
 
     @Test
@@ -313,7 +363,7 @@ class KompactSymbolProcessorFlowTest {
     }
 
     @Test
-    fun process_whenWriteFileThrows_defersSymbol() {
+    fun process_whenWriteFileThrows_reportsErrorWithoutDeferral() {
         val (processor, _, logger) = createTestSetup(codeGen = FakeCodeGenerator(throwOnWrite = true))
 
         val model =
@@ -324,14 +374,14 @@ class KompactSymbolProcessorFlowTest {
             )
         val resolver = FakeResolver(listOf(model))
 
-        // The symbol should be deferred (returned) so KSP can retry
+        // A write failure is not an unresolved symbol and must not be retried.
         val result = processor.process(resolver)
-        assertEquals(1, result.size)
+        assertEquals(0, result.size)
         assertTrue(logger.errors.any { it.contains("failed to process") })
     }
 
     @Test
-    fun process_modelWithOnlyUnannotatedProperties_logsWarning() {
+    fun process_modelWithOnlyUnannotatedProperties_reportsError() {
         val (processor, codeGen, logger) = createTestSetup()
 
         val model =
@@ -360,7 +410,7 @@ class KompactSymbolProcessorFlowTest {
 
         processor.process(resolver)
 
-        assertTrue(logger.warnings.any { it.contains("has no @KompactField fields") })
+        assertTrue(logger.errors.any { it.contains("has no @KompactField fields") })
         assertTrue(codeGen.generatedFiles.isEmpty())
     }
 
@@ -400,6 +450,40 @@ class KompactSymbolProcessorFlowTest {
 
         assertEquals(1, result.size)
         assertSame(model, result[0])
+        assertTrue(codeGen.generatedFiles.isEmpty())
+    }
+
+    @Test
+    fun process_modelWithUnresolvedFieldType_defersModelWithoutDiagnostic() {
+        val (processor, codeGen, logger) = createTestSetup()
+        val model =
+            FakeKSClassDeclaration(
+                simpleNameStr = "UnresolvedModel",
+                packageNameStr = "ch.trancee.test",
+                properties =
+                    listOf(
+                        FakeKSPropertyDeclaration(
+                            simpleNameStr = "field",
+                            packageNameStr = "ch.trancee.test",
+                            typeStr = "MissingType",
+                            typeReference = FakeKSTypeReference("MissingType", errorType = true),
+                            declAnnotations =
+                                listOf(
+                                    FakeKSAnnotation(
+                                        "ch.trancee.kompact.annotations.KompactField",
+                                        mapOf("bitOffset" to 0, "bitWidth" to 8),
+                                    ),
+                                ),
+                        ),
+                    ),
+                declAnnotations =
+                    listOf(FakeKSAnnotation("ch.trancee.kompact.annotations.KompactModel")),
+            )
+
+        val deferred = processor.process(FakeResolver(listOf(model)))
+
+        assertEquals(listOf(model), deferred)
+        assertTrue(logger.errors.isEmpty())
         assertTrue(codeGen.generatedFiles.isEmpty())
     }
 

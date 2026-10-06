@@ -1,3 +1,7 @@
+@file:OptIn(org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class)
+
+import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
+import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.api.publish.maven.MavenPublication
 
@@ -23,6 +27,8 @@ kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
     }
+
+    abiValidation {}
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -33,6 +39,9 @@ tasks.withType<JavaCompile>().configureEach {
 dependencies {
     implementation("com.google.devtools.ksp:symbol-processing-common-deps:$kspVersion")
     testImplementation(gradleTestKit())
+    testImplementation(project(":kompact-ksp"))
+    testImplementation("com.google.devtools.ksp:symbol-processing-api:$kspVersion")
+    testImplementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     testImplementation(libs.kotlinTestJupiter) {
         exclude(group = "org.junit.jupiter")
         exclude(group = "org.junit.platform")
@@ -90,4 +99,19 @@ publishing {
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     systemProperty("kompact.repository.root", rootProject.projectDir.absolutePath)
+}
+
+apply(plugin = "org.jetbrains.kotlinx.kover")
+
+extensions.configure<KoverProjectExtension>("kover") {
+    reports {
+        total {
+            xml { onCheck.set(true) }
+            html { onCheck.set(false) }
+        }
+        verify {
+            rule { minBound(100, CoverageUnit.LINE) }
+            rule { minBound(100, CoverageUnit.BRANCH) }
+        }
+    }
 }

@@ -8,8 +8,8 @@ Can Kompact process each `commonMain` schema once, generate Kotlin consumed by A
 
 The standard KSP Gradle integration does not provide that contract. Its documented KMP model creates a processing task for every configured compilation, so target configurations process shared sources repeatedly. `kspCommonMainMetadata` exists, but common generated-source wiring remains an open upstream problem and depends on fragile manual task relationships.
 
-Kompact's published code-generation plugin (`0.6.1`; this checkout is
-`0.7.0-SNAPSHOT`) addresses common Kotlin generation with the separate
+Kompact's published code-generation plugin (`0.7.0`; this checkout is
+`0.8.0-SNAPSHOT`) addresses common Kotlin generation with the separate
 `:kompact-gradle-plugin`. Its cacheable task invokes KSP2's `KSPCommonConfig`
 path once, routes common and platform Kotlin outputs, and registers them
 through task-backed source directories. The plugin implementation and marker
@@ -19,6 +19,23 @@ not also apply standard target-specific KSP processing to the same Kompact
 schemas.
 
 ## Verified facts
+
+### Supported Kotlin and KSP compatibility pair
+
+The repository's consumer TestKit fixture exercises Kotlin Gradle Plugin
+`2.4.20` with the bundled KSP2 engine `2.3.12`. That exact pair is the
+supported integration contract; other versions remain unsupported until added
+to and passed by the fixture. The Gradle plugin checks the Kotlin Gradle
+Plugin's implementation version during configuration and reports the tested
+pair when it detects a mismatch. Before generation, the task also checks the
+bundled KSP2 `KSPLoader.loadAndRunKSP(byte[], List, int)` entry point. A missing
+or incompatible entry point fails the task with the pair, the broken seam, and
+the reflection cause.
+
+The processor fails empty annotated models and resolved invalid fields,
+defers genuinely unresolved field types, and continues processing independent
+valid models. An invalid model does not produce generated files. Properties
+without `@KompactField` remain intentionally outside the wire schema.
 
 ### Standard KMP processing is per compilation
 

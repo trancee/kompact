@@ -39,3 +39,22 @@ compliant reviewed workflow.
   release PR; publish only after those updates and every required gate pass.
 - Run a clean-checkout CI-equivalent verification and record any external
   prerequisite that cannot be verified from the repository.
+
+## Latest verification
+
+- The Gradle-plugin test suite passes, but
+  `:kompact-gradle-plugin:koverVerify` still fails its required threshold:
+  96.4143% line coverage and 86.4583% branch coverage versus 100% for each.
+  Production plugin code has no coverage exclusions.
+- `spotlessCheck`, Dokka Markdown generation, workflow linting, release-script
+  fixtures, documentation-version checks, and `git diff --check` pass.
+- The inspected CI/Gradle configuration has no relative-link or spelling/markup
+  checker; those documentation checks have not been verified.
+- Android main compilation/bundling is configured, but no Android JVM
+  behavioral test runs in CI. A forced `:kompact:androidConnectedCheck`
+  completed without executing device-test work.
+- Physical iOS/Android Native execution and allocation evidence remain open
+  release blockers as recorded in [platform proof](25-platform-proof.md).
+- A clean-checkout CI-equivalent run and the final external branch-protection
+  configuration have not been verified. Do not publish until every required
+  gate has passing evidence.

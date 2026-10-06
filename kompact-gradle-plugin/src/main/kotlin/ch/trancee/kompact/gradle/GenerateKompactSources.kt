@@ -49,6 +49,12 @@ internal abstract class GenerateKompactSources : DefaultTask() {
     abstract val moduleName: Property<String>
 
     @get:Input
+    abstract val kotlinPluginVersion: Property<String>
+
+    @get:Input
+    abstract val kspVersion: Property<String>
+
+    @get:Input
     abstract val processorOptions: MapProperty<String, String>
 
     @get:Input
@@ -147,10 +153,23 @@ internal abstract class GenerateKompactSources : DefaultTask() {
                                 Int::class.java,
                             ).invoke(null, configBytes, providers, logLevel.get()) as Int
                     } catch (failure: InvocationTargetException) {
-                        throw GradleException("KSP2 failed while processing commonMain schemas.", failure.targetException)
+                        throw GradleException(
+                            "KSP2 failed while processing commonMain schemas with Kotlin Gradle Plugin " +
+                                "${kotlinPluginVersion.get()} and KSP ${kspVersion.get()}.",
+                            failure.targetException,
+                        )
                     } catch (failure: ReflectiveOperationException) {
                         throw GradleException(
-                            "The configured KSP version does not expose the expected KSP2 programmatic entry point.",
+                            "Kompact supports only the tested Kotlin Gradle Plugin ${kotlinPluginVersion.get()} " +
+                                "and KSP ${kspVersion.get()} pair, but the KSP2 integration seam " +
+                                "$KSP_LOADER_CLASS.loadAndRunKSP(byte[], List, int) is unavailable or incompatible.",
+                            failure,
+                        )
+                    } catch (failure: ClassCastException) {
+                        throw GradleException(
+                            "Kompact supports only the tested Kotlin Gradle Plugin ${kotlinPluginVersion.get()} " +
+                                "and KSP ${kspVersion.get()} pair, but the KSP2 integration seam " +
+                                "$KSP_LOADER_CLASS.loadAndRunKSP(byte[], List, int) returned an incompatible type.",
                             failure,
                         )
                     }
@@ -161,7 +180,7 @@ internal abstract class GenerateKompactSources : DefaultTask() {
         }
     }
 
-    private fun routeGeneratedSources(
+    internal fun routeGeneratedSources(
         kotlinOutput: File,
         outputRoot: File,
     ) {
@@ -179,7 +198,7 @@ internal abstract class GenerateKompactSources : DefaultTask() {
             }
     }
 
-    private fun sourceSetFor(file: File): String =
+    internal fun sourceSetFor(file: File): String =
         when {
             file.name.endsWith("GenJvm.kt") -> "jvm"
             file.name.endsWith("GenIos.kt") -> "ios"

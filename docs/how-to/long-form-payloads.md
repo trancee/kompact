@@ -5,7 +5,7 @@ arrays, nested records, or repeated values. This guide uses the low-level
 runtime API; for generated properties, see
 [How to define a framed schema](define-framed-schema.md).
 
-The `KompactFrame` reader used below is included in the published `0.6.1`
+The `KompactFrame` reader used below is included in the published `0.7.0`
 release. Follow [Consume Kompact](consume-from-another-project.md) to add the
 runtime dependency.
 
@@ -135,7 +135,7 @@ copies into storage you supply; it does not allocate a destination. For
 generated reusable holders, nested payloads, and repeated-field workspaces,
 see the [caller-owned codec API reference](../api-reference.md). The
 caller-owned cursor API is available in this checkout and is not included in
-the published `0.6.1` artifact. These APIs have not yet been verified for
+the published `0.7.0` artifact. These APIs have not yet been verified for
 cross-platform allocation behavior; do not infer an allocation guarantee from
 this example.
 

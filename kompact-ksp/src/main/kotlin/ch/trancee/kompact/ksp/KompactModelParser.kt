@@ -13,6 +13,8 @@ import com.google.devtools.ksp.symbol.KSType
 internal const val KOMPAT_MODEL_FQN = "ch.trancee.kompact.annotations.KompactModel"
 private const val KOMPAT_FIELD_FQN = "ch.trancee.kompact.annotations.KompactField"
 
+internal class UnresolvedKompactSymbolException(message: String) : RuntimeException(message)
+
 @OptIn(KspExperimental::class)
 internal object KompactModelParser {
     fun parse(declaration: KSClassDeclaration): ModelSpec {
@@ -114,7 +116,9 @@ internal object KompactModelParser {
         resolved: KSType,
         isNested: Boolean,
     ): KompactFieldType {
-        require(!resolved.isError) { "Field type could not be resolved" }
+        if (resolved.isError) {
+            throw UnresolvedKompactSymbolException("Field type could not be resolved")
+        }
         require(!resolved.isMarkedNullable) { "Nullable field types are not supported" }
         val declaration = resolved.declaration
         val typeName = (declaration.qualifiedName ?: declaration.simpleName).asString()

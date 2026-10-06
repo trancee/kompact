@@ -184,8 +184,7 @@ class KompactSymbolProcessorParsingTest {
 
         processor.process(resolver)
 
-        // Null qualifiedName => firstOrNull doesn't match => parseField returns null
-        assertTrue(logger.warnings.any { it.contains("has no @KompactField fields") })
+        assertTrue(logger.errors.any { it.contains("has no @KompactField fields") })
         assertTrue(codeGen.generatedFiles.isEmpty())
     }
 

@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
 
 class VehicleTelemetryTest {
     // PROMPT §3 layout (LSB-first, 16 bits):
@@ -57,6 +58,18 @@ class VehicleTelemetryTest {
         assertEquals(5, batteryStatus)
         assertEquals(10, speed)
         assertEquals(true, isMalfunctioning)
+    }
+
+    @Test
+    fun fixedLayoutViewEqualityUsesBackingArrayIdentity() {
+        val raw = byteArrayOf(0xA5.toByte(), 0x40.toByte())
+        val first = VehicleTelemetry(raw)
+        val sameBackingArray = VehicleTelemetry(raw)
+        val equalBytes = VehicleTelemetry(raw.copyOf())
+
+        assertEquals(first, sameBackingArray)
+        assertEquals(first.hashCode(), sameBackingArray.hashCode())
+        assertNotEquals(first, equalBytes)
     }
 
     @Test

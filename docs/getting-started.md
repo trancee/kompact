@@ -19,7 +19,7 @@ For these values, the frame is `[0xA5, 0x40]`.
 ## Before you start
 
 The runtime is available from Maven Central as
-`ch.trancee.kompact:kompact:0.6.1`. Add it to your project and follow the
+`ch.trancee.kompact:kompact:0.7.0`. Add it to your project and follow the
 [consumer setup guide](how-to/consume-from-another-project.md) if you need
 Gradle configuration. No KSP processor or code-generation plugin is needed
 for this tutorial.

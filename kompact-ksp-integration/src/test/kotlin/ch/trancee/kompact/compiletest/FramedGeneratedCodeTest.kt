@@ -6,6 +6,7 @@ import ch.trancee.kompact.runtime.KompactDecodeError
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertSame
 
 class FramedGeneratedCodeTest {
@@ -42,5 +43,26 @@ class FramedGeneratedCodeTest {
         assertEquals(42, decoded.children[0].value)
         assertEquals("updated", decoded.copy(title = "updated").title)
         assertEquals(KompactDecodeError.BoundsError, PacketSchemaView.decode(byteArrayOf()).error)
+    }
+
+    @Test
+    fun framedViewEqualityUsesInstanceIdentity() {
+        val view =
+            PacketSchemaView.create(
+                id = 7,
+                title = "sensor",
+                payload = byteArrayOf(4, 5),
+                child = PayloadSchemaView.create(42),
+                samples = listOf(10),
+                titles = listOf("one"),
+                blobs = listOf(byteArrayOf(1)),
+                children = listOf(PayloadSchemaView.create(42)),
+            )
+        val first = PacketSchemaView.decode(view.raw).getOrThrow()
+        val second = PacketSchemaView.decode(view.raw).getOrThrow()
+
+        assertEquals(first, first)
+        assertNotEquals(first, second)
+        assertEquals(first.hashCode(), first.hashCode())
     }
 }

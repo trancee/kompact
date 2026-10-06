@@ -36,6 +36,17 @@ assert_release_version() {
   fi
 
   local actual_version
+  local actual_current_version
+  actual_current_version="$(
+    cd "$repository"
+    .github/scripts/release/version-bump.sh extract-version
+  )"
+  if [ "$actual_current_version" != "$snapshot_version" ]; then
+    printf 'FAIL %s: expected current version %s, got %s\n' \
+      "$name" "$snapshot_version" "$actual_current_version" >&2
+    return 1
+  fi
+
   actual_version="$(
     cd "$repository"
     .github/scripts/release/version-bump.sh extract-release
@@ -85,3 +96,25 @@ assert_release_version \
   "0.3.1-SNAPSHOT" \
   "fix: reject truncated prefix" \
   "0.3.1"
+
+assert_release_version \
+  "first-supported-release-candidate" \
+  "0.7.0" \
+  "0.8.0-SNAPSHOT" \
+  "fix: reject truncated prefix" \
+  "0.8.0"
+
+NEXT_SNAPSHOT_FIXTURE="$TEST_ROOT/next-snapshot"
+mkdir -p "$NEXT_SNAPSHOT_FIXTURE"
+printf 'allprojects {\n    version = "0.8.0"\n}\n' \
+  > "$NEXT_SNAPSHOT_FIXTURE/build.gradle.kts"
+actual_next_snapshot="$(
+  cd "$NEXT_SNAPSHOT_FIXTURE"
+  "$REPOSITORY_ROOT/.github/scripts/release/version-bump.sh" extract-next-snap
+)"
+if [ "$actual_next_snapshot" != "0.9.0-SNAPSHOT" ]; then
+  printf 'FAIL next snapshot: expected 0.9.0-SNAPSHOT, got %s\n' \
+    "$actual_next_snapshot" >&2
+  exit 1
+fi
+printf 'PASS next snapshot: %s\n' "$actual_next_snapshot"
