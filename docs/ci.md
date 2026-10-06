@@ -133,12 +133,18 @@ On 2026-10-06, the Linux CI artifact from commit `f3bb4ae` (run
 artifact SHA-256 was
 `d32408f65a719d58ca5fd20cf3bdff2b0f6a71dec144c1d173fb957d02e9d31e`.
 
-On the inspected Apple Silicon Mac, iOS Arm64 test binaries link, but no
-signed iOS device-test host or procedure is configured to execute them on an
-iPhone. The local Android Native link still fails because Kotlin/Native
-invokes an x86_64 `clang` toolchain (`Bad CPU type in executable`); Linux CI
-builds the Android device binary instead. Physical iOS behavior execution
-remains a release blocker.
+On the inspected Apple Silicon Mac, iOS Arm64 test binaries link, but
+`test.kexe` is an unsigned standalone executable, not an installable app.
+Although physical iPhones are connected, neither local provisioning profile
+has a developer certificate matching an available signing identity; the
+profile that includes the selected device therefore cannot sign a test host.
+Xcode-managed provisioning would require explicit approval before changing the
+Apple Developer account. No signed iOS device-test host or execution procedure
+has been validated, so physical iOS behavior remains a release blocker.
+
+The local Android Native link still fails because Kotlin/Native invokes an
+x86_64 `clang` toolchain (`Bad CPU type in executable`); Linux CI builds the
+Android device binary instead.
 
 Allocation measurements are not part of either CI job. Do not infer a
 zero-allocation guarantee from compilation, unit tests, or coverage. The

@@ -68,7 +68,10 @@ compliant reviewed workflow.
 - On 2026-10-06, `main` branch protection was verified in strict mode and
   updated to require exactly `JVM tests + Android assemble + Portal dry-run
   (Linux)` and `ABI + iOS Simulator tests + Markdown + spotless (macOS)`.
+- Physical iOS execution is still blocked: the linked Kotlin test executable
+  is unsigned and no local provisioning profile matches an available signing
+  identity. Xcode-managed profile creation needs explicit Apple Developer
+  account approval. Per-target allocation proof also remains open.
 - A general documentation link/spelling/markup checker is not configured in
-  the repository, so those checks remain unverified. Physical iOS execution
-  and per-target allocation proof remain open release blockers; do not publish
-  until every required gate has passing evidence.
+  the repository, so those checks remain unverified. Do not publish until
+  every required gate has passing evidence.

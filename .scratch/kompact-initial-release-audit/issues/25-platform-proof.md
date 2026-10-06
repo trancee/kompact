@@ -51,9 +51,15 @@ download-and-run procedure now provides reproducible Android Native behavior
 evidence.
 
 Physical iOS behavior remains unverified. `:kompact:iosArm64TestBinaries`
-links successfully but produces a standalone `test.kexe`; there is no
-repository Gradle device-test task or signed iOS test host to execute it on an
-iPhone. The local Android Native link still fails at
+links successfully but produces an unsigned standalone `test.kexe`, not an
+installable app. The connected iPhones are ready, but neither local
+provisioning profile contains a developer certificate matching an available
+signing identity; the profile that includes a connected device cannot sign a
+test host with the available identity. Using Xcode-managed provisioning would
+require approval before making changes to the Apple Developer account. No
+signed iOS device-test host or execution procedure has been validated.
+
+The local Android Native link still fails at
 `linkDebugTestAndroidNativeArm64` because the cached Kotlin/Native toolchain
 invokes an x86_64 `clang` on this arm64 Mac (`Bad CPU type in executable`).
 Linux CI builds the Android test binary and avoids that host limitation.
