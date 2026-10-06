@@ -10,28 +10,38 @@ private class AllocationProbe(val value: Int)
 
 private var retainedAllocationProbes: List<AllocationProbe>? = null
 
+private fun retainAllocationProbes(count: Int) {
+    retainedAllocationProbes = List(count, ::AllocationProbe)
+}
+
+private fun lastRetainedAllocationProbeValue(): Int =
+    requireNotNull(retainedAllocationProbes).last().value
+
+private fun releaseAllocationProbes() {
+    retainedAllocationProbes = null
+}
+
 @OptIn(NativeRuntimeApi::class, ExperimentalStdlibApi::class)
 class NativeAllocationCounterProbeTest {
     @Test
     fun garbageCollectorSweepStatisticsObserveKnownAllocations() {
         val allocationCount = 2_048
 
-        retainedAllocationProbes = List(allocationCount, ::AllocationProbe)
-        assertEquals(allocationCount - 1, requireNotNull(retainedAllocationProbes).last().value)
+        retainAllocationProbes(allocationCount)
+        assertEquals(allocationCount - 1, lastRetainedAllocationProbeValue())
         GC.collect()
         val retainedStatistics = requireNotNull(GC.lastGCInfo).sweepStatistics
         val keptCount = retainedStatistics.values.sumOf { it.keptCount }
-        println("Native allocation probe: keptCount=$keptCount; pools=$retainedStatistics")
         assertTrue(
             keptCount >= allocationCount,
             "Expected GC statistics to retain at least $allocationCount control objects, found $retainedStatistics",
         )
 
-        retainedAllocationProbes = null
+        releaseAllocationProbes()
         GC.collect()
         val releasedStatistics = requireNotNull(GC.lastGCInfo).sweepStatistics
         val sweptCount = releasedStatistics.values.sumOf { it.sweptCount }
-        println("Native allocation probe: sweptCount=$sweptCount; pools=$releasedStatistics")
+        println("Native allocation probe: keptCount=$keptCount; sweptCount=$sweptCount")
         assertTrue(
             sweptCount >= allocationCount,
             "Expected GC statistics to sweep at least $allocationCount control objects, found $releasedStatistics",
