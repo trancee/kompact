@@ -49,20 +49,23 @@ per-operation counter for Kompact's Android Native target:
   executable run as the ADB shell user, not such an app.
 - Kotlin/Native [`GC.lastGCInfo()`](https://kotlinlang.org/docs/native-memory-manager.html#check-for-memory-leaks)
   reports statistics from the last completed collection and is intended for
-  testing/debugging and leak checks. It does not count temporary objects
-  allocated and collected between observations.
+  testing/debugging. Retained-heap values alone do not count temporary objects.
+  Kotlin 2.4.20's [`GCInfo`](https://github.com/JetBrains/kotlin/blob/v2.4.20/kotlin-native/runtime/src/main/kotlin/kotlin/native/runtime/GCInfo.kt)
+  also exposes per-collection `sweepStatistics` with `sweptCount` and
+  `keptCount`; this is a candidate object-count signal, not yet validated for
+  measurement.
 - [AndroidX Microbenchmark](https://developer.android.com/topic/performance/benchmarking/microbenchmark-overview)
   reports Android runtime/ART behavior; it does not instrument the separate
   Kotlin/Native executable.
 
-This is a tool-eligibility and allocator mismatch assessment; no allocation
-profile or positive-control run was performed. None of these candidate methods
-has passed the required positive-control validation for individual
-Kotlin/Native object allocations. Do not treat an empty profile, unchanged
-retained heap, or successful Native device test as zero-allocation evidence.
-The Android Native allocation claim remains blocked until a counter observes
-per-object allocations in the same allocator configuration used by the
-measured target and reliably detects the intentional allocation control.
+An exploratory test now checks whether the Kotlin/Native GC's per-collection
+`sweptCount` and `keptCount` detect a known allocation control on the Android
+Native target. The API is explicitly intended for testing/debugging, and the
+device run has not yet validated the positive controls. Do not treat an empty
+Perfetto profile, unchanged retained heap, or successful Native device test as
+zero-allocation evidence. The Android Native allocation claim remains blocked
+until an on-device positive control validates the GC counter and the actual
+measured operations are compared against it using the same allocator settings.
 
 ## Checked variable-repeat tradeoff
 
@@ -119,13 +122,16 @@ Sources:
 - [kotlinx-benchmark guide at the reviewed revision](https://github.com/Kotlin/kotlinx-benchmark/blob/73284a133f1c3546668764a48d4b57663786d04b/README.md)
 - [JMH `GCProfiler` allocation implementation](https://github.com/openjdk/jmh/blob/a194eead0136bb66e5e59e4fdb2e18543e730929/jmh-core/src/main/java/org/openjdk/jmh/profile/GCProfiler.java)
 
-### Kotlin/Native exposes retained-heap and GC data, not an operation counter
+### Kotlin/Native GC sweep statistics are an unvalidated counter candidate
 
 Kotlin/Native uses a tracing garbage collector and a page-based allocator. `GC.collect()` and `GC.lastGCInfo()` can compare retained heap size after completed collections. The official example uses this to detect leaks. GC logs and Apple signposts expose collection behavior and pauses.
 
-These metrics do not count every allocation performed by a benchmark operation. A temporary object can be allocated and collected while leaving the same retained heap size. `GC.lastGCInfo()` is therefore a secondary leak check, not proof that a getter allocated zero objects.
+The Kotlin 2.4.20 `GCInfo.sweepStatistics` contains per-pool `sweptCount` (objects freed) and `keptCount` (objects processed and retained). This could detect a batch of known short-lived allocations after a forced collection without changing the default allocator. The runtime source labels GC statistics as testing/debugging data, however, and the signal has not yet passed a physical Android positive-control run. Retained-heap values alone still cannot detect temporary allocations, and no zero-allocation claim follows from `GC.lastGCInfo()` without that validation.
 
-Source: [Kotlin/Native memory management](https://kotlinlang.org/docs/native-memory-manager.html)
+Sources:
+
+- [Kotlin/Native memory management](https://kotlinlang.org/docs/native-memory-manager.html)
+- [Kotlin 2.4.20 `GCInfo` runtime source](https://github.com/JetBrains/kotlin/blob/v2.4.20/kotlin-native/runtime/src/main/kotlin/kotlin/native/runtime/GCInfo.kt)
 
 ### Apple Instruments supplies the missing allocation trace
 

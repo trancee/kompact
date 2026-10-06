@@ -69,9 +69,9 @@ retained allocation measurement report has been produced. The Android Native
 counter-method review rejected AndroidX Microbenchmark (ART-only) and Perfetto
 heapprofd (system-allocator sampling; Kotlin/Native suballocates from pages,
 and standalone `test.kexe` is not an eligible app on this production build).
-`GC.lastGCInfo()` only reports retained heap after collection. No allocation
-profile or positive-control run was performed; none of these methods has
-passed per-object validation. Android Native allocation measurement and iOS
-device behavior/allocation evidence remain open release blockers. Do not claim
-zero allocations for any target until the required per-target evidence is
-retained.
+Retained-heap values from `GC.lastGCInfo()` are insufficient, but Kotlin 2.4.20
+also exposes per-collection sweep counts. An Android Native positive-control
+test is being prepared to validate those counts; no device result is available
+yet. Android Native allocation measurement and iOS device behavior/allocation
+evidence remain open release blockers. Do not claim zero allocations for any
+target until the required per-target evidence is retained.
