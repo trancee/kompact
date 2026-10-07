@@ -290,7 +290,7 @@ public class KompactCursor(
         if (bitWidth !in 1..64) {
             return fail(STATUS_INVALID_WIDTH, position, bitWidth)
         }
-        if (bitWidth < 64 && value shr bitWidth != 0uL) {
+        if (bitWidth < 64 && value.toLong() ushr bitWidth != 0L) {
             return fail(STATUS_INVALID_VALUE, position, bitWidth)
         }
         clearError()
@@ -305,7 +305,7 @@ public class KompactCursor(
         if (bitWidth !in 1..64) {
             return fail(STATUS_INVALID_WIDTH, position, bitWidth)
         }
-        if (bitWidth < 64 && value shr bitWidth != 0uL) {
+        if (bitWidth < 64 && value.toLong() ushr bitWidth != 0L) {
             return fail(STATUS_INVALID_VALUE, position, bitWidth)
         }
         clearError()

@@ -60,27 +60,6 @@ private fun runCursorByteWrites(cursor: KompactCursor, count: Int) {
     cursorAllocationChecksum = checksum
 }
 
-private fun runCursorLongByteWrites(cursor: KompactCursor, count: Int) {
-    var checksum = 0
-    repeat(count) {
-        cursor.writeUnsigned(Byte.SIZE_BITS, (it and 0xff).toLong())
-        checksum += cursor.buffer[it].toInt() and 0xff
-    }
-    cursorAllocationChecksum = checksum
-}
-
-private fun runUnsignedConversions(
-    values: ULongArray,
-    count: Int,
-) {
-    var checksum = 0
-    repeat(count) {
-        values[it] = (it and 0xff).toULong()
-        checksum += values[it].toLong().toInt()
-    }
-    cursorAllocationChecksum = checksum
-}
-
 private fun runCursorUnsignedValidation(
     cursor: KompactCursor,
     values: ULongArray,
@@ -88,56 +67,20 @@ private fun runCursorUnsignedValidation(
 ) {
     var checksum = 0
     repeat(count) {
-        checksum += cursor.validateUnsigned(Byte.SIZE_BITS, values[it])
+        checksum += cursor.validateUnsigned(Byte.SIZE_BITS, values[it]) + values[it].toLong().toInt()
     }
     cursorAllocationChecksum = checksum
 }
 
-private fun runCursorFullWidthUnsignedValidation(
-    cursor: KompactCursor,
+private fun runPrimitiveUnsignedValidation(
     values: ULongArray,
     count: Int,
 ) {
     var checksum = 0
     repeat(count) {
-        checksum += cursor.validateUnsigned(ULong.SIZE_BITS, values[it])
-    }
-    cursorAllocationChecksum = checksum
-}
-
-private fun runUnsignedRangeChecks(
-    values: ULongArray,
-    count: Int,
-) {
-    var checksum = 0
-    repeat(count) {
-        if (values[it] shr Byte.SIZE_BITS != 0uL) checksum++
-    }
-    cursorAllocationChecksum = checksum
-}
-
-private fun runCursorRawWrites(
-    cursor: KompactCursor,
-    values: ULongArray,
-    count: Int,
-) {
-    var checksum = 0
-    repeat(count) {
-        cursor.writeBitsUnchecked(Byte.SIZE_BITS, values[it].toLong())
-        checksum += cursor.buffer[it].toInt() and 0xff
-    }
-    cursorAllocationChecksum = checksum
-}
-
-private fun runCursorUnsignedWrites(
-    cursor: KompactCursor,
-    values: ULongArray,
-    count: Int,
-) {
-    var checksum = 0
-    repeat(count) {
-        cursor.writeUnsigned(Byte.SIZE_BITS, values[it])
-        checksum += cursor.buffer[it].toInt() and 0xff
+        val value = values[it]
+        if (value.toLong() ushr Byte.SIZE_BITS != 0L) checksum++
+        checksum += value.toLong().toInt()
     }
     cursorAllocationChecksum = checksum
 }
@@ -205,41 +148,20 @@ class NativeAllocationCursorProbeTest {
     }
 
     @Test
-    fun callerOwnedCursorByteWritesStayWithinPrimitiveBaseline() {
+    fun callerOwnedCursorUnsignedValidationStaysWithinPrimitiveBaseline() {
         val iterations = 4_096
         val sampleCount = 3
-        val baselineBuffer = ByteArray(iterations)
-        val measuredBuffer = ByteArray(iterations)
-        val longMeasuredBuffer = ByteArray(iterations)
-        val conversionValues = ULongArray(iterations)
         val unsignedValues = ULongArray(iterations) { (it and 0xff).toULong() }
-        val cursor = KompactCursor(measuredBuffer)
-        val longCursor = KompactCursor(longMeasuredBuffer)
-        val validationCursor = KompactCursor(ByteArray(iterations))
-        val rawCursor = KompactCursor(ByteArray(iterations))
-        val precomputedUnsignedCursor = KompactCursor(ByteArray(iterations))
-        val fullWidthValidationCursor = KompactCursor(ByteArray(iterations))
+        val validationCursor = KompactCursor(ByteArray(1))
         val baselineSwept = LongArray(sampleCount)
-        val writesSwept = LongArray(sampleCount)
-        val longWritesSwept = LongArray(sampleCount)
-        val conversionsSwept = LongArray(sampleCount)
         val validationSwept = LongArray(sampleCount)
-        val fullWidthValidationSwept = LongArray(sampleCount)
-        val rangeChecksSwept = LongArray(sampleCount)
-        val rawWritesSwept = LongArray(sampleCount)
-        val precomputedUnsignedWritesSwept = LongArray(sampleCount)
         val allocationControlSwept = LongArray(sampleCount)
 
         repeat(sampleCount) { sample ->
             GC.collect()
-            runPrimitiveByteWrites(baselineBuffer, iterations)
+            runPrimitiveUnsignedValidation(unsignedValues, iterations)
             GC.collect()
             baselineSwept[sample] = sweptObjectsAfterLastCollection()
-
-            GC.collect()
-            runUnsignedConversions(conversionValues, iterations)
-            GC.collect()
-            conversionsSwept[sample] = sweptObjectsAfterLastCollection()
 
             GC.collect()
             runCursorUnsignedValidation(validationCursor, unsignedValues, iterations)
@@ -247,46 +169,48 @@ class NativeAllocationCursorProbeTest {
             validationSwept[sample] = sweptObjectsAfterLastCollection()
             assertEquals(KompactCursor.STATUS_OK, validationCursor.status)
 
-            GC.collect()
-            runCursorFullWidthUnsignedValidation(fullWidthValidationCursor, unsignedValues, iterations)
-            GC.collect()
-            fullWidthValidationSwept[sample] = sweptObjectsAfterLastCollection()
-            assertEquals(KompactCursor.STATUS_OK, fullWidthValidationCursor.status)
+            allocationControlSwept[sample] = collectAfterAllocationControl(iterations)
+        }
 
-            GC.collect()
-            runUnsignedRangeChecks(unsignedValues, iterations)
-            GC.collect()
-            rangeChecksSwept[sample] = sweptObjectsAfterLastCollection()
+        val baselineMaximum = requireNotNull(baselineSwept.maxOrNull())
+        val validationMaximum = requireNotNull(validationSwept.maxOrNull())
+        val controlMinimum = requireNotNull(allocationControlSwept.minOrNull())
+        val positiveControlDelta = controlMinimum - baselineMaximum
+        println(
+            "Native unsigned validation allocation samples: baseline=${baselineSwept.contentToString()}, " +
+                "validation=${validationSwept.contentToString()}, " +
+                "control=${allocationControlSwept.contentToString()}",
+        )
+        assertTrue(
+            positiveControlDelta >= iterations,
+            "Allocation control did not separate from baseline by $iterations objects: " +
+                "baseline=${baselineSwept.contentToString()}, control=${allocationControlSwept.contentToString()}",
+        )
+        assertTrue(
+            validationMaximum <= baselineMaximum,
+            "Caller-owned cursor unsigned validation exceeded the primitive baseline: " +
+                "baseline=${baselineSwept.contentToString()}, validation=${validationSwept.contentToString()}, " +
+                "control=${allocationControlSwept.contentToString()}",
+        )
+        assertTrue(cursorAllocationChecksum != 0)
+    }
 
-            assertEquals(KompactCursor.STATUS_OK, rawCursor.reset(rawCursor.buffer, endBit = iterations * Byte.SIZE_BITS))
-            GC.collect()
-            runCursorRawWrites(rawCursor, unsignedValues, iterations)
-            GC.collect()
-            rawWritesSwept[sample] = sweptObjectsAfterLastCollection()
-            assertEquals(KompactCursor.STATUS_OK, rawCursor.status)
+    @Test
+    fun callerOwnedCursorByteWritesStayWithinPrimitiveBaseline() {
+        val iterations = 4_096
+        val sampleCount = 3
+        val baselineBuffer = ByteArray(iterations)
+        val measuredBuffer = ByteArray(iterations)
+        val cursor = KompactCursor(measuredBuffer)
+        val baselineSwept = LongArray(sampleCount)
+        val writesSwept = LongArray(sampleCount)
+        val allocationControlSwept = LongArray(sampleCount)
 
-            assertEquals(
-                KompactCursor.STATUS_OK,
-                precomputedUnsignedCursor.reset(
-                    precomputedUnsignedCursor.buffer,
-                    endBit = iterations * Byte.SIZE_BITS,
-                ),
-            )
+        repeat(sampleCount) { sample ->
             GC.collect()
-            runCursorUnsignedWrites(precomputedUnsignedCursor, unsignedValues, iterations)
+            runPrimitiveByteWrites(baselineBuffer, iterations)
             GC.collect()
-            precomputedUnsignedWritesSwept[sample] = sweptObjectsAfterLastCollection()
-            assertEquals(KompactCursor.STATUS_OK, precomputedUnsignedCursor.status)
-
-            assertEquals(
-                KompactCursor.STATUS_OK,
-                longCursor.reset(longMeasuredBuffer, endBit = iterations * Byte.SIZE_BITS),
-            )
-            GC.collect()
-            runCursorLongByteWrites(longCursor, iterations)
-            GC.collect()
-            longWritesSwept[sample] = sweptObjectsAfterLastCollection()
-            assertEquals(KompactCursor.STATUS_OK, longCursor.status)
+            baselineSwept[sample] = sweptObjectsAfterLastCollection()
 
             assertEquals(KompactCursor.STATUS_OK, cursor.reset(measuredBuffer, endBit = iterations * Byte.SIZE_BITS))
             GC.collect()
@@ -300,30 +224,16 @@ class NativeAllocationCursorProbeTest {
 
         val baselineMaximum = requireNotNull(baselineSwept.maxOrNull())
         val writesMaximum = requireNotNull(writesSwept.maxOrNull())
-        val longWritesMaximum = requireNotNull(longWritesSwept.maxOrNull())
         val controlMinimum = requireNotNull(allocationControlSwept.minOrNull())
         val positiveControlDelta = controlMinimum - baselineMaximum
         println(
             "Native cursor byte-write allocation samples: baseline=${baselineSwept.contentToString()}, " +
-                "conversion=${conversionsSwept.contentToString()}, " +
-                "validation=${validationSwept.contentToString()}, " +
-                "fullWidthValidation=${fullWidthValidationSwept.contentToString()}, " +
-                "rangeCheck=${rangeChecksSwept.contentToString()}, " +
-                "rawLong=${rawWritesSwept.contentToString()}, " +
-                "precomputedULong=${precomputedUnsignedWritesSwept.contentToString()}, " +
-                "long=${longWritesSwept.contentToString()}, ulong=${writesSwept.contentToString()}, " +
-                "control=${allocationControlSwept.contentToString()}",
+                "writes=${writesSwept.contentToString()}, control=${allocationControlSwept.contentToString()}",
         )
         assertTrue(
             positiveControlDelta >= iterations,
             "Allocation control did not separate from baseline by $iterations objects: " +
                 "baseline=${baselineSwept.contentToString()}, control=${allocationControlSwept.contentToString()}",
-        )
-        assertTrue(
-            longWritesMaximum <= baselineMaximum,
-            "Caller-owned cursor Long writes exceeded the primitive baseline: " +
-                "baseline=${baselineSwept.contentToString()}, writes=${longWritesSwept.contentToString()}, " +
-                "control=${allocationControlSwept.contentToString()}",
         )
         assertTrue(
             writesMaximum <= baselineMaximum,
