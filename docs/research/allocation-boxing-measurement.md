@@ -64,17 +64,19 @@ per-operation counter for Kompact's Android Native target:
   reports Android runtime/ART behavior; it does not instrument the separate
   Kotlin/Native executable.
 
-On 2026-10-06, the Linux CI artifact for commit `a948f1a2f79d61a08e6869e6229ca62bf35df2d7`
-(run `37519625779`, SHA-256
-`c1e84a6f1e326b5686db9ec5352f78c51bd7ac6c8411cd1ec9dffac6d959c723`) ran
-twice on the Android 15 arm64 device (model `A063`, API 35, build
-`AQ3A.240929.001`). Both runs passed all 390 tests in 36 test cases. Each run
-reported `keptCount=6031` and `sweptCount=2288` for the known-object probe.
-For three samples of 4,096 operations per run, direct generated `speed` reads
-and writes each reported `[0, 0, 0]` swept objects, matching the primitive
+On 2026-10-07, the Linux CI artifact for commit `ef97610b39caf6380210c288dcce190d49abcb14`
+(run `37596537995`, SHA-256
+`f84d76040d63a4410bd393fbc3a68f2e9ea58f96df0ccf8bd2d616ba087b9c32`) ran
+three times on the Android 15 arm64 device (model `A063`, API 35, build
+`AQ3A.240929.001`). All runs passed 390 tests in 36 test cases. Each reported
+`keptCount=6031` and `sweptCount=2288` for the known-object probe. For three
+samples of 4,096 operations per run, direct generated `speed` reads and writes
+each reported `[0, 0, 0]` swept objects, exactly matching the primitive
 baseline `[0, 0, 0]`; the 4,096-instance intentional-allocation control
-reported `[4098, 4098, 4098]` for both operations. The runner verified the
-artifact checksum on-device and removed its temporary files.
+reported `[4098, 4098, 4098]` for both operations. The tests require measured
+counts not to exceed the primitive baseline (no percentage-of-control
+allowance). The runner verified the artifact checksum on-device and removed
+its temporary files.
 
 This validates that the test binary's GC sweep statistics detect the known
 allocation controls and that these direct getter/writer loops did not produce

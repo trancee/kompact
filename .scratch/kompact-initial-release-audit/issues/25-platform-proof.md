@@ -64,18 +64,19 @@ The local Android Native link still fails at
 invokes an x86_64 `clang` on this arm64 Mac (`Bad CPU type in executable`).
 Linux CI builds the Android test binary and avoids that host limitation.
 
-The Linux CI artifact for commit `a948f1a2f79d61a08e6869e6229ca62bf35df2d7`
-(run `37519625779`, SHA-256
-`c1e84a6f1e326b5686db9ec5352f78c51bd7ac6c8411cd1ec9dffac6d959c723`) was run
-twice on the Android 15 arm64 device (model `A063`, API 35, build
-`AQ3A.240929.001`). Both runs passed all 390 tests in 36 test cases and
-reported `keptCount=6031`, `sweptCount=2288` for the known-object positive
-control. In each run, three samples of 4,096 direct generated speed reads and
-three samples of 4,096 direct generated speed writes each reported zero
-swept-object delta, matching a zero-object primitive baseline; the
-4,096-instance allocation control reported 4,098 swept objects in every
-sample. The device runner verified the artifact checksum and removed its
-temporary files.
+The Linux CI artifact for commit `ef97610b39caf6380210c288dcce190d49abcb14`
+(run `37596537995`, SHA-256
+`f84d76040d63a4410bd393fbc3a68f2e9ea58f96df0ccf8bd2d616ba087b9c32`) was run
+three times on the Android 15 arm64 device (model `A063`, API 35, build
+`AQ3A.240929.001`). All three runs passed 390 tests in 36 test cases. Each
+reported three samples of 4,096 direct generated speed reads and writes with
+zero swept objects, exactly matching the zero-object primitive baseline; the
+4,096-instance intentional-allocation control reported 4,098 swept objects
+for every operation sample. The known-object retention/release probe reported
+`keptCount=6031`, `sweptCount=2288`. The device runner verified the artifact
+checksum and removed its temporary files. The test now requires each measured
+maximum to be no greater than the observed primitive baseline; it no longer
+allows a percentage of the positive-control count as a margin.
 
 This is bounded evidence for the direct getter/writer loops in the debug test
 binary. Kotlin/Native GC statistics are testing/debugging data, so this does
