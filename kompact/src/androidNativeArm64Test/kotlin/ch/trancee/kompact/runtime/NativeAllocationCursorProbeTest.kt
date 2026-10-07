@@ -69,6 +69,56 @@ private fun runCursorLongByteWrites(cursor: KompactCursor, count: Int) {
     cursorAllocationChecksum = checksum
 }
 
+private fun runUnsignedConversions(
+    values: ULongArray,
+    count: Int,
+) {
+    var checksum = 0
+    repeat(count) {
+        values[it] = (it and 0xff).toULong()
+        checksum += values[it].toLong().toInt()
+    }
+    cursorAllocationChecksum = checksum
+}
+
+private fun runCursorUnsignedValidation(
+    cursor: KompactCursor,
+    values: ULongArray,
+    count: Int,
+) {
+    var checksum = 0
+    repeat(count) {
+        checksum += cursor.validateUnsigned(Byte.SIZE_BITS, values[it])
+    }
+    cursorAllocationChecksum = checksum
+}
+
+private fun runCursorRawWrites(
+    cursor: KompactCursor,
+    values: ULongArray,
+    count: Int,
+) {
+    var checksum = 0
+    repeat(count) {
+        cursor.writeBitsUnchecked(Byte.SIZE_BITS, values[it].toLong())
+        checksum += cursor.buffer[it].toInt() and 0xff
+    }
+    cursorAllocationChecksum = checksum
+}
+
+private fun runCursorUnsignedWrites(
+    cursor: KompactCursor,
+    values: ULongArray,
+    count: Int,
+) {
+    var checksum = 0
+    repeat(count) {
+        cursor.writeUnsigned(Byte.SIZE_BITS, values[it])
+        checksum += cursor.buffer[it].toInt() and 0xff
+    }
+    cursorAllocationChecksum = checksum
+}
+
 @OptIn(NativeRuntimeApi::class, ExperimentalStdlibApi::class)
 class NativeAllocationCursorProbeTest {
     private fun sweptObjectsAfterLastCollection(): Long =
@@ -138,11 +188,20 @@ class NativeAllocationCursorProbeTest {
         val baselineBuffer = ByteArray(iterations)
         val measuredBuffer = ByteArray(iterations)
         val longMeasuredBuffer = ByteArray(iterations)
+        val conversionValues = ULongArray(iterations)
+        val unsignedValues = ULongArray(iterations) { (it and 0xff).toULong() }
         val cursor = KompactCursor(measuredBuffer)
         val longCursor = KompactCursor(longMeasuredBuffer)
+        val validationCursor = KompactCursor(ByteArray(iterations))
+        val rawCursor = KompactCursor(ByteArray(iterations))
+        val precomputedUnsignedCursor = KompactCursor(ByteArray(iterations))
         val baselineSwept = LongArray(sampleCount)
         val writesSwept = LongArray(sampleCount)
         val longWritesSwept = LongArray(sampleCount)
+        val conversionsSwept = LongArray(sampleCount)
+        val validationSwept = LongArray(sampleCount)
+        val rawWritesSwept = LongArray(sampleCount)
+        val precomputedUnsignedWritesSwept = LongArray(sampleCount)
         val allocationControlSwept = LongArray(sampleCount)
 
         repeat(sampleCount) { sample ->
@@ -150,6 +209,37 @@ class NativeAllocationCursorProbeTest {
             runPrimitiveByteWrites(baselineBuffer, iterations)
             GC.collect()
             baselineSwept[sample] = sweptObjectsAfterLastCollection()
+
+            GC.collect()
+            runUnsignedConversions(conversionValues, iterations)
+            GC.collect()
+            conversionsSwept[sample] = sweptObjectsAfterLastCollection()
+
+            GC.collect()
+            runCursorUnsignedValidation(validationCursor, unsignedValues, iterations)
+            GC.collect()
+            validationSwept[sample] = sweptObjectsAfterLastCollection()
+            assertEquals(KompactCursor.STATUS_OK, validationCursor.status)
+
+            assertEquals(KompactCursor.STATUS_OK, rawCursor.reset(rawCursor.buffer, endBit = iterations * Byte.SIZE_BITS))
+            GC.collect()
+            runCursorRawWrites(rawCursor, unsignedValues, iterations)
+            GC.collect()
+            rawWritesSwept[sample] = sweptObjectsAfterLastCollection()
+            assertEquals(KompactCursor.STATUS_OK, rawCursor.status)
+
+            assertEquals(
+                KompactCursor.STATUS_OK,
+                precomputedUnsignedCursor.reset(
+                    precomputedUnsignedCursor.buffer,
+                    endBit = iterations * Byte.SIZE_BITS,
+                ),
+            )
+            GC.collect()
+            runCursorUnsignedWrites(precomputedUnsignedCursor, unsignedValues, iterations)
+            GC.collect()
+            precomputedUnsignedWritesSwept[sample] = sweptObjectsAfterLastCollection()
+            assertEquals(KompactCursor.STATUS_OK, precomputedUnsignedCursor.status)
 
             assertEquals(
                 KompactCursor.STATUS_OK,
@@ -178,6 +268,10 @@ class NativeAllocationCursorProbeTest {
         val positiveControlDelta = controlMinimum - baselineMaximum
         println(
             "Native cursor byte-write allocation samples: baseline=${baselineSwept.contentToString()}, " +
+                "conversion=${conversionsSwept.contentToString()}, " +
+                "validation=${validationSwept.contentToString()}, " +
+                "rawLong=${rawWritesSwept.contentToString()}, " +
+                "precomputedULong=${precomputedUnsignedWritesSwept.contentToString()}, " +
                 "long=${longWritesSwept.contentToString()}, ulong=${writesSwept.contentToString()}, " +
                 "control=${allocationControlSwept.contentToString()}",
         )
