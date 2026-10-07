@@ -135,9 +135,13 @@ copies into storage you supply; it does not allocate a destination. For
 generated reusable holders, nested payloads, and repeated-field workspaces,
 see the [caller-owned codec API reference](../api-reference.md). The
 caller-owned cursor API is available in this checkout and is not included in
-the published `0.7.0` artifact. These APIs have not yet been verified for
-cross-platform allocation behavior; do not infer an allocation guarantee from
-this example.
+the published `0.7.0` artifact. Bounded Native probes recorded no detectable
+allocation delta for selected scalar and cursor operations on Android Arm64
+and iOS Arm64 debug and release test binaries. These GC sweep-statistics
+results are testing/debugging data; they do not cover every API or call shape,
+including the payload conversions and repeat operations described here. Do
+not infer a general allocation guarantee from this example; see the
+[allocation research note](../research/allocation-boxing-measurement.md).
 
 Probe-taking generated framed-holder operations use distinct cursors and
 preflight the complete bounded input or output before committing. Scalar-only
