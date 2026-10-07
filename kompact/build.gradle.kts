@@ -82,9 +82,11 @@ kotlin {
         }
     }
     if (!mutationJvmOnly) {
-        iosArm64()
-        iosSimulatorArm64()
-        androidNativeArm64()
+        // Release-optimized test binaries (releaseTest/test.kexe) carry the
+        // allocation probes into optimized code for device evidence.
+        listOf(iosArm64(), iosSimulatorArm64(), androidNativeArm64()).forEach { target ->
+            target.binaries.test(listOf(org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.RELEASE))
+        }
     }
 
     sourceSets {

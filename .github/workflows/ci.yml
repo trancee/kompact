@@ -119,6 +119,13 @@ jobs:
           path: kompact/build/bin/androidNativeArm64/debugTest/test.kexe
           if-no-files-found: error
           retention-days: 7
+      - name: Upload Android Native release device-test binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: kompact-android-native-arm64-release-test
+          path: kompact/build/bin/androidNativeArm64/releaseTest/test.kexe
+          if-no-files-found: error
+          retention-days: 7
 
       # Portal dry-run: generate checksums + assemble bundles with an ephemeral
       # PGP key (never real credentials). Verifies both JVM module pipelines
