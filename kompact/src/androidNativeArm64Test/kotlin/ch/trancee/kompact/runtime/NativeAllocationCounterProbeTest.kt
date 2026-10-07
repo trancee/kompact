@@ -146,8 +146,8 @@ class NativeAllocationCounterProbeTest {
                 "baseline=${baselineSwept.contentToString()}, control=${allocationControlSwept.contentToString()}",
         )
         assertTrue(
-            readsMaximum <= baselineMaximum + positiveControlDelta / 10,
-            "Generated speed reads exceeded the calibrated baseline margin: " +
+            readsMaximum <= baselineMaximum,
+            "Generated speed reads exceeded the primitive baseline: " +
                 "baseline=${baselineSwept.contentToString()}, reads=${readsSwept.contentToString()}, " +
                 "control=${allocationControlSwept.contentToString()}",
         )
@@ -183,8 +183,8 @@ class NativeAllocationCounterProbeTest {
                 "baseline=${baselineSwept.contentToString()}, control=${allocationControlSwept.contentToString()}",
         )
         assertTrue(
-            writesMaximum <= baselineMaximum + positiveControlDelta / 10,
-            "Generated speed writes exceeded the calibrated baseline margin: " +
+            writesMaximum <= baselineMaximum,
+            "Generated speed writes exceeded the primitive baseline: " +
                 "baseline=${baselineSwept.contentToString()}, writes=${writesSwept.contentToString()}, " +
                 "control=${allocationControlSwept.contentToString()}",
         )
