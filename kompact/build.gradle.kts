@@ -145,6 +145,12 @@ kotlin {
             getByName("iosArm64Main") { dependsOn(nativeMain) }
             getByName("iosSimulatorArm64Main") { dependsOn(nativeMain) }
             getByName("androidNativeArm64Main") { dependsOn(nativeMain) }
+            // Kotlin/Native GC allocation probes run on every Native test target.
+            val nativeTest = create("nativeTest")
+            nativeTest.dependsOn(commonTest)
+            getByName("iosArm64Test") { dependsOn(nativeTest) }
+            getByName("iosSimulatorArm64Test") { dependsOn(nativeTest) }
+            getByName("androidNativeArm64Test") { dependsOn(nativeTest) }
         }
         // jvmCommon: shared intermediate between commonMain and jvmMain/androidMain.
         // Moved @JvmInline actuals + VehicleTelemetry here so both JVM and Android

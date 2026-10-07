@@ -74,9 +74,25 @@ all 390 tests in 35 test cases. The first run took 14,032 ms. The
 iOS binary omits the six Android-Native-only allocation-probe tests.
 Free-team profiles expire after seven days. Over SSH, the login keychain
 denied private-key use (`errSecInternalComponent`), so signing ran as fixed
-commands in the logged-in GUI Terminal session. There is not yet a
-repository-owned, reproducible iOS host or script. This evidence demonstrates
-behavior only. It does not measure iOS allocation.
+commands in the logged-in GUI Terminal session. At that point there was no
+repository-owned, reproducible iOS host or script. That run demonstrated
+behavior only. It did not measure iOS allocation.
+
+The procedure is now `scripts/test-ios-device.sh` (see `docs/ci.md`). The
+script builds a minimal app bundle around `test.kexe` without an Xcode
+project. It signs the bundle with the local identity that matches the
+supplied explicit-App-ID development profile. It then installs and runs the
+bundle with `devicectl`, failing unless the summary reports at least one
+passing test and no failures. The allocation probes moved to the shared
+`nativeTest` source set. On 2026-10-07, three script runs on the same
+iPhone SE passed all 396 tests in 37 test cases with a local working-tree
+binary (SHA-256
+`621e32dddfc62a49e5f95322c02b472c183fc2e77d1e479f25801bfa999b6623`). Every
+measured operation reported `[0, 0, 0]` swept objects, matching the primitive
+baselines. Every intentional-allocation control reported
+`[4098, 4098, 4098]`. A deliberately failing temporary test made the script
+exit with status 1. Signing still requires the logged-in GUI session or a
+dedicated unlocked keychain.
 
 The local Android Native link still fails at
 `linkDebugTestAndroidNativeArm64` because the cached Kotlin/Native toolchain
@@ -114,6 +130,7 @@ These are bounded results for the measured operations in the debug test
 binary. Kotlin/Native GC statistics are testing/debugging data, so they do not
 establish release-optimized behavior, other call shapes, a timing budget, or a
 universal zero-allocation guarantee. The Android Native release-grade
-allocation claim remains open. Physical iOS behavior has bounded evidence
-from the run above. Physical iOS allocation evidence and a committed,
-reproducible iOS device-test procedure are still open.
+allocation claim remains open. Physical iOS behavior and debug-test
+GC-sweep allocation evidence are recorded above, with a repository-owned
+procedure. Release-optimized allocation proof remains open for both Native
+targets. Neither has an Instruments or other independent allocation trace.

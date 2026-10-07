@@ -133,14 +133,39 @@ On 2026-10-06, the Linux CI artifact from commit `f3bb4ae` (run
 artifact SHA-256 was
 `d32408f65a719d58ca5fd20cf3bdff2b0f6a71dec144c1d173fb957d02e9d31e`.
 
-On the inspected Apple Silicon Mac, iOS Arm64 test binaries link, but
-`test.kexe` is an unsigned standalone executable, not an installable app.
-Although physical iPhones are connected, neither local provisioning profile
-has a developer certificate matching an available signing identity; the
-profile that includes the selected device therefore cannot sign a test host.
-Xcode-managed provisioning would require explicit approval before changing the
-Apple Developer account. No signed iOS device-test host or execution procedure
-has been validated, so physical iOS behavior remains a release blocker.
+On the iOS Arm64 target, `test.kexe` is an unsigned standalone executable.
+`scripts/test-ios-device.sh` wraps it in a minimal app bundle and signs it
+with a local Apple Development identity. It installs the app on a connected
+iPhone, runs it with `devicectl --console`, and requires a passing test
+summary:
+
+```bash
+./gradlew :kompact:iosArm64TestBinaries
+scripts/test-ios-device.sh \
+  kompact/build/bin/iosArm64/debugTest/test.kexe \
+  path/to/development.mobileprovision
+```
+
+Prerequisites:
+
+- Use an explicit-App-ID development profile that lists the device. Create it
+  once with Xcode automatic signing for any app using the same bundle ID.
+- The keychain must contain exactly one matching signing identity.
+- The device must be connected, paired, and in Developer Mode.
+- If several connected devices appear in the profile, set
+  `KOMPACT_IOS_DEVICE_UDID`.
+
+The first launch requires trusting the developer on the device in
+**Settings → General → VPN & Device Management**. The script leaves the host
+installed because removing a developer's last app revokes that trust. Signing
+needs an unlocked login keychain. In a plain SSH session, `codesign` can fail
+with `errSecInternalComponent`; run the script in the logged-in GUI session or
+use a dedicated unlocked CI keychain. Personal Team profiles expire after
+seven days.
+
+On 2026-10-07, the script ran three times on an iPhone SE (2020) with iOS
+`18.7.8`. Each run of the `iosArm64` debug test binary passed all 396 tests.
+A deliberately failing test made the script exit with status 1.
 
 The local Android Native link still fails because Kotlin/Native invokes an
 x86_64 `clang` toolchain (`Bad CPU type in executable`); Linux CI builds the
@@ -154,7 +179,9 @@ probe passed physical-device positive controls and measured generated speed
 reads/writes against a primitive baseline in the debug test executable; these
 results do not establish release-optimized or universal zero-allocation
 behavior. Do not infer a zero-allocation guarantee from compilation, unit
-tests, or coverage. The allocation methodology and current proof status are
+tests, or coverage. The GC probes in `nativeTest` also run on iOS Simulator
+in the macOS CI job and on physical iOS through the device script. The
+allocation methodology and current proof status are
 tracked in [allocation and boxing measurement](research/allocation-boxing-measurement.md);
 release-grade per-target evidence remains open.
 

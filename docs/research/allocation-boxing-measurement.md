@@ -34,8 +34,26 @@ not prove zero per-operation allocations.
 On 2026-10-06, the available host is Apple Silicon macOS 27.0 with Xcode 27.0
 and a connected Android 15 API 35 arm64 device. Android Native behavior tests
 passed on that device using the Linux CI-built test executable; this is not
-allocation evidence. Physical iOS execution remains blocked by the absence of
-a locally usable signing profile.
+allocation evidence.
+
+### iOS GC sweep-statistics probe
+
+The allocation probes live in the shared `nativeTest` source set, so they run
+on Android Native, iOS Simulator, and physical iOS. On 2026-10-07, the
+`iosArm64` debug test binary was built locally from the working tree on top
+of commit `5919dbe` (SHA-256
+`621e32dddfc62a49e5f95322c02b472c183fc2e77d1e479f25801bfa999b6623`, Kotlin
+`2.4.20`). `scripts/test-ios-device.sh` ran it three times on an iPhone SE
+(2020) with iOS `18.7.8` (Xcode `27.0`, `27A266a`). Every run passed all 396
+tests in 37 test cases. The known-object probe reported `keptCount=6906` and
+`sweptCount=2289`. Three samples of 4,096 direct generated `speed` reads and
+writes, cursor byte reads, unsigned validations, and cursor byte writes each
+reported `[0, 0, 0]` swept objects. This matched the primitive baselines.
+Every intentional-allocation control reported `[4098, 4098, 4098]`. The local
+iOS Simulator run of the same probes reported identical measured and control
+counts. The same limits as the Android result apply: this is a debug test
+binary, GC statistics are testing/debugging data, and no Instruments
+Allocations capture or release-optimized measurement was made.
 
 ### Android Native allocation-counter feasibility
 
@@ -115,7 +133,7 @@ call shapes, or a universal zero-allocation guarantee. The counter is
 explicitly testing/debugging data and may change across compiler or runtime
 versions. Do not treat an empty Perfetto profile, unchanged retained heap, or
 successful Native device test alone as zero-allocation evidence. Release-grade
-Android Native and physical iOS allocation measurements remain open.
+(optimized-binary) Android Native and iOS allocation measurements remain open.
 
 ## Checked variable-repeat tradeoff
 
