@@ -40,43 +40,31 @@ compliant reviewed workflow.
 - Run a clean-checkout CI-equivalent verification and record any external
   prerequisite that cannot be verified from the repository.
 
-## Latest verification
+## Latest verification (2026-10-07)
 
-- Forced `:kompact-gradle-plugin:koverVerify` passes its required 100% line
-  and branch coverage thresholds after the plugin contract tests were expanded.
-  Production plugin code has no coverage exclusions.
-- The forced Linux CI-quality task set passes locally, including runtime/JVM
-  and Android host tests, KSP and Gradle-plugin suites, ABI checks, coverage,
-  plugin validation, and Android AAR assembly. The macOS
-  `:kompact:iosSimulatorArm64Test` and ABI checks also pass.
-- `spotlessCheck`, Dokka Markdown generation, workflow linting, release-script
-  fixtures, documentation-version checks, and `git diff --check` pass.
-- The inspected CI/Gradle configuration has no relative-link or spelling/markup
-  checker; those documentation checks have not been verified.
-- Android-KMP host-side runtime tests are now configured and included in Linux
-  CI via `:kompact:testAndroidHostTest`; a forced local run passed. This is not
-  physical Android Native device evidence.
-- Physical iOS/Android Native execution and allocation evidence remain open
-  release blockers as recorded in [platform proof](25-platform-proof.md).
-- GitHub CI passed both required Linux and macOS jobs on PR #89 commit
-  `f3bb4ae`; the Linux run also linked and uploaded the Android Native arm64
-  test executable. The exact artifact passed all 387 tests on the physical
-  Android 15 arm64 device; evidence and the reproducible runner are recorded
-  in [platform proof](25-platform-proof.md). CodeQL passed after the release
-  workflow switched to checking out only the trusted event SHA. The PR remains
-  a draft.
-- On 2026-10-06, `main` branch protection was verified in strict mode and
-  updated to require exactly `JVM tests + Android assemble + Portal dry-run
-  (Linux)` and `ABI + iOS Simulator tests + Markdown + spotless (macOS)`.
-- Physical iOS execution is still blocked: the linked Kotlin test executable
-  is unsigned and no local provisioning profile matches an available signing
-  identity. Xcode-managed profile creation needs explicit Apple Developer
-  account approval. The Android Native GC sweep-statistics test probe now
-  passes physical positive controls and detects no swept-object delta in the
-  direct speed getter/writer loops versus a primitive baseline in the debug
-  test binary. This is bounded test/debug evidence, not release-optimized or
-  universal zero-allocation proof; release-grade Android Native and physical
-  iOS allocation evidence remain open.
-- A general documentation link/spelling/markup checker is not configured in
-  the repository, so those checks remain unverified. Do not publish until
-  every required gate has passing evidence.
+- PR #89 (`feat/release-readiness-gates`) was merged at
+  `2506dfdb41165b0645878d46098529df247576cb`. Its required Linux and macOS
+  checks passed on head `472b3b502293a1be78de99618c41cea68ed4c152`; CodeQL
+  also passed. The Linux checks include the release-version and documentation
+  fixtures, plugin ABI/coverage/TestKit gates, Android host tests, and
+  Central Portal bundle dry-runs. The macOS checks include iOS Simulator tests,
+  ABI validation, Dokka Markdown generation, and formatting.
+- `main` branch protection is strict and requires exactly
+  `JVM tests + Android assemble + Portal dry-run (Linux)` and
+  `ABI + iOS Simulator tests + Markdown + spotless (macOS)`.
+- Physical iOS Arm64 and Android Native Arm64 behavior plus debug/release
+  allocation-probe evidence is recorded in [platform proof](25-platform-proof.md).
+  Both targets passed their release test binaries three times with positive
+  allocation controls; these bounded GC statistics do not constitute a
+  universal zero-allocation guarantee or an independent allocation trace.
+- Consumer versions and the application-owned envelope example are recorded
+  in [consumer docs](26-consumer-docs-and-version-drift.md). The automated
+  version-reference check is part of CI. The repository has no general
+  relative-link/spelling checker, and the envelope snippet is not executed as
+  a CI example.
+- The first supported `0.8.0` release has not been prepared or published.
+  Per [ADR-0004](../../../docs/adr/0004-release-pr-automation.md), the stable
+  version, changelog, and consumer docs must be reviewed together in the
+  managed release PR; publication remains a separate manually approved step.
+  Do not publish until outstanding documentation validation is resolved or
+  explicitly accepted and all release-specific gates pass.

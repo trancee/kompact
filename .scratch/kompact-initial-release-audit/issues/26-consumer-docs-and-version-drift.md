@@ -35,3 +35,25 @@ schema, platform, and release-version contracts.
   before publication.
 - Validate relative links, spelling/markup, and executable or generated
   examples with repository-supported checks.
+
+## Execution status (2026-10-07)
+
+The maintained consumer guides identify `0.7.0` as the latest published
+version and `0.8.0-SNAPSHOT` as the current development version. The
+application-owned version-envelope example is in
+[`docs/how-to/define-framed-schema.md`](../../../docs/how-to/define-framed-schema.md).
+The checked/lazy ownership, unchecked mutation, identity-equality, supported
+platform, and caller-owned allocation contracts are documented across the
+consumer guide and API reference.
+
+`.github/scripts/docs/check-version-references.sh` compares maintained
+consumer-version references with the root Gradle version and newest changelog
+entry. CI exercises that check and its release fixture; macOS CI regenerates
+the Dokka API Markdown and rejects drift.
+
+The repository does not configure a general relative-link or spelling
+checker, and the guide's standalone application-envelope snippet is not
+executed as a CI example. `spotlessCheck` and generated API Markdown checks
+pass, but those do not validate every Markdown link or prose spelling.
+Those remaining documentation checks must be addressed or explicitly accepted
+before claiming every acceptance criterion is verified.
