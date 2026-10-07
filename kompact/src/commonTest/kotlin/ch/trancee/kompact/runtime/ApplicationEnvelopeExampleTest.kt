@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class ApplicationEnvelopeExampleTest {
@@ -22,6 +23,9 @@ class ApplicationEnvelopeExampleTest {
 
         assertTrue(ApplicationEnvelopeExample.borrowEnvelopePayload(envelope, borrowedPayload))
         assertEquals(packetBytes.size, borrowedPayload.size)
+        assertSame(envelope, borrowedPayload.buffer)
+        assertEquals(1, borrowedPayload.start)
+        assertEquals(envelope.size, borrowedPayload.end)
 
         val copiedPayload = ByteArray(packetBytes.size)
         assertTrue(borrowedPayload.copyTo(copiedPayload))
