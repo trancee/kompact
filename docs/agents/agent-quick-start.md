@@ -5,7 +5,7 @@ serialization library. Covers setup, core concepts, the most common
 API calls, and the traps that cause compile errors or runtime
 failures.
 
-For sequential string/blob/nested/repeated fields in the published `0.7.0`
+For sequential string/blob/nested/repeated fields in the published `0.8.0`
 release, opt in with `@KompactModel(framed = true)` and contiguous
 `@KompactField(order = ...)`.
 The generated `SchemaView` exposes bounded `decode(raw, start, end)` typed
@@ -89,7 +89,7 @@ dependencyResolutionManagement {
 // build.gradle.kts (consumer module)
 plugins {
     kotlin("multiplatform") version "2.4.20"
-    id("ch.trancee.kompact.codegen") version "0.7.0"
+    id("ch.trancee.kompact.codegen") version "0.8.0"
 }
 
 kotlin {
@@ -101,7 +101,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.7.0")
+                implementation("ch.trancee.kompact:kompact:0.8.0")
             }
         }
     }
@@ -118,7 +118,7 @@ the commands in the
 
 For the current checkout, run
 `./gradlew :kompact:publishToMavenLocal :kompact-ksp:publishToMavenLocal :kompact-gradle-plugin:publishToMavenLocal`
-from the Kompact checkout, then use `0.8.0-SNAPSHOT` and `mavenLocal()`.
+from the Kompact checkout, then use `0.8.0` and `mavenLocal()`.
 
 ## Core API cheat sheet
 

@@ -4,6 +4,63 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-10-07
+
+### ✨ Features
+- feat: add release readiness gates (396cbf2)
+- feat: add checked caller-owned codec API (3d5e236)
+
+### 🐛 Fixes
+- fix: exclude exception assertions from Power-Assert (8ce6fdd)
+- fix: avoid Native allocation in unsigned validation (5989ac2)
+- fix: avoid Native allocation in unsigned cursor writes (bf0026c)
+- fix: log Android device before test setup (3a212bb)
+- fix: use trusted commit for release validation (9ede274)
+- fix: address codec generator and cursor findings (4f0f403)
+
+### 📦 Other
+- Merge pull request #91 from trancee/fix/power-assert-exception-diagnostics (f1202ba)
+- Merge pull request #90 from trancee/docs/reconcile-release-readiness-evidence (438e34f)
+- docs: update release readiness evidence (20a683e)
+- test: verify envelope payload remains borrowed (0bd2a5e)
+- ci: add consumer documentation quality gates (9f94134)
+- docs: reconcile release readiness audit evidence (a11eaad)
+- Merge pull request #89 from trancee/feat/release-readiness-gates (2506dfd)
+- docs: record release-optimized Native allocation evidence (472b3b5)
+- test: link release-optimized Native test binaries (50768be)
+- test: run Native allocation probes on iOS and add device runner (c817695)
+- docs: record physical iOS device test evidence (5919dbe)
+- docs: record Android Native cursor allocation results (a88b5e4)
+- test: isolate Native unsigned validation allocation (ab95a77)
+- test: isolate Native ULong cursor allocations (c245943)
+- test: cover unsigned cursor writer branches (2e1617d)
+- test: isolate Native cursor unsigned write allocation (73c1f01)
+- test: probe caller-owned cursor allocations on Native (be87a93)
+- docs: record strict Android Native probe repeatability (b163433)
+- test: reject Native allocation deltas above baseline (ef97610)
+- docs: record Android Native allocation probe results (042a0f6)
+- test: measure Native telemetry allocation samples (a948f1a)
+- test: isolate Native allocation probes from caller roots (cac4a80)
+- test: probe Kotlin Native GC allocation counters (4152f9b)
+- docs: clarify Android Native allocation evidence (89a1d5a)
+- docs: clarify iOS device signing blocker (598629c)
+- docs: record verified Android Native device run (b5848d4)
+- ci: record Android Native device test proof (f3bb4ae)
+- ci: publish Android Native device test artifact (856284c)
+- docs: record release gate verification (0d52215)
+- ci: rerun release readiness gates (a356ce3)
+- test: complete release readiness gates (55354cc)
+- Merge pull request #88 from trancee/feat/macos-ios-simulator-ci (d1713e7)
+- chore(gradle): enable parallel sync for Gradle 9.4+ (0baa590)
+- ci: run iOS Simulator runtime tests on macOS (5ee400e)
+- Merge pull request #86 from trancee/feat/kompact-initial-release-audit (add1801)
+- docs: refresh mutation disposition evidence (bd7bc53)
+- test: name mutation adapters descriptively (194ec8b)
+- test: complete JVM mutation testing audit (d86f2ca)
+- refactor: reuse scalar holder validation (9889265)
+- docs: finalize initial release roadmap (2d84072)
+- docs: chart initial release audit (25d6664)
+
 ## [0.7.0] - 2026-10-04
 
 ### ✨ Features

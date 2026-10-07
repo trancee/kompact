@@ -5,7 +5,7 @@ depend on earlier field values. If the message contains strings, blobs, nested
 messages, or repeated values, use the
 [sequential framed schema guide](define-framed-schema.md) instead.
 
-The `commonMain` generation setup in this guide uses the published `0.7.0`
+The `commonMain` generation setup in this guide uses the published `0.8.0`
 KMP plugin. Follow [Consume Kompact](consume-from-another-project.md) to
 configure the plugin and runtime dependencies.
 
