@@ -35,7 +35,7 @@ publishing platform support or making a zero-allocation claim.
 - Keep representative performance measurements reproducible and tied to the
   exact workload and environment.
 
-## Execution status (2026-10-06)
+## Execution status (2026-10-07)
 
 The caller-owned API is implemented. Linux CI linked and uploaded the Android
 Native `test.kexe` for commit `f3bb4aeeacd325905c8589e3a856a88599758090`
@@ -139,3 +139,9 @@ from run `37639871425` (SHA-256 `f1df293a…e931b3`) passed 396/396 three times 
 the Android device. Measured probes reported `[0, 0, 0]` and controls
 `[4098, 4098, 4098]` on both, matching the iOS Simulator release run. Neither
 target has an Instruments or other independent allocation trace.
+
+The required physical-device behavior runs and bounded debug/release
+GC-sweep-statistics probes are complete for iOS Arm64 and Android Native
+Arm64. These results are not a universal zero-allocation guarantee; GC
+statistics are testing/debugging data, and an independent allocation trace
+and numeric timing budget have not been produced.

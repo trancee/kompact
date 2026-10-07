@@ -167,35 +167,12 @@ For the wire-format tradeoffs and schema-evolution limits, see
 
 Kompact frames do not carry a schema version. If an application must distinguish
 wire versions, it owns the outer envelope, version identifiers, decoder
-selection, and migration policy. This example prefixes an encoded frame in
-caller-provided storage and borrows the payload when reading:
-
-```kotlin
-import ch.trancee.kompact.runtime.KompactByteRange
-
-private const val APPLICATION_VERSION = 1
-
-fun encodeEnvelope(payload: ByteArray, destination: ByteArray): Int {
-    if (destination.size < payload.size + 1) return -1
-    destination[0] = APPLICATION_VERSION.toByte()
-    payload.copyInto(destination, destinationOffset = 1)
-    return payload.size + 1
-}
-
-fun borrowEnvelopePayload(
-    envelope: ByteArray,
-    payload: KompactByteRange,
-): Boolean {
-    if (envelope.isEmpty() || (envelope[0].toInt() and 0xFF) != APPLICATION_VERSION) return false
-    return payload.reset(envelope, start = 1, end = envelope.size)
-}
-
-val packetBytes = byteArrayOf(0xA5.toByte(), 0x40.toByte())
-val envelope = ByteArray(packetBytes.size + 1)
-check(encodeEnvelope(packetBytes, envelope) == envelope.size)
-val borrowedPayload = KompactByteRange(ByteArray(0))
-check(borrowEnvelopePayload(envelope, borrowedPayload))
-```
+selection, and migration policy. The executable
+[application-owned envelope example](../../kompact/src/commonTest/kotlin/ch/trancee/kompact/runtime/ApplicationEnvelopeExampleTest.kt)
+prefixes an encoded frame in caller-provided storage and borrows the payload
+when reading. The common test runs the example and checks successful round-trip
+behavior, unsupported-version rejection, and insufficient-destination
+failure-atomicity on the JVM and iOS Simulator.
 
 The one-byte identifier is application-specific; it is not a Kompact header or
 a Kompact compatibility guarantee. A failed identifier check is for the

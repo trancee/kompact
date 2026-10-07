@@ -67,8 +67,13 @@ from the runtime source; do not edit the generated pages by hand.
 - Caller-owned cursors, ranges, holders, and repeat workspaces define the
   allocation-sensitive API boundary; allocating conveniences, `String`
   conversion, and explicit snapshots/copies are outside it. A zero-allocation
-  claim is target- and workload-specific and remains withheld until a
-  validated counter, positive control, and retained device evidence exist.
+  claim is target- and workload-specific. Bounded Native probe results for
+  selected operations on Android Arm64 and iOS Arm64 debug and release test
+  binaries are recorded in the
+  [allocation research note](research/allocation-boxing-measurement.md). They
+  use Kotlin/Native GC sweep statistics, which are testing/debugging data, and
+  do not establish a general zero-allocation guarantee or numeric performance
+  budget.
 - Generated framed encoders reject range sources backed by the destination
   buffer. The low-level `writeByteRange` operation rejects overlapping
   in-place copies. These cursor APIs are available in the current checkout;

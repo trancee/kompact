@@ -12,9 +12,9 @@ Use three measurement layers:
 
 1. Android acceptance measurements with AndroidX Microbenchmark 1.4.1 on a dedicated physical device. It measures timing and allocation counts and writes machine-readable JSON.
 2. Host-JVM diagnostics with kotlinx-benchmark and JMH's GC profiler. This catches JVM boxing and reports normalized allocated bytes per operation, but it does not prove Android ART behavior.
-3. Kotlin/Native iOS acceptance with a release `iosArm64` harness that executes the measured loop inside Kotlin. Measure timing without Instruments, then run a separate Xcode Instruments Allocations capture for allocation count, bytes, and call stacks. On Android Native, a test-only Kotlin/Native GC sweep-statistics probe now detects a known allocation control and distinguishes the measured getter/writer loops from a primitive baseline. This is bounded debug-test evidence, not a release-optimized allocation guarantee.
+3. Kotlin/Native iOS acceptance with a release `iosArm64` harness that executes the measured loop inside Kotlin. Measure timing without Instruments, then run a separate Xcode Instruments Allocations capture for allocation count, bytes, and call stacks. Test-only Kotlin/Native GC sweep-statistics probes now distinguish selected measured loops from primitive baselines and detect known allocation controls on physical Android and iOS devices, using debug and release-optimized test binaries. This is bounded test evidence, not a general allocation guarantee.
 
-The iOS simulator is useful for repeatable diagnostics and functional smoke runs. Physical iPhone measurements remain the acceptance evidence for latency and allocation budgets.
+The iOS simulator is useful for repeatable diagnostics and functional smoke runs. The recorded physical-device probes do not include timing benchmarks or an Instruments Allocations capture, and no numeric performance budget is set.
 
 > **Status:** this is a measurement plan, not an executed timing benchmark
 > report. The bounded Android Native allocation-probe result is recorded below;
@@ -23,18 +23,19 @@ The iOS simulator is useful for repeatable diagnostics and functional smoke runs
 
 ## Current proof status
 
-The checked caller-owned cursor and generated-holder APIs now exist. An
-Android Native test-only probe compares direct generated speed reads and writes,
-cursor unsigned validation, and cursor byte writes with primitive baselines and
-an intentional-allocation control. Physical device results are recorded below;
-they are limited to the exact debug test binary, operations, iteration count,
-and runtime. Compilation, functional tests, and 100% line/branch coverage do
-not prove zero per-operation allocations.
+The checked caller-owned cursor and generated-holder APIs now exist. Android
+Native and iOS Native test-only probes compare selected direct generated
+speed reads and writes, cursor byte reads and writes, and cursor unsigned
+validation with primitive baselines and intentional-allocation controls.
+Physical-device results are recorded below for debug and release-optimized
+test binaries; they are limited to the exact operations, iteration count, and
+runtime. Compilation, functional tests, and 100% line/branch coverage do not
+prove zero per-operation allocations.
 
 On 2026-10-06, the available host is Apple Silicon macOS 27.0 with Xcode 27.0
-and a connected Android 15 API 35 arm64 device. Android Native behavior tests
-passed on that device using the Linux CI-built test executable; this is not
-allocation evidence.
+and a connected Android 15 API 35 arm64 device. An ordinary Native behavior
+test pass alone is not allocation evidence; the controlled probe results are
+recorded separately below.
 
 ### iOS GC sweep-statistics probe
 
@@ -148,8 +149,9 @@ controls each reported `[4098, 4098, 4098]`. The device runner verified the
 artifact checksum and removed its temporary files after each run.
 
 This is bounded evidence for these operations in the exact Kotlin/Native debug
-test binary and environment. It does not establish release-optimized behavior,
-a general per-operation allocation guarantee, or a numeric performance budget.
+test binary and environment. That debug-only result does not by itself
+establish release-optimized behavior, a general per-operation allocation
+guarantee, or a numeric performance budget; separate release results follow.
 
 The probes validate that the test binary's GC sweep statistics detect the
 known allocation controls and that the measured direct getter/writer,
@@ -222,7 +224,12 @@ Sources:
 
 Kotlin/Native uses a tracing garbage collector and a page-based allocator. `GC.collect()` and `GC.lastGCInfo()` can compare retained heap size after completed collections. The official example uses this to detect leaks. GC logs and Apple signposts expose collection behavior and pauses.
 
-The Kotlin 2.4.20 `GCInfo.sweepStatistics` contains per-pool `sweptCount` (objects freed) and `keptCount` (objects processed and retained). On the physical Android Native test binary, this detected a batch of retained and released known objects. Three runs of the same artifact each separated 4,096-operation direct speed getter/writer, unsigned-validation, and cursor-byte-write loops (zero swept objects) from intentional-allocation controls (4,098 swept objects), with the same zero-object primitive baselines. This validates the signal only for that test binary, runtime, and workload. The runtime source labels GC statistics as testing/debugging data; it is not a stable per-operation allocation API. Retained-heap values alone still cannot detect temporary allocations, and these results do not establish release-optimized or cross-platform zero-allocation behavior.
+The Kotlin 2.4.20 `GCInfo.sweepStatistics` contains per-pool `sweptCount` (objects freed) and `keptCount` (objects processed and retained). On the physical Android Native test binary, this detected a batch of retained and released known objects. Three runs of the same artifact each separated 4,096-operation direct speed getter/writer, unsigned-validation, and cursor-byte-write loops (zero swept objects) from intentional-allocation controls (4,098 swept objects), with the same zero-object primitive baselines. This validates the signal only for that test binary, runtime, and workload.
+The corresponding iOS debug and release-optimized results are recorded above.
+The runtime source labels GC statistics as testing/debugging data; it is not a
+stable per-operation allocation API. Retained-heap values alone still cannot
+detect temporary allocations, and these results do not establish a general
+zero-allocation guarantee or behavior on unmeasured targets and call shapes.
 
 Sources:
 

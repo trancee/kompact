@@ -48,7 +48,7 @@ Sources:
 
 ### Common metadata generation is not a stable integration seam
 
-The KSP configuration reference lists `kspCommonMainMetadata`, but the first-party multiplatform example leaves that configuration commented out and demonstrates target-specific processing. The upstream request for first-class common generation remains open. The related iOS hierarchy request also remains open. Reported workarounds manually add `build/generated/ksp/metadata/commonMain/kotlin` and task dependencies; the upstream reports include missing task dependencies, duplicate declarations, IDE failures, configuration-cache failures, and publication failures across KSP and Gradle versions.
+The KSP configuration reference lists `kspCommonMainMetadata`, but the first-party multiplatform example leaves that configuration commented out and demonstrates target-specific processing. As verified on 2026-10-07, the upstream requests for first-class common generation ([`google/ksp#567`](https://github.com/google/ksp/issues/567)) and iOS hierarchy support ([`google/ksp#929`](https://github.com/google/ksp/issues/929)) remain open. The linked IDE/task-dependency issue ([`google/ksp#963`](https://github.com/google/ksp/issues/963)) is closed; the other linked workaround reports describe failures observed with particular KSP and Gradle versions, not necessarily current failures. Workarounds manually add `build/generated/ksp/metadata/commonMain/kotlin` and task dependencies.
 
 This evidence does not prove `kspCommonMainMetadata` can never work. It does show that Kompact cannot treat its manual wiring as a supported, stable interface for a published generator.
 
