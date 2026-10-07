@@ -8,8 +8,8 @@ Can Kompact process each `commonMain` schema once, generate Kotlin consumed by A
 
 The standard KSP Gradle integration does not provide that contract. Its documented KMP model creates a processing task for every configured compilation, so target configurations process shared sources repeatedly. `kspCommonMainMetadata` exists, but common generated-source wiring remains an open upstream problem and depends on fragile manual task relationships.
 
-Kompact's published code-generation plugin (`0.7.0`; this checkout is
-`0.8.0-SNAPSHOT`) addresses common Kotlin generation with the separate
+Kompact's published code-generation plugin (`0.8.0`; this checkout is
+`0.8.0`) addresses common Kotlin generation with the separate
 `:kompact-gradle-plugin`. Its cacheable task invokes KSP2's `KSPCommonConfig`
 path once, routes common and platform Kotlin outputs, and registers them
 through task-backed source directories. The plugin implementation and marker

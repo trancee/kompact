@@ -73,7 +73,7 @@ for the same schemas.
 ```kotlin
 plugins {
     kotlin("multiplatform") version "2.4.20"
-    id("ch.trancee.kompact.codegen") version "0.7.0"
+    id("ch.trancee.kompact.codegen") version "0.8.0"
 }
 
 kotlin {
@@ -85,14 +85,14 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.7.0")
+                implementation("ch.trancee.kompact:kompact:0.8.0")
             }
         }
     }
 }
 ```
 
-To try unreleased changes from the current `0.8.0-SNAPSHOT` checkout, publish
+To try unreleased changes from the current `0.8.0` checkout, publish
 the runtime, KSP processor, and Gradle plugin to Maven Local. The
 [consumer setup guide](consume-from-another-project.md) has the exact commands
 and repository blocks.

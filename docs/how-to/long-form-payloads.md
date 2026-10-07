@@ -5,7 +5,7 @@ arrays, nested records, or repeated values. This guide uses the low-level
 runtime API; for generated properties, see
 [How to define a framed schema](define-framed-schema.md).
 
-The `KompactFrame` reader used below is included in the published `0.7.0`
+The `KompactFrame` reader used below is included in the published `0.8.0`
 release. Follow [Consume Kompact](consume-from-another-project.md) to add the
 runtime dependency.
 
@@ -135,7 +135,7 @@ copies into storage you supply; it does not allocate a destination. For
 generated reusable holders, nested payloads, and repeated-field workspaces,
 see the [caller-owned codec API reference](../api-reference.md). The
 caller-owned cursor API is available in this checkout and is not included in
-the published `0.7.0` artifact. Bounded Native probes recorded no detectable
+the published `0.8.0` artifact. Bounded Native probes recorded no detectable
 allocation delta for selected scalar and cursor operations on Android Arm64
 and iOS Arm64 debug and release test binaries. These GC sweep-statistics
 results are testing/debugging data; they do not cover every API or call shape,
