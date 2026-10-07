@@ -34,6 +34,28 @@ internal fun assertInvalid(
     assertTrue(codeGen.generatedFiles.isEmpty(), "invalid schemas must not leave partial generated output")
 }
 
+internal fun assertDeferred(fields: List<FakeKSPropertyDeclaration>) {
+    val (processor, codeGen, logger) = createTestSetup(mode = "jvm")
+    val model =
+        FakeKSClassDeclaration(
+            simpleNameStr = "UnresolvedFrame",
+            packageNameStr = "ch.trancee.test",
+            properties = fields,
+            declAnnotations =
+                listOf(
+                    FakeKSAnnotation(
+                        "ch.trancee.kompact.annotations.KompactModel",
+                        mapOf("framed" to true, "mutable" to false),
+                    ),
+                ),
+        )
+
+    processor.process(FakeResolver(listOf(model)))
+
+    assertTrue(logger.errors.isEmpty(), "unresolved symbols must be deferred without diagnostics")
+    assertTrue(codeGen.generatedFiles.isEmpty(), "unresolved schemas must not leave partial generated output")
+}
+
 internal fun field(
     name: String,
     typeName: String,

@@ -108,26 +108,20 @@ internal class KompactSymbolProcessor(
             try {
                 processModel(declaration)
                 processedSymbols.add(key)
+            } catch (_: UnresolvedKompactSymbolException) {
+                deferred.add(declaration)
             } catch (e: IllegalArgumentException) {
-                // Deterministic schema/layout/type error (overlapping fields,
-                // unsupported types, invalid widths). Retrying the same input
-                // across KSP rounds cannot fix it, so we must NOT defer it —
-                // deferring would only repeat the identical error every round.
-                // Report a specific, non-generic diagnostic attributed to the
-                // declaration so it localises to the schema (S3/S4 fail closed).
+                // Deterministic schema errors cannot be resolved in a later KSP round, so report once without deferring.
                 logger.error(
                     "KompactKSP: invalid layout for ${declaration.simpleName}: ${e.message}",
                     declaration,
                 )
             } catch (e: Exception) {
-                // Transient / resolution-timing error — KSP may re-offer the
-                // symbol with more resolved types in a later round, so defer.
+                // Only the explicit unresolved-symbol signal above is retried.
                 logger.error(
                     "KompactKSP: failed to process ${declaration.simpleName}: ${e.message}",
                     declaration,
                 )
-                // Defer for re-processing in the next round
-                deferred.add(declaration)
             }
         }
 
@@ -140,7 +134,10 @@ internal class KompactSymbolProcessor(
         val spec = KompactModelParser.parse(declaration)
         val packageName = spec.packageName
         if (spec.fields.isEmpty()) {
-            logger.warn("KompactKSP: ${spec.className} has no @KompactField fields — skipping codegen.")
+            logger.error(
+                "KompactKSP: ${spec.className} has no @KompactField fields — no model was generated.",
+                declaration,
+            )
             return
         }
 

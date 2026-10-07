@@ -32,6 +32,19 @@ from the runtime source; do not edit the generated pages by hand.
 - Generated views retain their backing `ByteArray`; borrowed slices and lazy
   repeated values depend on that array remaining unchanged while they are in
   use. The [architecture guide](architecture.md) explains this ownership tradeoff.
+- Generated fixed-layout and framed views are not content-equality keys.
+  Fixed-layout value-class equality follows the backing `ByteArray` identity;
+  regular framed views use instance identity. Compare decoded fields or copy
+  bytes explicitly when the application needs content equality.
+- `KompactFrame.readBlob`, nested views, and repeated views borrow the source
+  frame. `KompactByteSlice.toByteArray()` and generated blob properties that
+  return `ByteArray` create owned copies; `KompactByteRange.copyTo` copies only
+  into the destination array supplied by the caller.
+- The raw `KompactRuntime.readBits` API assumes trusted, in-bounds input.
+  `KompactCursor.writeBitsUnchecked` deliberately writes only the low bits and
+  may truncate. Use checked cursor/generated writes for validation; they reject
+  out-of-range values and unknown enum codes without partially changing the
+  destination.
 - `KompactCursor` stores its buffer and bit bounds, and reports checked
   operation status and error details through primitive properties. A
   `KompactByteRange` borrows its buffer; `copyTo` is an explicit copy into
@@ -51,15 +64,20 @@ from the runtime source; do not edit the generated pages by hand.
   repeat, so this checked path favors failure atomicity over a single scan; no
   performance budget or allocation claim follows without target-specific
   measurement.
+- Caller-owned cursors, ranges, holders, and repeat workspaces define the
+  allocation-sensitive API boundary; allocating conveniences, `String`
+  conversion, and explicit snapshots/copies are outside it. A zero-allocation
+  claim is target- and workload-specific and remains withheld until a
+  validated counter, positive control, and retained device evidence exist.
 - Generated framed encoders reject range sources backed by the destination
   buffer. The low-level `writeByteRange` operation rejects overlapping
   in-place copies. These cursor APIs are available in the current checkout;
-  they are not part of the published `0.6.1` artifact.
+  they are not part of the published `0.7.0` artifact.
 - Schema annotations are preview API and require opting in to
   `KompactPreview`. Runtime reader and writer APIs do not require that opt-in.
 
-This reference tracks the current checkout (`0.7.0-SNAPSHOT`); the latest
-published release is `0.6.1`. See the
+This reference tracks the current checkout (`0.8.0-SNAPSHOT`); the latest
+published release is `0.7.0`. See the
 [consumer setup guide](how-to/consume-from-another-project.md) for the
 published coordinates or instructions for trying this checkout.
 

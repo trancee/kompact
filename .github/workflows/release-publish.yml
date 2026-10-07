@@ -1,41 +1,25 @@
 name: Release Publish
 
-# Triggered when the "Release PR" (release/ongoing → main, labelled `release`)
-# is merged. Executes the full release: version bump, quality gates, tag,
-# build + sign, deploy to Central Portal, publish, and next-SNAPSHOT bump.
+# A merged, human-reviewed release PR already contains the release version,
+# changelog, and synchronized consumer documentation. This workflow validates
+# that exact merge commit, tags it, publishes behind the release environment,
+# then proposes the next SNAPSHOT through a separate PR.
 #
-# The actual deploy/publish steps require manual approval via the `release`
-# GitHub Environment — the maintainer reviews the release PR body (changelog)
-# and clicks **Approve** on the environment gate.
-#
-# Security:
-#   - This workflow uses `pull_request_target` so it runs the trusted workflow
-#     code from the base branch (main), not the PR head. The `if` guard
-#     restricts execution to PRs with the `release` label that were merged.
-#   - Central Portal tokens and PGP key are GitHub Environment secrets
-#     (never in the repository). Credentials are passed as env vars to Gradle
-#     tasks that redact them in all log output (S1).
-#   - RELEASE_PAT is a repository-level secret (not env-level) because the
-#     `prepare` job has no `environment:` — it must be able to push the
-#     version-bump commit + tag to protected `main` using the admin PAT.
-
+# pull_request_target uses the trusted workflow definition from main. Code is
+# checked out only after merge, so quality gates never execute an unmerged PR
+# head with release permissions.
 on:
   pull_request_target:
     types: [closed]
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Git tag to deploy (e.g. v0.1.0)"
-        required: true
-        type: string
-      version:
-        description: "Release version to deploy (e.g. 0.1.0)"
-        required: true
-        type: string
+
+concurrency:
+  group: release-publish
+  cancel-in-progress: false
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   prepare:
@@ -45,7 +29,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_version: ${{ steps.version.outputs.release }}
+      next_snapshot: ${{ steps.version.outputs.next_snapshot }}
     steps:
+      - name: Verify workflow commit is the merged release commit
+        env:
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          if [[ "$GITHUB_SHA" != "$MERGE_SHA" ]]; then
+            echo "::error::The trusted base-branch commit does not match the merged release PR commit."
+            exit 1
+          fi
+
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -61,31 +55,34 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
-          # v4 of setup-android uses the `packages` input (not api-level/build-tools
-          # which were removed in v4). The `tools` package is deprecated/removed,
-          # so only install platform-tools. AGP downloads platforms;android-36
-          # and build-tools;36.0.0 on-demand during the build.
           packages: "platform-tools"
 
       - name: Set ANDROID_HOME
         run: echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
 
-      - name: Bump version to release
-        run: .github/scripts/release/version-bump.sh bump-release
-
-      - name: Generate CHANGELOG.md
-        run: .github/scripts/release/version-bump.sh changelog
-
-      - name: Extract version
+      - name: Verify reviewed release metadata
         id: version
         run: |
-          echo "release=$(.github/scripts/release/version-bump.sh extract-release)" >> "$GITHUB_OUTPUT"
+          CURRENT_VERSION="$(.github/scripts/release/version-bump.sh extract-version)"
+          RELEASE_VERSION="$(.github/scripts/release/version-bump.sh extract-release)"
+          if [[ "$CURRENT_VERSION" == *-SNAPSHOT || "$CURRENT_VERSION" != "$RELEASE_VERSION" ]]; then
+            echo "::error::Merged release PR must contain a stable version; found ${CURRENT_VERSION}."
+            exit 1
+          fi
+          bash .github/scripts/release/version-bump-test.sh
+          bash .github/scripts/release/release-pr-test.sh
+          bash .github/scripts/docs/version-docs-check-test.sh
+          bash .github/scripts/docs/check-version-references.sh .
+          echo "release=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "next_snapshot=$(.github/scripts/release/version-bump.sh extract-next-snap)" >> "$GITHUB_OUTPUT"
 
-      - name: Run quality gates
+      - name: Run required Linux gates
         run: |
-          ./gradlew spotlessCheck \
+          ./gradlew \
+            spotlessCheck \
             :kompact:checkKotlinAbi \
             :kompact:jvmTest \
+            :kompact:testAndroidHostTest \
             :kompact:koverVerify \
             :kompact:bundleAndroidMainAar \
             :kompact-ksp:checkKotlinAbi \
@@ -93,21 +90,62 @@ jobs:
             :kompact-ksp:koverVerify \
             :kompact-ksp-integration:test \
             :kompact-gradle-plugin:validatePlugins \
+            :kompact-gradle-plugin:checkKotlinAbi \
+            :kompact-gradle-plugin:koverVerify \
+            --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+
+      # The TestKit suite starts nested multiplatform builds; run it separately
+      # from the root build to avoid overlapping compiler daemons.
+      - name: Test Gradle plugin KMP consumer
+        run: |
+          ./gradlew \
             :kompact-gradle-plugin:test \
             --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
-      - name: Commit version bump + tag
-        if: ${{ success() }}
+      - name: Generate ephemeral PGP key
+        run: |
+          gpg --batch --passphrase "" --pinentry-mode loopback \
+            --quick-gen-key "Kompact CI <ci@kompact.dev>" rsa2048 sign 0
+          {
+            echo "SIGNING_KEY_ID=$(gpg --list-secret-keys --with-colons ci@kompact.dev | awk -F: '/^sec:/ {print substr($5, length($5)-7)}')"
+            echo "SIGNING_KEY<<EOF"
+            gpg --batch --armor --export-secret-keys ci@kompact.dev
+            echo "EOF"
+            echo "SIGNING_PASSWORD="
+          } >> "$GITHUB_ENV"
+
+      - name: Dry-run all Central Portal bundles
+        run: |
+          ./gradlew \
+            :kompact:generateChecksums :kompact:assembleCentralBundle \
+            :kompact-ksp:generateChecksums :kompact-ksp:assembleCentralBundle \
+            :kompact-gradle-plugin:generateChecksums :kompact-gradle-plugin:assembleCentralBundle \
+            --no-daemon --console=plain
+          test -f kompact/build/kompact-portal-bundle.zip
+          test -f kompact-ksp/build/kompact-ksp-portal-bundle.zip
+          test -f kompact-gradle-plugin/build/kompact-gradle-plugin-portal-bundle.zip
+
+      - name: Create release tag on the reviewed merge commit
         env:
           RELEASE_PAT: ${{ secrets.RELEASE_PAT }}
+          RELEASE_VERSION: ${{ steps.version.outputs.release }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin "https://x-access-token:${RELEASE_PAT}@github.com/trancee/kompact.git"
-          git add CHANGELOG.md
-          git commit -am "release: ${{ steps.version.outputs.release }}"
-          git tag "v${{ steps.version.outputs.release }}"
-          git push origin main --tags
+          git remote set-url origin "https://x-access-token:${RELEASE_PAT}@github.com/${GITHUB_REPOSITORY}.git"
+          if git ls-remote --exit-code --tags origin "refs/tags/v${RELEASE_VERSION}" >/dev/null; then
+            git fetch origin "refs/tags/v${RELEASE_VERSION}:refs/tags/v${RELEASE_VERSION}"
+            TAGGED_SHA="$(git rev-list -n 1 "v${RELEASE_VERSION}")"
+            if [[ "$TAGGED_SHA" != "$MERGE_SHA" ]]; then
+              echo "::error::v${RELEASE_VERSION} already points to ${TAGGED_SHA}, not ${MERGE_SHA}."
+              exit 1
+            fi
+            echo "Tag v${RELEASE_VERSION} already points to the reviewed merge commit."
+          else
+            git tag "v${RELEASE_VERSION}" "$MERGE_SHA"
+            git push origin "refs/tags/v${RELEASE_VERSION}"
+          fi
 
   deploy:
     needs: prepare
@@ -127,6 +165,14 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools"
+
+      - name: Set ANDROID_HOME
+        run: echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
 
       - name: Build + sign + assemble bundles
         env:
@@ -170,24 +216,22 @@ jobs:
               :kompact-ksp:centralPortalStatus \
               :kompact-gradle-plugin:centralPortalStatus \
               --no-daemon --console=plain 2>&1 | tee /tmp/portal-status.txt
-            # Use PIPESTATUS to get gradle's exit code, not tee's
             STATUS=${PIPESTATUS[0]}
             set -e
             if [ "$STATUS" -eq 0 ]; then
-              echo "  ✅ Portal validation succeeded."
+              echo "  Central Portal validation succeeded."
               SUCCESS=1
               break
             fi
             if grep -qiE 'validation failed|FAILED|Could not determine' /tmp/portal-status.txt; then
-              echo "  ❌ Portal validation failed — check output above."
+              echo "  Central Portal validation failed."
               exit 1
             fi
-            echo "  ⏳ Not ready yet, waiting 30s..."
+            echo "  Validation is pending; waiting 30 seconds..."
             sleep 30
           done
-
           if [ "$SUCCESS" -ne 1 ]; then
-            echo "  ❌ Max retries (12) exhausted — check Central Portal dashboard."
+            echo "  Central Portal validation did not finish within the polling window."
             exit 1
           fi
 
@@ -201,22 +245,69 @@ jobs:
             :kompact-gradle-plugin:centralPortalPublish \
             --no-daemon --console=plain
 
-      - name: Bump to next SNAPSHOT + commit + delete release branch
-        if: ${{ success() }}
-        env:
-          RELEASE_PAT: ${{ secrets.RELEASE_PAT }}
+  advance-snapshot:
+    needs: [prepare, deploy]
+    if: needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - name: Configure git
         run: |
-          # deploy job checked out the release tag (detached HEAD).
-          # Bump to next SNAPSHOT in this detached state, then push to main.
-          NEXT="$(.github/scripts/release/version-bump.sh extract-next-snap)"
-          .github/scripts/release/version-bump.sh bump-next-snap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin "https://x-access-token:${RELEASE_PAT}@github.com/trancee/kompact.git"
-          git commit -am "chore(release): bump to next SNAPSHOT ${NEXT}"
-          git push origin HEAD:main
-          # release/ongoing is auto-deleted by GitHub on PR merge (and may
-          # already be absent after a prior run); deletion is best-effort
-          # cleanup — it must not fail the run when publish + the next-SNAP
-          # bump above already succeeded.
-          git push origin --delete release/ongoing || true
+
+      - name: Open or update next-SNAPSHOT PR
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.release_version }}
+          NEXT_SNAPSHOT: ${{ needs.prepare.outputs.next_snapshot }}
+        run: |
+          CURRENT_VERSION="$(.github/scripts/release/version-bump.sh extract-version)"
+          if [[ "$CURRENT_VERSION" == "$NEXT_SNAPSHOT" ]]; then
+            echo "Main already contains ${NEXT_SNAPSHOT}; no snapshot PR is needed."
+            exit 0
+          fi
+          if [[ "$CURRENT_VERSION" != "$RELEASE_VERSION" ]]; then
+            echo "::error::Expected main at ${RELEASE_VERSION} or ${NEXT_SNAPSHOT}; found ${CURRENT_VERSION}."
+            exit 1
+          fi
+
+          BRANCH="release/next-snapshot-${NEXT_SNAPSHOT}"
+          PR_TITLE="chore(release): advance to ${NEXT_SNAPSHOT}"
+          PR_BODY="Advances the development version and maintained consumer documentation after ${RELEASE_VERSION} was published. This PR does not publish artifacts."
+          PR_NUMBER="$(gh pr list --head "$BRANCH" --base main --state open --json number --template '{{range .}}{{.number}}{{end}}')"
+
+          git fetch origin refs/heads/main:refs/remotes/origin/main
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+            git fetch origin "refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}"
+            git checkout -B "$BRANCH" "origin/${BRANCH}"
+            git reset --hard origin/main
+          else
+            git checkout -b "$BRANCH" origin/main
+          fi
+
+          .github/scripts/release/version-bump.sh bump-next-snap
+          python3 .github/scripts/docs/sync-version-references.py .
+          bash .github/scripts/docs/check-version-references.sh .
+          git add build.gradle.kts README.md SECURITY.md docs
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): advance to ${NEXT_SNAPSHOT}"
+          fi
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+            git push origin "$BRANCH" --force-with-lease
+          else
+            git push --set-upstream origin "$BRANCH"
+          fi
+
+          if [[ -n "$PR_NUMBER" ]]; then
+            gh pr edit "$PR_NUMBER" --title "$PR_TITLE" --body "$PR_BODY"
+            echo "Updated next-SNAPSHOT PR #${PR_NUMBER}"
+          else
+            gh pr create --head "$BRANCH" --base main --title "$PR_TITLE" --body "$PR_BODY"
+            echo "Created next-SNAPSHOT PR"
+          fi

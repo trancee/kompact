@@ -5,7 +5,7 @@ messages, or repeated values. Fields are read in order, so a variable-length
 field does not require guessed offsets for the fields that follow it.
 
 The framed runtime and code-generation plugin are available from Maven Central
-at `0.6.1`. Follow [Consume Kompact](consume-from-another-project.md) to
+at `0.7.0`. Follow [Consume Kompact](consume-from-another-project.md) to
 configure the published dependencies.
 
 ## 1. Declare the schema
@@ -73,7 +73,7 @@ for the same schemas.
 ```kotlin
 plugins {
     kotlin("multiplatform") version "2.4.20"
-    id("ch.trancee.kompact.codegen") version "0.6.1"
+    id("ch.trancee.kompact.codegen") version "0.7.0"
 }
 
 kotlin {
@@ -85,14 +85,14 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.6.1")
+                implementation("ch.trancee.kompact:kompact:0.7.0")
             }
         }
     }
 }
 ```
 
-To try unreleased changes from the current `0.7.0-SNAPSHOT` checkout, publish
+To try unreleased changes from the current `0.8.0-SNAPSHOT` checkout, publish
 the runtime, KSP processor, and Gradle plugin to Maven Local. The
 [consumer setup guide](consume-from-another-project.md) has the exact commands
 and repository blocks.
@@ -151,10 +151,55 @@ uses exceptions.
 - Variable-length fields must begin at a byte-aligned position.
 - `defaultValue`, parameterized nested schemas, and mutable framed fields are
   not supported by code generation.
+- Every `@KompactModel` needs at least one recognized `@KompactField`.
+  Unannotated properties are excluded from the wire schema; an empty schema or
+  a resolved invalid field is a compile-time error and generates no model.
+  KSP defers a field only while its type is genuinely unresolved.
+- Generated fixed-layout value-class views compare their backing byte arrays
+  by identity. Regular framed view instances also use identity equality; they
+  do not compare decoded fields or frame contents.
 
 For the wire-format tradeoffs and schema-evolution limits, see
 [Architecture](../architecture.md) and
 [ADR-0008](../adr/0008-framed-generated-views.md).
+
+## Add an application-owned version envelope
+
+Kompact frames do not carry a schema version. If an application must distinguish
+wire versions, it owns the outer envelope, version identifiers, decoder
+selection, and migration policy. This example prefixes an encoded frame in
+caller-provided storage and borrows the payload when reading:
+
+```kotlin
+import ch.trancee.kompact.runtime.KompactByteRange
+
+private const val APPLICATION_VERSION = 1
+
+fun encodeEnvelope(payload: ByteArray, destination: ByteArray): Int {
+    if (destination.size < payload.size + 1) return -1
+    destination[0] = APPLICATION_VERSION.toByte()
+    payload.copyInto(destination, destinationOffset = 1)
+    return payload.size + 1
+}
+
+fun borrowEnvelopePayload(
+    envelope: ByteArray,
+    payload: KompactByteRange,
+): Boolean {
+    if (envelope.isEmpty() || (envelope[0].toInt() and 0xFF) != APPLICATION_VERSION) return false
+    return payload.reset(envelope, start = 1, end = envelope.size)
+}
+
+val packetBytes = byteArrayOf(0xA5.toByte(), 0x40.toByte())
+val envelope = ByteArray(packetBytes.size + 1)
+check(encodeEnvelope(packetBytes, envelope) == envelope.size)
+val borrowedPayload = KompactByteRange(ByteArray(0))
+check(borrowEnvelopePayload(envelope, borrowedPayload))
+```
+
+The one-byte identifier is application-specific; it is not a Kompact header or
+a Kompact compatibility guarantee. A failed identifier check is for the
+application to reject or route to another decoder.
 
 ## Verify the integration
 

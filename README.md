@@ -28,7 +28,7 @@ frame and shows the expected bytes and decoded values.
 
 ## Install
 
-The latest Maven Central release is `0.6.1`:
+The latest Maven Central release is `0.7.0`:
 
 ```kotlin
 repositories {
@@ -36,11 +36,11 @@ repositories {
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.6.1")
+    implementation("ch.trancee.kompact:kompact:0.7.0")
 }
 ```
 
-The current development version in this checkout is `0.7.0-SNAPSHOT`; it is
+The current development version in this checkout is `0.8.0-SNAPSHOT`; it is
 not published to Maven Central. To try unreleased changes, publish the snapshot
 modules to Maven Local and follow the
 [consumer setup guide](docs/how-to/consume-from-another-project.md).

@@ -1,12 +1,6 @@
 package ch.trancee.kompact.runtime
 
 /**
- * Caller-reusable borrowed byte range.
- *
- * The range does not own or copy its buffer. Keep the bytes stable while the
- * range is used, and call [copyTo] only when an owned snapshot is required.
- */
-/**
  * Reusable borrowed view of a half-open byte range in a caller-owned buffer.
  *
  * The constructor initially selects the complete buffer. Rebinding and reads

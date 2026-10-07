@@ -3,19 +3,14 @@
 # The version lives in the root build.gradle.kts allprojects block:
 #   version = "0.2.0-SNAPSHOT"
 #
-# Release versioning follows Conventional Commits semantics:
-#   - feat!  or BREAKING CHANGE  → minor bump before 1.0, major bump from 1.0
-#   - feat   (no breaking)        → minor bump  (0.Y.Z → 0.(Y+1).0)
-#   - fix/other                   → patch bump  (0.Y.Z → 0.Y.(Z+1))
-#
-# Commits since the last release tag (vX.Y.0) are analysed. If there is no
-# previous tag (first release) all commits are considered. If git is not
-# available, falls back to stripping -SNAPSHOT.
+# The root build.gradle.kts version is the authoritative release candidate.
+# Release automation strips -SNAPSHOT; Conventional Commits group changelog
+# entries but do not independently calculate another version.
 #
 # Usage:
-#   version-bump.sh extract-release   # print computed release version
+#   version-bump.sh extract-release   # print root candidate without -SNAPSHOT
 #   version-bump.sh extract-next-snap # print next SNAPSHOT (minor+1 from release)
-#   version-bump.sh bump-release      # -SNAPSHOT -> computed release in build.gradle.kts
+#   version-bump.sh bump-release      # -SNAPSHOT -> root candidate release in build.gradle.kts
 #   version-bump.sh bump-next-snap    # release -> next -SNAPSHOT in build.gradle.kts
 #   version-bump.sh changelog         # generate/update CHANGELOG.md for release
 set -euo pipefail
@@ -40,115 +35,10 @@ extract_release() {
   fi
 }
 
-# Determine the bump type from Conventional Commits since the last tag.
-# Returns "breaking", "minor", or "patch".
-# Falls back to "patch" when git is unavailable or no commits found.
-_get_bump_type() {
-  local last_tag commits
-  last_tag="$(git describe --tags --match 'v[0-9]*.*' --abbrev=0 2>/dev/null || true)"
-
-  if [ -n "$last_tag" ]; then
-    commits="$(git log --oneline "${last_tag}..HEAD" --pretty=format:'%s%n%b' 2>/dev/null || true)"
-  else
-    commits="$(git log --oneline --pretty=format:'%s%n%b' 2>/dev/null || true)"
-  fi
-
-  # Filter out release-process commits (any (release) scope or release: prefix)
-  # so they don't affect version bumps or changelog entries. These commits are
-  # infrastructure/process changes (e.g. "feat(release): add workflow_dispatch",
-  # "chore(release): bump to SNAPSHOT", "fix(release): update regex") and should
-  # not trigger version increments or appear in the changelog.
-  commits="$(grep -vE '^(release:|[^()]*\(release\):)' <<< "$commits" || true)"
-
-  if [ -z "$commits" ]; then
-    echo "patch"
-    return
-  fi
-
-  # Breaking change: any commit with "!" after type, or BREAKING CHANGE footer.
-  # %b (body) is included above so the BREAKING CHANGE footer is visible.
-  # Use heredocs instead of echo|pipe|grep to avoid SIGPIPE (Broken pipe)
-  # with `set -o pipefail`: when grep -q exits early, echo gets SIGPIPE (141),
-  # which makes the pipeline non-zero, causing the if-condition to fail even
-  # when a match exists.
-  if grep -qE '^(feat|fix|perf|refactor|build|chore|ci|style|test|docs)!:|BREAKING[ -]CHANGE' <<< "$commits"; then
-    echo "breaking"
-  elif grep -qE '^feat(:|[:(])' <<< "$commits"; then
-    echo "minor"
-  else
-    echo "patch"
-  fi
-}
-
-# Compute the release version from the last release tag + Conventional Commits
-# since that tag. The base version comes from the tag (e.g. v0.1.0 → 0.1.0),
-# NOT from the current SNAPSHOT — the SNAPSHOT already incorporates the bump
-# from the previous release, so basing on it would double-count.
-# Example: tag v0.1.0 + "feat:" commit → 0.2.0 (not 0.3.0)
-compute_release_version() {
-  local base bump major minor patch last_tag
-
-  # Prefer the last release tag for the base version. Falls back to
-  # stripping -SNAPSHOT from build.gradle.kts when git is unavailable.
-  if git rev-parse --git-dir >/dev/null 2>&1; then
-    last_tag="$(git describe --tags --match 'v[0-9]*.*' --abbrev=0 2>/dev/null || true)"
-    if [ -n "$last_tag" ]; then
-      base="${last_tag#v}"  # Strip 'v' prefix, e.g. v0.1.0 → 0.1.0
-    else
-      base="$(extract_release)"
-    fi
-  else
-    base="$(extract_release)"
-  fi
-
-  # Parse major.minor.patch
-  IFS='.' read -r major minor patch <<<"$base"
-
-  if ! bump="$(_get_bump_type)"; then
-    bump="patch"
-  fi
-
-  case "$bump" in
-    breaking)
-      if [ "$major" -eq 0 ]; then
-        echo "0.$((minor + 1)).0"
-      else
-        echo "$((major + 1)).0.0"
-      fi
-      ;;
-    minor) echo "${major}.$((minor + 1)).0" ;;
-    patch) echo "${major}.${minor}.$((patch + 1))" ;;
-    *)     echo "$base" ;;
-  esac
-}
-
-# The release version used by the PR title and bump-release.
-# If the current version is already a release (no -SNAPSHOT suffix),
-# returns it as-is. For SNAPSHOT versions, computes from git using
-# Conventional Commits since the last tag. Falls back to stripping
-# -SNAPSHOT when git is unavailable.
-extract_computed_release() {
-  local snap
-  snap="$(extract_snapshot)"
-
-  # Already a release version — return as-is.
-  if [[ "$snap" != *-SNAPSHOT ]]; then
-    echo "$snap"
-    return
-  fi
-
-  # For SNAPSHOT, compute from git.
-  if git rev-parse --git-dir >/dev/null 2>&1; then
-    compute_release_version
-  else
-    echo "${snap%-SNAPSHOT}"
-  fi
-}
-
 # Next SNAPSHOT starts the following minor development cycle.
 extract_next_snap() {
   local release
-  release="$(extract_computed_release)"
+  release="$(extract_release)"
   local major minor
   IFS='.' read -r major minor _ <<<"$release"
   echo "${major}.$((minor + 1)).0-SNAPSHOT"
@@ -159,7 +49,7 @@ extract_next_snap() {
 generate_changelog() {
   local version changelog_file date last_tag commits raw_entries
 
-  version="$(extract_computed_release)"
+  version="$(extract_release)"
   changelog_file="CHANGELOG.md"
   date="$(date +%Y-%m-%d)"
 
@@ -248,7 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 bump_release() {
   local release
-  release="$(extract_computed_release)"
+  release="$(extract_release)"
   sed -i.bak "s/version = \".*-SNAPSHOT\"/version = \"${release}\"/" "$BUILD_FILE"
   rm -f "${BUILD_FILE}.bak"
   echo "Bumped to release version: ${release}"
@@ -263,13 +153,14 @@ bump_next_snap() {
 }
 
 case "${1:-}" in
-  extract-release)    extract_computed_release ;;
-  extract-next-snap)  extract_next_snap ;;
+  extract-release)    extract_release ;;
+  extract-version)   extract_snapshot ;;
+  extract-next-snap) extract_next_snap ;;
   bump-release)       bump_release ;;
   bump-next-snap)     bump_next_snap ;;
   changelog)          generate_changelog ;;
   *)
-    echo "Usage: $0 {extract-release|extract-next-snap|bump-release|bump-next-snap|changelog}" >&2
+    echo "Usage: $0 {extract-version|extract-release|extract-next-snap|bump-release|bump-next-snap|changelog}" >&2
     exit 1
     ;;
 esac

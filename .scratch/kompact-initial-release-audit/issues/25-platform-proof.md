@@ -35,11 +35,107 @@ publishing platform support or making a zero-allocation claim.
 - Keep representative performance measurements reproducible and tied to the
   exact workload and environment.
 
-## Execution status (2026-10-05)
+## Execution status (2026-10-06)
 
-The caller-owned API is implemented, but this task's measurement acceptance
-criteria are not yet met. The available host is Linux; `adb devices` returned
-no connected devices, and `xcrun`/`xcodebuild` are unavailable. No target
-allocation harness or retained measurement report has been produced, and the
-Android Native Arm64 positive-control spike remains unvalidated. Do not claim
-zero allocations for any target until the required evidence is retained.
+The caller-owned API is implemented. Linux CI linked and uploaded the Android
+Native `test.kexe` for commit `f3bb4aeeacd325905c8589e3a856a88599758090`
+(run `37508992609`). The artifact SHA-256 was
+`d32408f65a719d58ca5fd20cf3bdff2b0f6a71dec144c1d173fb957d02e9d31e`.
+`scripts/test-android-native-device.sh` verified the ELF and transfer
+checksum, then executed all 387 tests in 35 test cases successfully on the
+connected Android 15 `arm64-v8a` device (model `A063`, API 35, build
+`AQ3A.240929.001`). The artifact was built with Kotlin `2.4.20`; execution
+used macOS `27.0.0` arm64 and ADB `37.0.1-15733141`. The runner reported
+successful removal of its unique temporary device directory. Its documented
+download-and-run procedure now provides reproducible Android Native behavior
+evidence.
+
+Physical iOS behavior was verified on 2026-10-07 for commit
+`a88b5e4aba3de8125198cd8cea542cbe3c5a03c7`.
+`:kompact:iosArm64TestBinaries` produced an unsigned standalone `test.kexe`
+(SHA-256 `1b4eaa9e95024123f119a6155106a95eda24a6b08f4ad60bf7736118f757bbdc`,
+Kotlin `2.4.20`). A disposable Xcode `27.0` (`27A266a`) app host, not
+committed, used automatic provisioning for one App ID,
+`ch.trancee.kompact.devicetests`, in Personal Team `7ZX3WPAP4Y`. Its
+development profile listed only the selected device. The procedure:
+
+1. Build the host for the device.
+2. Copy `test.kexe` over the app executable and remove the Debug preview
+   dylibs.
+3. Re-sign the app with the existing Apple Development identity and
+   Xcode-generated entitlements. `codesign --verify --strict --deep` then
+   passed.
+4. Install the app with `xcrun devicectl device install app`.
+5. Trust the developer once on the device.
+6. Run `xcrun devicectl device process launch --console`.
+
+Three consecutive runs on an iPhone SE (2020) running iOS `18.7.8` passed
+all 390 tests in 35 test cases. The first run took 14,032 ms. The
+iOS binary omits the six Android-Native-only allocation-probe tests.
+Free-team profiles expire after seven days. Over SSH, the login keychain
+denied private-key use (`errSecInternalComponent`), so signing ran as fixed
+commands in the logged-in GUI Terminal session. At that point there was no
+repository-owned, reproducible iOS host or script. That run demonstrated
+behavior only. It did not measure iOS allocation.
+
+The procedure is now `scripts/test-ios-device.sh` (see `docs/ci.md`). The
+script builds a minimal app bundle around `test.kexe` without an Xcode
+project. It signs the bundle with the local identity that matches the
+supplied explicit-App-ID development profile. It then installs and runs the
+bundle with `devicectl`, failing unless the summary reports at least one
+passing test and no failures. The allocation probes moved to the shared
+`nativeTest` source set. On 2026-10-07, three script runs on the same
+iPhone SE passed all 396 tests in 37 test cases with a local working-tree
+binary (SHA-256
+`621e32dddfc62a49e5f95322c02b472c183fc2e77d1e479f25801bfa999b6623`). Every
+measured operation reported `[0, 0, 0]` swept objects, matching the primitive
+baselines. Every intentional-allocation control reported
+`[4098, 4098, 4098]`. A deliberately failing temporary test made the script
+exit with status 1. Signing still requires the logged-in GUI session or a
+dedicated unlocked keychain.
+
+The local Android Native link still fails at
+`linkDebugTestAndroidNativeArm64` because the cached Kotlin/Native toolchain
+invokes an x86_64 `clang` on this arm64 Mac (`Bad CPU type in executable`).
+Linux CI builds the Android test binary and avoids that host limitation.
+
+The Linux CI artifact for commit `ef97610b39caf6380210c288dcce190d49abcb14`
+(run `37596537995`, SHA-256
+`f84d76040d63a4410bd393fbc3a68f2e9ea58f96df0ccf8bd2d616ba087b9c32`) was run
+three times on the Android 15 arm64 device (model `A063`, API 35, build
+`AQ3A.240929.001`). All three runs passed 390 tests in 36 test cases. Each
+reported three samples of 4,096 direct generated speed reads and writes with
+zero swept objects, exactly matching the zero-object primitive baseline; the
+4,096-instance intentional-allocation control reported 4,098 swept objects
+for every operation sample. The known-object retention/release probe reported
+`keptCount=6031`, `sweptCount=2288`. The device runner verified the artifact
+checksum and removed its temporary files. The test now requires each measured
+maximum to be no greater than the observed primitive baseline; it no longer
+allows a percentage of the positive-control count as a margin.
+
+An Android Native caller-owned cursor probe then found one swept object per
+`writeUnsigned(ULong)` operation. Isolation traced this to the narrow-width
+unsigned right-shift used in both cursor validation and writing; the first
+inline-validation attempt did not fix it. Commit `5989ac2` changed the range
+check to use `value.toLong() ushr bitWidth`. Its CI artifact (run
+`37612656077`, SHA-256
+`7d26ba4543dddbead1b72e77e761c59cd8bfb672d79f870bfa295f0426139551`) passed
+all 396 tests on three consecutive runs on the same Android 15 arm64 device.
+Each run reported `[0, 0, 0]` for 4,096 unsigned validations and cursor byte
+writes, matching the primitive baselines, while intentional-allocation
+controls reported `[4098, 4098, 4098]`. The checksum was verified and device
+temporary files were removed each run.
+
+These are bounded results for the measured operations. Kotlin/Native GC
+statistics are testing/debugging data, so they do not establish other call
+shapes, a timing budget, or a universal zero-allocation guarantee. Physical iOS
+behavior and debug-test GC-sweep allocation evidence are recorded above, with a
+repository-owned procedure.
+
+Release-optimized `releaseTest/test.kexe` binaries ran the same probes on
+2026-10-07: the `iosArm64` binary (SHA-256 `932cbb17…9bc66`) passed 396/396
+three times on the iPhone SE, and the Linux CI `androidNativeArm64` artifact
+from run `37639871425` (SHA-256 `f1df293a…e931b3`) passed 396/396 three times on
+the Android device. Measured probes reported `[0, 0, 0]` and controls
+`[4098, 4098, 4098]` on both, matching the iOS Simulator release run. Neither
+target has an Instruments or other independent allocation trace.

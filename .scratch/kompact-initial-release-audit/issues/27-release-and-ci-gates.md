@@ -39,3 +39,44 @@ compliant reviewed workflow.
   release PR; publish only after those updates and every required gate pass.
 - Run a clean-checkout CI-equivalent verification and record any external
   prerequisite that cannot be verified from the repository.
+
+## Latest verification
+
+- Forced `:kompact-gradle-plugin:koverVerify` passes its required 100% line
+  and branch coverage thresholds after the plugin contract tests were expanded.
+  Production plugin code has no coverage exclusions.
+- The forced Linux CI-quality task set passes locally, including runtime/JVM
+  and Android host tests, KSP and Gradle-plugin suites, ABI checks, coverage,
+  plugin validation, and Android AAR assembly. The macOS
+  `:kompact:iosSimulatorArm64Test` and ABI checks also pass.
+- `spotlessCheck`, Dokka Markdown generation, workflow linting, release-script
+  fixtures, documentation-version checks, and `git diff --check` pass.
+- The inspected CI/Gradle configuration has no relative-link or spelling/markup
+  checker; those documentation checks have not been verified.
+- Android-KMP host-side runtime tests are now configured and included in Linux
+  CI via `:kompact:testAndroidHostTest`; a forced local run passed. This is not
+  physical Android Native device evidence.
+- Physical iOS/Android Native execution and allocation evidence remain open
+  release blockers as recorded in [platform proof](25-platform-proof.md).
+- GitHub CI passed both required Linux and macOS jobs on PR #89 commit
+  `f3bb4ae`; the Linux run also linked and uploaded the Android Native arm64
+  test executable. The exact artifact passed all 387 tests on the physical
+  Android 15 arm64 device; evidence and the reproducible runner are recorded
+  in [platform proof](25-platform-proof.md). CodeQL passed after the release
+  workflow switched to checking out only the trusted event SHA. The PR remains
+  a draft.
+- On 2026-10-06, `main` branch protection was verified in strict mode and
+  updated to require exactly `JVM tests + Android assemble + Portal dry-run
+  (Linux)` and `ABI + iOS Simulator tests + Markdown + spotless (macOS)`.
+- Physical iOS execution is still blocked: the linked Kotlin test executable
+  is unsigned and no local provisioning profile matches an available signing
+  identity. Xcode-managed profile creation needs explicit Apple Developer
+  account approval. The Android Native GC sweep-statistics test probe now
+  passes physical positive controls and detects no swept-object delta in the
+  direct speed getter/writer loops versus a primitive baseline in the debug
+  test binary. This is bounded test/debug evidence, not release-optimized or
+  universal zero-allocation proof; release-grade Android Native and physical
+  iOS allocation evidence remain open.
+- A general documentation link/spelling/markup checker is not configured in
+  the repository, so those checks remain unverified. Do not publish until
+  every required gate has passing evidence.

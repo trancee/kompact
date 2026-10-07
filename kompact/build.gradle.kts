@@ -74,6 +74,7 @@ kotlin {
         compileSdk = 36
         minSdk = 21
         withJava()
+        withHostTest {}
     }
     jvm {
         compilerOptions {
@@ -81,9 +82,11 @@ kotlin {
         }
     }
     if (!mutationJvmOnly) {
-        iosArm64()
-        iosSimulatorArm64()
-        androidNativeArm64()
+        // Release-optimized test binaries (releaseTest/test.kexe) carry the
+        // allocation probes into optimized code for device evidence.
+        listOf(iosArm64(), iosSimulatorArm64(), androidNativeArm64()).forEach { target ->
+            target.binaries.test(listOf(org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.RELEASE))
+        }
     }
 
     sourceSets {
@@ -102,6 +105,17 @@ kotlin {
                     implementation("org.jetbrains.kotlin:kotlin-test:${libs.versions.kotlin.get()}")
                 }
             }
+        getByName("androidHostTest") {
+            dependencies {
+                implementation(kotlin("test-junit5")) {
+                    exclude(group = "org.junit.jupiter")
+                    exclude(group = "org.junit.platform")
+                }
+                implementation(libs.junitJupiterApi)
+                runtimeOnly(libs.junitJupiterEngine)
+                runtimeOnly(libs.junitPlatformLauncher)
+            }
+        }
         // Shared JVM+Android source set: @JvmInline actuals + generated views
         // that compile for both JVM and Android targets (agp.com.android.kotlin.multiplatform.library).
         val jvmMain = getByName("jvmMain")
@@ -133,6 +147,12 @@ kotlin {
             getByName("iosArm64Main") { dependsOn(nativeMain) }
             getByName("iosSimulatorArm64Main") { dependsOn(nativeMain) }
             getByName("androidNativeArm64Main") { dependsOn(nativeMain) }
+            // Kotlin/Native GC allocation probes run on every Native test target.
+            val nativeTest = create("nativeTest")
+            nativeTest.dependsOn(commonTest)
+            getByName("iosArm64Test") { dependsOn(nativeTest) }
+            getByName("iosSimulatorArm64Test") { dependsOn(nativeTest) }
+            getByName("androidNativeArm64Test") { dependsOn(nativeTest) }
         }
         // jvmCommon: shared intermediate between commonMain and jvmMain/androidMain.
         // Moved @JvmInline actuals + VehicleTelemetry here so both JVM and Android

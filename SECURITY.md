@@ -19,8 +19,8 @@ Include as much of the following as you can:
 
 ## Versions
 
-Kompact is pre-1.0. The latest published release is `0.6.1`; the current
-development version, `0.7.0-SNAPSHOT`, is not published to Maven Central.
+Kompact is pre-1.0. The latest published release is `0.7.0`; the current
+development version, `0.8.0-SNAPSHOT`, is not published to Maven Central.
 
 Report issues affecting the latest published release or the current default
 branch. Maintainers assess older versions individually; do not assume they

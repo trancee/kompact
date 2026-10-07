@@ -1,7 +1,7 @@
 # How to add Kompact to a project
 
 Add the runtime dependency to a Kotlin/JVM, Android, or Kotlin Multiplatform
-module. The latest Maven Central release is `0.6.1`.
+module. The latest Maven Central release is `0.7.0`.
 
 ## Use the published runtime
 
@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.6.1")
+    implementation("ch.trancee.kompact:kompact:0.7.0")
 }
 ```
 
@@ -28,7 +28,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.6.1")
+                implementation("ch.trancee.kompact:kompact:0.7.0")
             }
         }
     }
@@ -43,7 +43,7 @@ you consume.
 ## Use the published code-generation plugin
 
 The code-generation plugin marker, runtime, and KSP processor are published at
-`0.6.1`. Add Maven Central to plugin and dependency resolution:
+`0.7.0`. Add Maven Central to plugin and dependency resolution:
 
 ```kotlin
 // settings.gradle.kts
@@ -66,7 +66,7 @@ Apply the plugin after Kotlin Multiplatform and add the runtime to `commonMain`:
 ```kotlin
 plugins {
     kotlin("multiplatform") version "2.4.20"
-    id("ch.trancee.kompact.codegen") version "0.6.1"
+    id("ch.trancee.kompact.codegen") version "0.7.0"
 }
 
 kotlin {
@@ -78,7 +78,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.6.1")
+                implementation("ch.trancee.kompact:kompact:0.7.0")
             }
         }
     }
@@ -91,7 +91,7 @@ apply standard target-specific KSP processing to the same Kompact schemas.
 
 ## Try the development snapshot
 
-The current checkout's `0.7.0-SNAPSHOT` runtime, schema processor, and
+The current checkout's `0.8.0-SNAPSHOT` runtime, schema processor, and
 code-generation plugin are not available from Maven Central. To try unreleased
 runtime changes, publish the runtime from the repository root:
 
@@ -109,7 +109,7 @@ repositories {
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.7.0-SNAPSHOT")
+    implementation("ch.trancee.kompact:kompact:0.8.0-SNAPSHOT")
 }
 ```
 
@@ -144,7 +144,7 @@ Then apply the plugin after Kotlin Multiplatform and add the runtime to
 ```kotlin
 plugins {
     kotlin("multiplatform") version "2.4.20"
-    id("ch.trancee.kompact.codegen") version "0.7.0-SNAPSHOT"
+    id("ch.trancee.kompact.codegen") version "0.8.0-SNAPSHOT"
 }
 
 repositories {
@@ -158,7 +158,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.7.0-SNAPSHOT")
+                implementation("ch.trancee.kompact:kompact:0.8.0-SNAPSHOT")
             }
         }
     }
@@ -195,7 +195,7 @@ fun main() {
 
 If the snapshot does not resolve, check that `mavenLocal()` is configured for
 both plugin resolution and dependencies. For Maven Central, remove
-`mavenLocal()` and use the published `0.6.1` runtime and code-generation
+`mavenLocal()` and use the published `0.7.0` runtime and code-generation
 plugin.
 
 ## Next steps

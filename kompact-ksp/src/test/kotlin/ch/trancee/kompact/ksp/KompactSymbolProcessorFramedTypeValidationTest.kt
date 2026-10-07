@@ -55,8 +55,8 @@ class KompactSymbolProcessorFramedTypeValidationTest {
     }
 
     @Test
-    fun process_framedModel_withUnresolvedType_reportsDiagnosticWithoutOutput() {
-        assertInvalid(listOf(field("unresolved", "kotlin.Int", order = 0, bitWidth = 5, errorType = true)))
+    fun process_framedModel_withUnresolvedType_defersWithoutOutput() {
+        assertDeferred(listOf(field("unresolved", "kotlin.Int", order = 0, bitWidth = 5, errorType = true)))
     }
 
     @Test

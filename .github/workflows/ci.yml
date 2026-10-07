@@ -52,7 +52,7 @@ jobs:
         with:
           packages: "platform-tools"
       - name: Set ANDROID_HOME
-        run: echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+        run: echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
       - run: ./gradlew spotlessCheck :kompact:checkKotlinAbi :kompact:iosSimulatorArm64Test :kompact-ksp:checkKotlinAbi --no-daemon --rerun-tasks --no-build-cache --warning-mode all
       # The committed GFM Markdown reference in kompact/docs/api/ must stay in sync
       # with the KDoc in commonMain. Regenerate and fail if the committed tree
@@ -64,7 +64,7 @@ jobs:
           git diff --exit-code -- kompact/docs/api/
 
   jvm-test:
-    name: JVM tests + Android assemble + KSP Portal dry-run (Linux)
+    name: JVM tests + Android assemble + Portal dry-run (Linux)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -74,12 +74,17 @@ jobs:
           java-version: 21
           cache: gradle
       - name: Test release version calculation
-        run: bash .github/scripts/release/version-bump-test.sh
+        run: |
+          bash .github/scripts/release/version-bump-test.sh
+          bash .github/scripts/release/release-pr-test.sh
+          bash .github/scripts/docs/version-docs-check-test.sh
+          bash .github/scripts/docs/check-version-references.sh .
       - run: |
           ./gradlew \
             spotlessCheck \
             :kompact:checkKotlinAbi \
             :kompact:jvmTest \
+            :kompact:testAndroidHostTest \
             :kompact:koverVerify \
             :kompact:bundleAndroidMainAar \
             :kompact-ksp:checkKotlinAbi \
@@ -87,6 +92,8 @@ jobs:
             :kompact-ksp:koverVerify \
             :kompact-ksp-integration:test \
             :kompact-gradle-plugin:validatePlugins \
+            :kompact-gradle-plugin:checkKotlinAbi \
+            :kompact-gradle-plugin:koverVerify \
             --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
       # This TestKit suite launches nested Gradle builds that compile the
@@ -97,6 +104,28 @@ jobs:
           ./gradlew \
             :kompact-gradle-plugin:test \
             --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+
+      # Produce a device-runnable binary on Linux; Apple Silicon's cached
+      # Kotlin/Native Android clang is x86_64 and cannot link this target.
+      - name: Link Android Native device-test binary
+        run: |
+          ./gradlew \
+            :kompact:androidNativeArm64TestBinaries \
+            --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+      - name: Upload Android Native device-test binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: kompact-android-native-arm64-test
+          path: kompact/build/bin/androidNativeArm64/debugTest/test.kexe
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload Android Native release device-test binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: kompact-android-native-arm64-release-test
+          path: kompact/build/bin/androidNativeArm64/releaseTest/test.kexe
+          if-no-files-found: error
+          retention-days: 7
 
       # Portal dry-run: generate checksums + assemble bundles with an ephemeral
       # PGP key (never real credentials). Verifies both JVM module pipelines
@@ -111,19 +140,20 @@ jobs:
             --quick-gen-key "Kompact CI <ci@kompact.dev>" rsa2048 sign 0
           # Gradle signing plugin requires short key ID (8 hex chars), not the long
           # (16 hex chars) form that --with-colons outputs.
-          echo "SIGNING_KEY_ID=$(gpg --list-secret-keys --with-colons ci@kompact.dev | awk -F: '/^sec:/ {print substr($5, length($5)-7)}')" >> $GITHUB_ENV
-          # SIGNING_KEY is multi-line (ASCII-armored PGP) — must use GitHub Actions'
-          # multi-line env syntax (key<<DELIMITER\nvalue\nDELIMITER) so the env file
-          # parser doesn't choke on embedded newlines in the PGP block.
-          echo "SIGNING_KEY<<EOF" >> $GITHUB_ENV
-          gpg --batch --armor --export-secret-keys ci@kompact.dev >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-          echo "SIGNING_PASSWORD=" >> $GITHUB_ENV
+          {
+            echo "SIGNING_KEY_ID=$(gpg --list-secret-keys --with-colons ci@kompact.dev | awk -F: '/^sec:/ {print substr($5, length($5)-7)}')"
+            echo "SIGNING_KEY<<EOF"
+            gpg --batch --armor --export-secret-keys ci@kompact.dev
+            echo "EOF"
+            echo "SIGNING_PASSWORD="
+          } >> "$GITHUB_ENV"
       - name: Portal dry-run (checksums + bundles)
         run: |
           ./gradlew \
+            :kompact:generateChecksums :kompact:assembleCentralBundle \
             :kompact-ksp:generateChecksums :kompact-ksp:assembleCentralBundle \
             :kompact-gradle-plugin:generateChecksums :kompact-gradle-plugin:assembleCentralBundle \
             --no-daemon --console=plain
+          test -f kompact/build/kompact-portal-bundle.zip && echo "Runtime Portal bundle OK"
           test -f kompact-ksp/build/kompact-ksp-portal-bundle.zip && echo "Portal bundle OK"
           test -f kompact-gradle-plugin/build/kompact-gradle-plugin-portal-bundle.zip && echo "Gradle plugin Portal bundle OK"

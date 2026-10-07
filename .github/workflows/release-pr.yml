@@ -1,12 +1,9 @@
 name: Release PR
 
-# Manages the "release PR" lifecycle: a long-lived PR from release/ongoing → main
-# that accumulates changes from every push to main. Merging the release PR
-# triggers release-publish.yml (which bumps the version, builds, deploys to
-# Central Portal, tags, and bumps to the next SNAPSHOT).
-#
-# This workflow does NOT change the version — the release PR stays identical
-# to main. Its sole purpose is an approval gate for the release pipeline.
+# Creates or updates a human-reviewed release PR from release/ongoing → main.
+# The branch contains the candidate release version, changelog, and synchronized
+# consumer documentation; release-publish.yml only tags the merged commit and
+# publishes it. After publication, a separate PR advances the next SNAPSHOT.
 # The branch-sync + PR-create/edit logic lives in:
 #   .github/scripts/release/manage-release-pr.sh
 
@@ -24,13 +21,6 @@ permissions:
 jobs:
   manage-release-pr:
     runs-on: ubuntu-latest
-    # Skip commits produced by the release pipeline itself (version bumps).
-    # A merged release PR creates a merge commit ("Merge pull request …") or
-    # a squash commit ("Release: 0.2.0 (#N)") — neither is filtered, so a
-    # new release PR is created after each release.
-    if: |
-      !startsWith(github.event.head_commit.message, 'release:') &&
-      !startsWith(github.event.head_commit.message, 'chore(release):')
     steps:
       - uses: actions/checkout@v7
         with:
