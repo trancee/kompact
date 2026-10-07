@@ -60,6 +60,15 @@ private fun runCursorByteWrites(cursor: KompactCursor, count: Int) {
     cursorAllocationChecksum = checksum
 }
 
+private fun runCursorLongByteWrites(cursor: KompactCursor, count: Int) {
+    var checksum = 0
+    repeat(count) {
+        cursor.writeUnsigned(Byte.SIZE_BITS, (it and 0xff).toLong())
+        checksum += cursor.buffer[it].toInt() and 0xff
+    }
+    cursorAllocationChecksum = checksum
+}
+
 @OptIn(NativeRuntimeApi::class, ExperimentalStdlibApi::class)
 class NativeAllocationCursorProbeTest {
     private fun sweptObjectsAfterLastCollection(): Long =
@@ -128,9 +137,12 @@ class NativeAllocationCursorProbeTest {
         val sampleCount = 3
         val baselineBuffer = ByteArray(iterations)
         val measuredBuffer = ByteArray(iterations)
+        val longMeasuredBuffer = ByteArray(iterations)
         val cursor = KompactCursor(measuredBuffer)
+        val longCursor = KompactCursor(longMeasuredBuffer)
         val baselineSwept = LongArray(sampleCount)
         val writesSwept = LongArray(sampleCount)
+        val longWritesSwept = LongArray(sampleCount)
         val allocationControlSwept = LongArray(sampleCount)
 
         repeat(sampleCount) { sample ->
@@ -138,6 +150,16 @@ class NativeAllocationCursorProbeTest {
             runPrimitiveByteWrites(baselineBuffer, iterations)
             GC.collect()
             baselineSwept[sample] = sweptObjectsAfterLastCollection()
+
+            assertEquals(
+                KompactCursor.STATUS_OK,
+                longCursor.reset(longMeasuredBuffer, endBit = iterations * Byte.SIZE_BITS),
+            )
+            GC.collect()
+            runCursorLongByteWrites(longCursor, iterations)
+            GC.collect()
+            longWritesSwept[sample] = sweptObjectsAfterLastCollection()
+            assertEquals(KompactCursor.STATUS_OK, longCursor.status)
 
             assertEquals(KompactCursor.STATUS_OK, cursor.reset(measuredBuffer, endBit = iterations * Byte.SIZE_BITS))
             GC.collect()
@@ -151,11 +173,13 @@ class NativeAllocationCursorProbeTest {
 
         val baselineMaximum = requireNotNull(baselineSwept.maxOrNull())
         val writesMaximum = requireNotNull(writesSwept.maxOrNull())
+        val longWritesMaximum = requireNotNull(longWritesSwept.maxOrNull())
         val controlMinimum = requireNotNull(allocationControlSwept.minOrNull())
         val positiveControlDelta = controlMinimum - baselineMaximum
         println(
             "Native cursor byte-write allocation samples: baseline=${baselineSwept.contentToString()}, " +
-                "writes=${writesSwept.contentToString()}, control=${allocationControlSwept.contentToString()}",
+                "long=${longWritesSwept.contentToString()}, ulong=${writesSwept.contentToString()}, " +
+                "control=${allocationControlSwept.contentToString()}",
         )
         assertTrue(
             positiveControlDelta >= iterations,
@@ -163,8 +187,14 @@ class NativeAllocationCursorProbeTest {
                 "baseline=${baselineSwept.contentToString()}, control=${allocationControlSwept.contentToString()}",
         )
         assertTrue(
+            longWritesMaximum <= baselineMaximum,
+            "Caller-owned cursor Long writes exceeded the primitive baseline: " +
+                "baseline=${baselineSwept.contentToString()}, writes=${longWritesSwept.contentToString()}, " +
+                "control=${allocationControlSwept.contentToString()}",
+        )
+        assertTrue(
             writesMaximum <= baselineMaximum,
-            "Caller-owned cursor writes exceeded the primitive baseline: " +
+            "Caller-owned cursor ULong writes exceeded the primitive baseline: " +
                 "baseline=${baselineSwept.contentToString()}, writes=${writesSwept.contentToString()}, " +
                 "control=${allocationControlSwept.contentToString()}",
         )
