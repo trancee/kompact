@@ -93,6 +93,29 @@ private fun runCursorUnsignedValidation(
     cursorAllocationChecksum = checksum
 }
 
+private fun runCursorFullWidthUnsignedValidation(
+    cursor: KompactCursor,
+    values: ULongArray,
+    count: Int,
+) {
+    var checksum = 0
+    repeat(count) {
+        checksum += cursor.validateUnsigned(ULong.SIZE_BITS, values[it])
+    }
+    cursorAllocationChecksum = checksum
+}
+
+private fun runUnsignedRangeChecks(
+    values: ULongArray,
+    count: Int,
+) {
+    var checksum = 0
+    repeat(count) {
+        if (values[it] shr Byte.SIZE_BITS != 0uL) checksum++
+    }
+    cursorAllocationChecksum = checksum
+}
+
 private fun runCursorRawWrites(
     cursor: KompactCursor,
     values: ULongArray,
@@ -195,11 +218,14 @@ class NativeAllocationCursorProbeTest {
         val validationCursor = KompactCursor(ByteArray(iterations))
         val rawCursor = KompactCursor(ByteArray(iterations))
         val precomputedUnsignedCursor = KompactCursor(ByteArray(iterations))
+        val fullWidthValidationCursor = KompactCursor(ByteArray(iterations))
         val baselineSwept = LongArray(sampleCount)
         val writesSwept = LongArray(sampleCount)
         val longWritesSwept = LongArray(sampleCount)
         val conversionsSwept = LongArray(sampleCount)
         val validationSwept = LongArray(sampleCount)
+        val fullWidthValidationSwept = LongArray(sampleCount)
+        val rangeChecksSwept = LongArray(sampleCount)
         val rawWritesSwept = LongArray(sampleCount)
         val precomputedUnsignedWritesSwept = LongArray(sampleCount)
         val allocationControlSwept = LongArray(sampleCount)
@@ -220,6 +246,17 @@ class NativeAllocationCursorProbeTest {
             GC.collect()
             validationSwept[sample] = sweptObjectsAfterLastCollection()
             assertEquals(KompactCursor.STATUS_OK, validationCursor.status)
+
+            GC.collect()
+            runCursorFullWidthUnsignedValidation(fullWidthValidationCursor, unsignedValues, iterations)
+            GC.collect()
+            fullWidthValidationSwept[sample] = sweptObjectsAfterLastCollection()
+            assertEquals(KompactCursor.STATUS_OK, fullWidthValidationCursor.status)
+
+            GC.collect()
+            runUnsignedRangeChecks(unsignedValues, iterations)
+            GC.collect()
+            rangeChecksSwept[sample] = sweptObjectsAfterLastCollection()
 
             assertEquals(KompactCursor.STATUS_OK, rawCursor.reset(rawCursor.buffer, endBit = iterations * Byte.SIZE_BITS))
             GC.collect()
@@ -270,6 +307,8 @@ class NativeAllocationCursorProbeTest {
             "Native cursor byte-write allocation samples: baseline=${baselineSwept.contentToString()}, " +
                 "conversion=${conversionsSwept.contentToString()}, " +
                 "validation=${validationSwept.contentToString()}, " +
+                "fullWidthValidation=${fullWidthValidationSwept.contentToString()}, " +
+                "rangeCheck=${rangeChecksSwept.contentToString()}, " +
                 "rawLong=${rawWritesSwept.contentToString()}, " +
                 "precomputedULong=${precomputedUnsignedWritesSwept.contentToString()}, " +
                 "long=${longWritesSwept.contentToString()}, ulong=${writesSwept.contentToString()}, " +
