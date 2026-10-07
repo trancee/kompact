@@ -237,6 +237,8 @@ extensions.configure<KoverProjectExtension>("kover") {
 // Power-Assert transforms assertion calls in test source sets, rendering
 // sub-expressions and intermediate values in failure messages.
 // The compilationFilter defaults to TESTS (commonTest, jvmTest, iosTest).
+// Exception assertions execute blocks rather than inspect value expressions;
+// leave assertFails/assertFailsWith unselected to avoid constant-expression diagnostics.
 powerAssert {
     functions =
         listOf(
@@ -255,8 +257,6 @@ powerAssert {
             "kotlin.test.assertContentNotEquals",
             "kotlin.test.assertContains",
             "kotlin.test.assertNotContains",
-            "kotlin.test.assertFails",
-            "kotlin.test.assertFailsWith",
         )
 }
 
