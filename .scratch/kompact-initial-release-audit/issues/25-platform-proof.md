@@ -78,10 +78,23 @@ checksum and removed its temporary files. The test now requires each measured
 maximum to be no greater than the observed primitive baseline; it no longer
 allows a percentage of the positive-control count as a margin.
 
-This is bounded evidence for the direct getter/writer loops in the debug test
-binary. Kotlin/Native GC statistics are testing/debugging data, so this does
-not establish release-optimized behavior, other call shapes, a timing budget,
-or a universal zero-allocation guarantee. The Android Native release-grade
+An Android Native caller-owned cursor probe then found one swept object per
+`writeUnsigned(ULong)` operation. Isolation traced this to the narrow-width
+unsigned right-shift used in both cursor validation and writing; the first
+inline-validation attempt did not fix it. Commit `5989ac2` changed the range
+check to use `value.toLong() ushr bitWidth`. Its CI artifact (run
+`37612656077`, SHA-256
+`7d26ba4543dddbead1b72e77e761c59cd8bfb672d79f870bfa295f0426139551`) passed
+all 396 tests on three consecutive runs on the same Android 15 arm64 device.
+Each run reported `[0, 0, 0]` for 4,096 unsigned validations and cursor byte
+writes, matching the primitive baselines, while intentional-allocation
+controls reported `[4098, 4098, 4098]`. The checksum was verified and device
+temporary files were removed each run.
+
+These are bounded results for the measured operations in the debug test
+binary. Kotlin/Native GC statistics are testing/debugging data, so they do not
+establish release-optimized behavior, other call shapes, a timing budget, or a
+universal zero-allocation guarantee. The Android Native release-grade
 allocation claim remains open. Physical iOS behavior and allocation evidence
 also remain open; the unsigned iOS test executable still requires a usable
 signing profile, and changing Apple Developer account provisioning remains
