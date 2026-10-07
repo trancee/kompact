@@ -59,12 +59,15 @@ compliant reviewed workflow.
   universal zero-allocation guarantee or an independent allocation trace.
 - Consumer versions and the application-owned envelope example are recorded
   in [consumer docs](26-consumer-docs-and-version-drift.md). The automated
-  version-reference check is part of CI. The repository has no general
-  relative-link/spelling checker, and the envelope snippet is not executed as
-  a CI example.
+  version-reference, offline relative-link, spelling, and maintained-guide
+  markup checks are configured in this change's Linux CI job. The envelope
+  example is executable common-test code.
+- On this branch, `:kompact:jvmTest`, `:kompact:testAndroidHostTest`, and
+  `:kompact:iosSimulatorArm64Test` passed. Lychee reported zero broken local
+  links, Codespell reported zero spelling issues, Markdownlint reported zero
+  issues across 13 maintained guides, and `actionlint` passed for the workflow.
 - The first supported `0.8.0` release has not been prepared or published.
   Per [ADR-0004](../../../docs/adr/0004-release-pr-automation.md), the stable
   version, changelog, and consumer docs must be reviewed together in the
   managed release PR; publication remains a separate manually approved step.
-  Do not publish until outstanding documentation validation is resolved or
-  explicitly accepted and all release-specific gates pass.
+  Do not publish until all release-specific gates pass.

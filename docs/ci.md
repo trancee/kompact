@@ -18,6 +18,9 @@ bash .github/scripts/release/version-bump-test.sh
 bash .github/scripts/release/release-pr-test.sh
 bash .github/scripts/docs/version-docs-check-test.sh
 bash .github/scripts/docs/check-version-references.sh .
+lychee --offline --no-progress README.md SECURITY.md CHANGELOG.md docs
+codespell --count --ignore-words-list=OptIn README.md SECURITY.md CHANGELOG.md docs
+npm exec --yes --package=markdownlint-cli2@0.23.2 -- markdownlint-cli2 --config .markdownlint-cli2.jsonc README.md SECURITY.md docs/getting-started.md docs/api-reference.md docs/ci.md 'docs/how-to/*.md' docs/agents/agent-quick-start.md
 
 ./gradlew \
   spotlessCheck \
@@ -57,6 +60,15 @@ no production exclusions. The Portal tasks use an ephemeral signing key in CI
 and only build bundles; they do not upload or publish artifacts. The release
 fixture also verifies that the managed release PR contains the stable version,
 changelog, and synchronized consumer documentation.
+
+The Linux gate checks relative Markdown links with Lychee in offline mode and
+common spelling errors with Codespell. CI pins the Lychee action and binary
+versions and the Codespell action revision; the local commands above
+reproduce those checks when the tools are installed. Markdownlint checks
+markup in maintained consumer guides; its configuration retains the default
+rules with a 160-character prose limit and disables only table-column
+alignment. `OptIn` is allowlisted because it is Kotlin annotation syntax in
+documentation examples.
 
 On Linux, ABI validation checks the JVM and Android targets. The iOS klib
 golden is inferred rather than compiled; use the macOS job for the authoritative

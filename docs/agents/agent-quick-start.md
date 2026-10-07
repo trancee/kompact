@@ -23,7 +23,7 @@ compact payloads such as BLE characteristics. Latency and allocation behavior
 depend on the API, call shape, compiler, and platform; see the
 [allocation research note](../research/allocation-boxing-measurement.md).
 
-```
+```text
 ┌───────────────┐  KompactWriter  ┌─────────┐  BLE  ┌──────────────┐
 │  field values │ ──────────────► │  bytes  │ ────► │  0xA5 0x40   │
 └───────────────┘                 └─────────┘       └──────────────┘
@@ -44,7 +44,7 @@ depend on the API, call shape, compiler, and platform; see the
 
 ## Project structure (at a glance)
 
-```
+```text
 build-logic/                    convention plugins (portal-publish, dokka-markdown)
 ├── src/main/kotlin/
 │   ├── portal-publish.gradle.kts   ← Maven Central Portal API tasks
@@ -153,6 +153,7 @@ val mapped: IntResult = speed.map { it * 2 }
 ```
 
 **Critical constraints:**
+
 - `readBits` / `writeBits` accept `bitWidth` in `1..31` only.
 - `readBitsLong` / `writeBitsLong` accept `1..64`.
 - `readScalar` accepts `1..32`; use `readScalarAsLong` for wider.
@@ -189,6 +190,7 @@ val bytes: ByteArray = w.build()  // exact-length snapshot; repeated calls prese
 ```
 
 **Critical constraints:**
+
 - `writeBits` rejects `bitWidth > 31` (throws `IllegalArgumentException`).
   Use `writeBitsLong` for 32-bit writes.
 - `writeScalar` dispatches to `writeBits` (≤31) or `writeBitsLong` (32–64)
@@ -284,6 +286,7 @@ public expect value class SensorFrame(public val raw: ByteArray) {
 ```
 
 Then in `jvmMain`:
+
 ```kotlin
 @KompactModel @JvmInline
 public actual value class SensorFrame(public actual val raw: ByteArray) {
@@ -354,7 +357,7 @@ framed views, and lazy repeated fields. See
 
 ## @KompactField parameters
 
-```
+```kotlin
 @KompactField(
     bitOffset: Int = 0,       // fixed-layout bit position from LSB-first start
     bitWidth: Int = 0,        // scalar width; 1..64

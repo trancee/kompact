@@ -79,6 +79,28 @@ jobs:
           bash .github/scripts/release/release-pr-test.sh
           bash .github/scripts/docs/version-docs-check-test.sh
           bash .github/scripts/docs/check-version-references.sh .
+      - name: Check maintained Markdown links
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --offline --no-progress README.md SECURITY.md CHANGELOG.md docs
+          lycheeVersion: v0.24.2
+      - name: Check maintained Markdown spelling
+        uses: codespell-project/actions-codespell@e3258cca84ce02b0bb36a3d41f2c18f719a0cc1a # v2.4.3
+        with:
+          path: README.md SECURITY.md CHANGELOG.md docs
+          ignore_words_list: OptIn # Kotlin annotation used in documentation examples.
+      - name: Lint maintained Markdown
+        uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
+        with:
+          config: .markdownlint-cli2.jsonc
+          globs: |
+            README.md
+            SECURITY.md
+            docs/getting-started.md
+            docs/api-reference.md
+            docs/ci.md
+            docs/how-to/*.md
+            docs/agents/agent-quick-start.md
       - run: |
           ./gradlew \
             spotlessCheck \
