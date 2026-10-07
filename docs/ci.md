@@ -106,8 +106,10 @@ The Kotlin/Native binary-link tasks are:
 ./gradlew :kompact:androidNativeArm64TestBinaries
 ```
 
-CI links and uploads the Android Native `test.kexe` as the
-`kompact-android-native-arm64-test` artifact. After downloading that artifact
+CI links and uploads the Android Native debug `test.kexe` as the
+`kompact-android-native-arm64-test` artifact. It uploads the
+release-optimized `releaseTest/test.kexe` as
+`kompact-android-native-arm64-release-test`. After downloading either artifact
 from a successful Linux CI run, execute the test on a host with exactly one
 authorized USB Android arm64 device:
 
@@ -137,7 +139,8 @@ On the iOS Arm64 target, `test.kexe` is an unsigned standalone executable.
 `scripts/test-ios-device.sh` wraps it in a minimal app bundle and signs it
 with a local Apple Development identity. It installs the app on a connected
 iPhone, runs it with `devicectl --console`, and requires a passing test
-summary:
+summary. Pass `releaseTest/test.kexe` instead to run the
+release-optimized binary:
 
 ```bash
 ./gradlew :kompact:iosArm64TestBinaries
@@ -176,14 +179,13 @@ measures ART rather than the Native executable, while Perfetto heapprofd
 observes sampled system-allocator calls rather than per-object allocations
 served from Kotlin/Native pages. A test-only Android Native GC sweep-statistics
 probe passed physical-device positive controls and measured generated speed
-reads/writes against a primitive baseline in the debug test executable; these
-results do not establish release-optimized or universal zero-allocation
+reads/writes against a primitive baseline in the debug and release-optimized
+test executables; these results do not establish universal zero-allocation
 behavior. Do not infer a zero-allocation guarantee from compilation, unit
 tests, or coverage. The GC probes in `nativeTest` also run on iOS Simulator
 in the macOS CI job and on physical iOS through the device script. The
 allocation methodology and current proof status are
-tracked in [allocation and boxing measurement](research/allocation-boxing-measurement.md);
-release-grade per-target evidence remains open.
+tracked in [allocation and boxing measurement](research/allocation-boxing-measurement.md).
 
 Mutation testing is an opt-in workflow, not a CI gate. Ordinary JVM test
 runs in `:kompact:jvmTest`, `:kompact-ksp:test`,

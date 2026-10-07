@@ -126,11 +126,16 @@ writes, matching the primitive baselines, while intentional-allocation
 controls reported `[4098, 4098, 4098]`. The checksum was verified and device
 temporary files were removed each run.
 
-These are bounded results for the measured operations in the debug test
-binary. Kotlin/Native GC statistics are testing/debugging data, so they do not
-establish release-optimized behavior, other call shapes, a timing budget, or a
-universal zero-allocation guarantee. The Android Native release-grade
-allocation claim remains open. Physical iOS behavior and debug-test
-GC-sweep allocation evidence are recorded above, with a repository-owned
-procedure. Release-optimized allocation proof remains open for both Native
-targets. Neither has an Instruments or other independent allocation trace.
+These are bounded results for the measured operations. Kotlin/Native GC
+statistics are testing/debugging data, so they do not establish other call
+shapes, a timing budget, or a universal zero-allocation guarantee. Physical iOS
+behavior and debug-test GC-sweep allocation evidence are recorded above, with a
+repository-owned procedure.
+
+Release-optimized `releaseTest/test.kexe` binaries ran the same probes on
+2026-10-07: the `iosArm64` binary (SHA-256 `932cbb17…9bc66`) passed 396/396
+three times on the iPhone SE, and the Linux CI `androidNativeArm64` artifact
+from run `37639871425` (SHA-256 `f1df293a…e931b3`) passed 396/396 three times on
+the Android device. Measured probes reported `[0, 0, 0]` and controls
+`[4098, 4098, 4098]` on both, matching the iOS Simulator release run. Neither
+target has an Instruments or other independent allocation trace.

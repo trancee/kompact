@@ -53,7 +53,34 @@ Every intentional-allocation control reported `[4098, 4098, 4098]`. The local
 iOS Simulator run of the same probes reported identical measured and control
 counts. The same limits as the Android result apply: this is a debug test
 binary, GC statistics are testing/debugging data, and no Instruments
-Allocations capture or release-optimized measurement was made.
+Allocations capture was made.
+
+### Release-optimized Native GC sweep-statistics probe
+
+`kompact/build.gradle.kts` also links release-optimized test executables
+(`linkReleaseTestIosArm64`, `linkReleaseTestIosSimulatorArm64`,
+`linkReleaseTestAndroidNativeArm64`, output `releaseTest/test.kexe`) so the same
+`nativeTest` probes run with compiler optimizations enabled. On 2026-10-07 the
+`iosArm64` release binary (SHA-256
+`932cbb17b83bbe0ec0cf5227894cb4addeb2167d0f1f3a27582495ff1139bc66`) ran three
+times through `scripts/test-ios-device.sh` on the iPhone SE (2020), iOS
+`18.7.8`; each run passed all 396 tests. Every measured probe reported
+`[0, 0, 0]` swept objects, matching the primitive baselines, and every
+intentional-allocation control reported `[4098, 4098, 4098]`, so the optimizer
+did not hide the controls' allocations. The `iosSimulatorArm64` release binary
+reported identical counts.
+
+The `androidNativeArm64` release binary from Linux CI run `37639871425`
+(commit `50768be`, artifact `kompact-android-native-arm64-release-test`,
+SHA-256 `f1df293a5b0b5a5017f09a312330eb57dc637bda4399028ea6ca933adbe931b3`)
+ran three times through `scripts/test-android-native-device.sh` on the Android
+15 arm64 device; each run passed all 396 tests and removed its device temporary
+files. Measured probes reported `[0, 0, 0]` and controls `[4098, 4098, 4098]`,
+matching the iOS release results.
+
+These release results carry the same limits: GC statistics are
+testing/debugging data, only the measured call shapes are covered, there is no
+Instruments or other independent allocation trace, and no timing budget.
 
 ### Android Native allocation-counter feasibility
 
@@ -127,13 +154,14 @@ a general per-operation allocation guarantee, or a numeric performance budget.
 The probes validate that the test binary's GC sweep statistics detect the
 known allocation controls and that the measured direct getter/writer,
 unsigned-validation, and cursor-byte-write loops did not produce a detectable
-swept-object delta in this debug-test environment. They do not establish a
-release-optimized result, a timing budget, behavior for other operations or
+swept-object delta in the debug and release-optimized test binaries. They do
+not establish a timing budget, behavior for other operations or
 call shapes, or a universal zero-allocation guarantee. The counter is
 explicitly testing/debugging data and may change across compiler or runtime
 versions. Do not treat an empty Perfetto profile, unchanged retained heap, or
-successful Native device test alone as zero-allocation evidence. Release-grade
-(optimized-binary) Android Native and iOS allocation measurements remain open.
+successful Native device test alone as zero-allocation evidence. Release-optimized
+results for both Native targets are recorded above; an independent
+Instruments or equivalent allocation trace remains optional and unperformed.
 
 ## Checked variable-repeat tradeoff
 
