@@ -287,8 +287,13 @@ public class KompactCursor(
         bitWidth: Int,
         value: ULong,
     ): Int {
-        val checked = validateUnsigned(bitWidth, value)
-        if (checked != STATUS_OK) return checked
+        if (bitWidth !in 1..64) {
+            return fail(STATUS_INVALID_WIDTH, position, bitWidth)
+        }
+        if (bitWidth < 64 && value shr bitWidth != 0uL) {
+            return fail(STATUS_INVALID_VALUE, position, bitWidth)
+        }
+        clearError()
         return writeBitsUnchecked(bitWidth, value.toLong())
     }
 

@@ -225,6 +225,34 @@ class KompactCursorBoundaryTest {
     }
 
     @Test
+    fun unsignedLongWriteRejectsOutOfRangeValueWithoutMutation() {
+        val bytes = byteArrayOf(0x55)
+        val cursor = KompactCursor(bytes)
+        cursor.reset(bytes, position = 3)
+        val originalBytes = bytes.copyOf()
+
+        val status = cursor.writeUnsigned(4, 16uL)
+
+        assertEquals(KompactCursor.STATUS_INVALID_VALUE, status)
+        assertContentEquals(originalBytes, bytes)
+        assertEquals(3, cursor.position)
+    }
+
+    @Test
+    fun unsignedLongWriteRejectsInvalidWidthWithoutMutation() {
+        val bytes = byteArrayOf(0x55)
+        val cursor = KompactCursor(bytes)
+        cursor.reset(bytes, position = 3)
+        val originalBytes = bytes.copyOf()
+
+        val status = cursor.writeUnsigned(0, 0uL)
+
+        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, status)
+        assertContentEquals(originalBytes, bytes)
+        assertEquals(3, cursor.position)
+    }
+
+    @Test
     fun unsignedLongValidationDistinguishesWidth62FromWidth63AndAcceptsZero() {
         val cursor = KompactCursor(ByteArray(8))
 
