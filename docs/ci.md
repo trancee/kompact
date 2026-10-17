@@ -18,6 +18,9 @@ bash .github/scripts/release/version-bump-test.sh
 bash .github/scripts/release/release-pr-test.sh
 bash .github/scripts/docs/version-docs-check-test.sh
 bash .github/scripts/docs/check-version-references.sh .
+python3 -m unittest discover -s benchmarks -p 'test_*.py'
+./gradlew :benchmarks:jvmTest :benchmarks:jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache
+python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/jvm.json
 lychee --offline --no-progress README.md SECURITY.md CHANGELOG.md docs
 codespell --count --ignore-words-list=OptIn README.md SECURITY.md CHANGELOG.md docs
 npm exec --yes --package=markdownlint-cli2@0.23.2 -- markdownlint-cli2 --config .markdownlint-cli2.jsonc README.md SECURITY.md docs/getting-started.md docs/api-reference.md docs/ci.md 'docs/how-to/*.md' docs/agents/agent-quick-start.md
@@ -61,6 +64,13 @@ and only build bundles; they do not upload or publish artifacts. The release
 fixture also verifies that the managed release PR contains the stable version,
 changelog, and synchronized consumer documentation.
 
+The unpublished benchmark module compiles the maintained runtime sources for
+host measurements without changing the published target set. Benchmark
+fixtures and internal report tools are explicitly outside production coverage;
+CI runs their tests and rejects incomplete or non-finite smoke reports.
+Shared CI does not enforce timing thresholds across heterogeneous machines.
+See [host measurements and comparison budgets](how-to/benchmark-runtime.md).
+
 The Linux gate checks relative Markdown links with Lychee in offline mode and
 common spelling errors with Codespell. CI pins the Lychee action and binary
 versions and the Codespell action revision; the local commands above
@@ -100,6 +110,8 @@ Markdown and fails if the generated tree changes:
 
 ./gradlew :kompact:dokkaGeneratePublicationMarkdown --no-daemon --console=plain
 git diff --exit-code -- kompact/docs/api/
+./gradlew :benchmarks:macosArm64Test :benchmarks:macosArm64SmokeBenchmark --no-daemon --rerun-tasks --no-build-cache
+python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/macosArm64.json
 ```
 
 The iOS Simulator task executes the common runtime test suite against the
@@ -196,7 +208,9 @@ The local Android Native link still fails because Kotlin/Native invokes an
 x86_64 `clang` toolchain (`Bad CPU type in executable`); Linux CI builds the
 Android device binary instead.
 
-Allocation measurements are not part of either CI job. AndroidX Microbenchmark
+JMH allocation profiling and physical-device allocation measurements are not
+CI gates. The macOS benchmark fixture test includes a controlled debug
+Native repeat GC sweep probe. AndroidX Microbenchmark
 measures ART rather than the Native executable, while Perfetto heapprofd
 observes sampled system-allocator calls rather than per-object allocations
 served from Kotlin/Native pages. A test-only Android Native GC sweep-statistics

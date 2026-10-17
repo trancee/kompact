@@ -20,5 +20,6 @@ include(":kompact")
 include(":kompact-gradle-plugin")
 include(":kompact-ksp")
 include(":kompact-ksp-integration")
+include(":benchmarks")
 
 includeBuild("build-logic")

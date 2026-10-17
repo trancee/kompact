@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.skie) apply false
     alias(libs.plugins.kotlinPowerAssert) apply false
     alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.benchmark) apply false
 }
 
 val koverVersion = libs.versions.kover.get()
@@ -32,6 +33,7 @@ spotless {
         target("kompact-gradle-plugin/src/**/*.kt")
         target("kompact-ksp/src/**/*.kt")
         target("kompact-ksp-integration/src/**/*.kt")
+        target("benchmarks/src/**/*.kt")
         ktlint()
     }
     kotlinGradle {
@@ -41,6 +43,7 @@ spotless {
         target("kompact-gradle-plugin/build.gradle.kts")
         target("kompact-ksp/build.gradle.kts")
         target("kompact-ksp-integration/build.gradle.kts")
+        target("benchmarks/build.gradle.kts")
         target("build-logic/build.gradle.kts")
         target("build-logic/settings.gradle.kts")
         target("build-logic/src/main/kotlin/*.gradle.kts")

@@ -14,12 +14,15 @@ Use three measurement layers:
 2. Host-JVM diagnostics with kotlinx-benchmark and JMH's GC profiler. This catches JVM boxing and reports normalized allocated bytes per operation, but it does not prove Android ART behavior.
 3. Kotlin/Native iOS acceptance with a release `iosArm64` harness that executes the measured loop inside Kotlin. Measure timing without Instruments, then run a separate Xcode Instruments Allocations capture for allocation count, bytes, and call stacks. Test-only Kotlin/Native GC sweep-statistics probes now distinguish selected measured loops from primitive baselines and detect known allocation controls on physical Android and iOS devices, using debug and release-optimized test binaries. This is bounded test evidence, not a general allocation guarantee.
 
-The iOS simulator is useful for repeatable diagnostics and functional smoke runs. The recorded physical-device probes do not include timing benchmarks or an Instruments Allocations capture, and no numeric performance budget is set.
+The iOS simulator is useful for repeatable diagnostics and functional smoke runs.
+The recorded physical-device probes do not include timing benchmarks or an
+Instruments Allocations capture, and no physical-device timing budget is set.
 
-> **Status:** this is a measurement plan, not an executed timing benchmark
-> report. The bounded Android Native allocation-probe result is recorded below;
-> no Android or iOS timing results or numeric performance budgets are recorded
-> here.
+> **Status:** device timing remains a measurement plan. Bounded device allocation
+> probes are recorded below. Separate
+> [host repeat/scalar measurements](repeat-index-benchmark.md) now retain
+> JVM/macOS Native timing and allocation evidence with host-specific diagnostic
+> budgets; they do not establish Android or iOS timing.
 
 ## Current proof status
 
@@ -173,7 +176,10 @@ boundaries and workspace capacity without binding the workspace; the decode
 pass then traverses those elements again to populate the caller-owned sparse
 index. This is an intentional failure-atomicity tradeoff, not a measured
 performance result. Measure representative repeat sizes on each target before
-setting or claiming a performance budget.
+setting or claiming a performance budget. The first JVM and macOS Native
+repeat/scalar baselines are retained in the
+[host benchmark report](repeat-index-benchmark.md), with reproducible commands
+in the [measurement guide](../how-to/benchmark-runtime.md).
 
 ## Verified facts
 
