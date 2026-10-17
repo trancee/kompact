@@ -21,6 +21,8 @@ bash .github/scripts/docs/check-version-references.sh .
 python3 -m unittest discover -s benchmarks -p 'test_*.py'
 ./gradlew :benchmarks:jvmTest :benchmarks:jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache
 python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/jvm.json
+./gradlew -p benchmarks/holders jvmTest jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache
+python3 benchmarks/check_results.py --profile holders-smoke benchmarks/holders/build/reports/benchmarks/smoke/*/jvm.json
 lychee --offline --no-progress README.md SECURITY.md CHANGELOG.md docs
 codespell --count --ignore-words-list=OptIn README.md SECURITY.md CHANGELOG.md docs
 npm exec --yes --package=markdownlint-cli2@0.23.2 -- markdownlint-cli2 --config .markdownlint-cli2.jsonc README.md SECURITY.md docs/getting-started.md docs/api-reference.md docs/ci.md 'docs/how-to/*.md' docs/agents/agent-quick-start.md
@@ -68,6 +70,9 @@ The unpublished benchmark module compiles the maintained runtime sources for
 host measurements without changing the published target set. Benchmark
 fixtures and internal report tools are explicitly outside production coverage;
 CI runs their tests and rejects incomplete or non-finite smoke reports.
+The standalone `benchmarks/holders` consumer is also unpublished and excluded
+from production coverage. It uses the real plugin/runtime to test generated
+holder decoding and smoke-check JVM timing, rather than copying decoders.
 Shared CI does not enforce timing thresholds across heterogeneous machines.
 See [host measurements and comparison budgets](how-to/benchmark-runtime.md).
 
@@ -112,6 +117,7 @@ Markdown and fails if the generated tree changes:
 git diff --exit-code -- kompact/docs/api/
 ./gradlew :benchmarks:macosArm64Test :benchmarks:macosArm64SmokeBenchmark --no-daemon --rerun-tasks --no-build-cache
 python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/macosArm64.json
+./gradlew -p benchmarks/holders iosSimulatorArm64Test --no-daemon --rerun-tasks --no-build-cache
 ```
 
 The iOS Simulator task executes the common runtime test suite against the
@@ -127,6 +133,11 @@ host toolchain permits, but they do not substitute for runtime behavior tests
 on physical iOS Arm64 or Android Native Arm64 devices. The shared runtime suite
 executes on both the JVM and iOS Simulator in CI; simulator execution is not
 physical-device evidence.
+
+The [post-PR-99 validation record](research/physical-runtime-validation.md)
+retains six passing Android debug/release executions at merged `ed7218c`
+and identifies the current physical-iOS signing blocker. Do not interpret
+the older device results below as validation of the current revision.
 
 Android-KMP host-side tests exercise runtime behavior on the Android JVM
 target in CI. The separate `:kompact:androidConnectedCheck` task currently has
