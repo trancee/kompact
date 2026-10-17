@@ -1,0 +1,2 @@
+Native repeat allocation variable=false: baseline=[0, 0, 0], measured=[0, 0, 0], control=[1026, 1026, 1026]
+Native repeat allocation variable=true: baseline=[1, 0, 0], measured=[0, 0, 0], control=[1026, 1026, 1026]

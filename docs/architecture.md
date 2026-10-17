@@ -72,7 +72,10 @@ site performs.
 They are not a guarantee that every call shape is allocation-free. Kotlin may
 box a value class at nullable, generic, or interface boundaries, and actual
 runtime behavior depends on the compiler and platform. The repository does
-not publish a measured latency or allocation budget. The
+not publish a portable latency or allocation guarantee. Bounded
+[JVM/macOS Native host baselines](research/repeat-index-benchmark.md) and
+[diagnostic comparison budgets](how-to/benchmark-runtime.md) cover selected
+caller-owned scalar/repeat call shapes, not every API or supported device. The
 [allocation and boxing research note](research/allocation-boxing-measurement.md)
 describes the evidence required before making such a performance claim.
 

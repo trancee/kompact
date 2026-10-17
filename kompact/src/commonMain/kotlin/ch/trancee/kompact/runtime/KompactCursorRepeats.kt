@@ -209,14 +209,11 @@ internal object KompactCursorRepeats {
 
         val repeatStart = countEnd.toInt()
         var checkpoint = 0
-        var elementIndex = 0
-        while (elementIndex < count) {
-            if (elementIndex % KompactRepeatWorkspace.CHECKPOINT_INTERVAL == 0) {
-                val checkpointOffset = repeatStart.toLong() + elementIndex.toLong() * elementBitWidth
-                workspace.storeCheckpoint(checkpoint, checkpointOffset.toInt())
-                checkpoint++
-            }
-            elementIndex++
+        while (checkpoint < neededCheckpoints) {
+            val checkpointOffset =
+                countEnd + checkpoint.toLong() * KompactRepeatWorkspace.CHECKPOINT_INTERVAL * elementBitWidth
+            workspace.storeCheckpoint(checkpoint, checkpointOffset.toInt())
+            checkpoint++
         }
 
         workspace.bind(
