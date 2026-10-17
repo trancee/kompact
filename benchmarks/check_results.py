@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the maintained repeat/scalar benchmark report, not timing thresholds."""
+"""Validate maintained runtime or generated-holder reports, not timing thresholds."""
 
 import argparse
 import json
@@ -25,17 +25,29 @@ def retained_results(results):
 
 def validate_results(results, profile):
     prefix = "ch.trancee.kompact.benchmark."
-    counts = ("65",) if profile == "smoke" else ("65", "4096", "65536")
-    methods = ("fixedIndex",) if profile == "fixed" else ("fixedIndex", "variableIndex")
+    smoke = profile in ("smoke", "holders-smoke")
+    holders = profile in ("holders-main", "holders-smoke")
+    counts = ("65",) if smoke else ("65", "4096", "65536")
+    if holders:
+        prefix += "holders."
+        repeated_class = "RepeatedHolderBenchmark."
+        methods = ("fixedDecode", "variableDecode")
+        scalar_class = "ScalarHolderBenchmark."
+        scalar_methods = ("decode", "allocationControl")
+    else:
+        repeated_class = "RepeatIndexBenchmark."
+        methods = ("fixedIndex",) if profile == "fixed" else ("fixedIndex", "variableIndex")
+        scalar_class = "ScalarBenchmark."
+        scalar_methods = ("read", "write", "allocationControl")
     expected = {
-        (prefix + "RepeatIndexBenchmark." + method, count)
+        (prefix + repeated_class + method, count)
         for method in methods
         for count in counts
     }
     if profile != "fixed":
         expected.update(
-            (prefix + "ScalarBenchmark." + method, None)
-            for method in ("read", "write", "allocationControl")
+            (prefix + scalar_class + method, None)
+            for method in scalar_methods
         )
     if not isinstance(results, list):
         raise ValueError("expected a JSON array of benchmark records")
@@ -48,13 +60,20 @@ def validate_results(results, profile):
             raise ValueError("unexpected or duplicate benchmark case")
         seen.add(identity)
         metric = result["primaryMetric"]
+        if holders and not smoke and (
+            result["forks"] != 3
+            or result["warmupIterations"] != 5
+            or result["measurementIterations"] != 5
+            or [len(fork) for fork in metric["rawData"]] != [5, 5, 5]
+        ):
+            raise ValueError("expected three holder forks with five warmup and measurement iterations")
         samples = [sample for fork in metric["rawData"] for sample in fork]
         values = [metric["score"], *samples]
         if (
             result["mode"] != "avgt"
             or metric["scoreUnit"] != "ns/op"
             or result["warmupIterations"] < 1
-            or len(samples) < (1 if profile == "smoke" else 5)
+            or len(samples) < (1 if smoke else 5)
             or any(
                 type(value) not in (int, float) or not math.isfinite(value) or value <= 0
                 for value in values
@@ -67,7 +86,10 @@ def validate_results(results, profile):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--profile", choices=("main", "smoke", "fixed"), required=True)
+    parser.add_argument(
+        "--profile", choices=("main", "smoke", "fixed", "holders-main", "holders-smoke"),
+        required=True,
+    )
     parser.add_argument("--retain-dir", type=Path)
     parser.add_argument("reports", nargs="+", type=Path)
     arguments = parser.parse_args()

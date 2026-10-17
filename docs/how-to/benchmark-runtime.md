@@ -71,6 +71,58 @@ For a second comparison of only the optimized operation, run
 validate with `--profile fixed`. Repeat baseline and candidate in the reverse
 order when distinguishing a change from host drift.
 
+## Measure generated holders
+
+The standalone `benchmarks/holders` build consumes the runtime and real code
+generator through a composite build. It does not copy generated decoders or
+compile duplicate runtime classes. Its second target, `iosSimulatorArm64`,
+provides the shared metadata compilation required by code generation and runs
+the same correctness fixtures on macOS. Only JVM timing is registered.
+
+```bash
+./gradlew -p benchmarks/holders jvmTest jvmSmokeBenchmark --no-daemon
+python3 benchmarks/check_results.py --profile holders-smoke \
+  benchmarks/holders/build/reports/benchmarks/smoke/*/jvm.json
+```
+
+There are four smoke cases: scalar decoding, fixed-repeat decoding,
+variable-repeat decoding, and an allocating control. The full profile has eight
+cases: the two repeats use counts `65`, `4096`, and `65536`; scalar decoding and
+the control have no count parameter.
+
+Setup prepares two alternating messages, holders, cursors, ranges, and sparse
+checkpoint storage. Each decoding invocation resets the cursor, calls the
+generated `decodeInto`, checks success, and returns a primitive checksum.
+The repeated schemas contain a scalar header, a 128-byte borrowed blob, and
+either 16-bit scalar elements or blobs with 8-bit length prefixes and payload
+lengths cycling from zero to eight. Complete frame validation and index binding
+are timed; materializing every repeated element or copying the blob is not.
+The separate control returns a new eight-byte array.
+
+```bash
+./gradlew -p benchmarks/holders jvmBenchmarkJar --no-daemon
+./gradlew -p benchmarks/holders jvmAllocationBenchmark --no-daemon --console=plain
+python3 benchmarks/check_results.py --profile holders-main \
+  --retain-dir benchmarks/results/<comparison-run> \
+  benchmarks/holders/build/reports/benchmarks/allocations.json
+```
+
+The GC-profiler command uses the main profile's five warmups, five 300 ms
+measurements, and three forks. Its report validator requires all eight cases
+and five raw samples from each fork. For unprofiled timing, use
+`./gradlew -p benchmarks/holders jvmBenchmark --no-daemon` and validate that
+run's `build/reports/benchmarks/main/<run>/jvm.json` with `holders-main`.
+
+On macOS, run the shared fixtures separately:
+
+```bash
+./gradlew -p benchmarks/holders iosSimulatorArm64Test --no-daemon
+```
+
+CI runs the JVM fixtures/smoke and iOS Simulator fixtures, not a timing budget.
+The [holder comparison](../research/generated-holder-benchmark.md) records
+the baseline, candidate, allocation bounds, environment, and limitations.
+
 ## Interpret allocation evidence
 
 Fixtures construct and retain the arrays, cursors, and checkpoint workspaces

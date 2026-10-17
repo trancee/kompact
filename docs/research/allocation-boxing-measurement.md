@@ -35,6 +35,14 @@ test binaries; they are limited to the exact operations, iteration count, and
 runtime. Compilation, functional tests, and 100% line/branch coverage do not
 prove zero per-operation allocations.
 
+The [2026-10-17 runtime validation](physical-runtime-validation.md) records
+three debug and three release Android runs of merged `ed7218c`, each passing
+403 tests with the existing controlled probes. Current-revision physical iOS
+execution is blocked by expired test-host provisioning; the older iOS results
+below are not current-revision evidence. Separate
+[generated-holder measurements](generated-holder-benchmark.md) now cover
+complete borrowed holder binding on the host JVM, not device timing.
+
 On 2026-10-06, the available host is Apple Silicon macOS 27.0 with Xcode 27.0
 and a connected Android 15 API 35 arm64 device. An ordinary Native behavior
 test pass alone is not allocation evidence; the controlled probe results are

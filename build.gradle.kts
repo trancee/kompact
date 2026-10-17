@@ -26,6 +26,9 @@ allprojects {
     version = "0.9.0-SNAPSHOT"
 }
 
+// Keep the unpublished root from competing with :kompact in composite dependency substitution.
+group = "ch.trancee.kompact.build"
+
 // Spotless: ktlint-based formatting for all Kotlin source and Gradle Kotlin DSL files.
 spotless {
     kotlin {
@@ -33,7 +36,7 @@ spotless {
         target("kompact-gradle-plugin/src/**/*.kt")
         target("kompact-ksp/src/**/*.kt")
         target("kompact-ksp-integration/src/**/*.kt")
-        target("benchmarks/src/**/*.kt")
+        target("benchmarks/src/**/*.kt", "benchmarks/holders/src/**/*.kt")
         ktlint()
     }
     kotlinGradle {
@@ -46,7 +49,11 @@ spotless {
         target("benchmarks/build.gradle.kts")
         target("build-logic/build.gradle.kts")
         target("build-logic/settings.gradle.kts")
-        target("build-logic/src/main/kotlin/*.gradle.kts")
+        target(
+            "build-logic/src/main/kotlin/*.gradle.kts",
+            "build.gradle.kts",
+            "benchmarks/holders/*.gradle.kts",
+        )
         ktlint()
     }
 }

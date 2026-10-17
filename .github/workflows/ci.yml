@@ -60,6 +60,10 @@ jobs:
         run: |
           ./gradlew :benchmarks:macosArm64Test :benchmarks:macosArm64SmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
           python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/macosArm64.json
+      # The unpublished standalone holder fixtures are also outside production
+      # Kover coverage. This validates generated iOS code, not device timing.
+      - name: Check generated-holder fixtures on iOS Simulator
+        run: ./gradlew -p benchmarks/holders iosSimulatorArm64Test --no-daemon --rerun-tasks --no-build-cache --console=plain
       # The committed GFM Markdown reference in kompact/docs/api/ must stay in sync
       # with the KDoc in commonMain. Regenerate and fail if the committed tree
       # drifts (up-to-date checking means dokka only re-runs when KDoc changes).
@@ -92,6 +96,12 @@ jobs:
           python3 -m unittest discover -s benchmarks -p 'test_*.py'
           ./gradlew :benchmarks:jvmTest :benchmarks:jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
           python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/jvm.json
+      # benchmarks/holders is an unpublished fixture/benchmark consumer, excluded
+      # from production Kover coverage but gated by tests and report validation.
+      - name: Check generated-holder decoding and finite smoke results
+        run: |
+          ./gradlew -p benchmarks/holders jvmTest jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
+          python3 benchmarks/check_results.py --profile holders-smoke benchmarks/holders/build/reports/benchmarks/smoke/*/jvm.json
       - name: Check maintained Markdown links
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
