@@ -67,7 +67,11 @@ branches and release tags; it never pushes a commit to protected `main`.
 - `sync-version-references.py` updates maintained consumer docs for either a
   stable release candidate or a development snapshot.
 - The docs-version checker compares development references to the root
-  version and published references to the newest `CHANGELOG.md` entry.
+  version and published references to the newest `CHANGELOG.md` entry. It
+  delegates to the synchronizer's read-only check mode so their classification
+  cannot drift. Development references retain their role after a stable release:
+  wrapped prose and product coordinates under development/snapshot headings
+  return to the next snapshot, while published references stay on the release.
 - Central Portal tokens and the signing key remain environment-scoped secrets.
   `RELEASE_PAT` is used only where automation must push a topic branch or tag
   and create a PR whose checks should run normally.

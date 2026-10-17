@@ -70,6 +70,16 @@ rules with a 160-character prose limit and disables only table-column
 alignment. `OptIn` is allowlisted because it is Kotlin annotation syntax in
 documentation examples.
 
+The version checker and release synchronizer share one Python implementation.
+It distinguishes published references from development references even when
+both use stable-looking versions or share a wrapped paragraph. Product
+coordinates under a development/snapshot heading follow the checkout version;
+other product coordinates follow the latest changelog release. Run
+`python3 .github/scripts/docs/sync-version-references.py .` to repair drift;
+`bash .github/scripts/docs/check-version-references.sh .` reports it without
+changing files. The fixture tests cover release-to-snapshot transitions,
+idempotency, and preservation of unrelated tool versions.
+
 On Linux, ABI validation checks the JVM and Android targets. The iOS klib
 golden is inferred rather than compiled; use the macOS job for the authoritative
 iOS check.

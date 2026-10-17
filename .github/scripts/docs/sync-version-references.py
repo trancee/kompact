@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """Synchronize maintained consumer-document version references."""
 
+import argparse
 import re
 import sys
 from pathlib import Path
 
 
-VERSION_PATTERN = re.compile(r"\b\d+\.\d+\.\d+\b(?!-SNAPSHOT)")
-SNAPSHOT_PATTERN = re.compile(r"\b\d+\.\d+\.\d+-SNAPSHOT\b")
+VERSION_PATTERN = re.compile(r"\b\d+\.\d+\.\d+(?:-SNAPSHOT)?\b")
 PRODUCT_COORDINATE = re.compile(r"ch\.trancee\.kompact")
-PUBLISHED_CONTEXT = re.compile(r"\b(?:latest|published)\b", re.IGNORECASE)
+PUBLISHED_CONTEXT = re.compile(r"(?<!not )\b(?:latest|published)\b", re.IGNORECASE)
 KOMPACT_PUBLISHED_CONTEXT = re.compile(r"\bKompact\b.*\b(?:latest|published)\b", re.IGNORECASE)
+DEVELOPMENT_CONTEXT = re.compile(
+    r"\b(?:development[ -]+version|(?:current|this)\s+checkout|"
+    r"current(?=\s+`[^`]+`\s+checkout))",
+    re.IGNORECASE,
+)
+HEADING = re.compile(r"^(#{1,6})\s+(.+)")
 
 DOCUMENTS = (
     "README.md",
@@ -46,7 +52,85 @@ def is_published_context(path: str, line: str) -> bool:
     return bool(PRODUCT_COORDINATE.search(line) or PUBLISHED_CONTEXT.search(line))
 
 
-def synchronize(root: Path) -> int:
+def rewrite(
+    text: str,
+    path: str,
+    development_version: str,
+    published_version: str,
+    check: bool,
+) -> str:
+    paragraph = ""
+    development_heading: int | None = None
+    fence: str | None = None
+    output: list[str] = []
+    for line_number, line in enumerate(text.splitlines(keepends=True), start=1):
+        stripped = line.lstrip()
+        if stripped.startswith(("```", "~~~")):
+            marker = stripped[:3]
+            if fence == marker:
+                fence = None
+            elif fence is None:
+                fence = marker
+            paragraph = ""
+        heading = HEADING.match(line) if fence is None else None
+        if heading:
+            level = len(heading.group(1))
+            if development_heading is not None and level <= development_heading:
+                development_heading = None
+            if re.search(r"\b(?:development|snapshot)\b", heading.group(2), re.IGNORECASE):
+                development_heading = level
+            paragraph = ""
+        if not line.strip():
+            paragraph = ""
+        context = paragraph + line
+        offset = len(paragraph)
+
+        def replace(match: re.Match[str]) -> str:
+            version = match.group()
+            role = None
+            if version.endswith("-SNAPSHOT"):
+                role = "development"
+            elif PRODUCT_COORDINATE.search(line):
+                role = "development" if development_heading is not None else "published"
+            elif fence is None:
+                position = offset + match.start()
+                sentence_start = max(
+                    (boundary.end() for boundary in re.finditer(r"[.!?]\s+", context)
+                     if boundary.end() <= position),
+                    default=0,
+                )
+                development_cues = [
+                    cue.start() for cue in DEVELOPMENT_CONTEXT.finditer(context)
+                    if sentence_start <= cue.start() < position
+                ]
+                published_cues = [
+                    cue.start() for cue in PUBLISHED_CONTEXT.finditer(context)
+                    if sentence_start <= cue.start() < position
+                ] if is_published_context(path, context) else []
+                latest_development = max(development_cues, default=-1)
+                latest_published = max(published_cues, default=-1)
+                if latest_development > latest_published:
+                    role = "development"
+                elif latest_published >= 0:
+                    role = "published"
+            if role is None:
+                return version
+            expected = development_version if role == "development" else published_version
+            if check and version != expected:
+                source = "build.gradle.kts" if role == "development" else "latest CHANGELOG.md release"
+                print(
+                    f"{path}:{line_number}: {role} version {version} "
+                    f"does not match {source} ({expected})",
+                    file=sys.stderr,
+                )
+            return expected
+
+        output.append(VERSION_PATTERN.sub(replace, line))
+        paragraph = context if fence is None else ""
+    return "".join(output)
+
+
+def synchronize(root: Path, check: bool = False) -> int:
     root = root.resolve()
     development_version, published_version = versions(root)
     paths = [root / path for path in DOCUMENTS]
@@ -58,31 +142,35 @@ def synchronize(root: Path) -> int:
             continue
         relative_path = path.relative_to(root).as_posix()
         original = path.read_text()
-        output: list[str] = []
-        for line in original.splitlines(keepends=True):
-            line = SNAPSHOT_PATTERN.sub(development_version, line)
-            if is_published_context(relative_path, line):
-                line = VERSION_PATTERN.sub(published_version, line)
-            output.append(line)
-        updated = "".join(output)
+        updated = rewrite(original, relative_path, development_version, published_version, check)
         if updated != original:
-            path.write_text(updated)
+            if not check:
+                path.write_text(updated)
             changed += 1
-    print(
-        f"Synchronized {changed} documentation files to development "
-        f"{development_version} and published {published_version}."
-    )
+    if not check:
+        print(
+            f"Synchronized {changed} documentation files to development "
+            f"{development_version} and published {published_version}."
+        )
+    elif changed == 0:
+        print(
+            f"Documentation versions match build.gradle.kts ({development_version}) "
+            f"and CHANGELOG.md ({published_version})."
+        )
     return changed
 
 
 def main() -> int:
-    root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(".")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("root", nargs="?", type=Path, default=Path("."))
+    parser.add_argument("--check", action="store_true", help="Report drift without changing files")
+    arguments = parser.parse_args()
     try:
-        synchronize(root)
+        changed = synchronize(arguments.root, check=arguments.check)
     except (OSError, ValueError) as failure:
         print(f"Could not synchronize documentation versions: {failure}", file=sys.stderr)
         return 1
-    return 0
+    return 1 if arguments.check and changed else 0
 
 
 if __name__ == "__main__":

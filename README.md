@@ -40,7 +40,7 @@ dependencies {
 }
 ```
 
-The current development version in this checkout is `0.8.0`; it is
+The current development version in this checkout is `0.9.0-SNAPSHOT`; it is
 not published to Maven Central. To try unreleased changes, publish the snapshot
 modules to Maven Local and follow the
 [consumer setup guide](docs/how-to/consume-from-another-project.md).
