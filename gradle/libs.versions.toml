@@ -7,7 +7,7 @@ mutflow = "1.6.2"
 agp = "9.4.1"
 dokka = "2.2.0"
 kover = "0.9.11"
-spotless = "8.10.3"
+spotless = "8.10.4"
 skie = "0.10.15"
 junit = "6.1.3"
 
