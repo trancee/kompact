@@ -4,6 +4,35 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.9.0] - 2026-10-17
+
+### 🐛 Fixes
+- fix: harden validation and optimize repeat indexing (#99) (ed7218c)
+- fix: preserve documentation version roles across release cycles (b068bf9)
+- fix: correct nested-write bounds and align TestKit versions (442a53a)
+
+### 📦 Other
+- perf: add generated-holder benchmarks and device validation (#101) (6115b87)
+- perf: add generated-holder benchmarks and device evidence (daa069b)
+- perf: index fixed repeats by sparse checkpoints (5eb6832)
+- perf: establish controlled JVM and Native repeat baselines (0d242ca)
+- Merge pull request #98 from trancee/dependabot/gradle/io.github.anschnapp.mutflow-1.7.0 (07a147e)
+- Merge branch 'main' into dependabot/gradle/io.github.anschnapp.mutflow-1.7.0 (71190d6)
+- Merge pull request #97 from trancee/dependabot/gradle/com.diffplug.spotless-8.10.4 (12a4d32)
+- Merge branch 'main' into dependabot/gradle/com.diffplug.spotless-8.10.4 (5555e32)
+- Merge pull request #96 from trancee/dependabot/gradle/jvm-2.4.21 (0084cd7)
+- Merge branch 'main' into dependabot/gradle/jvm-2.4.21 (c6766b6)
+- Merge pull request #95 from trancee/dependabot/gradle/plugin.serialization-2.4.21 (b003192)
+- Merge pull request #94 from trancee/dependabot/gradle/kotlin-2.4.21 (c092327)
+- chore(deps): bump io.github.anschnapp.mutflow from 1.6.2 to 1.7.0 (2ac51f0)
+- chore(deps): bump com.diffplug.spotless from 8.10.3 to 8.10.4 (f248b70)
+- chore(deps): bump jvm from 2.4.20 to 2.4.21 (4f81553)
+- chore(deps): bump plugin.serialization from 2.4.20 to 2.4.21 (7c28618)
+- chore(deps): bump kotlin from 2.4.20 to 2.4.21 (fb7b731)
+- Merge pull request #93 from trancee/dependabot/gradle/io.github.anschnapp.mutflow-1.6.2 (6a9973a)
+- chore(deps): bump io.github.anschnapp.mutflow from 1.6.1 to 1.6.2 (62e8397)
+- Merge pull request #92 from trancee/release/next-snapshot-0.9.0-SNAPSHOT (d153fa8)
+
 ## [0.8.0] - 2026-10-07
 
 ### ✨ Features
