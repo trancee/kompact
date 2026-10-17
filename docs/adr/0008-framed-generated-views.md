@@ -76,3 +76,22 @@ variable-length schemas with `framed = true`, contiguous `order`, and explicit
 prefix widths; use `decode(...).error` or `getOrThrow()` rather than constructing
 an untrusted view directly. The new public API is additive in the pre-1.0
 `0.5.0` MINOR release. The sequential wire format remains unchanged.
+
+## 2026-10-17 clarification: nested-write capacity diagnostics
+
+An aligned caller-owned cursor can lack enough space for the nested length
+prefix itself. `writeNested` previously classified this as an alignment error,
+even though its position was byte-aligned. It now returns
+`STATUS_BOUNDS_ERROR` for insufficient prefix or payload capacity, with the
+original position as `errorBitOffset` and the payload byte length as
+`errorDetail`. An unaligned position still returns `STATUS_UNALIGNED_REGION`
+before checking capacity. Both failures preserve destination bytes, parent
+position, and child binding.
+
+Keeping the old classification would preserve a misleading diagnostic;
+introducing a new status would unnecessarily expand the public API. Reusing
+the existing bounds status matches other checked writes. Wire bytes and
+signatures do not change. This is a compatible diagnostic correction for the
+unreleased cursor API; callers must not interpret prefix exhaustion as a
+request to realign their data. Shared boundary tests cover all supported
+prefix widths and preserve the exact-fit and alignment cases.

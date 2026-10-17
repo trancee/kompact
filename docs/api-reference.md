@@ -50,6 +50,10 @@ from the runtime source; do not edit the generated pages by hand.
   `KompactByteRange` borrows its buffer; `copyTo` is an explicit copy into
   caller-provided storage. `KompactRepeatWorkspace` borrows caller-provided
   checkpoint storage.
+- `KompactCursor.writeNested` reports `STATUS_UNALIGNED_REGION` for a
+  non-byte-aligned position and `STATUS_BOUNDS_ERROR` when the length prefix
+  or payload exceeds the destination region. Either failure leaves the
+  destination bytes and child cursor binding unchanged.
 - Generated `*Holder` codec operations take caller-owned cursors, ranges, and
   repeat workspaces. Probe-taking framed-holder operations, including
   scalar-only schemas, require a distinct probe cursor and preflight capacity
