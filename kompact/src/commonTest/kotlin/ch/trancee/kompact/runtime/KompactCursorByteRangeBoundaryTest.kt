@@ -3,8 +3,34 @@ package ch.trancee.kompact.runtime
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertSame
 
 class KompactCursorByteRangeBoundaryTest {
+    @Test
+    fun nestedWriteReportsBoundsWhenAnAlignedPrefixDoesNotFitWithoutMutation() {
+        for (prefixWidth in listOf(8, 16, 32)) {
+            val output = ByteArray(6) { 0x55 }
+            val before = output.copyOf()
+            val writer = KompactCursor(output)
+            writer.reset(output, startBit = 8, endBit = 8 + prefixWidth - 1)
+            val childBuffer = byteArrayOf(0x33, 0x44)
+            val child = KompactCursor(childBuffer)
+            child.reset(childBuffer, startBit = 1, position = 2, endBit = 7)
+
+            val status = writer.writeNested(prefixWidth, 0, child)
+
+            assertEquals(KompactCursor.STATUS_BOUNDS_ERROR, status, "prefixWidth=$prefixWidth")
+            assertEquals(8, writer.errorBitOffset)
+            assertEquals(0, writer.errorDetail)
+            assertEquals(8, writer.position)
+            assertContentEquals(before, output)
+            assertSame(childBuffer, child.buffer)
+            assertEquals(1, child.startBit)
+            assertEquals(2, child.position)
+            assertEquals(7, child.endBit)
+        }
+    }
+
     @Test
     fun emptyPayloadFitsExactlyAfterItsLengthPrefix() {
         val frame = byteArrayOf(0)
@@ -60,6 +86,7 @@ class KompactCursorByteRangeBoundaryTest {
         assertContentEquals(before, destination)
     }
 
+    @Test
     fun maximumEightBitPayloadFitsExactlyAtTheBufferBoundary() {
         val payload = ByteArray(255) { (it xor 0x5A).toByte() }
         val borrowed = KompactByteRange(payload)

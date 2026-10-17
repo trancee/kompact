@@ -54,6 +54,12 @@ jobs:
       - name: Set ANDROID_HOME
         run: echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
       - run: ./gradlew spotlessCheck :kompact:checkKotlinAbi :kompact:iosSimulatorArm64Test :kompact-ksp:checkKotlinAbi --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+      # Benchmark fixtures/tools and their source-sharing module are excluded
+      # from production Kover coverage; their behavior and reports are gated.
+      - name: Check Native benchmark fixtures and finite smoke results
+        run: |
+          ./gradlew :benchmarks:macosArm64Test :benchmarks:macosArm64SmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
+          python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/macosArm64.json
       # The committed GFM Markdown reference in kompact/docs/api/ must stay in sync
       # with the KDoc in commonMain. Regenerate and fail if the committed tree
       # drifts (up-to-date checking means dokka only re-runs when KDoc changes).
@@ -79,6 +85,13 @@ jobs:
           bash .github/scripts/release/release-pr-test.sh
           bash .github/scripts/docs/version-docs-check-test.sh
           bash .github/scripts/docs/check-version-references.sh .
+      # Benchmark fixtures/tools are not published or included in production
+      # Kover coverage. Shared CI runs smoke checks, not timing regression gates.
+      - name: Check JVM benchmark fixtures and finite smoke results
+        run: |
+          python3 -m unittest discover -s benchmarks -p 'test_*.py'
+          ./gradlew :benchmarks:jvmTest :benchmarks:jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
+          python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/jvm.json
       - name: Check maintained Markdown links
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:

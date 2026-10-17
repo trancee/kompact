@@ -11,6 +11,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class KompactGradlePluginIntegrationTest {
+    private val versions = KompactPluginVersions.load(javaClass.classLoader)
+
     @Test
     fun removesGeneratedSourcesWhenLastCommonSourceIsRemoved() {
         val projectDir = Files.createTempDirectory("kompact-empty-kmp-consumer")
@@ -148,7 +150,7 @@ class KompactGradlePluginIntegrationTest {
             Files.writeString(
                 buildFile,
                 Files.readString(buildFile).replace(
-                    "kotlin(\"multiplatform\") version \"2.4.20\"",
+                    "kotlin(\"multiplatform\") version \"${versions.kotlin}\"",
                     "kotlin(\"multiplatform\") version \"2.4.10\"",
                 ),
             )
@@ -156,7 +158,7 @@ class KompactGradlePluginIntegrationTest {
             val result = gradle(projectDir, ":generateKompactSources").buildAndFail()
 
             assertTrue(result.output.contains("Kotlin Gradle Plugin 2.4.10"))
-            assertTrue(result.output.contains("KSP 2.3.12"))
+            assertTrue(result.output.contains("KSP ${versions.ksp}"))
             assertTrue(result.output.contains("only tested pair"))
         } finally {
             projectDir.toFile().deleteRecursively()
@@ -177,10 +179,10 @@ class KompactGradlePluginIntegrationTest {
                         def generation = project.tasks.findByName("generateKompactSources")
                         if (generation != null) {
                             def incompleteEngine = project.configurations.detachedConfiguration(
-                                project.dependencies.create("com.google.devtools.ksp:symbol-processing-api:2.3.12"),
-                                project.dependencies.create("com.google.devtools.ksp:symbol-processing-common-deps:2.3.12"),
-                                project.dependencies.create("org.jetbrains.kotlin:kotlin-stdlib:2.4.20"),
-                                project.dependencies.create("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.2")
+                                project.dependencies.create("com.google.devtools.ksp:symbol-processing-api:${versions.ksp}"),
+                                project.dependencies.create("com.google.devtools.ksp:symbol-processing-common-deps:${versions.ksp}"),
+                                project.dependencies.create("org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}"),
+                                project.dependencies.create("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:${versions.coroutines}")
                             )
                             incompleteEngine.transitive = false
                             generation.kspClasspath.setFrom(incompleteEngine)
@@ -198,8 +200,8 @@ class KompactGradlePluginIntegrationTest {
                     ":generateKompactSources",
                 ).buildAndFail()
 
-            assertTrue(result.output.contains("Kotlin Gradle Plugin 2.4.20"), result.output)
-            assertTrue(result.output.contains("KSP 2.3.12"), result.output)
+            assertTrue(result.output.contains("Kotlin Gradle Plugin ${versions.kotlin}"), result.output)
+            assertTrue(result.output.contains("KSP ${versions.ksp}"), result.output)
             assertTrue(result.output.contains("KSPLoader.loadAndRunKSP"), result.output)
         } finally {
             projectDir.toFile().deleteRecursively()

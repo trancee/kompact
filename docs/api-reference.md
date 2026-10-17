@@ -50,6 +50,10 @@ from the runtime source; do not edit the generated pages by hand.
   `KompactByteRange` borrows its buffer; `copyTo` is an explicit copy into
   caller-provided storage. `KompactRepeatWorkspace` borrows caller-provided
   checkpoint storage.
+- `KompactCursor.writeNested` reports `STATUS_UNALIGNED_REGION` for a
+  non-byte-aligned position and `STATUS_BOUNDS_ERROR` when the length prefix
+  or payload exceeds the destination region. Either failure leaves the
+  destination bytes and child cursor binding unchanged.
 - Generated `*Holder` codec operations take caller-owned cursors, ranges, and
   repeat workspaces. Probe-taking framed-holder operations, including
   scalar-only schemas, require a distinct probe cursor and preflight capacity
@@ -58,7 +62,9 @@ from the runtime source; do not edit the generated pages by hand.
 - A repeat workspace needs `ceil(count / 64)` checkpoint slots; an empty repeat
   needs none. `readVariableRepeat` and `readFixedRepeat` return
   `STATUS_WORKSPACE_TOO_SMALL` without committing the cursor or workspace
-  binding when capacity is insufficient.
+  binding when capacity is insufficient. Fixed-repeat indexing computes each
+  checkpoint offset directly, retaining the same storage requirement and
+  validation/diagnostic behavior.
 - Variable-width repeats are validated before generated-holder decoding
   commits. The preflight and workspace-building decode each traverse the
   repeat, so this checked path favors failure atomicity over a single scan; no
@@ -73,7 +79,9 @@ from the runtime source; do not edit the generated pages by hand.
   [allocation research note](research/allocation-boxing-measurement.md). They
   use Kotlin/Native GC sweep statistics, which are testing/debugging data, and
   do not establish a general zero-allocation guarantee or numeric performance
-  budget.
+  portable budget. Separate [host repeat/scalar measurements](research/repeat-index-benchmark.md)
+  and [diagnostic budgets](how-to/benchmark-runtime.md) cover only their
+  documented JVM/macOS Native workloads.
 - Generated framed encoders reject range sources backed by the destination
   buffer. The low-level `writeByteRange` operation rejects overlapping
   in-place copies. These cursor APIs are available in the current checkout;
@@ -81,7 +89,7 @@ from the runtime source; do not edit the generated pages by hand.
 - Schema annotations are preview API and require opting in to
   `KompactPreview`. Runtime reader and writer APIs do not require that opt-in.
 
-This reference tracks the current checkout (`0.8.0`); the latest
+This reference tracks the current checkout (`0.9.0-SNAPSHOT`); the latest
 published release is `0.8.0`. See the
 [consumer setup guide](how-to/consume-from-another-project.md) for the
 published coordinates or instructions for trying this checkout.

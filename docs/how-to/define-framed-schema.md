@@ -92,7 +92,7 @@ kotlin {
 }
 ```
 
-To try unreleased changes from the current `0.8.0` checkout, publish
+To try unreleased changes from the current `0.9.0-SNAPSHOT` checkout, publish
 the runtime, KSP processor, and Gradle plugin to Maven Local. The
 [consumer setup guide](consume-from-another-project.md) has the exact commands
 and repository blocks.

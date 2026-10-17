@@ -235,7 +235,7 @@ class KompactCursorByteRangeTest {
         cursor.reset(bytes, position = 1)
         assertEquals(KompactCursor.STATUS_UNALIGNED_REGION, cursor.writeNested(8, 0, child))
         val noSpace = KompactCursor(ByteArray(1))
-        assertEquals(KompactCursor.STATUS_UNALIGNED_REGION, noSpace.writeNested(16, 0, child))
+        assertEquals(KompactCursor.STATUS_BOUNDS_ERROR, noSpace.writeNested(16, 0, child))
         val bounded = KompactCursor(ByteArray(1))
         assertEquals(KompactCursor.STATUS_BOUNDS_ERROR, bounded.writeNested(8, 1, child))
 

@@ -76,3 +76,48 @@ variable-length schemas with `framed = true`, contiguous `order`, and explicit
 prefix widths; use `decode(...).error` or `getOrThrow()` rather than constructing
 an untrusted view directly. The new public API is additive in the pre-1.0
 `0.5.0` MINOR release. The sequential wire format remains unchanged.
+
+## 2026-10-17 clarification: nested-write capacity diagnostics
+
+An aligned caller-owned cursor can lack enough space for the nested length
+prefix itself. `writeNested` previously classified this as an alignment error,
+even though its position was byte-aligned. It now returns
+`STATUS_BOUNDS_ERROR` for insufficient prefix or payload capacity, with the
+original position as `errorBitOffset` and the payload byte length as
+`errorDetail`. An unaligned position still returns `STATUS_UNALIGNED_REGION`
+before checking capacity. Both failures preserve destination bytes, parent
+position, and child binding.
+
+Keeping the old classification would preserve a misleading diagnostic;
+introducing a new status would unnecessarily expand the public API. Reusing
+the existing bounds status matches other checked writes. Wire bytes and
+signatures do not change. This is a compatible diagnostic correction for the
+unreleased cursor API; callers must not interpret prefix exhaustion as a
+request to realign their data. Shared boundary tests cover all supported
+prefix widths and preserve the exact-fit and alignment cases.
+
+## 2026-10-17 clarification: caller-owned fixed-repeat checkpoints
+
+The caller-owned workspace contract requires `ceil(count / 64)` checkpoint
+slots for both fixed and variable repeats. This is separate from the generated
+fixed-width view's constant index memory described above. The fixed cursor
+implementation previously visited every element merely to select each
+64th offset.
+
+Compute each fixed checkpoint directly from the validated repeat start,
+checkpoint index, interval, and element width. Keep `Long` intermediate
+arithmetic and finish every bounds/capacity check before storing checkpoints.
+The [retained host comparison](../research/repeat-index-benchmark.md) records
+the pre-change baseline, candidate, unchanged controls, and allocation probes.
+
+Keeping the per-element loop adds measured work without improving validation.
+Removing fixed checkpoints entirely would change caller-owned storage contents
+and capacity diagnostics, so that alternative is rejected. Variable repeats
+retain their two-pass validation/index construction because mutating
+checkpoints during the first pass would break failure atomicity.
+
+The main risk is incorrect arithmetic at block boundaries or touching unused
+slots; focused common tests cover widths, counts, nonzero starts, exact bounds,
+and truncated input. No signatures, status precedence, wire bytes, workspace
+capacity, or bindings change, and callers need no migration. Host speedups are
+not device timing or a universal allocation guarantee.

@@ -104,7 +104,7 @@ internal object KompactCursorByteRanges {
 
         val payloadStart = cursor.position.toLong() + prefixWidth
         val payloadEnd = payloadStart + payloadByteLength.toLong() * 8L
-        if (cursor.position % 8 != 0 || payloadStart > cursor.endBit.toLong()) {
+        if (cursor.position % 8 != 0) {
             return cursor.fail(KompactCursor.STATUS_UNALIGNED_REGION, cursor.position, prefixWidth)
         }
         if (payloadEnd > cursor.endBit.toLong()) {

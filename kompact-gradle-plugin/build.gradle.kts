@@ -58,6 +58,19 @@ tasks.processResources {
     }
 }
 
+tasks.processTestResources {
+    val fixtureVersions =
+        pluginResourceProperties +
+            mapOf(
+                "agpVersion" to libs.versions.agp.get(),
+                "junitVersion" to libs.versions.junit.get(),
+            )
+    inputs.properties(fixtureVersions)
+    filesMatching("kmp-consumer/build.gradle.kts") {
+        expand(fixtureVersions)
+    }
+}
+
 val gradlePluginSourcesJar =
     tasks.register<Jar>("gradlePluginSourcesJar") {
         archiveClassifier.set("sources")

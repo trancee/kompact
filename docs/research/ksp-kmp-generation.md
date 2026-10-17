@@ -9,7 +9,7 @@ Can Kompact process each `commonMain` schema once, generate Kotlin consumed by A
 The standard KSP Gradle integration does not provide that contract. Its documented KMP model creates a processing task for every configured compilation, so target configurations process shared sources repeatedly. `kspCommonMainMetadata` exists, but common generated-source wiring remains an open upstream problem and depends on fragile manual task relationships.
 
 Kompact's published code-generation plugin (`0.8.0`; this checkout is
-`0.8.0`) addresses common Kotlin generation with the separate
+`0.9.0-SNAPSHOT`) addresses common Kotlin generation with the separate
 `:kompact-gradle-plugin`. Its cacheable task invokes KSP2's `KSPCommonConfig`
 path once, routes common and platform Kotlin outputs, and registers them
 through task-backed source directories. The plugin implementation and marker
@@ -23,7 +23,7 @@ schemas.
 ### Supported Kotlin and KSP compatibility pair
 
 The repository's consumer TestKit fixture exercises Kotlin Gradle Plugin
-`2.4.20` with the bundled KSP2 engine `2.3.12`. That exact pair is the
+`2.4.21` with the bundled KSP2 engine `2.3.12`. That exact pair is the
 supported integration contract; other versions remain unsupported until added
 to and passed by the fixture. The Gradle plugin checks the Kotlin Gradle
 Plugin's implementation version during configuration and reports the tested
@@ -31,6 +31,10 @@ pair when it detects a mismatch. Before generation, the task also checks the
 bundled KSP2 `KSPLoader.loadAndRunKSP(byte[], List, int)` entry point. A missing
 or incompatible entry point fails the task with the pair, the broken seam, and
 the reflection cause.
+
+The fixture's plugin and dependency versions are expanded from the repository
+version catalog and plugin metadata during test-resource processing, so a
+toolchain update also updates the consumer under test.
 
 The processor fails empty annotated models and resolved invalid fields,
 defers genuinely unresolved field types, and continues processing independent
@@ -135,7 +139,7 @@ Do not also add the processor to `kspAndroid`, `kspIosArm64`, or `kspIosSimulato
 
 This matrix records the conservative intersection used during the original
 research; it is not the repository's current toolchain or an instruction to
-downgrade. The repository currently uses Kotlin 2.4.20, KSP 2.3.12, Gradle
+downgrade. The repository currently uses Kotlin 2.4.21, KSP 2.3.12, Gradle
 9.8.0, and AGP 9.4.1. Before implementing a custom integration, verify the
 then-current official compatibility ranges and retain the repository's stable
 toolchain unless a documented blocker requires a holdback.
