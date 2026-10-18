@@ -112,6 +112,8 @@ tasks.register<JavaExec>("jvmAllocationBenchmark") {
     }
     args(
         "ch.trancee.kompact.benchmark.*Benchmark.*",
+        // Same cases as the main profile, so check_results.py --profile main accepts the report.
+        "-e", ".*WriterBenchmark.*",
         "-prof", "gc", "-f", "3", "-wi", "5", "-i", "5",
         "-w", "300ms", "-r", "300ms", "-bm", "avgt", "-tu", "ns",
         "-rf", "json", "-rff", report.get().asFile.absolutePath,
