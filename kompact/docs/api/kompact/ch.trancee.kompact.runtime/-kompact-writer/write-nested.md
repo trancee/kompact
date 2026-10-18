@@ -5,7 +5,7 @@
 [common]\
 fun [writeNested](write-nested.md)(lengthPrefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = 16, block: [KompactWriter](index.md).() -&gt; [Unit](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html))
 
-Writes a nested sub-region: a child `KompactWriter` drains [block](write-nested.md), then the child's byte length is emitted as a [lengthPrefixWidth](write-nested.md)-bit LE prefix immediately followed by the child bytes (forward-only, compute-first — Ticket 07). The child region begins byte-aligned after the prefix. An unrepresentable child length throws before changing this writer.
+Writes a nested sub-region: [block](write-nested.md) writes the payload directly into this writer after a reserved [lengthPrefixWidth](write-nested.md)-bit LE prefix; the payload is zero-padded to whole bytes and the prefix is back-patched with its byte length. No child writer or intermediate copy is allocated. If [block](write-nested.md) throws or the length does not fit the prefix, the writer is rolled back to its state before the call.
 
 [common]\
 fun [writeNested](write-nested.md)(lengthPrefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), slice: [KompactByteSlice](../-kompact-byte-slice/index.md))

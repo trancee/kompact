@@ -45,6 +45,7 @@ benchmark {
     }
     configurations {
         named("main") {
+            exclude(".*WriterBenchmark.*")
             mode = "avgt"
             outputTimeUnit = "ns"
             warmups = 5
@@ -55,6 +56,7 @@ benchmark {
             reportFormat = "json"
         }
         register("smoke") {
+            exclude(".*WriterBenchmark.*")
             mode = "avgt"
             outputTimeUnit = "ns"
             // Native calibrates its measured cycle count during warmup.
@@ -64,6 +66,17 @@ benchmark {
             iterationTimeUnit = "ms"
             param("count", "65")
             advanced("jvmForks", 1)
+            reportFormat = "json"
+        }
+        register("writer") {
+            include(".*WriterBenchmark.*")
+            mode = "avgt"
+            outputTimeUnit = "ns"
+            warmups = 5
+            iterations = 5
+            iterationTime = 300
+            iterationTimeUnit = "ms"
+            advanced("jvmForks", 3)
             reportFormat = "json"
         }
         register("fixed") {

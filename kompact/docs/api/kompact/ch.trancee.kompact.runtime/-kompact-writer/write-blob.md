@@ -5,4 +5,4 @@
 [common]\
 fun [writeBlob](write-blob.md)(countWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), bytes: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))
 
-Writes a length-prefixed blob: `<prefix><bytes>` (Ticket 05). Throws before changing this writer if [bytes](write-blob.md) does not fit [countWidth](write-blob.md).
+Writes a length-prefixed blob: `<prefix><bytes>`. Throws before changing this writer if [bytes](write-blob.md) does not fit [countWidth](write-blob.md).

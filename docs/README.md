@@ -51,6 +51,7 @@ investigating the build or performance model; they are not setup guides:
 
 - [KSP common-source generation](research/ksp-kmp-generation.md)
 - [How to measure allocation and boxing](research/allocation-boxing-measurement.md)
+- [In-place nested writes](research/writer-nested-benchmark.md)
 
 ## For coding agents
 

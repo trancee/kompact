@@ -1,25 +1,19 @@
 package ch.trancee.kompact.runtime
 
 /**
- * Forward-only, growable write builder for Kompact wire output (Ticket 07).
+ * Forward-only, growable write builder for Kompact wire output.
  *
  * The writer grows its output buffer and provides lambda-based nested and
  * repeated builders. Its framing uses fixed-width little-endian length
- * prefixes, length-delimited nested sub-regions (child length computed first,
- * then prefix + bytes — no back-patch), and count-prefixed repeats
- * `<count><elem₀><elem₁>…`.
+ * prefixes, length-delimited nested sub-regions (written in place, then the
+ * prefix is back-patched), and count-prefixed repeats `<count><elem₀><elem₁>…`.
  *
  * `build()` returns an exact-length snapshot without exposing the backing
  * buffer. The writer can continue accumulating data and later builds return
- * updated snapshots.
+ * updated snapshots; [reset] discards the content but keeps the capacity.
  */
 public class KompactWriter {
-    /**
-     * Internal write cursor in bits (LSB-first packing, Ticket 01). Advances as
-     * values are written; callers observe progress via [build]. Not part of the
-     * public API — nested/repeat assembly is write-forward and does not read the
-     * cursor (ergonomics-11: bit-cursor visibility).
-     */
+    /** Internal LSB-first write cursor in bits; callers observe progress via [build]. */
     internal var bitCursor: Int = 0
         private set
 
@@ -57,8 +51,6 @@ public class KompactWriter {
     /**
      * Writes [value] under [type]: [ScalarType.bitWidth] low bits as a two's-complement
      * magnitude (1..64), dispatched to [writeBits] (<=31) / [writeBitsLong] (32..64).
-     * Replaces the writeInt/writeUInt/writeInt64/writeEnum overloads — one accessor
-     * per width-band (ergonomics-01: ScalarType consolidation). Pass a [ScalarType] carrying the band.
      */
     public fun writeScalar(
         type: ScalarType,
@@ -73,7 +65,7 @@ public class KompactWriter {
     }
 
     /**
-     * Writes a length-prefixed UTF-8 string: `<prefix><bytes>` (Ticket 05).
+     * Writes a length-prefixed UTF-8 string: `<prefix><bytes>`.
      * Throws before changing this writer if the encoded length does not fit
      * [countWidth].
      */
@@ -90,7 +82,7 @@ public class KompactWriter {
     }
 
     /**
-     * Writes a length-prefixed blob: `<prefix><bytes>` (Ticket 05).
+     * Writes a length-prefixed blob: `<prefix><bytes>`.
      * Throws before changing this writer if [bytes] does not fit [countWidth].
      */
     public fun writeBlob(
@@ -105,24 +97,34 @@ public class KompactWriter {
     }
 
     /**
-     * Writes a nested sub-region: a child `KompactWriter` drains [block], then the
-     * child's byte length is emitted as a [lengthPrefixWidth]-bit LE prefix
-     * immediately followed by the child bytes (forward-only, compute-first —
-     * Ticket 07). The child region begins byte-aligned after the prefix. An
-     * unrepresentable child length throws before changing this writer.
+     * Writes a nested sub-region: [block] writes the payload directly into this
+     * writer after a reserved [lengthPrefixWidth]-bit LE prefix; the payload is
+     * zero-padded to whole bytes and the prefix is back-patched with its byte
+     * length. No child writer or intermediate copy is allocated. If [block]
+     * throws or the length does not fit the prefix, the writer is rolled back to
+     * its state before the call.
      */
     public fun writeNested(
         lengthPrefixWidth: Int = 16,
         block: KompactWriter.() -> Unit,
     ) {
-        val child = KompactWriter()
-        block(child)
-        val bytes = child.build()
-        checkPrefix(lengthPrefixWidth, bytes.size)
-        ensureCapacityBits(lengthPrefixWidth.toLong() + bytes.size.toLong() * 8)
-        KompactFraming.writeLengthPrefix(buffer, bitCursor, lengthPrefixWidth, bytes.size)
+        checkPrefix(lengthPrefixWidth, 0)
+        val prefixBit = bitCursor
+        ensureCapacityBits(lengthPrefixWidth.toLong())
         bitCursor += lengthPrefixWidth
-        appendBytes(bytes)
+        val payloadBit = bitCursor
+        try {
+            block()
+            val payloadBits = bitCursor - payloadBit
+            val length = (payloadBits + 7) / 8
+            checkPrefix(lengthPrefixWidth, length)
+            val padding = length * 8 - payloadBits
+            if (padding > 0) writeBits(padding, 0)
+            KompactFraming.writeLengthPrefix(buffer, prefixBit, lengthPrefixWidth, length)
+        } catch (failure: Throwable) {
+            bitCursor = prefixBit
+            throw failure
+        }
     }
 
     /** Append a bounded byte-aligned view without allocating an intermediate payload. */
@@ -160,7 +162,7 @@ public class KompactWriter {
     /**
      * Writes a count-prefixed repeat: `<count><elem₀>…<elem_{count-1}>` where each
      * element is produced by one invocation of [block] against this writer
-     * (Ticket 05). [countWidth] must be one of [KompactFraming.VALID_PREFIX_WIDTHS]
+     * [countWidth] must be one of [KompactFraming.VALID_PREFIX_WIDTHS]
      * and [count] must fit its unsigned range; invalid counts throw before
      * changing this writer or invoking [block].
      */
@@ -170,7 +172,7 @@ public class KompactWriter {
         block: KompactWriter.() -> Unit,
     ) {
         require(countWidth in KompactFraming.VALID_PREFIX_WIDTHS) {
-            "countWidth must be 8, 16, or 32 (Ticket 06), was $countWidth"
+            "countWidth must be 8, 16, or 32, was $countWidth"
         }
         require(count >= 0) { "repeat count must be non-negative, was $count" }
         checkPrefix(countWidth, count)
@@ -188,11 +190,18 @@ public class KompactWriter {
      */
     public fun build(): ByteArray {
         val byteLen = (bitCursor + 7) / 8
-        return if (byteLen == 0) {
-            ByteArray(0)
-        } else {
-            buffer.copyOfRange(0, byteLen)
+        val snapshot = buffer.copyOfRange(0, byteLen)
+        val usedBits = bitCursor and 7
+        if (usedBits != 0) {
+            // Bits past the cursor may be stale after reset or a rolled-back nested write.
+            snapshot[byteLen - 1] = (snapshot[byteLen - 1].toInt() and ((1 shl usedBits) - 1)).toByte()
         }
+        return snapshot
+    }
+
+    /** Discards all written content while keeping the grown buffer for reuse. */
+    public fun reset() {
+        bitCursor = 0
     }
 
     // --- internals ---

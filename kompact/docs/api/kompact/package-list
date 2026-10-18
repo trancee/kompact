@@ -201,6 +201,7 @@ $dokka.location:ch.trancee.kompact.runtime/KompactWriter.Companion///PointingToD
 $dokka.location:ch.trancee.kompact.runtime/KompactWriter///PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-kompact-writer/index.md
 $dokka.location:ch.trancee.kompact.runtime/KompactWriter/KompactWriter/#/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-kompact-writer/-kompact-writer.md
 $dokka.location:ch.trancee.kompact.runtime/KompactWriter/build/#/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-kompact-writer/build.md
+$dokka.location:ch.trancee.kompact.runtime/KompactWriter/reset/#/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-kompact-writer/reset.md
 $dokka.location:ch.trancee.kompact.runtime/KompactWriter/writeBits/#kotlin.Int#kotlin.Int/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-kompact-writer/write-bits.md
 $dokka.location:ch.trancee.kompact.runtime/KompactWriter/writeBitsLong/#kotlin.Int#kotlin.Long/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-kompact-writer/write-bits-long.md
 $dokka.location:ch.trancee.kompact.runtime/KompactWriter/writeBlob/#kotlin.Int#kotlin.ByteArray/PointingToDeclaration/kompact/ch.trancee.kompact.runtime/-kompact-writer/write-blob.md

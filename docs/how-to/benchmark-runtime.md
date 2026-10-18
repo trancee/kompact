@@ -71,6 +71,11 @@ For a second comparison of only the optimized operation, run
 validate with `--profile fixed`. Repeat baseline and candidate in the reverse
 order when distinguishing a change from host drift.
 
+`WriterBenchmark` measures nested-region encoding and is excluded from the
+maintained `main` and `smoke` profiles. Run it on demand with
+`:benchmarks:jvmWriterBenchmark`; see the
+[writer nesting note](../research/writer-nested-benchmark.md).
+
 ### Automate the timing comparison
 
 After retaining comparable full reports, use `--baseline` to reject a mean

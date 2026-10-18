@@ -195,8 +195,10 @@ val bytes: ByteArray = w.build()  // exact-length snapshot; repeated calls prese
   Use `writeBitsLong` for 32-bit writes.
 - `writeScalar` dispatches to `writeBits` (≤31) or `writeBitsLong` (32–64)
   internally — prefer it over raw `writeBits` unless you proved the width.
-- `writeNested` creates a **child** `KompactWriter`; `writeRepeated`
-  writes to the **parent**. Do not confuse them.
+- `writeNested` and `writeRepeated` both run their block against the
+  **same** writer; `writeNested` reserves the prefix, then back-patches
+  the payload byte length (rolling back if the block throws).
+- Reuse a writer across messages with `reset()`; it keeps the grown buffer.
 - `writeRepeated`'s block has **no index parameter** — use a manual
   `for` loop if elements need different values.
 - `writeString`, `writeBlob`, `writeNested`, `writeRepeated` all
@@ -362,9 +364,9 @@ framed views, and lazy repeated fields. See
    Boxing and allocation depend on call shape and platform, so do not treat
    the type distinction as a performance guarantee.
 
-6. **`writeNested` vs `writeRepeated` receiver.** `writeNested`
-   passes a **child** writer to the block; `writeRepeated` passes the
-   **parent**. Don't mix them up.
+6. **Don't call `build()` inside a `writeNested` block.** The block
+   writes into the enclosing writer, so `build()` would snapshot the
+   whole message with an unpatched prefix.
 
 7. **Prefix widths must be 8, 16, or 32.** `writeString(countWidth = 4, …)`
    compiles but throws at runtime (`countWidth must be 8, 16, or 32`).

@@ -337,6 +337,7 @@ public final class ch/trancee/kompact/runtime/KompactWriter {
 	public static final field Companion Lch/trancee/kompact/runtime/KompactWriter$Companion;
 	public fun <init> ()V
 	public final fun build ()[B
+	public final fun reset ()V
 	public final fun writeBits (II)V
 	public final fun writeBitsLong (IJ)V
 	public final fun writeBlob (I[B)V

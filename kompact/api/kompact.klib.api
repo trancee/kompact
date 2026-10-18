@@ -232,6 +232,7 @@ final class ch.trancee.kompact.runtime/KompactWriter { // ch.trancee.kompact.run
     constructor <init>() // ch.trancee.kompact.runtime/KompactWriter.<init>|<init>(){}[0]
 
     final fun build(): kotlin/ByteArray // ch.trancee.kompact.runtime/KompactWriter.build|build(){}[0]
+    final fun reset() // ch.trancee.kompact.runtime/KompactWriter.reset|reset(){}[0]
     final fun writeBits(kotlin/Int, kotlin/Int) // ch.trancee.kompact.runtime/KompactWriter.writeBits|writeBits(kotlin.Int;kotlin.Int){}[0]
     final fun writeBitsLong(kotlin/Int, kotlin/Long) // ch.trancee.kompact.runtime/KompactWriter.writeBitsLong|writeBitsLong(kotlin.Int;kotlin.Long){}[0]
     final fun writeBlob(kotlin/Int, kotlin/ByteArray) // ch.trancee.kompact.runtime/KompactWriter.writeBlob|writeBlob(kotlin.Int;kotlin.ByteArray){}[0]

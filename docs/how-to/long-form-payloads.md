@@ -54,7 +54,7 @@ does not receive an element index.
 
 ## Encode and read a nested record
 
-`writeNested` builds the child first, then writes its byte length and bytes.
+`writeNested` writes the child in place, then back-patches its byte length.
 `readNested` returns a borrowed slice bounded to that child payload. Decode the
 slice separately so the nested reader cannot cross into the following field.
 
