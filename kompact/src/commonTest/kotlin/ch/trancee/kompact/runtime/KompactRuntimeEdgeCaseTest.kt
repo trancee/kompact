@@ -51,13 +51,6 @@ class KompactRuntimeEdgeCaseTest {
     // --- readScalarAsLong edge cases ---
 
     @Test
-    fun readScalarAsLong_bitWidth65_returnsBoundsError() {
-        val r = KompactRuntime.readScalarAsLong(ByteArray(9), 0, ScalarType.of(65, signed = false))
-        assertFalse(r.isSuccess)
-        assertEquals(KompactDecodeError.BoundsError, r.error)
-    }
-
-    @Test
     fun readScalarAsLong_signedWidth64_negativeValue() {
         // signed && bitWidth == 64 → no sign extension (uses raw magnitude).
         val buf = ByteArray(8) { 0 }

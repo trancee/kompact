@@ -42,22 +42,6 @@ class KompactWriterEdgeCaseTest {
     }
 
     @Test
-    fun writeScalar_invalidZeroWidth_throws() {
-        val w = KompactWriter()
-        assertFailsWith<IllegalArgumentException> {
-            w.writeScalar(ScalarType.of(0, signed = false), 0L)
-        }
-    }
-
-    @Test
-    fun writeScalar_invalidWidth65_throws() {
-        val w = KompactWriter()
-        assertFailsWith<IllegalArgumentException> {
-            w.writeScalar(ScalarType.of(65, signed = false), 0L)
-        }
-    }
-
-    @Test
     fun writeRepeated_invalidCountWidth_throws() {
         val w = KompactWriter()
         assertFailsWith<IllegalArgumentException> {

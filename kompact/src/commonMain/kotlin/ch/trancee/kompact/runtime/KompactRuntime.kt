@@ -213,7 +213,7 @@ public object KompactRuntime {
     ): LongResult {
         val bitWidth = type.bitWidth
         val signed = type.signed
-        if (!fits(raw, bitOffset, bitWidth) || bitWidth > 64) {
+        if (!fits(raw, bitOffset, bitWidth)) {
             return LongResult.failure(KompactDecodeError.BoundsError)
         }
         val magnitude = readBitsLong(raw, bitOffset, bitWidth)
@@ -248,71 +248,6 @@ public object KompactRuntime {
         val bits = readBitsLong(raw, bitOffset, 64)
         return DoubleResult.success(Double.fromBits(bits))
     }
-
-    /**
-     * Opt-in diagnostics reads (ADR-0005 §2). Each returns a [DetailedResult]
-     * carrying, on failure, a [DetailedDecodeError] with the byte offset of the
-     * failure (`bitOffset ushr 3`); on success the decoded value. Use the basic
-     * [readScalar], [readScalarAsLong], [readFloat], [readDouble], or [readBool]
-     * methods when the additional offset detail is not needed.
-     */
-    public fun decodeFullInt(
-        raw: ByteArray,
-        bitOffset: Int,
-        type: ScalarType,
-    ): DetailedResult<Int> {
-        val r = readScalar(raw, bitOffset, type)
-        val e = r.error
-        return if (e != null) DetailedResult(null, detailedError(e, bitOffset)) else DetailedResult(r.getOrThrow(), null)
-    }
-
-    public fun decodeFullLong(
-        raw: ByteArray,
-        bitOffset: Int,
-        type: ScalarType,
-    ): DetailedResult<Long> {
-        val r = readScalarAsLong(raw, bitOffset, type)
-        val e = r.error
-        return if (e != null) DetailedResult(null, detailedError(e, bitOffset)) else DetailedResult(r.getOrThrow(), null)
-    }
-
-    public fun decodeFullFloat(
-        raw: ByteArray,
-        bitOffset: Int,
-    ): DetailedResult<Float> {
-        val r = readFloat(raw, bitOffset)
-        val e = r.error
-        return if (e != null) DetailedResult(null, detailedError(e, bitOffset)) else DetailedResult(r.getOrThrow(), null)
-    }
-
-    public fun decodeFullDouble(
-        raw: ByteArray,
-        bitOffset: Int,
-    ): DetailedResult<Double> {
-        val r = readDouble(raw, bitOffset)
-        val e = r.error
-        return if (e != null) DetailedResult(null, detailedError(e, bitOffset)) else DetailedResult(r.getOrThrow(), null)
-    }
-
-    public fun decodeFullBoolean(
-        raw: ByteArray,
-        bitOffset: Int,
-    ): DetailedResult<Boolean> {
-        val r = readBool(raw, bitOffset)
-        val e = r.error
-        return if (e != null) DetailedResult(null, detailedError(e, bitOffset)) else DetailedResult(r.getOrThrow(), null)
-    }
-
-    /**
-     * Lifts a packed `*Result` failure into a [DetailedDecodeError] that records
-     * the failure byte offset (`bitOffset ushr 3`) plus the raw enum code for
-     * `UnknownEnumCode`, else 0. Used only on the opt-in `decodeFull*` path.
-     */
-    private fun detailedError(
-        error: KompactDecodeError,
-        bitOffset: Int,
-    ): DetailedDecodeError =
-        DetailedDecodeError(error, bitOffset ushr 3, if (error is KompactDecodeError.UnknownEnumCode) error.rawCode else 0)
 
     /** Throws [KompactDecodeException] on a bounds error; otherwise reads 1 bit as a [Boolean] (Ticket 04). */
     public fun readBoolOrThrow(

@@ -156,21 +156,10 @@ if (mutationJvmOnly) {
 // (not JaCoCo). For KMP projects, coverage is collected from the compiled JVM
 // bytecode (commonMain + jvmMain). The verify rules enforce strict 100 % thresholds.
 // See: kotlinx.kover.gradle.plugin.dsl (KoverProjectExtension → reports → total/verify)
-//
-// Kover filters exclude test-only utility classes that intentionally contain
-// never-called constructors and assertion branches — these are coverage-pinning
-// scaffolding (see JvmCoveragePinning.java), not production logic. The JVM TI
-// agent tracks INVOKEVIRTUAL (synthetic @JvmInline getters), not GETFIELD, so
-// the Java scaffolding forces method-level coverage.
 apply(plugin = "org.jetbrains.kotlinx.kover")
 
 extensions.configure<KoverProjectExtension>("kover") {
     reports {
-        filters {
-            excludes {
-                classes("ch.trancee.kompact.runtime.JvmCoveragePinning*")
-            }
-        }
         total {
             xml {
                 onCheck.set(true)
@@ -215,16 +204,6 @@ powerAssert {
             "kotlin.test.assertContains",
             "kotlin.test.assertNotContains",
         )
-}
-
-// Exclude JVM-coverage-pinning scaffolding (JvmCoveragePinning.java) from the
-// published JVM JAR. It lives in jvmMain so KMP compiles it before the Kotlin
-// test sources that reflectively exercise @JvmInline getters (JaCoCo/Kover
-// tracks INVOKEVIRTUAL but not GETFIELD). It is package-private (excluded from
-// ABI) and Kover-filtered — it must not ship in the Maven artifact.
-tasks.named<Jar>("jvmJar") {
-    exclude("ch/trancee/kompact/runtime/JvmCoveragePinning*.class")
-    exclude("ch/trancee/kompact/runtime/JvmCoveragePinning*.java")
 }
 
 // --- Maven Central Portal publishing ---

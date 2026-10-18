@@ -4,3 +4,5 @@
 
 [common]\
 val [startBit](start-bit.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+
+First payload bit. Throws [KompactDecodeException](../-kompact-decode-exception/index.md) on failure.

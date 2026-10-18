@@ -53,7 +53,7 @@ build-logic/                    convention plugins (portal-publish, dokka-markdo
 kompact/                        the runtime library (JVM, Android JVM, iOS, Android Native)
 ├── src/commonMain/kotlin/…/runtime/  ← KompactRuntime, KompactWriter, KompactFraming,
 │                                     ←   KompactResult*, ScalarType, KompactDecodeError
-├── src/commonMain/kotlin/…/generated/VehicleTelemetry.kt  ← example model
+├── src/commonTest/kotlin/…/generated/VehicleTelemetry.kt  ← hand-written fixed-layout test fixture
 └── api/                              ← committed ABI goldens (jvm/ + android/ + kompact.klib.api)
 kompact-ksp/                    the KSP code generator
 ├── src/main/kotlin/…/gen/ValueClassGenerator.kt  ← generates <Name>View from annotated schemas
@@ -128,8 +128,6 @@ from the Kompact checkout, then use `0.10.0-SNAPSHOT` and `mavenLocal()`.
 |---|---|
 | `ch.trancee.kompact.runtime` | `KompactRuntime`, `KompactWriter`, `KompactFraming`, `ScalarType`, all `*Result` value classes, `KompactDecodeError` |
 | `ch.trancee.kompact.annotations` | `@KompactModel`, `@KompactField`, `@KompactPreview` |
-| `ch.trancee.kompact` | `Kompact.Result` — typealias namespace (`Kompact.Result.Int`, etc.) |
-| `ch.trancee.kompact.generated` | The bundled `VehicleTelemetry` example |
 
 ### KompactRuntime — the 80/20 reads
 
@@ -161,9 +159,11 @@ val mapped: IntResult = speed.map { it * 2 }
   `Long.MIN_VALUE`, is representable. Other scalar result types use value
   classes, which may box at nullable, generic, or interface boundaries.
   Do not infer allocation behavior from representation alone.
-- `Float` uses the packed-Long layout (32-bit IEEE-754 in the low 48
-  bits). `Double` uses a NaN-payload scheme (canonical quiet-NaN =
-  success, non-zero NaN payload = failure).
+- `Float` uses the packed-Long layout (raw 32-bit IEEE-754 bits in the low
+  48 bits), so NaN payloads round-trip. `Double` has no spare bits, so it
+  reserves quiet-NaN payloads 1..4 for failures and canonicalizes every
+  successful NaN; read `readBitsLong(raw, offset, 64)` if a Double NaN
+  payload matters.
 
 ### KompactWriter — the 80/20 writes
 
@@ -216,7 +216,8 @@ val n: Int = KompactFraming.readLengthPrefix(bytes, bitCursor, bitWidth = 8)
 // Nested regions: returns a typed result instead of throwing on malformed input
 val region = KompactFraming.readNested(bytes, bitCursor, prefixBitWidth = 16)
 if (region.isSuccess) {
-    val (startBit, bitLength) = region.getOrThrow()  // NestedRegion = Pair<Int, Int>
+    val startBit = region.startBit   // both accessors throw KompactDecodeException on failure
+    val bitLength = region.bitLength
 } else {
     when (val err = region.error) {
         KompactDecodeError.BadLengthPrefix -> …
@@ -237,34 +238,22 @@ ScalarType.BOOL                     // = of(1, signed = false)
 
 `ScalarType.bitWidth` (1–64) and `ScalarType.signed` are the only two
 fields — this collapses the old 8-per-width overload set
-(`readInt8`, `readUInt16`, …) into one accessor per band.
+(`readInt8`, `readUInt16`, …) into one accessor per band. `ScalarType.of`
+throws `IllegalArgumentException` for widths outside 1–64.
 
-### Kompact.Result — convenience typealiases
-
-```kotlin
-import ch.trancee.kompact.Kompact.Result.*
-
-val r: Int = KompactRuntime.readScalar(raw, 0, ScalarType.of(10, false)).getOrThrow()
-//   Kompact.Result.Int  →  IntResult
-//   Kompact.Result.Long →  LongResult
-//   Kompact.Result.Boolean → BooleanResult
-//   … etc. (7 typealiases total)
-```
-
-### KompactDecodeError — the 5 subtypes
+### KompactDecodeError — the 4 cases
 
 ```kotlin
-KompactDecodeError.BoundsError              // object — buffer too short
-KompactDecodeError.BadLengthPrefix          // object — prefix overruns buffer or invalid width
-KompactDecodeError.TruncatedNested          // object — nested region truncated
-KompactDecodeError.InvalidUtf8              // object — framed string payload is malformed UTF-8
-KompactDecodeError.UnknownEnumCode(rawCode) // data class — unknown enum value, carries rawCode: Int
+KompactDecodeError.BoundsError      // data object — buffer too short
+KompactDecodeError.BadLengthPrefix  // data object — prefix overruns buffer or invalid width
+KompactDecodeError.TruncatedNested  // data object — nested region truncated
+KompactDecodeError.InvalidUtf8      // data object — framed string payload is malformed UTF-8
 ```
 
 Checked scalar accessors return errors as result values. Direct `KompactFrame`
 read methods throw `KompactDecodeException` on malformed input; wrap them in
 the block overload of `KompactFrame.decode` to receive a typed result.
-`getOrThrow()` / `readNestedOrThrow()` / `readOrThrow` also throw only on failure.
+`getOrThrow()` / `NestedRegionResult.startBit` / `readOrThrow` also throw only on failure.
 
 ## Defining a model
 
@@ -368,10 +357,10 @@ framed views, and lazy repeated fields. See
 7. **Prefix widths must be 8, 16, or 32.** `writeString(countWidth = 4, …)`
    compiles but throws at runtime (`countWidth must be 8, 16, or 32`).
 
-8. **Float NaN canonicalization.** `FloatResult` canonicalizes wire NaN
-   to quiet-NaN on success, so a NaN cannot masquerade as a failure.
-   But `readBits` (raw) does not — use the checked accessors if you
-   need NaN safety.
+8. **Double NaN canonicalization.** `DoubleResult` canonicalizes every
+   successful NaN to the quiet NaN with payload 0, because NaN payloads
+   1..4 encode failures. `FloatResult` preserves raw bits. Read
+   `readBitsLong(raw, offset, 64)` when a Double NaN payload matters.
 
 9. **`build()` returns a snapshot.** Repeated calls return the writer's
    current contents without consuming them.

@@ -5,13 +5,7 @@
 [common]\
 @[JvmInline](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-inline/index.html)
 
-value class [DoubleResult](index.md)(val packed: [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html))
-
-## Constructors
-
-| | |
-|---|---|
-| [DoubleResult](-double-result.md) | [common]<br>constructor(packed: [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)) |
+value class [DoubleResult](index.md)
 
 ## Types
 
@@ -26,7 +20,6 @@ value class [DoubleResult](index.md)(val packed: [Long](https://kotlinlang.org/a
 | [error](error.md) | [common]<br>val [error](error.md): [KompactDecodeError](../-kompact-decode-error/index.md)? |
 | [isFailure](is-failure.md) | [common]<br>val [isFailure](is-failure.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) |
 | [isSuccess](is-success.md) | [common]<br>val [isSuccess](is-success.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) |
-| [packed](packed.md) | [common]<br>val [packed](packed.md): [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html) |
 
 ## Functions
 

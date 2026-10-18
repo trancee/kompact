@@ -22,7 +22,7 @@ helpers add a version tag to the wire format. Consequently:
   can distinguish an unsupported schema version.
 - `writeLengthPrefix` / `readLengthPrefix` write and read only the per-field
   payload byte-count; no byte in the frame encodes a schema/frame version.
-- `VehicleTelemetry` (the reference generated view) has no version field and no
+- `VehicleTelemetry` (the reference fixed-layout view, now a test fixture per [ADR-0010](0010-minimal-checked-result-surface.md)) has no version field and no
   `isVersionField` handling in its accessors.
 
 Two concrete reasons to **defer** the versioning surface to v2 rather than ship

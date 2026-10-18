@@ -65,7 +65,6 @@ public class KompactWriter {
         value: Long,
     ) {
         val bitWidth = type.bitWidth
-        require(bitWidth in 1..64) { "writeScalar bitWidth must be 1..64, was $bitWidth" }
         if (bitWidth <= 31) {
             writeBits(bitWidth, value.toInt())
         } else {

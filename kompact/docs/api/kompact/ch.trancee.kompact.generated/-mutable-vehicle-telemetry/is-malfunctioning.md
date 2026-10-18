@@ -1,6 +1,0 @@
-//[kompact](../../../index.md)/[ch.trancee.kompact.generated](../index.md)/[MutableVehicleTelemetry](index.md)/[isMalfunctioning](is-malfunctioning.md)
-
-# isMalfunctioning
-
-[common]\
-var [isMalfunctioning](is-malfunctioning.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)

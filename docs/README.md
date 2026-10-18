@@ -39,6 +39,7 @@ releases:
 | Pre-1.0 versioning | [ADR-0007](adr/0007-pre-1-release-versioning.md) |
 | Sequential framed views | [ADR-0008](adr/0008-framed-generated-views.md) |
 | Common-only code generation | [ADR-0009](adr/0009-common-only-code-generation.md) |
+| Minimal checked-result surface | [ADR-0010](adr/0010-minimal-checked-result-surface.md) |
 
 ### Technical research
 

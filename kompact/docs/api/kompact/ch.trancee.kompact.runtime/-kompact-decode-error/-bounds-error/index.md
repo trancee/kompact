@@ -3,4 +3,6 @@
 # BoundsError
 
 [common]\
-object [BoundsError](index.md) : [KompactDecodeError](../index.md)
+data object [BoundsError](index.md) : [KompactDecodeError](../index.md)
+
+A read would extend past the end of the input or region.

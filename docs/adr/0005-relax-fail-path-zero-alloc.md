@@ -2,7 +2,7 @@
 
 - **Status:** Accepted for the `LongResult` representation; allocation behavior is not measured.
 - **Tags:** api, perf, bc-break
-- **Superseded by:** none
+- **Superseded by:** [ADR-0010](0010-minimal-checked-result-surface.md) for the opt-in `decodeFull` diagnostics tier only; the `LongResult` decision stands
 - **Reconsiders:** [ticket 08 — runtime error model](../../.scratch/kompact-spec/issues/08-runtime-error-model.md) (the original representation intent was packed results on both success and failure, with byte offsets kept off the basic result types)
 
 ## Context

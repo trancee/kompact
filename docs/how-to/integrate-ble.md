@@ -7,17 +7,19 @@ the boundary between that layer and Kompact.
 
 ## Encode bytes to send
 
-Use a generated model or `KompactWriter` to build the payload. The bundled
-`VehicleTelemetry` model is a small fixed-layout example:
+Use a generated model or `KompactWriter` to build the payload. This writer
+produces the same 2-byte layout the decoding example below reads (4-bit
+battery status, 10-bit speed, 1-bit malfunction flag):
 
 ```kotlin
-import ch.trancee.kompact.generated.VehicleTelemetry
+import ch.trancee.kompact.runtime.KompactWriter
+import ch.trancee.kompact.runtime.ScalarType
 
-val outgoingBytes = VehicleTelemetry.create(
-    batteryStatus = 5,
-    speed = 10,
-    isMalfunctioning = false,
-).raw
+val outgoingBytes = KompactWriter().apply {
+    writeScalar(ScalarType.of(4, signed = false), 5L)
+    writeScalar(ScalarType.of(10, signed = false), 10L)
+    writeBool(false)
+}.build()
 ```
 
 Pass `outgoingBytes` to the characteristic-write API used by your BLE client.
@@ -62,7 +64,7 @@ see [Handle malformed input](handle-decode-errors.md).
 
 ## Keep buffer ownership clear
 
-`VehicleTelemetry(raw)` and generated framed views retain the supplied array
+Generated fixed-layout and framed views retain the supplied array
 rather than making an owned copy. A later mutation through another reference
 changes what the view reads. Borrowed blob and nested slices have the same
 ownership rule.

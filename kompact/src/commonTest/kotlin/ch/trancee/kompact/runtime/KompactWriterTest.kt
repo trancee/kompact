@@ -102,10 +102,9 @@ class KompactWriterTest {
         // 2-byte LE prefix (length=2) + 2 payload bytes.
         assertEquals(4, buf.size)
         assertEquals(2, KompactFraming.readLengthPrefix(buf, 0, 16))
-        val region = KompactFraming.nestedRegionOrNull(buf, 0, 16)!!
-        val (start, bitLen) = region
-        assertEquals(16, start)
-        assertEquals(16, bitLen)
+        val region = KompactFraming.readNested(buf, 0, 16)
+        assertEquals(16, region.startBit)
+        assertEquals(16, region.bitLength)
     }
 
     @Test
@@ -143,5 +142,16 @@ class KompactWriterTest {
 
         assertContentEquals(byteArrayOf(0x12), first)
         assertContentEquals(byteArrayOf(0x12, 0x34), second)
+    }
+
+    @Test
+    fun writeNestedAndWriteRepeatedUseDocumentedDefaultPrefixWidths() {
+        val w = KompactWriter()
+
+        w.writeNested { writeBits(8, 0xAB) }
+        w.writeRepeated(count = 1) { writeBits(8, 0xCD) }
+
+        // 16-bit nested length (1), payload, 8-bit repeat count (1), element.
+        assertContentEquals(byteArrayOf(0x01, 0x00, 0xAB.toByte(), 0x01, 0xCD.toByte()), w.build())
     }
 }

@@ -88,10 +88,9 @@ lost its boundary.
 | `BadLengthPrefix` | A prefix has an unsupported width or declares more bytes than remain. |
 | `TruncatedNested` | A repeated or nested region ends before its declared contents. |
 | `InvalidUtf8` | A framed string payload is not valid UTF-8. |
-| `UnknownEnumCode(rawCode)` | Application code maps a scalar to an enum and rejects an unknown code. |
 
-`UnknownEnumCode` is not an automatic enum decoder: read the scalar, map its
-wire value to your enum, and decide how your protocol handles unknown values.
+Kompact has no enum field type: read the scalar, map its wire value to your
+enum, and decide how your protocol handles unknown values.
 
 ## Lazy repeated values
 

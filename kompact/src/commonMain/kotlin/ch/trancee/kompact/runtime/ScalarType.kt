@@ -2,9 +2,14 @@ package ch.trancee.kompact.runtime
 
 import kotlin.jvm.JvmInline
 
+/**
+ * Width and signedness of a scalar field, packed into one `Int`.
+ *
+ * Use [of] or the predefined constants. [bitWidth] is 1..64.
+ */
 @JvmInline
-public value class ScalarType(
-    public val packed: Int,
+public value class ScalarType private constructor(
+    private val packed: Int,
 ) {
     public val bitWidth: Int get() = packed ushr 1
     public val signed: Boolean get() = (packed and 1) != 0
@@ -13,7 +18,10 @@ public value class ScalarType(
         public fun of(
             bitWidth: Int,
             signed: Boolean,
-        ): ScalarType = ScalarType((bitWidth shl 1) or (if (signed) 1 else 0))
+        ): ScalarType {
+            require(bitWidth in 1..64) { "ScalarType bitWidth must be 1..64, was $bitWidth" }
+            return ScalarType((bitWidth shl 1) or (if (signed) 1 else 0))
+        }
 
         public val INT_8: ScalarType = of(8, signed = true)
         public val INT_16: ScalarType = of(16, signed = true)

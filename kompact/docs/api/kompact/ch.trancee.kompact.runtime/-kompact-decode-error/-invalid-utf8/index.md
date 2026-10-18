@@ -3,4 +3,6 @@
 # InvalidUtf8
 
 [common]\
-object [InvalidUtf8](index.md) : [KompactDecodeError](../index.md)
+data object [InvalidUtf8](index.md) : [KompactDecodeError](../index.md)
+
+A string field contains malformed UTF-8.

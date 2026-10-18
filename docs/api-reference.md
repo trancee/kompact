@@ -15,8 +15,6 @@ from the runtime source; do not edit the generated pages by hand.
 | Use caller-owned checked codec state | [`KompactCursor`, `KompactByteRange`, and `KompactRepeatWorkspace`](../kompact/docs/api/kompact/ch.trancee.kompact.runtime/index.md) |
 | Handle a malformed value | [`KompactDecodeError` and result types](../kompact/docs/api/kompact/ch.trancee.kompact.runtime/index.md) |
 | Declare a generated model | [`@KompactModel`, `@KompactField`, and `@KompactPreview`](../kompact/docs/api/kompact/ch.trancee.kompact.annotations/index.md) |
-| See the bundled telemetry model | [`VehicleTelemetry`](../kompact/docs/api/kompact/ch.trancee.kompact.generated/index.md) |
-| Use the `Kompact.Result` aliases | [`ch.trancee.kompact`](../kompact/docs/api/kompact/ch.trancee.kompact/index.md) |
 
 ## Contracts that affect how you use the API
 
