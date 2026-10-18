@@ -14,6 +14,10 @@ compatibility boundary over an unbounded promise.
 
 ## Answer
 
+> Amended by [ADR-0012](../../../docs/adr/0012-kotlin-minor-line-compatibility.md):
+> other KGP patch releases of the tested minor line now proceed with a warning;
+> different minor lines still fail before generation.
+
 Support only the exact Kotlin Gradle Plugin/KSP version pair exercised by the
 repository's consumer integration tests. A later version pair is unsupported
 until it is added to and passes that test matrix.

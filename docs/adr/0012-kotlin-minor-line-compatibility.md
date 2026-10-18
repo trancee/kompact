@@ -2,6 +2,8 @@
 
 - **Status:** Accepted
 - **Tags:** build, compatibility
+- **Supersedes:** the exact-pair contract in
+  [release-audit issue 16](../../.scratch/kompact-initial-release-audit/issues/16-gradle-plugin-compatibility-contract.md)
 
 ## Context
 
