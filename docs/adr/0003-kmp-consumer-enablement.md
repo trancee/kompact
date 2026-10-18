@@ -118,7 +118,8 @@ public ABI can change freely without a MAJOR bump.
 - KSP = 2.3.12 (Kotlin docs pair KSP 2.3.x with Kotlin 2.4.x; `ksp = "2.4.20"`
   will NOT resolve).
 - kompact JVM target = JVM_21 (ABI validation needs ASM to parse v67 class files
-  on JDK 25 hosts).
+  on JDK 25 hosts). *Later lowered to JVM_17 so JDK 17 consumers can load the
+  runtime; ABI validation parses JVM 17 class files equally.*
 - **kompact-ksp JVM target = JVM_17** (downgraded from JVM_21). The KSP processor
   loads into the consumer's Kotlin compile daemon; JVM 21 bytecode excludes JDK 17
   consumers.

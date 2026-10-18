@@ -66,9 +66,8 @@ if (mutationJvmOnly) {
 }
 
 kotlin {
-    // Pin JVM target to 21 LTS so the built-in ABI validation (ASM) can parse the
-    // emitted class files on hosts running JDK 25 (without an explicit target,
-    // Kotlin 2.4.x emits v67 for JVM and v68 for Android).
+    // Pin the published JVM bytecode to 17 so JDK 17 consumers can load the runtime and the
+    // built-in ABI validation (ASM) can parse it on newer hosts.
     android {
         namespace = "ch.trancee.kompact"
         compileSdk = 36
@@ -78,7 +77,7 @@ kotlin {
     }
     jvm {
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
     if (!mutationJvmOnly) {
@@ -140,16 +139,6 @@ if (mutationJvmOnly) {
         implementation(files(tasks.named<JavaCompile>("compileJvmMainJava").map { it.destinationDirectory }))
     }
 }
-
-// --- SKIE (iOS/Swift interop improvements) ---
-// SKIE (co.touchlab.skie) provides KMP-to-Swift interop via a Gradle plugin
-// extension. SKIE 0.10.14 (latest) supports Kotlin up to 2.4.20; the project
-// runs Kotlin 2.4.20, which is within SKIE's supported range. SKIE is declared
-// as `apply false` in the root build.gradle.kts and is NOT yet applied to
-// this module. When enabled, add `alias(libs.plugins.skie)` to this module's
-// plugins block and enable the desired features:
-//   - Sealed class → Swift enum conversion (e.g. KompactDecodeError)
-//   - Value class Swift-friendliness (e.g. BooleanResult, ByteResult, etc.)
 
 // --- Kover (100 % line + branch coverage on the JVM target) ---
 // Kover measures coverage from the jvmTest execution via its JVM TI agent

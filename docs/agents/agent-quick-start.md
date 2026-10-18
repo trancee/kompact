@@ -62,9 +62,9 @@ kompact-gradle-plugin/           common-source KMP code-generation plugin
 └── id: ch.trancee.kompact.codegen
 ```
 
-> **Key constraint:** `kompact-ksp` is a JVM-only module targeting
-> JVM 17 (not 21). The consumer's Kotlin compile daemon loads the
-> processor; JVM 21 bytecode would exclude JDK 17 consumers.
+> **Key constraint:** the published JVM artifacts (`kompact-jvm`,
+> `kompact-ksp`, and the Gradle plugin) target JVM 17 bytecode, so JDK 17
+> consumers and compile daemons can load them.
 
 ## Setup (consumer)
 

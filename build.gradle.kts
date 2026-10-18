@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.agp) apply false
     alias(libs.plugins.dokka) apply false
     alias(libs.plugins.spotless)
-    alias(libs.plugins.skie) apply false
     alias(libs.plugins.kotlinPowerAssert) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.benchmark) apply false
