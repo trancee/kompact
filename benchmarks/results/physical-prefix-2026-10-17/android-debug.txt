@@ -1,0 +1,36 @@
+Runtime base: 6115b87 plus retained aligned-count-prefix source change
+Runtime source SHA-256: d618f182f77ddedd1753d0b60be0f42d5a44a485ae86612775dcc9f1b76da4f2
+Platform: Android Native arm64; configuration: debug
+Device: {'ro.product.model': 'A063', 'ro.build.version.release': '15', 'ro.build.version.sdk': '35', 'ro.build.id': 'AQ3A.240929.001'}
+Binary SHA-256: 3d6e9674fc80acb36790c3e9059ba6a1769484569556789ff7b19001a9789f5d
+Command: scripts/test-android-native-device.sh kompact/build/bin/androidNativeArm64/debugTest/test.kexe
+
+Run 1: UTC=2026-10-17T23:10:48.576813+00:00; exit=0; passed=404; checksum verified; device cleanup confirmed
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.fixedIndexPreservesExactCheckpointsAndUnusedStorageAcrossWidthsAndBlockBoundaries (13160 ms)
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.fixedCountCapacityDiagnosticsPreserveEveryPrefixByte (2 ms)
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.oneBitTruncationPreservesPriorWorkspaceBindingAndEveryCheckpoint (0 ms)
+Native speed-read allocation samples: baseline=[0, 0, 0], reads=[0, 0, 0], control=[4098, 4098, 4098]
+Native speed-write allocation samples: baseline=[0, 0, 0], writes=[0, 0, 0], control=[4098, 4098, 4098]
+Native cursor byte-read allocation samples: baseline=[0, 0, 0], reads=[0, 0, 0], control=[4098, 4098, 4098]
+Native unsigned validation allocation samples: baseline=[0, 0, 0], validation=[0, 0, 0], control=[4098, 4098, 4098]
+Native cursor byte-write allocation samples: baseline=[0, 0, 0], writes=[0, 0, 0], control=[4098, 4098, 4098]
+
+Run 2: UTC=2026-10-17T23:11:28.920888+00:00; exit=0; passed=404; checksum verified; device cleanup confirmed
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.fixedIndexPreservesExactCheckpointsAndUnusedStorageAcrossWidthsAndBlockBoundaries (12820 ms)
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.fixedCountCapacityDiagnosticsPreserveEveryPrefixByte (2 ms)
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.oneBitTruncationPreservesPriorWorkspaceBindingAndEveryCheckpoint (0 ms)
+Native speed-read allocation samples: baseline=[0, 0, 0], reads=[0, 0, 0], control=[4098, 4098, 4098]
+Native speed-write allocation samples: baseline=[0, 0, 0], writes=[0, 0, 0], control=[4098, 4098, 4098]
+Native cursor byte-read allocation samples: baseline=[0, 0, 0], reads=[0, 0, 0], control=[4098, 4098, 4098]
+Native unsigned validation allocation samples: baseline=[0, 0, 0], validation=[0, 0, 0], control=[4098, 4098, 4098]
+Native cursor byte-write allocation samples: baseline=[0, 0, 0], writes=[0, 0, 0], control=[4098, 4098, 4098]
+
+Run 3: UTC=2026-10-17T23:12:08.837825+00:00; exit=0; passed=404; checksum verified; device cleanup confirmed
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.fixedIndexPreservesExactCheckpointsAndUnusedStorageAcrossWidthsAndBlockBoundaries (12583 ms)
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.fixedCountCapacityDiagnosticsPreserveEveryPrefixByte (3 ms)
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.oneBitTruncationPreservesPriorWorkspaceBindingAndEveryCheckpoint (0 ms)
+Native speed-read allocation samples: baseline=[0, 0, 0], reads=[0, 0, 0], control=[4098, 4098, 4098]
+Native speed-write allocation samples: baseline=[0, 0, 0], writes=[0, 0, 0], control=[4098, 4098, 4098]
+Native cursor byte-read allocation samples: baseline=[0, 0, 0], reads=[0, 0, 0], control=[4098, 4098, 4098]
+Native unsigned validation allocation samples: baseline=[0, 0, 0], validation=[0, 0, 0], control=[4098, 4098, 4098]
+Native cursor byte-write allocation samples: baseline=[0, 0, 0], writes=[0, 0, 0], control=[4098, 4098, 4098]

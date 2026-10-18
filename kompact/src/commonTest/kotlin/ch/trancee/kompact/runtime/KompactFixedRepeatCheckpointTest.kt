@@ -9,9 +9,9 @@ class KompactFixedRepeatCheckpointTest {
     @Test
     fun fixedIndexPreservesExactCheckpointsAndUnusedStorageAcrossWidthsAndBlockBoundaries() {
         for (prefixWidth in listOf(8, 16, 32)) {
-            for (elementWidth in listOf(1, 13, 64)) {
+            for (elementWidth in listOf(1, 13, 16, 64)) {
                 for (startBit in listOf(0, 40)) {
-                    for (count in listOf(0, 1, 63, 64, 65, 127, 128, 129, 4096, 65536)) {
+                    for (count in listOf(0, 1, 63, 64, 65, 127, 128, 129, 255, 256, 257, 4096, 65535, 65536)) {
                         if (count.toLong() >= 1L shl prefixWidth) continue
                         val repeatStart = startBit + prefixWidth
                         val repeatEnd = repeatStart + count * elementWidth
@@ -47,6 +47,30 @@ class KompactFixedRepeatCheckpointTest {
                     }
                 }
             }
+        }
+    }
+
+    @Test
+    fun fixedCountCapacityDiagnosticsPreserveEveryPrefixByte() {
+        val cases =
+            listOf(
+                byteArrayOf(-1, 0, 0, 0) to 4,
+                byteArrayOf(0, -1, 0, 0) to 1020,
+                byteArrayOf(0, 0, -1, 0) to 261120,
+                byteArrayOf(0, 0, 0, 1) to 262144,
+                byteArrayOf(-1, -1, -1, 0x7F) to 33554432,
+            )
+        for ((bytes, expectedCapacity) in cases) {
+            val cursor = KompactCursor(bytes)
+            val workspace = KompactRepeatWorkspace(IntArray(0))
+
+            val status = cursor.readFixedRepeat(32, 1, workspace)
+
+            assertEquals(KompactCursor.STATUS_WORKSPACE_TOO_SMALL, status, "capacity=$expectedCapacity")
+            assertEquals(expectedCapacity, cursor.errorDetail)
+            assertEquals(0, cursor.errorBitOffset)
+            assertEquals(0, cursor.position)
+            assertEquals(0L, cursor.valueBits)
         }
     }
 

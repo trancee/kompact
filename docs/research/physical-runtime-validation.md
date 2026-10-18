@@ -1,4 +1,4 @@
-# Physical runtime validation after PR 99
+# Physical runtime validation records
 
 ## Scope and result
 
@@ -58,9 +58,35 @@ This is a GC sweep-statistics signal for those call shapes, not an exact
 per-operation allocation counter. The physical probes do not measure repeat
 indexing or complete framed-holder decoding allocations.
 
-## Current iOS blocker
+## Aligned-prefix follow-up
 
-Fresh debug and release `iosArm64` binaries linked successfully with Kotlin
+The subsequent [prefix-reader correction](aligned-count-prefix-benchmark.md)
+on base `6115b87` was validated with freshly linked local binaries, not the
+older CI artifacts above. The retained logs identify the exact uncommitted
+runtime source and binary SHA-256 values:
+
+| Configuration | Physical executions | Tests per execution | Evidence |
+| --- | ---: | ---: | --- |
+| Debug | 3 | 404 passed | [redacted log](../../benchmarks/results/physical-prefix-2026-10-17/android-debug.txt) |
+| Release | 3 | 404 passed | [redacted log](../../benchmarks/results/physical-prefix-2026-10-17/android-release.txt) |
+
+Both configurations linked locally using JDK `21.0.12.1`, Kotlin `2.4.21`,
+and the existing `:kompact:androidNativeArm64TestBinaries` task, forced with
+`--rerun-tasks --no-build-cache`. Each binary then ran three times through
+`scripts/test-android-native-device.sh` on the same `A063` Android 15/API 35
+test device. Integrity verification and temporary-file cleanup succeeded
+in all six executions.
+
+All three checkpoint regressions passed, including the new per-byte unsigned
+count/capacity diagnostic test. The five scalar/cursor allocation probes
+again reported zero swept objects in every primitive/read/write sample
+and `[4098, 4098, 4098]` in every intentional-allocation control.
+These probes still do not measure complete holder/repeat-index allocations
+or establish device timing guarantees.
+
+## Deferred iOS validation
+
+After PR 99, fresh debug and release `iosArm64` binaries linked successfully with Kotlin
 `2.4.21` and Xcode `27.0` (`27A266a`):
 
 ```bash
@@ -68,7 +94,7 @@ Fresh debug and release `iosArm64` binaries linked successfully with Kotlin
   --no-daemon --rerun-tasks --no-build-cache --console=plain
 ```
 
-Their SHA-256 values are:
+Those historical binaries have these SHA-256 values:
 
 | Binary | SHA-256 |
 | --- | --- |
@@ -82,6 +108,11 @@ an unexpired development profile for the intended Kompact test host,
 covering the connected device, and a matching usable local signing identity.
 Then execute the existing runner with that profile for both configurations;
 see the [device procedure](../ci.md#platform-behavior-and-allocation-evidence).
+
+The aligned-prefix follow-up also links fresh iOS Arm64 debug/release binaries
+and passes 404 tests on iOS Simulator. Physical iOS remains explicitly
+deferred at the user's direction; neither result resolves the signing
+prerequisite or substitutes for physical execution.
 
 Older physical-iOS results in the
 [allocation methodology](allocation-boxing-measurement.md) are historical

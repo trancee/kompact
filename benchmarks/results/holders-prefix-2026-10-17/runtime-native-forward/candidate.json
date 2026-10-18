@@ -1,0 +1,410 @@
+[
+  {
+    "benchmark": "ch.trancee.kompact.benchmark.RepeatIndexBenchmark.fixedIndex",
+    "mode": "avgt",
+    "compilationMode": "Release",
+    "configurationName": "main",
+    "warmupIterations": 5,
+    "warmupTime": "300 ms",
+    "measurementIterations": 5,
+    "measurementTime": "300 ms",
+    "params": {
+      "count": "65"
+    },
+    "advanced": {
+      "jvmForks": "3"
+    },
+    "primaryMetric": {
+      "score": 17.898902637185767,
+      "scoreError": 0.064427647632474,
+      "scoreConfidence": [
+        17.834474989553293,
+        17.96333028481824
+      ],
+      "scorePercentiles": {
+        "0.00": 17.784102943817178,
+        "25.00": 17.82911744508671,
+        "50.00": 17.921997221171193,
+        "75.00": 17.957140537292112,
+        "90.00": 17.972970215025203,
+        "99.00": 17.972970215025203,
+        "99.90": 17.972970215025203,
+        "99.99": 17.972970215025203,
+        "100.00": 17.972970215025203
+      },
+      "scoreUnit": "ns/op",
+      "rawData": [
+        [
+          17.921997221171193,
+          17.941310859559024,
+          17.784102943817178,
+          17.87413194635624,
+          17.972970215025203
+        ]
+      ]
+    },
+    "secondaryMetrics": {}
+  },
+  {
+    "benchmark": "ch.trancee.kompact.benchmark.RepeatIndexBenchmark.fixedIndex",
+    "mode": "avgt",
+    "compilationMode": "Release",
+    "configurationName": "main",
+    "warmupIterations": 5,
+    "warmupTime": "300 ms",
+    "measurementIterations": 5,
+    "measurementTime": "300 ms",
+    "params": {
+      "count": "4096"
+    },
+    "advanced": {
+      "jvmForks": "3"
+    },
+    "primaryMetric": {
+      "score": 48.325425117551376,
+      "scoreError": 0.2927447245846901,
+      "scoreConfidence": [
+        48.03268039296668,
+        48.61816984213607
+      ],
+      "scorePercentiles": {
+        "0.00": 47.91934203255792,
+        "25.00": 48.040401902894814,
+        "50.00": 48.3583351665772,
+        "75.00": 48.593993307695015,
+        "90.00": 48.827485552272826,
+        "99.00": 48.827485552272826,
+        "99.90": 48.827485552272826,
+        "99.99": 48.827485552272826,
+        "100.00": 48.827485552272826
+      },
+      "scoreUnit": "ns/op",
+      "rawData": [
+        [
+          48.36050106311721,
+          48.161461773231714,
+          47.91934203255792,
+          48.827485552272826,
+          48.3583351665772
+        ]
+      ]
+    },
+    "secondaryMetrics": {}
+  },
+  {
+    "benchmark": "ch.trancee.kompact.benchmark.RepeatIndexBenchmark.fixedIndex",
+    "mode": "avgt",
+    "compilationMode": "Release",
+    "configurationName": "main",
+    "warmupIterations": 5,
+    "warmupTime": "300 ms",
+    "measurementIterations": 5,
+    "measurementTime": "300 ms",
+    "params": {
+      "count": "65536"
+    },
+    "advanced": {
+      "jvmForks": "3"
+    },
+    "primaryMetric": {
+      "score": 641.0211539838514,
+      "scoreError": 2.3550994349434995,
+      "scoreConfidence": [
+        638.6660545489078,
+        643.3762534187949
+      ],
+      "scorePercentiles": {
+        "0.00": 638.2920529355027,
+        "25.00": 639.3174382215558,
+        "50.00": 640.3534417764225,
+        "75.00": 643.0587258498616,
+        "90.00": 645.5304248571103,
+        "99.00": 645.5304248571103,
+        "99.90": 645.5304248571103,
+        "99.99": 645.5304248571103,
+        "100.00": 645.5304248571103
+      },
+      "scoreUnit": "ns/op",
+      "rawData": [
+        [
+          645.5304248571103,
+          640.5870268426129,
+          640.3534417764225,
+          638.2920529355027,
+          640.3428235076088
+        ]
+      ]
+    },
+    "secondaryMetrics": {}
+  },
+  {
+    "benchmark": "ch.trancee.kompact.benchmark.RepeatIndexBenchmark.variableIndex",
+    "mode": "avgt",
+    "compilationMode": "Release",
+    "configurationName": "main",
+    "warmupIterations": 5,
+    "warmupTime": "300 ms",
+    "measurementIterations": 5,
+    "measurementTime": "300 ms",
+    "params": {
+      "count": "65"
+    },
+    "advanced": {
+      "jvmForks": "3"
+    },
+    "primaryMetric": {
+      "score": 549.6025792760707,
+      "scoreError": 3.990485494536865,
+      "scoreConfidence": [
+        545.6120937815339,
+        553.5930647706076
+      ],
+      "scorePercentiles": {
+        "0.00": 545.9331951113902,
+        "25.00": 546.4115031733834,
+        "50.00": 547.5339475952893,
+        "75.00": 553.8279712191488,
+        "90.00": 557.1515402709566,
+        "99.00": 557.1515402709566,
+        "99.90": 557.1515402709566,
+        "99.99": 557.1515402709566,
+        "100.00": 557.1515402709566
+      },
+      "scoreUnit": "ns/op",
+      "rawData": [
+        [
+          557.1515402709566,
+          547.5339475952893,
+          545.9331951113902,
+          546.8898112353764,
+          550.5044021673409
+        ]
+      ]
+    },
+    "secondaryMetrics": {}
+  },
+  {
+    "benchmark": "ch.trancee.kompact.benchmark.RepeatIndexBenchmark.variableIndex",
+    "mode": "avgt",
+    "compilationMode": "Release",
+    "configurationName": "main",
+    "warmupIterations": 5,
+    "warmupTime": "300 ms",
+    "measurementIterations": 5,
+    "measurementTime": "300 ms",
+    "params": {
+      "count": "4096"
+    },
+    "advanced": {
+      "jvmForks": "3"
+    },
+    "primaryMetric": {
+      "score": 35589.16420178042,
+      "scoreError": 72.64238049586778,
+      "scoreConfidence": [
+        35516.52182128455,
+        35661.80658227629
+      ],
+      "scorePercentiles": {
+        "0.00": 35487.04261127597,
+        "25.00": 35520.76166172107,
+        "50.00": 35584.48071216617,
+        "75.00": 35659.908486646884,
+        "90.00": 35713.803204747775,
+        "99.00": 35713.803204747775,
+        "99.90": 35713.803204747775,
+        "99.99": 35713.803204747775,
+        "100.00": 35713.803204747775
+      },
+      "scoreUnit": "ns/op",
+      "rawData": [
+        [
+          35713.803204747775,
+          35554.48071216617,
+          35487.04261127597,
+          35584.48071216617,
+          35606.01376854599
+        ]
+      ]
+    },
+    "secondaryMetrics": {}
+  },
+  {
+    "benchmark": "ch.trancee.kompact.benchmark.RepeatIndexBenchmark.variableIndex",
+    "mode": "avgt",
+    "compilationMode": "Release",
+    "configurationName": "main",
+    "warmupIterations": 5,
+    "warmupTime": "300 ms",
+    "measurementIterations": 5,
+    "measurementTime": "300 ms",
+    "params": {
+      "count": "65536"
+    },
+    "advanced": {
+      "jvmForks": "3"
+    },
+    "primaryMetric": {
+      "score": 568520.7863636364,
+      "scoreError": 1781.1360108444228,
+      "scoreConfidence": [
+        566739.650352792,
+        570301.9223744808
+      ],
+      "scorePercentiles": {
+        "0.00": 566997.9488636364,
+        "25.00": 567007.3399621212,
+        "50.00": 567829.9393939395,
+        "75.00": 570379.65625,
+        "90.00": 571887.4678030303,
+        "99.00": 571887.4678030303,
+        "99.90": 571887.4678030303,
+        "99.99": 571887.4678030303,
+        "100.00": 571887.4678030303
+      },
+      "scoreUnit": "ns/op",
+      "rawData": [
+        [
+          567829.9393939395,
+          568871.8446969697,
+          567016.7310606061,
+          566997.9488636364,
+          571887.4678030303
+        ]
+      ]
+    },
+    "secondaryMetrics": {}
+  },
+  {
+    "benchmark": "ch.trancee.kompact.benchmark.ScalarBenchmark.allocationControl",
+    "mode": "avgt",
+    "compilationMode": "Release",
+    "configurationName": "main",
+    "warmupIterations": 5,
+    "warmupTime": "300 ms",
+    "measurementIterations": 5,
+    "measurementTime": "300 ms",
+    "params": {},
+    "advanced": {
+      "jvmForks": "3"
+    },
+    "primaryMetric": {
+      "score": 10.806808301382558,
+      "scoreError": 0.32532069935483243,
+      "scoreConfidence": [
+        10.481487602027725,
+        11.132129000737391
+      ],
+      "scorePercentiles": {
+        "0.00": 10.56433055875815,
+        "25.00": 10.587655318728132,
+        "50.00": 10.684548283623602,
+        "75.00": 11.087091292916465,
+        "90.00": 11.462443191794813,
+        "99.00": 11.462443191794813,
+        "99.90": 11.462443191794813,
+        "99.99": 11.462443191794813,
+        "100.00": 11.462443191794813
+      },
+      "scoreUnit": "ns/op",
+      "rawData": [
+        [
+          10.610980078698114,
+          10.56433055875815,
+          11.462443191794813,
+          10.684548283623602,
+          10.711739394038116
+        ]
+      ]
+    },
+    "secondaryMetrics": {}
+  },
+  {
+    "benchmark": "ch.trancee.kompact.benchmark.ScalarBenchmark.read",
+    "mode": "avgt",
+    "compilationMode": "Release",
+    "configurationName": "main",
+    "warmupIterations": 5,
+    "warmupTime": "300 ms",
+    "measurementIterations": 5,
+    "measurementTime": "300 ms",
+    "params": {},
+    "advanced": {
+      "jvmForks": "3"
+    },
+    "primaryMetric": {
+      "score": 20.618592791408414,
+      "scoreError": 0.30764431442429097,
+      "scoreConfidence": [
+        20.310948476984123,
+        20.926237105832705
+      ],
+      "scorePercentiles": {
+        "0.00": 20.119492580237683,
+        "25.00": 20.280707144369913,
+        "50.00": 20.663976027563915,
+        "75.00": 20.93378682036917,
+        "90.00": 21.010172829639846,
+        "99.00": 21.010172829639846,
+        "99.90": 21.010172829639846,
+        "99.99": 21.010172829639846,
+        "100.00": 21.010172829639846
+      },
+      "scoreUnit": "ns/op",
+      "rawData": [
+        [
+          20.44192170850214,
+          20.119492580237683,
+          21.010172829639846,
+          20.857400811098493,
+          20.663976027563915
+        ]
+      ]
+    },
+    "secondaryMetrics": {}
+  },
+  {
+    "benchmark": "ch.trancee.kompact.benchmark.ScalarBenchmark.write",
+    "mode": "avgt",
+    "compilationMode": "Release",
+    "configurationName": "main",
+    "warmupIterations": 5,
+    "warmupTime": "300 ms",
+    "measurementIterations": 5,
+    "measurementTime": "300 ms",
+    "params": {},
+    "advanced": {
+      "jvmForks": "3"
+    },
+    "primaryMetric": {
+      "score": 25.482791057251692,
+      "scoreError": 0.46297648386852625,
+      "scoreConfidence": [
+        25.019814573383165,
+        25.94576754112022
+      ],
+      "scorePercentiles": {
+        "0.00": 24.90299886679375,
+        "25.00": 25.065701101159306,
+        "50.00": 25.311315047855665,
+        "75.00": 25.985619018042097,
+        "90.00": 26.285601342667693,
+        "99.00": 26.285601342667693,
+        "99.90": 26.285601342667693,
+        "99.99": 26.285601342667693,
+        "100.00": 26.285601342667693
+      },
+      "scoreUnit": "ns/op",
+      "rawData": [
+        [
+          25.6856366934165,
+          26.285601342667693,
+          25.311315047855665,
+          25.22840333552486,
+          24.90299886679375
+        ]
+      ]
+    },
+    "secondaryMetrics": {}
+  }
+]
