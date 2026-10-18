@@ -46,15 +46,8 @@ if (mutationJvmOnly) {
         adapterPackage.set("ch.trancee.kompact.runtime")
     }
     extensions.configure<MutflowExtension>("mutflow") {
-        targets.addAll(
-            listOf(
-                "ch.trancee.kompact.runtime.KompactRuntime",
-                "ch.trancee.kompact.runtime.KompactCursor",
-                "ch.trancee.kompact.runtime.KompactCursorByteRanges",
-                "ch.trancee.kompact.runtime.KompactCursorRepeats",
-                "ch.trancee.kompact.runtime.KompactByteRange",
-            ),
-        )
+        // Every runtime class and file facade, including top-level functions.
+        targets.add("ch.trancee.kompact.runtime.**")
         maxMutationRuns.set(Int.MAX_VALUE)
         // Bounds a mutant that escapes MutFlow's per-test budget; the whole suite runs in seconds.
         timeoutMs.set(10_000L)

@@ -147,6 +147,12 @@ public object KompactRuntime {
         }
     }
 
+    /** Largest byte count whose bit length still fits an `Int` bit offset. */
+    internal const val MAX_ADDRESSABLE_BYTES: Int = Int.MAX_VALUE / 8
+
+    /** True iff [byteCount] is non-negative and `byteCount * 8` fits an `Int` bit offset. */
+    internal fun isBitAddressable(byteCount: Long): Boolean = byteCount >= 0 && byteCount <= MAX_ADDRESSABLE_BYTES
+
     // --- Bounded (checked) read accessors ---
 
     private fun byteSpan(

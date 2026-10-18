@@ -5,4 +5,4 @@
 [common]\
 fun [writeScalar](write-scalar.md)(type: [ScalarType](../-scalar-type/index.md), value: [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html))
 
-Writes [value](write-scalar.md) under [type](write-scalar.md): [ScalarType.bitWidth](../-scalar-type/bit-width.md) low bits as a two's-complement magnitude (1..64), dispatched to [writeBits](write-bits.md) (<=31) / [writeBitsLong](write-bits-long.md) (32..64).
+Writes [value](write-scalar.md) under [type](write-scalar.md): [ScalarType.bitWidth](../-scalar-type/bit-width.md) low bits as a two's-complement magnitude (1..64).

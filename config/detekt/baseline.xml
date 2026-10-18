@@ -3,7 +3,6 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>ComplexCondition:FramedLayoutValidator.kt$FramedLayoutValidator$( field.type is KompactFieldType.Scalar || ( field.type is KompactFieldType.Repeated &amp;&amp; field.type.elementType is KompactFieldType.Scalar ) ) &amp;&amp; field.lengthPrefixWidth != 8</ID>
-    <ID>ComplexCondition:KompactFrame.kt$KompactFrame.Companion$start &lt; 0 || end &lt; start || end > raw.size || end > Int.MAX_VALUE / 8</ID>
     <ID>ComplexCondition:KompactUtf8Validator.kt$KompactUtf8Validator$index + 3 >= end || !isContinuation(bytes[index + 1]) || !isContinuation(bytes[index + 2]) || !isContinuation(bytes[index + 3])</ID>
     <ID>CyclomaticComplexMethod:FramedLayoutValidator.kt$FramedLayoutValidator$fun validate( fields: List&lt;KompactFieldInfo>, mutable: Boolean, ): List&lt;String></ID>
     <ID>CyclomaticComplexMethod:KompactCursorRepeats.kt$KompactCursorRepeats$fun skipVariableRepeat( cursor: KompactCursor, countPrefixWidth: Int, elementPrefixWidth: Int, workspaceCapacity: Int, ): KompactStatus</ID>

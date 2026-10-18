@@ -242,4 +242,48 @@ class KompactWriterEdgeCaseTest {
         assertEquals(0xAB, buf[0].toInt() and 0xFF)
         assertEquals(3, KompactFraming.readLengthPrefix(buf, 8, 8))
     }
+
+    @Test
+    fun bufferGrowsOnlyPastCapacityAndAtLeastDoubles() {
+        val writer = KompactWriter()
+
+        writer.writeBlob(8, ByteArray(15))
+        assertEquals(16, writer.capacity)
+
+        writer.writeBits(1, 1)
+        assertEquals(32, writer.capacity)
+
+        writer.writeBlob(32, ByteArray(60))
+        assertEquals(81, writer.capacity)
+    }
+
+    @Test
+    fun sliceLargerThanTheInitialBufferGrowsIt() {
+        val bytes = ByteArray(20) { it.toByte() }
+        val writer = KompactWriter()
+
+        writer.writeSlice(KompactByteSlice(bytes, 0, 20))
+
+        assertContentEquals(bytes, writer.build())
+    }
+
+    @Test
+    fun nestedPaddingOfOneBitRealignsTheFollowingField() {
+        val writer = KompactWriter()
+
+        writer.writeNested(8) { writeBits(7, 0x7F) }
+        writer.writeBits(8, 0xAB)
+
+        assertContentEquals(byteArrayOf(1, 0x7F, 0xAB.toByte()), writer.build())
+    }
+
+    @Test
+    fun emptyRegionFromAnOffsetWritesOnlyTheZeroPrefix() {
+        val writer = KompactWriter()
+
+        writer.writeNested(8, byteArrayOf(1, 2, 3), 2, 2)
+        writer.writeNested(8, byteArrayOf(1, 2, 3), 1, 3)
+
+        assertContentEquals(byteArrayOf(0, 2, 2, 3), writer.build())
+    }
 }

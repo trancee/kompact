@@ -324,4 +324,14 @@ class KompactResultTest {
         assertEquals(KompactDecodeError.TruncatedNested, trunc.error)
         assertEquals(KompactDecodeError.InvalidUtf8, utf8.error)
     }
+
+    @Test
+    fun longResultHashesItsSuccessValueOrItsError() {
+        assertEquals(0L.hashCode(), LongResult.success(0L).hashCode())
+        assertEquals(7L.hashCode(), LongResult.success(7L).hashCode())
+        assertEquals(
+            KompactDecodeError.BoundsError.hashCode(),
+            LongResult.failure(KompactDecodeError.BoundsError).hashCode(),
+        )
+    }
 }

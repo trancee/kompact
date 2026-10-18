@@ -106,9 +106,9 @@ public object KompactFraming {
         prefixBitWidth: Int,
     ): NestedRegionResult {
         val byteCount = readLengthPrefix(raw, bitOffset, prefixBitWidth)
-        // byteCount * 8 must fit in Int: a 32-bit prefix can claim up to
-        // Int.MAX_VALUE bytes, which would otherwise wrap to a negative length.
-        if (byteCount == INVALID_LENGTH_PREFIX || byteCount > Int.MAX_VALUE / 8) {
+        // Rejects INVALID_LENGTH_PREFIX and 32-bit counts whose bit length
+        // would wrap an Int bit offset.
+        if (!KompactRuntime.isBitAddressable(byteCount.toLong())) {
             return NestedRegionResult.failure(KompactDecodeError.BadLengthPrefix)
         }
         val regionStart = bitOffset + prefixBitWidth

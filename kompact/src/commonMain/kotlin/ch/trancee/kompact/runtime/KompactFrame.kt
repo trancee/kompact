@@ -162,7 +162,8 @@ public class KompactFrame private constructor(
      */
     public fun requireComplete() {
         val remaining = endBit - cursor
-        if (remaining > 7 || (remaining > 0 && KompactRuntime.readBitsLong(raw, cursor, remaining) != 0L)) {
+        // A zero-width read returns 0, so a fully consumed frame needs no special case.
+        if (remaining > 7 || KompactRuntime.readBitsLong(raw, cursor, remaining) != 0L) {
             throw KompactDecodeException(KompactDecodeError.TrailingData)
         }
     }
@@ -192,7 +193,7 @@ public class KompactFrame private constructor(
             start: Int = 0,
             end: Int = raw.size,
         ): KompactFrameResult<KompactFrame> =
-            if (start < 0 || end < start || end > raw.size || end > Int.MAX_VALUE / 8) {
+            if (start !in 0..end || end > raw.size || !KompactRuntime.isBitAddressable(end.toLong())) {
                 KompactFrameResult.Failure(KompactDecodeError.BoundsError)
             } else {
                 KompactFrameResult.Success(KompactFrame(raw, start, end))

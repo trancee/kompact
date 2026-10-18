@@ -15,20 +15,34 @@ Gradle tasks pass, and the evidence is JVM only.
 
 | Module | Wrapped tests | Discovered / evaluated | Killed | Survived | Timed out | Gaps | Score |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `:kompact` | 387 | 442 / 442 | 442 | 0 | 0 | 0 | 100% |
+| `:kompact` | 400 | 753 / 753 | 753 | 0 | 0 | 0 | 100% |
 | `:kompact-ksp` | 180 | 192 / 192 | 192 | 0 | 0 | 0 | 100% |
 
 "Wrapped tests" equals the number of `@Test` methods in the adapter sources.
 
 ### Mutations per production target
 
+The runtime targets the whole `ch.trancee.kompact.runtime.**` package. Files
+without mutable logic do not appear.
+
 | Target | Mutations |
 |---|---:|
-| `KompactRuntime.kt` | 70 |
-| `KompactCursor.kt` | 89 |
+| `KompactByteRange.kt` | 19 |
+| `KompactByteSlice.kt` | 1 |
+| `KompactCursor.kt` | 87 |
 | `KompactCursorByteRanges.kt` | 116 |
 | `KompactCursorRepeats.kt` | 148 |
-| `KompactByteRange.kt` | 19 |
+| `KompactFrame.kt` | 61 |
+| `KompactFraming.kt` | 26 |
+| `KompactRepeatWorkspace.kt` | 2 |
+| `KompactRepeatedView.kt` | 15 |
+| `KompactResult.kt` | 40 |
+| `KompactResultExtensions.kt` | 12 |
+| `KompactRuntime.kt` | 75 |
+| `KompactUtf8Validator.kt` | 73 |
+| `KompactWriter.kt` | 62 |
+| `NestedRegionResult.kt` | 14 |
+| `ScalarType.kt` | 2 |
 | `FramedClassGenerator.kt` | 8 |
 | `FramedHolderGenerator.kt` | 44 |
 | `FramedScalarHolderGenerator.kt` | 50 |
@@ -54,6 +68,10 @@ None of them was suppressed:
 | `length > Int.MAX_VALUE` checks in byte ranges and repeat lookup survived. | Prefix widths are 8, 16 or 32 bits, so `length * 8` never overflows a `Long`, and the end-bit check rejects every such length. Removed. |
 | `readScalar` `bitWidth <= 31` split survived. | Both branches decode the same value. `readScalar` now always uses `readBitsLong`, which is also faster in the JVM benchmark. |
 | `readScalarAsLong` `signed && bitWidth < 64` survived. | A shift of 0 leaves 64-bit values unchanged. The width test was removed. |
+| Widening the runtime to the whole package exposed 42 survivors in the writer, frame, framing, repeated view, `LongResult` and UTF-8 validator. | Equivalent code was removed: the `writeScalar` width split, the writer's duplicate `checkPrefix` (`KompactFraming.writeLengthPrefix` validates before writing), the redundant per-append capacity check, the frame's `remaining > 0` guard (a zero-width read returns 0) and the repeated view's `Int` clamp (the arithmetic is `Long`). `LongResult.hashCode` hashes the error or the value, with no arithmetic. |
+| Four `Int.MAX_VALUE / 8` guards in the cursor, frame and framing were unobservable without 256 MiB inputs. | One `KompactRuntime.isBitAddressable` helper replaces them, and a direct test pins both boundaries. |
+| Writer growth (`> buffer.size`, `* 2`, `/ 8`) and checkpoint sizing (`count / 64`) only changed allocation size. | Internal `capacity` and `checkpointCount` seams let tests pin the growth and sparse-index policies. |
+| One-bit nested padding, empty regions at an offset, truncated prefixes after consumed bits, the largest 32-bit count, one-byte element overruns, trailing-bit limits, unaligned element bytes and UTF-8 sequences cut at the region end survived. | Test gaps. A behavior test was added for each. |
 | `ValueHolderGenerator` `trailingBits > 0` survived. | Test gap. The `>=` mutant emits `skipBits(0)` and `writeZeros(0)`. A dense-holder test now rejects them. |
 
 ## Limitations

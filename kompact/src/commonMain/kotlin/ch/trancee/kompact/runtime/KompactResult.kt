@@ -217,7 +217,7 @@ public class LongResult private constructor(
     public override fun equals(other: Any?): Boolean =
         other is LongResult && successValue == other.successValue && error == other.error
 
-    public override fun hashCode(): Int = 31 * successValue.hashCode() + (error?.hashCode() ?: 0)
+    public override fun hashCode(): Int = error?.hashCode() ?: successValue.hashCode()
 
     public override fun toString(): String =
         if (error == null) "LongResult(value=$successValue)" else "LongResult(error=$error)"

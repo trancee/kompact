@@ -98,7 +98,7 @@ public class KompactCursor(
         startByte: Int,
         endByte: Int,
     ): KompactStatus {
-        if (startByte < 0 || endByte < startByte || endByte > Int.MAX_VALUE / 8) {
+        if (startByte < 0 || endByte < startByte || !KompactRuntime.isBitAddressable(endByte.toLong())) {
             return fail(KompactStatus.INVALID_BOUNDS, position, endByte)
         }
         return reset(buffer, startByte * 8, startByte * 8, endByte * 8)
