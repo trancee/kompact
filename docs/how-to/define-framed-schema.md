@@ -66,9 +66,10 @@ public class PacketSchema {
 ## 2. Enable common-source generation
 
 Apply the Kompact Gradle plugin after Kotlin Multiplatform and add the runtime
-to `commonMain`. The plugin processes common schemas once and registers their
-generated common and platform sources. Do not also run the standard KSP plugin
-for the same schemas.
+to `commonMain`. The plugin processes common schemas once and registers one
+generated common source per schema in `commonMain`; it generates no
+platform-specific sources. Do not also run the standard KSP plugin for the
+same schemas.
 
 ```kotlin
 plugins {
@@ -97,14 +98,18 @@ the runtime, KSP processor, and Gradle plugin to Maven Local. The
 [consumer setup guide](consume-from-another-project.md) has the exact commands
 and repository blocks.
 
-The supported plugin targets are JVM, Android JVM, iOS Arm64, iOS Simulator
-Arm64, and Android Native Arm64. Add only the targets your application uses.
+Starting with `0.10.0`, the generated sources are ordinary common Kotlin, so
+the plugin does not restrict Kotlin targets; the published `0.9.0` plugin
+supports only JVM, Android JVM, iOS Arm64, iOS Simulator Arm64, and Android
+Native Arm64. The runtime currently publishes variants for those same targets.
+Add only the targets your application uses.
 
 ## 3. Use the generated view
 
-The schema above generates `PacketSchemaView` and `PayloadSchemaView`. The
-view exposes a factory, a typed-result `decode`, and properties in schema
-order. Repeated properties are lazy `KompactRepeatedView` instances.
+The schema above generates `PacketSchemaView` and `PayloadSchemaView`, each in
+its own common `<Schema>View.kt` file. The view exposes a factory, a
+typed-result `decode`, a `copy` whose arguments default to the current values,
+and properties in schema order. Repeated properties are lazy `KompactRepeatedView` instances.
 
 ```kotlin
 package example
@@ -181,7 +186,7 @@ application to reject or route to another decoder.
 ## Verify the integration
 
 The repository's KMP TestKit consumer compiles generated common declarations
-for supported targets. From the repository root, run:
+for each of its targets. From the repository root, run:
 
 ```bash
 ./gradlew :kompact-gradle-plugin:test :kompact-ksp-integration:test

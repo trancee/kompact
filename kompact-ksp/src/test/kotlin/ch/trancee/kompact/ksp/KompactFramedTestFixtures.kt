@@ -13,7 +13,7 @@ internal fun assertInvalid(
     modelMutable: Any? = false,
     modelFramed: Any? = true,
 ) {
-    val (processor, codeGen, logger) = createTestSetup(mode = "jvm")
+    val (processor, codeGen, logger) = createTestSetup()
     val model =
         FakeKSClassDeclaration(
             simpleNameStr = "InvalidFrame",
@@ -35,7 +35,7 @@ internal fun assertInvalid(
 }
 
 internal fun assertDeferred(fields: List<FakeKSPropertyDeclaration>) {
-    val (processor, codeGen, logger) = createTestSetup(mode = "jvm")
+    val (processor, codeGen, logger) = createTestSetup()
     val model =
         FakeKSClassDeclaration(
             simpleNameStr = "UnresolvedFrame",

@@ -16,7 +16,7 @@ class ValueClassGeneratorBoundaryTest {
                 fields = listOf(field("value", 31, "Int")),
             )
 
-        val output = ValueClassGenerator.generateJvmActual(spec)
+        val output = ValueClassGenerator.generate(spec)
 
         assertTrue(
             output.contains("(KompactRuntime.readBits(raw, 0, 31) shl 1) shr 1"),
@@ -33,7 +33,7 @@ class ValueClassGeneratorBoundaryTest {
                 fields = listOf(field("value", 63, "Long")),
             )
 
-        val output = ValueClassGenerator.generateJvmActual(spec)
+        val output = ValueClassGenerator.generate(spec)
 
         assertTrue(
             output.contains("(KompactRuntime.readBitsLong(raw, 0, 63) shl 1) shr 1"),

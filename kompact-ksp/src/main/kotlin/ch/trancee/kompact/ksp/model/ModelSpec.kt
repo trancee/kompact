@@ -1,7 +1,7 @@
 package ch.trancee.kompact.ksp.model
 
 /**
- * Parsed metadata for a `@KompactModel`-annotated value class.
+ * Parsed metadata for a `@KompactModel`-annotated schema class.
  *
  * Holds the class identity (package, simple name) and its ordered field list.
  */

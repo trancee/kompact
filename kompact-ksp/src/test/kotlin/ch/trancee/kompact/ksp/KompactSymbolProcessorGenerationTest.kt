@@ -8,14 +8,13 @@ import ch.trancee.kompact.ksp.testing.FakeResolver
 import ch.trancee.kompact.ksp.testing.buildModelDeclaration
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Tests verifying **generated file content** — what the processor emits
- * into the three generated source files (expect, jvm actual, ios actual)
- * and that the right read/write primitives are selected per field type.
+ * Tests verifying **generated file content** — the single common
+ * `<Schema>View` source the processor emits per schema — and that the right
+ * read/write primitives are selected per field type.
  *
  * Also covers provider instantiation and the empty-symbols no-op path.
  */
@@ -35,88 +34,42 @@ class KompactSymbolProcessorGenerationTest {
     }
 
     @Test
-    fun process_validModel_generatesThreeFiles() {
+    fun process_validModel_generatesSingleCommonViewFile() {
         val (processor, codeGen, _) = createTestSetup()
-
         val model =
             buildModelDeclaration(
                 className = "MyModel",
                 packageName = "ch.trancee.test",
                 fields = listOf(Triple("field", "Int", 0 to 16)),
             )
-        val resolver = FakeResolver(listOf(model))
 
-        processor.process(resolver)
+        processor.process(FakeResolver(listOf(model)))
 
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.MyModelGen.kt"))
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.MyModelGenJvm.kt"))
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.MyModelGenIos.kt"))
+        assertEquals(setOf("ch.trancee.test.MyModelView.kt"), codeGen.generatedFiles.keys)
     }
 
     @Test
-    fun process_validModel_generatesCorrectExpectFile() {
+    fun process_validModel_generatesRegularJvmInlineViewWithoutExpectActual() {
         val (processor, codeGen, _) = createTestSetup()
-
         val model =
             buildModelDeclaration(
                 className = "MyModel",
                 packageName = "ch.trancee.test",
                 fields = listOf(Triple("field", "Int", 0 to 16)),
             )
-        val resolver = FakeResolver(listOf(model))
 
-        processor.process(resolver)
+        processor.process(FakeResolver(listOf(model)))
 
-        val expectContent = codeGen.generatedFiles["ch.trancee.test.MyModelGen.kt"]!!
-        assertTrue(expectContent.contains("package ch.trancee.test"))
-        assertTrue(expectContent.contains("value class MyModel"))
-        assertTrue(expectContent.contains("val raw: ByteArray"))
-        assertTrue(expectContent.contains("require(raw.size >= 2)"))
-        assertTrue(expectContent.contains("field"))
-    }
-
-    @Test
-    fun process_validModel_generatesCorrectJvmActualFile() {
-        val (processor, codeGen, _) = createTestSetup()
-
-        val model =
-            buildModelDeclaration(
-                className = "MyModel",
-                packageName = "ch.trancee.test",
-                fields = listOf(Triple("field", "Int", 0 to 16)),
-            )
-        val resolver = FakeResolver(listOf(model))
-
-        processor.process(resolver)
-
-        val jvmContent = codeGen.generatedFiles["ch.trancee.test.MyModelGenJvm.kt"]!!
-        assertTrue(jvmContent.contains("package ch.trancee.test"))
-        assertTrue(jvmContent.contains("@JvmInline"))
-        assertTrue(jvmContent.contains("actual value class MyModel"))
-        assertTrue(jvmContent.contains("actual val"))
-        assertTrue(jvmContent.contains("readBits"))
-        assertFalse(jvmContent.contains("set(value)"))
-        assertTrue(jvmContent.contains("encodeMyModel"))
-    }
-
-    @Test
-    fun process_validModel_generatesCorrectIosActualFile() {
-        val (processor, codeGen, _) = createTestSetup()
-
-        val model =
-            buildModelDeclaration(
-                className = "MyModel",
-                packageName = "ch.trancee.test",
-                fields = listOf(Triple("field", "Int", 0 to 16)),
-            )
-        val resolver = FakeResolver(listOf(model))
-
-        processor.process(resolver)
-
-        val iosContent = codeGen.generatedFiles["ch.trancee.test.MyModelGenIos.kt"]!!
-        assertTrue(iosContent.contains("package ch.trancee.test"))
-        assertTrue(iosContent.contains("actual value class MyModel"))
-        assertTrue(iosContent.contains("actual val"))
+        val content = codeGen.generatedFiles.getValue("ch.trancee.test.MyModelView.kt")
+        assertTrue(content.contains("package ch.trancee.test"), content)
+        assertTrue(content.contains("@JvmInline"), content)
+        assertTrue(content.contains("public value class MyModelView(\n  public val raw: ByteArray"), content)
+        assertTrue(content.contains("require(raw.size >= 2)"), content)
+        assertTrue(content.contains("readBits"), content)
+        assertTrue(content.contains("internal fun encodeMyModelView("), content)
+        assertTrue(content.contains("public class MyModelViewHolder("), content)
+        assertFalse(content.contains("expect "), content)
+        assertFalse(content.contains("actual "), content)
     }
 
     @Test
@@ -134,15 +87,15 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        // ADR-0006 D3: mutable=true emits a write-through Mutable<Model> sibling.
-        val jvm = codeGen.generatedFiles["ch.trancee.test.MyModelGenJvm.kt"]!!
-        assertTrue(jvm.contains("MutableMyModel"), "mutable=true must emit a Mutable sibling")
-        assertTrue(jvm.contains("actual var "), "Mutable sibling must expose var")
-        assertTrue(jvm.contains("writeBits"), "Mutable sibling setter must delegate to writeBits")
-        assertTrue(jvm.contains("set(`value`)"), "Mutable sibling must wire a setter")
+        // ADR-0006 D3: mutable=true emits a write-through Mutable<Schema>View sibling.
+        val content = codeGen.generatedFiles.getValue("ch.trancee.test.MyModelView.kt")
+        assertTrue(content.contains("value class MutableMyModelView"), "mutable=true must emit a Mutable sibling")
+        assertTrue(content.contains("public var "), "Mutable sibling must expose var")
+        assertTrue(content.contains("writeBits"), "Mutable sibling setter must delegate to writeBits")
+        assertTrue(content.contains("set(`value`)"), "Mutable sibling must wire a setter")
         // The default immutable view is still present alongside the escape hatch.
-        assertTrue(jvm.contains("actual val"), "default view must remain val")
-        assertTrue(jvm.contains("fun copy("), "default view must still provide copy")
+        assertTrue(content.contains("public val `field`"), "default view must remain val")
+        assertTrue(content.contains("fun copy("), "default view must still provide copy")
     }
 
     @Test
@@ -180,12 +133,12 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        val jvm = codeGen.generatedFiles["ch.trancee.test.PosModelGenJvm.kt"]!!
+        val content = codeGen.generatedFiles["ch.trancee.test.PosModelView.kt"]!!
         assertFalse(
-            jvm.contains("MutablePosModel"),
+            content.contains("MutablePosModelView"),
             "unnamed @KompactModel args are skipped (named-only), so mutable stays false",
         )
-        assertTrue(jvm.contains("fun copy("), "default immutable view still emits copy")
+        assertTrue(content.contains("fun copy("), "default immutable view still emits copy")
     }
 
     @Test
@@ -202,24 +155,19 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        val jvm = codeGen.generatedFiles["ch.trancee.test.MyModelGenJvm.kt"]!!
-        val ios = codeGen.generatedFiles["ch.trancee.test.MyModelGenIos.kt"]!!
+        val content = codeGen.generatedFiles["ch.trancee.test.MyModelView.kt"]!!
         // ADR-0006 D1/D4: the default view is immutable — `val`, no write-through setter.
-        assertTrue(jvm.contains("actual val"))
-        assertTrue(ios.contains("actual val"))
-        assertFalse(jvm.contains("var "))
-        assertFalse(jvm.contains("set(value)"))
+        assertTrue(content.contains("public val `field`"))
+        val view = content.substringBefore("public class MyModelViewHolder")
+        assertFalse(view.contains("public var "), view)
+        assertFalse(view.contains("set(`value`)"), view)
         // ADR-0006 D2/D3: the immutable default view still carries copy(...) so
         // callers can derive an updated frame.
-        assertTrue(jvm.contains("fun copy("), "default view must still provide copy")
-        // KMP forbids default arguments on `actual` declarations (defaults live
-        // in the `expect` only); the actual copy must not carry `= this.x`
-        // defaults. This also locks the buildCopyFunction root-cause fix
-        // (ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS) surfaced by the VehicleTelemetry
-        // example mirror.
-        assertFalse(
-            jvm.contains("field: Int = this.field"),
-            "actual copy must not carry default arguments (KMP: defaults live in the expect only)",
+        assertTrue(content.contains("fun copy("), "default view must still provide copy")
+        // Without expect/actual, copy carries its `= this.x` defaults directly.
+        assertTrue(
+            content.contains("`field`: Int = this.field"),
+            "copy must default each argument to the current field value: $content",
         )
     }
 
@@ -237,7 +185,7 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        val jvmContent = codeGen.generatedFiles["ch.trancee.test.BoolModelGenJvm.kt"]!!
+        val jvmContent = codeGen.generatedFiles["ch.trancee.test.BoolModelView.kt"]!!
         assertTrue(jvmContent.contains("readBitsBoolean"))
     }
 
@@ -255,7 +203,7 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        val jvmContent = codeGen.generatedFiles["ch.trancee.test.LongModelGenJvm.kt"]!!
+        val jvmContent = codeGen.generatedFiles["ch.trancee.test.LongModelView.kt"]!!
         assertTrue(jvmContent.contains("readBitsLong"))
     }
 
@@ -273,7 +221,7 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        val jvmContent = codeGen.generatedFiles["ch.trancee.test.FloatModelGenJvm.kt"]!!
+        val jvmContent = codeGen.generatedFiles["ch.trancee.test.FloatModelView.kt"]!!
         assertTrue(jvmContent.contains("Float.fromBits"))
         assertTrue(jvmContent.contains("readBitsLong"))
     }
@@ -292,229 +240,31 @@ class KompactSymbolProcessorGenerationTest {
 
         processor.process(resolver)
 
-        val jvmContent = codeGen.generatedFiles["ch.trancee.test.DoubleModelGenJvm.kt"]!!
+        val jvmContent = codeGen.generatedFiles["ch.trancee.test.DoubleModelView.kt"]!!
         assertTrue(jvmContent.contains("Double.fromBits"))
         assertTrue(jvmContent.contains("readBitsLong"))
     }
 
     @Test
-    fun process_generateModeCommon_emitsOnlyExpectFile() {
-        val (processor, codeGen, _) = createTestSetup(mode = "common")
-
+    fun process_expectSchemaDeclaration_reportsErrorAndGeneratesNothing() {
+        val (processor, codeGen, logger) = createTestSetup()
         val model =
             buildModelDeclaration(
-                className = "ModeModel",
-                packageName = "ch.trancee.test",
-                fields = listOf(Triple("field", "Int", 0 to 16)),
-            )
-        val resolver = FakeResolver(listOf(model))
-
-        processor.process(resolver)
-
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.ModeModelGen.kt"))
-        assertTrue(codeGen.generatedFiles["ch.trancee.test.ModeModelGen.kt"]!!.contains("expect"))
-        assertTrue(
-            codeGen.generatedFiles.size == 1,
-            "Common mode should emit only 1 file, got ${codeGen.generatedFiles.size}",
-        )
-    }
-
-    @Test
-    fun process_generateModeJvm_emitsOnlyJvmActualFile() {
-        val (processor, codeGen, _) = createTestSetup(mode = "jvm")
-
-        val model =
-            buildModelDeclaration(
-                className = "ModeModel",
-                packageName = "ch.trancee.test",
-                fields = listOf(Triple("field", "Int", 0 to 16)),
-            )
-        val resolver = FakeResolver(listOf(model))
-
-        processor.process(resolver)
-
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.ModeModelGenJvm.kt"))
-        assertTrue(codeGen.generatedFiles["ch.trancee.test.ModeModelGenJvm.kt"]!!.contains("@JvmInline"))
-        assertTrue(
-            codeGen.generatedFiles.size == 1,
-            "JVM mode should emit only 1 file, got ${codeGen.generatedFiles.size}",
-        )
-    }
-
-    @Test
-    fun process_generateModeIos_emitsOnlyIosActualFile() {
-        val (processor, codeGen, _) = createTestSetup(mode = "ios")
-
-        val model =
-            buildModelDeclaration(
-                className = "ModeModel",
-                packageName = "ch.trancee.test",
-                fields = listOf(Triple("field", "Int", 0 to 16)),
-            )
-        val resolver = FakeResolver(listOf(model))
-
-        processor.process(resolver)
-
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.ModeModelGenIos.kt"))
-        assertTrue(codeGen.generatedFiles["ch.trancee.test.ModeModelGenIos.kt"]!!.contains("actual"))
-        assertTrue(
-            codeGen.generatedFiles.size == 1,
-            "IOS mode should emit only 1 file, got ${codeGen.generatedFiles.size}",
-        )
-    }
-
-    @Test
-    fun process_generateModeAndroidArm64_emitsOnlyPlainNativeActual() {
-        // androidNativeArm64 is Kotlin/Native, so the generated `actual` must be a
-        // PLAIN value class (no @JvmInline — invalid on Native), mirroring the
-        // ios mode's body. Route via a dedicated mode rather than reusing "ios"
-        // so consumers get sensibly-named output (GenAndroidArm64, not GenIos)
-        // and so an unknown mode fails closed instead of silently mis-routing.
-        val (processor, codeGen, _) = createTestSetup(mode = "androidArm64")
-
-        val model =
-            buildModelDeclaration(
-                className = "ModeModel",
-                packageName = "ch.trancee.test",
-                fields = listOf(Triple("field", "Int", 0 to 16)),
-            )
-        val resolver = FakeResolver(listOf(model))
-
-        processor.process(resolver)
-
-        val content = codeGen.generatedFiles["ch.trancee.test.ModeModelGenAndroidArm64.kt"]!!
-        assertEquals(
-            1,
-            codeGen.generatedFiles.size,
-            "androidArm64 mode should emit exactly 1 file, got ${codeGen.generatedFiles.size}",
-        )
-        // Plain Native actual (mirrors ios).
-        assertTrue(content.contains("actual value class ModeModel"), "must emit a plain actual value class")
-        // `field` is a Kotlin identifier-with-special-meaning → KotlinPoet backtick-escapes it
-        // (`val \`field\``), so assert via the canonical "actual val" token used by the ios/jvm tests.
-        assertTrue(content.contains("actual val"), "default view must expose the backing field as val")
-        assertFalse(
-            content.contains("@JvmInline"),
-            "androidArm64 is Kotlin/Native — @JvmInline is invalid and must not be emitted",
-        )
-        // Defaults live in the expect only (KMP); the actual copy carries no defaults.
-        assertFalse(content.contains("field: Int = this.field"), "actual copy must not carry default arguments")
-    }
-
-    @Test
-    fun process_generateModeAndroidArm64_mutableModel_emitsPlainMutableNativeSibling() {
-        // ADR-0006 D3: mutable=true emits a write-through Mutable<Model> sibling
-        // alongside the immutable actual. On androidNativeArm64 (Kotlin/Native)
-        // BOTH must be plain value classes — no @JvmInline (invalid on Native).
-        // This closes the `if (spec.mutable)` branch of generateAndroidArm64Actual
-        // so kompact-ksp stays at 100% branch coverage (koverVerify).
-        val (processor, codeGen, _) = createTestSetup(mode = "androidArm64")
-
-        val model =
-            buildModelDeclaration(
-                className = "ModeModel",
-                packageName = "ch.trancee.test",
-                fields = listOf(Triple("field", "Int", 0 to 16)),
-                mutable = true,
-            )
-        val resolver = FakeResolver(listOf(model))
-
-        processor.process(resolver)
-
-        assertEquals(1, codeGen.generatedFiles.size)
-        val content = codeGen.generatedFiles["ch.trancee.test.ModeModelGenAndroidArm64.kt"]!!
-        assertTrue(content.contains("actual value class"), "Native actual must be a plain value class: $content")
-        assertFalse(content.contains("@JvmInline"), "Kotlin/Native must not carry @JvmInline: $content")
-        assertTrue(content.contains("MutableModeModel"), "mutable=true must emit a Mutable sibling: $content")
-        assertFalse(content.contains("field: Int = this.field"), "actual copy must not carry default arguments")
-    }
-
-    @Test
-    fun process_generateModeAll_emitsThreeFiles() {
-        val (processor, codeGen, _) = createTestSetup(mode = "all")
-
-        val model =
-            buildModelDeclaration(
-                className = "AllModeModel",
-                packageName = "ch.trancee.test",
-                fields = listOf(Triple("field", "Int", 0 to 16)),
-            )
-        val resolver = FakeResolver(listOf(model))
-
-        processor.process(resolver)
-
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.AllModeModelGen.kt"))
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.AllModeModelGenJvm.kt"))
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.AllModeModelGenIos.kt"))
-        assertEquals(3, codeGen.generatedFiles.size, "Explicit 'all' must emit exactly 3 files")
-    }
-
-    @Test
-    fun process_generateModeKmp_fixedExpectEmitsPlatformActualsOnly() {
-        val (processor, codeGen, logger) = createTestSetup(mode = "kmp")
-        val model =
-            buildModelDeclaration(
-                className = "KmpModeModel",
+                className = "SensorFrame",
                 packageName = "ch.trancee.test",
                 fields = listOf(Triple("field", "Int", 0 to 16)),
                 isExpect = true,
             )
 
-        processor.process(FakeResolver(listOf(model)))
+        val deferred = processor.process(FakeResolver(listOf(model)))
 
-        assertTrue(logger.errors.isEmpty(), logger.errors.toString())
-        assertEquals(
-            setOf(
-                "ch.trancee.test.KmpModeModelGenEncoder.kt",
-                "ch.trancee.test.KmpModeModelGenJvm.kt",
-                "ch.trancee.test.KmpModeModelGenIos.kt",
-                "ch.trancee.test.KmpModeModelGenAndroidArm64.kt",
-            ),
-            codeGen.generatedFiles.keys,
-        )
-        val commonEncoder = codeGen.generatedFiles.getValue("ch.trancee.test.KmpModeModelGenEncoder.kt")
-        assertTrue(commonEncoder.contains("internal fun encodeKmpModeModel"), commonEncoder)
-        assertTrue(codeGen.generatedFiles.getValue("ch.trancee.test.KmpModeModelGenJvm.kt").contains("@JvmInline"))
-        assertTrue(
-            codeGen.generatedFiles.getValue("ch.trancee.test.KmpModeModelGenIos.kt").contains("actual value class"),
-        )
-        assertTrue(
-            codeGen.generatedFiles.getValue("ch.trancee.test.KmpModeModelGenAndroidArm64.kt")
-                .contains("actual value class"),
-        )
-    }
-
-    @Test
-    fun process_generateModeKmp_rejectsFixedSchemaWithoutExpectDeclaration() {
-        val (processor, codeGen, logger) = createTestSetup(mode = "kmp")
-        val model =
-            buildModelDeclaration(
-                className = "KmpModeModel",
-                packageName = "ch.trancee.test",
-                fields = listOf(Triple("field", "Int", 0 to 16)),
-            )
-
-        processor.process(FakeResolver(listOf(model)))
-
-        assertTrue(logger.errors.any { it.contains("expect value class") }, logger.errors.toString())
-        assertTrue(codeGen.generatedFiles.isEmpty())
-    }
-
-    @Test
-    fun create_withUnknownGenerateMode_failsClosed() {
-        // S3 (fail-closed) + D1 (no speculative fallback): an unrecognized,
-        // non-null kompact.generate value is a misconfiguration, not a
-        // silent fall-back to 'all' (which would mis-route expect/actuals
-        // for a KMP consumer and produce a non-local compile error).
-        val ex =
-            assertFailsWith<IllegalArgumentException> {
-                createTestSetup(mode = "cmomn")
-            }
-
-        // The diagnostic must name the option and the offending value so the
-        // failure is localised to the misconfig site (S4: observable).
-        assertTrue(ex.message!!.contains("kompact.generate"), "should name the option: ${ex.message}")
-        assertTrue(ex.message!!.contains("cmomn"), "should echo the bad value: ${ex.message}")
+        assertTrue(deferred.isEmpty(), "expect schemas are a deterministic error, not deferred")
+        assertTrue(codeGen.generatedFiles.isEmpty(), codeGen.generatedFiles.keys.toString())
+        assertEquals(1, logger.errors.size, logger.errors.toString())
+        val error = logger.errors.single()
+        assertTrue(error.contains("Kompact schemas must be regular classes"), error)
+        assertTrue(error.contains("SensorFrameView"), error)
+        assertTrue(error.contains("Remove `expect` from SensorFrame"), error)
     }
 
     @Test
@@ -538,7 +288,7 @@ class KompactSymbolProcessorGenerationTest {
         // which forces a full recompile when *any* source changes. The
         // KompactAnnotations stub is the only aggregating output, and it is
         // hand-authored (not emitted by this processor).
-        val expectDeps = codeGen.generatedDependencies["ch.trancee.test.IsoModelGen.kt"]!!
+        val expectDeps = codeGen.generatedDependencies["ch.trancee.test.IsoModelView.kt"]!!
         assertFalse(expectDeps.isAggregating, "per-schema view must be isolating, not aggregating")
         assertEquals(listOf(srcFile), expectDeps.originatingFiles)
     }

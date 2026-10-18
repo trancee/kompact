@@ -9,8 +9,8 @@ import kotlin.test.assertTrue
 
 class KompactSymbolProcessorFramedTest {
     @Test
-    fun process_framedModel_kmpModeEmitsCommonAndAllPlatformFiles() {
-        val (processor, codeGen, logger) = createTestSetup(mode = "kmp")
+    fun process_framedModel_emitsSingleCommonRegularViewFile() {
+        val (processor, codeGen, logger) = createTestSetup()
         val model =
             FakeKSClassDeclaration(
                 simpleNameStr = "KmpFrame",
@@ -28,27 +28,16 @@ class KompactSymbolProcessorFramedTest {
         processor.process(FakeResolver(listOf(model)))
 
         assertTrue(logger.errors.isEmpty(), logger.errors.toString())
-        assertEquals(
-            setOf(
-                "ch.trancee.test.KmpFrameViewGen.kt",
-                "ch.trancee.test.KmpFrameViewGenJvm.kt",
-                "ch.trancee.test.KmpFrameViewGenIos.kt",
-                "ch.trancee.test.KmpFrameViewGenAndroidArm64.kt",
-            ),
-            codeGen.generatedFiles.keys,
-        )
-        assertTrue(
-            codeGen.generatedFiles.getValue("ch.trancee.test.KmpFrameViewGen.kt").contains("expect class KmpFrameView"),
-        )
-        assertTrue(
-            codeGen.generatedFiles.getValue("ch.trancee.test.KmpFrameViewGenJvm.kt")
-                .contains("actual class KmpFrameView"),
-        )
+        assertEquals(setOf("ch.trancee.test.KmpFrameView.kt"), codeGen.generatedFiles.keys)
+        val generated = codeGen.generatedFiles.getValue("ch.trancee.test.KmpFrameView.kt")
+        assertTrue(generated.contains("public class KmpFrameView("), generated)
+        assertTrue(!generated.contains("expect "), generated)
+        assertTrue(!generated.contains("actual "), generated)
     }
 
     @Test
     fun process_framedModel_generatesOrderedTypedFrameView() {
-        val (processor, codeGen, logger) = createTestSetup(mode = "all")
+        val (processor, codeGen, logger) = createTestSetup()
         val model =
             FakeKSClassDeclaration(
                 simpleNameStr = "SensorFrame",
@@ -94,33 +83,21 @@ class KompactSymbolProcessorFramedTest {
         processor.process(FakeResolver(listOf(model)))
 
         assertTrue(logger.errors.isEmpty(), "framed types should be accepted: ${logger.errors}")
-        assertEquals(
-            setOf(
-                "ch.trancee.test.SensorFrameViewGen.kt",
-                "ch.trancee.test.SensorFrameViewGenJvm.kt",
-                "ch.trancee.test.SensorFrameViewGenIos.kt",
-            ),
-            codeGen.generatedFiles.keys,
-        )
-        val expected = codeGen.generatedFiles["ch.trancee.test.SensorFrameViewGen.kt"]!!
-        val generated = codeGen.generatedFiles["ch.trancee.test.SensorFrameViewGenJvm.kt"]!!
-        assertTrue(expected.contains("expect class SensorFrameView"), expected)
-        assertTrue(expected.contains("start: Int"), expected)
-        assertTrue(expected.contains("end: Int"), expected)
-        assertTrue(expected.contains("fun decode("), expected)
-        assertTrue(expected.contains("fun create("), expected)
-        assertTrue(expected.contains("fun copy("), expected)
-        assertTrue(generated.contains("actual class SensorFrameView"), generated)
-        assertTrue(generated.contains("actual constructor("), generated)
+        assertEquals(setOf("ch.trancee.test.SensorFrameView.kt"), codeGen.generatedFiles.keys)
+        val generated = codeGen.generatedFiles["ch.trancee.test.SensorFrameView.kt"]!!
+        assertTrue(generated.contains("public class SensorFrameView("), generated)
+        assertTrue(generated.contains("start: Int"), generated)
+        assertTrue(generated.contains("end: Int"), generated)
+        assertTrue(generated.contains("fun decode("), generated)
         assertTrue(!generated.contains("@JvmInline"), generated)
-        assertTrue(generated.contains("actual val samples: KompactRepeatedView<Int>"), generated)
-        assertTrue(generated.contains("actual val children: KompactRepeatedView<PayloadView>"), generated)
+        assertTrue(generated.contains("public val samples: KompactRepeatedView<Int>"), generated)
+        assertTrue(generated.contains("public val children: KompactRepeatedView<PayloadView>"), generated)
         assertTrue(generated.contains("readBits(8)"), generated)
         assertTrue(generated.contains("readString(16)"), generated)
         assertTrue(generated.contains("readRepeated"), generated)
         assertTrue(generated.contains("readNested(16)"), generated)
-        assertTrue(generated.contains("actual fun create("), generated)
-        assertTrue(generated.contains("actual fun copy("), generated)
+        assertTrue(generated.contains("public fun create("), generated)
+        assertTrue(generated.contains("public fun copy("), generated)
         assertTrue(
             generated.indexOf("this.markerValue") < generated.indexOf("this.labelValue") &&
                 generated.indexOf("this.labelValue") < generated.indexOf("this.samplesValue") &&
@@ -132,7 +109,7 @@ class KompactSymbolProcessorFramedTest {
 
     @Test
     fun process_framedModel_generatesAllSupportedFieldShapes() {
-        val (processor, codeGen, logger) = createTestSetup(mode = "all")
+        val (processor, codeGen, logger) = createTestSetup()
         val model =
             FakeKSClassDeclaration(
                 simpleNameStr = "AllFramedShapes",
@@ -236,7 +213,7 @@ class KompactSymbolProcessorFramedTest {
         processor.process(FakeResolver(listOf(model)))
 
         assertTrue(logger.errors.isEmpty(), "framed shapes should be accepted: ${logger.errors}")
-        val generated = codeGen.generatedFiles["ch.trancee.test.AllFramedShapesViewGenJvm.kt"]!!
+        val generated = codeGen.generatedFiles["ch.trancee.test.AllFramedShapesView.kt"]!!
         assertTrue(generated.contains("Float.fromBits"), generated)
         assertTrue(generated.contains("(frame.readBits(7).toInt() shl 25) shr 25"), generated)
         assertTrue(generated.contains("Double.fromBits"), generated)
@@ -250,33 +227,8 @@ class KompactSymbolProcessorFramedTest {
     }
 
     @Test
-    fun process_framedModel_androidArm64EmitsPlainActual() {
-        val (processor, codeGen, logger) = createTestSetup(mode = "androidArm64")
-        val model =
-            FakeKSClassDeclaration(
-                simpleNameStr = "NativeFrame",
-                packageNameStr = "ch.trancee.test",
-                properties = listOf(field("flag", "kotlin.Boolean", 0, bitWidth = 1)),
-                declAnnotations =
-                    listOf(
-                        FakeKSAnnotation(
-                            "ch.trancee.kompact.annotations.KompactModel",
-                            mapOf("framed" to true),
-                        ),
-                    ),
-            )
-
-        processor.process(FakeResolver(listOf(model)))
-
-        val generated = codeGen.generatedFiles["ch.trancee.test.NativeFrameViewGenAndroidArm64.kt"]!!
-        assertTrue(logger.errors.isEmpty())
-        assertTrue(generated.contains("actual class NativeFrame"), generated)
-        assertTrue(!generated.contains("@JvmInline"), generated)
-    }
-
-    @Test
     fun process_framedModel_resolvesUnqualifiedListType() {
-        val (processor, codeGen, logger) = createTestSetup(mode = "jvm")
+        val (processor, codeGen, logger) = createTestSetup()
         val model =
             FakeKSClassDeclaration(
                 simpleNameStr = "UnqualifiedListFrame",
@@ -303,7 +255,7 @@ class KompactSymbolProcessorFramedTest {
         processor.process(FakeResolver(listOf(model)))
 
         assertTrue(logger.errors.isEmpty(), "List should be recognized as repeated: ${logger.errors}")
-        val generated = codeGen.generatedFiles["ch.trancee.test.UnqualifiedListFrameViewGenJvm.kt"]!!
-        assertTrue(generated.contains("actual val samples: KompactRepeatedView<Int>"), generated)
+        val generated = codeGen.generatedFiles["ch.trancee.test.UnqualifiedListFrameView.kt"]!!
+        assertTrue(generated.contains("public val samples: KompactRepeatedView<Int>"), generated)
     }
 }

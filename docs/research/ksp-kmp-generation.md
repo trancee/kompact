@@ -131,6 +131,8 @@ The task declares:
 - language/API versions, module name, and generator options as scalar inputs;
 - a generated Kotlin output directory and a local-state KSP work directory.
 
+> Superseded by [ADR-0009](../adr/0009-common-only-code-generation.md): generation is now common-only.
+
 The plugin registers the generated common output with `commonMain` and platform outputs with their matching source sets using task-backed providers. Fixed-layout schemas retain their handwritten common `expect value class`; framed schemas generate common expect contracts and per-platform actuals. The task currently disables KSP incremental processing and relies on Gradle task/build caching.
 
 Do not also add the processor to `kspAndroid`, `kspIosArm64`, or `kspIosSimulatorArm64`; that would repeat common processing and risk duplicate generated declarations.

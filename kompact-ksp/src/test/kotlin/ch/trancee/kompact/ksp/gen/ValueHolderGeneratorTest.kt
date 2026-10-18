@@ -28,9 +28,9 @@ class ValueHolderGeneratorTest {
                     ),
             )
 
-        val output = ValueClassGenerator.generateCommonEncoder(spec)
+        val output = ValueClassGenerator.generate(spec)
 
-        assertTrue(output.contains("class CursorCoverageHolder"))
+        assertTrue(output.contains("class CursorCoverageViewHolder"))
         assertTrue(output.contains("flag: Boolean = false"))
         assertTrue(output.contains("signedInt: Int = 0"))
         assertTrue(output.contains("public var flag: Boolean = false"))
@@ -66,7 +66,7 @@ class ValueHolderGeneratorTest {
                     ),
             )
 
-        val output = ValueClassGenerator.generateCommonEncoder(spec)
+        val output = ValueClassGenerator.generate(spec)
 
         assertTrue(output.contains("signedIntDecoded = (cursor.valueBits.toInt() shl 1) shr 1"))
         assertTrue(output.contains("signedLongDecoded = (cursor.valueBits shl 1) shr 1"))
@@ -104,10 +104,10 @@ class ValueHolderGeneratorTest {
                     ),
             )
 
-        val output = ValueClassGenerator.generateCommonEncoder(spec)
-        val decoded = output.substringAfter("fun SparseBoundaryHolder.decodeInto")
-            .substringBefore("fun SparseBoundaryHolder.encodeFrom")
-        val encoded = output.substringAfter("fun SparseBoundaryHolder.encodeFrom")
+        val output = ValueClassGenerator.generate(spec)
+        val decoded = output.substringAfter("fun SparseBoundaryHolderViewHolder.decodeInto")
+            .substringBefore("fun SparseBoundaryHolderViewHolder.encodeFrom")
+        val encoded = output.substringAfter("fun SparseBoundaryHolderViewHolder.encodeFrom")
 
         assertTrue(decoded.contains("cursor.ensureAvailable(8)"))
         assertTrue(decoded.contains("cursor.skipBits(1)"))

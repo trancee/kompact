@@ -12,40 +12,28 @@ class ValueClassGeneratorMutationTest {
     private val boundaryTests = ValueClassGeneratorBoundaryTest()
 
     @Test
-    fun expectValueClassDeclaresExpectKeyword() = MutFlow.underTest { sourceTests.`expect value class declares expect keyword`() }
+    fun viewIsARegularCommonJvmInlineValueClassNamedAfterTheSchema() = MutFlow.underTest { sourceTests.`view is a regular common JvmInline value class named after the schema`() }
 
     @Test
-    fun expectValueClassDeclaresCompanionCreateFactory() = MutFlow.underTest { sourceTests.`expect value class declares companion create factory`() }
+    fun viewCompanionCreateFactoryDelegatesToEncodeFunction() = MutFlow.underTest { sourceTests.`view companion create factory delegates to encode function`() }
 
     @Test
     fun encodeFunctionWritesEachFieldAtItsDeclaredOffset() = MutFlow.underTest { sourceTests.`encode function writes each field at its declared offset`() }
 
     @Test
-    fun commonEncoderEmitsReusableHolderCursorOperations() = MutFlow.underTest { sourceTests.`common encoder emits reusable holder cursor operations`() }
+    fun viewFileEmitsReusableHolderCursorOperations() = MutFlow.underTest { sourceTests.`view file emits reusable holder cursor operations`() }
 
     @Test
-    fun jvmActualHasJvmInlineAnnotation() = MutFlow.underTest { sourceTests.`jvm actual has JvmInline annotation`() }
+    fun defaultViewIsImmutableValNoWriteThroughSetter() = MutFlow.underTest { sourceTests.`default view is immutable (val, no write-through setter)`() }
 
     @Test
-    fun jvmActualCompanionObjectIsMarkedActual() = MutFlow.underTest { sourceTests.`jvm actual companion object is marked actual`() }
-
-    @Test
-    fun iosActualCompanionObjectIsMarkedActual() = MutFlow.underTest { sourceTests.`ios actual companion object is marked actual`() }
-
-    @Test
-    fun jvmActualDefaultViewIsImmutableValNoWriteThroughSetter() = MutFlow.underTest { sourceTests.`jvm actual default view is immutable (val, no write-through setter)`() }
-
-    @Test
-    fun jvmActualDefaultViewEmitsCopyBuilderDelegatingToEncode() = MutFlow.underTest { sourceTests.`jvm actual default view emits copy builder delegating to encode`() }
-
-    @Test
-    fun expectDefaultViewCopyCarriesFieldDefaultsForCallers() = MutFlow.underTest { sourceTests.`expect default view copy carries field defaults for callers`() }
+    fun defaultViewCopyDefaultsEveryFieldAndDelegatesToEncode() = MutFlow.underTest { sourceTests.`default view copy defaults every field and delegates to encode`() }
 
     @Test
     fun generateWithMutableModelEmitsMutableSiblingWithWriteThroughVarSetters() = MutFlow.underTest { sourceTests.`generate with mutable model emits Mutable sibling with write-through var setters`() }
 
     @Test
-    fun jvmActualUsesRawReadBitsForIntFields() = MutFlow.underTest { sourceTests.`jvm actual uses raw readBits for Int fields`() }
+    fun viewUsesRawReadBitsForIntFields() = MutFlow.underTest { sourceTests.`view uses raw readBits for Int fields`() }
 
     @Test
     fun signedIntGetterSignExtendsItsDeclaredBitWidth() = MutFlow.underTest { sourceTests.`signed Int getter sign extends its declared bit width`() }
@@ -57,16 +45,7 @@ class ValueClassGeneratorMutationTest {
     fun createEncoderWritesFieldsAtDeclaredOffsetsIncludingGaps() = MutFlow.underTest { sourceTests.`create encoder writes fields at declared offsets including gaps`() }
 
     @Test
-    fun jvmActualUsesReadBitsBooleanForBooleanFields() = MutFlow.underTest { sourceTests.`jvm actual uses readBitsBoolean for Boolean fields`() }
-
-    @Test
-    fun jvmActualCreateDelegatesToEncodeFunction() = MutFlow.underTest { sourceTests.`jvm actual create delegates to encode function`() }
-
-    @Test
-    fun iosActualDoesNOTHaveJvmInline() = MutFlow.underTest { sourceTests.`ios actual does NOT have JvmInline`() }
-
-    @Test
-    fun iosActualUsesRawReadBits() = MutFlow.underTest { sourceTests.`ios actual uses raw readBits`() }
+    fun viewUsesReadBitsBooleanForBooleanFields() = MutFlow.underTest { sourceTests.`view uses readBitsBoolean for Boolean fields`() }
 
     @Test
     fun longFieldUsesReadBitsLong() = MutFlow.underTest { sourceTests.`Long field uses readBitsLong`() }
@@ -78,13 +57,8 @@ class ValueClassGeneratorMutationTest {
     fun doubleFieldUsesDoubleFromBits() = MutFlow.underTest { sourceTests.`Double field uses Double fromBits`() }
 
     @Test
-    fun jvmActualEmitsRawAsAConstructorBackingValDefect3() = MutFlow.underTest { sourceTests.`jvm actual emits raw as a constructor backing val (defect #3)`() }
+    fun viewEmitsRawAsAConstructorBackingValDefect3() = MutFlow.underTest { sourceTests.`view emits raw as a constructor backing val (defect #3)`() }
 
-    @Test
-    fun iosActualEmitsRawAsAConstructorBackingValDefect3() = MutFlow.underTest { sourceTests.`ios actual emits raw as a constructor backing val (defect #3)`() }
-
-    @Test
-    fun expectEmitsRawWithoutTheInvalidActualModifierDefect3() = MutFlow.underTest { sourceTests.`expect emits raw without the invalid actual modifier (defect #3)`() }
     @Test
     fun fixedLayoutStringFieldSuggestsFramedMode() = MutFlow.underTest { edgeCaseTests.fixedLayoutStringFieldSuggestsFramedMode() }
 
@@ -92,7 +66,7 @@ class ValueClassGeneratorMutationTest {
     fun invalidLayoutThrowsBeforeGeneration() = MutFlow.underTest { edgeCaseTests.`invalid layout throws before generation`() }
 
     @Test
-    fun commonEncoderRejectsFramedModels() = MutFlow.underTest { edgeCaseTests.`common encoder rejects framed models`() }
+    fun framedModelsDelegateToTheFramedViewGenerator() = MutFlow.underTest { edgeCaseTests.`framed models delegate to the framed view generator`() }
 
     @Test
     fun signedIntEncoderWritesItsLowBitsDirectlyAtTheDeclaredOffset() = MutFlow.underTest { edgeCaseTests.`signed Int encoder writes its low bits directly at the declared offset`() }
@@ -107,19 +81,7 @@ class ValueClassGeneratorMutationTest {
     fun unknownTypeFailsGenerationWithDescriptiveError() = MutFlow.underTest { edgeCaseTests.`unknown type fails generation with descriptive error`() }
 
     @Test
-    fun modelWithNoFieldsGeneratesValidExpect() = MutFlow.underTest { edgeCaseTests.`model with no fields generates valid expect`() }
-
-    @Test
-    fun modelWithNoFieldsGeneratesValidJvmActual() = MutFlow.underTest { edgeCaseTests.`model with no fields generates valid jvm actual`() }
-
-    @Test
-    fun fixedLayoutExpectEncoderDirectsStringFieldsToFramedMode() = MutFlow.underTest { edgeCaseTests.`fixed-layout expect encoder directs String fields to framed mode`() }
-
-    @Test
-    fun fixedLayoutExpectEncoderDirectsByteArrayFieldsToFramedMode() = MutFlow.underTest { edgeCaseTests.`fixed-layout expect encoder directs ByteArray fields to framed mode`() }
-
-    @Test
-    fun expectWithUnknownTypeFailsGenerationWithDescriptiveError() = MutFlow.underTest { edgeCaseTests.`expect with unknown type fails generation with descriptive error`() }
+    fun modelWithNoFieldsGeneratesAViewWithoutACreateFactory() = MutFlow.underTest { edgeCaseTests.`model with no fields generates a view without a create factory`() }
 
     @Test
     fun signed31BitIntGetterPreservesItsSignBit() = MutFlow.underTest { boundaryTests.signed31BitIntGetterPreservesItsSignBit() }
@@ -131,7 +93,7 @@ class ValueClassGeneratorMutationTest {
     fun mutableSiblingDoesNotExposeImmutableCopyBuilder() = MutFlow.underTest { sourceTests.mutableSiblingDoesNotExposeImmutableCopyBuilder() }
 
     @Test
-    fun generatedFactoryEncoderAndCopyPreserveEveryFieldAndActualBody() = MutFlow.underTest { sourceTests.generatedFactoryEncoderAndCopyPreserveEveryFieldAndActualBody() }
+    fun generatedFactoryEncoderAndCopyPreserveEveryField() = MutFlow.underTest { sourceTests.generatedFactoryEncoderAndCopyPreserveEveryField() }
 
     @Test
     fun generatedSignednessAnnotationRemainsAttachedToItsField() = MutFlow.underTest { sourceTests.generatedSignednessAnnotationRemainsAttachedToItsField() }

@@ -14,23 +14,26 @@ class GeneratedCodeTest {
     @Test
     fun framedAndFixedViewsUseGeneratedCommonContracts() {
         val packet = PacketSchemaView.create(marker = 7)
-        val scalar = ScalarSchema.create(value = 42)
+        val scalar = ScalarSchemaView.create(value = 42)
 
         assertEquals(7, PacketSchemaView.decode(packet.raw).getOrThrow().marker)
         assertEquals(42, scalar.value)
+        assertEquals(42, scalar.copy().value)
+        assertEquals(43, scalar.copy(value = 43).value)
+        assertEquals(7, packet.copy().marker)
     }
 
     @Test
     fun generatedFixedHolderEncodesAndDecodesInCallerOwnedStorage() {
         val raw = byteArrayOf(0xFF.toByte())
-        val source = ScalarSchemaHolder(value = 42)
+        val source = ScalarSchemaViewHolder(value = 42)
         val writer = KompactCursor(raw)
 
         assertEquals(KompactCursor.STATUS_OK, source.encodeFrom(writer))
         assertContentEquals(byteArrayOf(42), raw)
         assertEquals(8, writer.position)
 
-        val decoded = ScalarSchemaHolder()
+        val decoded = ScalarSchemaViewHolder()
         val reader = KompactCursor(raw)
 
         assertEquals(KompactCursor.STATUS_OK, decoded.decodeInto(reader))
@@ -41,7 +44,7 @@ class GeneratedCodeTest {
     @Test
     fun generatedFixedHolderRejectsOutOfRangeValueWithoutMutatingOutput() {
         val raw = byteArrayOf(0x55)
-        val holder = ScalarSchemaHolder(value = 256)
+        val holder = ScalarSchemaViewHolder(value = 256)
         val cursor = KompactCursor(raw)
 
         assertEquals(KompactCursor.STATUS_INVALID_VALUE, holder.encodeFrom(cursor))
@@ -53,7 +56,7 @@ class GeneratedCodeTest {
     @Test
     fun generatedFixedHolderRejectsTruncatedInputWithoutChangingHolder() {
         val raw = byteArrayOf(0x2A)
-        val holder = ScalarSchemaHolder(value = 9)
+        val holder = ScalarSchemaViewHolder(value = 9)
         val cursor = KompactCursor(raw)
         cursor.reset(raw, endBit = 7)
 

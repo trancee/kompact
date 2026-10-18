@@ -134,10 +134,9 @@ class FakePlatformInfo : PlatformInfo {
 fun createTestEnvironment(
     codeGenerator: CodeGenerator = FakeCodeGenerator(),
     logger: KSPLogger = FakeKSPLogger(),
-    options: Map<String, String> = emptyMap(),
 ): SymbolProcessorEnvironment =
     SymbolProcessorEnvironment(
-        options = options,
+        options = emptyMap(),
         kotlinVersion = KotlinVersion(2, 4, 20),
         codeGenerator = codeGenerator,
         logger = logger,

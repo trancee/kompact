@@ -136,7 +136,7 @@ class FramedClassGeneratorTest {
                     ),
             )
 
-        val output = FramedClassGenerator.generateExpect(spec)
+        val output = FramedClassGenerator.generate(spec)
         val holder = FramedHolderGenerator.buildBorrowedHolder(spec).toString()
         val decoder = FramedHolderGenerator.buildBorrowedDecodeInto(spec).toString()
         val encoder = FramedHolderGenerator.buildBorrowedEncodeFrom(spec).toString()
@@ -260,8 +260,8 @@ class FramedClassGeneratorTest {
                 fields = listOf(field("bytes", KompactFieldType.Blob, 0, 0)),
             )
 
-        val stringOutput = FramedClassGenerator.generateExpect(stringSpec)
-        val blobOutput = FramedClassGenerator.generateExpect(blobSpec)
+        val stringOutput = FramedClassGenerator.generate(stringSpec)
+        val blobOutput = FramedClassGenerator.generate(blobSpec)
 
         assertTrue(stringOutput.contains("probeCursor.skipByteRange(8, validateUtf8 = true)"))
         assertTrue(blobOutput.contains("probeCursor.skipByteRange(8)"))

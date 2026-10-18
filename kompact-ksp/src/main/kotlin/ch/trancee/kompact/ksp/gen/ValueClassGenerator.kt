@@ -21,10 +21,11 @@ private val JVM_INLINE = ClassName("kotlin.jvm", "JvmInline")
 private val BYTE_ARRAY_TYPE = ClassName("kotlin", "ByteArray")
 
 /**
- * Generates fixed-layout value-class sources and delegates framed schemas to [FramedClassGenerator].
+ * Generates one common Kotlin source per schema and delegates framed schemas to [FramedClassGenerator].
  *
- * Fixed-layout output uses KotlinPoet and keeps the raw scalar read/write path, immutable views, and
- * opt-in mutable siblings. Framed schemas instead generate bounded regular view classes.
+ * Fixed-layout output is a `@JvmInline` value class `<Schema>View` that keeps the raw scalar read/write
+ * path, plus an opt-in `Mutable<Schema>View` sibling. Framed schemas instead generate bounded regular
+ * view classes.
  */
 internal object ValueClassGenerator {
     private fun requireValidLayout(spec: ModelSpec) {
@@ -48,75 +49,21 @@ internal object ValueClassGenerator {
         )
     }
 
-    // ------------------------------------------------------------------
-    // Public API — one entry point per output kind (common / jvm / ios)
-    // ------------------------------------------------------------------
-
-    /** Generates the `expect value class` + shared `encodeXxx()` function. */
-    fun generateExpect(spec: ModelSpec): String {
-        requireValidLayout(spec)
-        if (spec.framed) return FramedClassGenerator.generateExpect(spec)
-        spec.fields.forEach(::requireSupportedType)
-        return com.squareup.kotlinpoet.FileSpec
-            .builder(spec.packageName, spec.className)
-            .addType(buildExpect(spec))
-            .apply { if (spec.mutable) addType(buildMutableExpect(spec)) }
-            .apply { ValueHolderGenerator.addTo(this, spec) }
-            .addFunction(buildEncodeFunction(spec))
-            .build()
-            .toString()
-    }
-
-    /** Generates the shared encoder for a fixed-layout expect contract supplied by the consumer. */
-    fun generateCommonEncoder(spec: ModelSpec): String {
-        requireValidLayout(spec)
-        require(!spec.framed) { "Framed models do not use the fixed-layout shared encoder" }
-        spec.fields.forEach(::requireSupportedType)
-        return com.squareup.kotlinpoet.FileSpec
-            .builder(spec.packageName, "${spec.className}Encoder")
-            .apply { ValueHolderGenerator.addTo(this, spec) }
-            .addFunction(buildEncodeFunction(spec))
-            .build()
-            .toString()
-    }
-
-    /** Generates the `@JvmInline actual value class` for jvmMain. */
-    fun generateJvmActual(spec: ModelSpec): String {
-        requireValidLayout(spec)
-        if (spec.framed) return FramedClassGenerator.generateJvmActual(spec)
-        return com.squareup.kotlinpoet.FileSpec
-            .builder(spec.packageName, "${spec.className}JvmActual")
-            .addType(buildActual(spec, isJvm = true))
-            .apply { if (spec.mutable) addType(buildMutableActual(spec, isJvm = true)) }
-            .build()
-            .toString()
-    }
-
-    /** Generates the plain `actual value class` for iosMain. */
-    fun generateIosActual(spec: ModelSpec): String {
-        requireValidLayout(spec)
-        if (spec.framed) return FramedClassGenerator.generateIosActual(spec)
-        return com.squareup.kotlinpoet.FileSpec
-            .builder(spec.packageName, "${spec.className}IosActual")
-            .addType(buildActual(spec, isJvm = false))
-            .apply { if (spec.mutable) addType(buildMutableActual(spec, isJvm = false)) }
-            .build()
-            .toString()
-    }
-
     /**
-     * Generates the plain `actual value class` for androidNativeArm64Main.
-     * Kotlin/Native has no `@JvmInline`, so this shares the plain-actual body
-     * (`buildActual(isJvm=false)`) with [generateIosActual]; only the FileSpec
-     * name differs so generated output is distinguishable per target.
+     * Generates the single common source file for [spec]: the `<Schema>View` value class, the optional
+     * `Mutable<Schema>View` sibling, the cursor holder, and the internal encoder. Framed schemas are
+     * delegated to [FramedClassGenerator].
      */
-    fun generateAndroidArm64Actual(spec: ModelSpec): String {
+    fun generate(spec: ModelSpec): String {
         requireValidLayout(spec)
-        if (spec.framed) return FramedClassGenerator.generateAndroidArm64Actual(spec)
+        if (spec.framed) return FramedClassGenerator.generate(spec)
+        spec.fields.forEach(::requireSupportedType)
         return com.squareup.kotlinpoet.FileSpec
-            .builder(spec.packageName, "${spec.className}AndroidArm64Actual")
-            .addType(buildActual(spec, isJvm = false))
-            .apply { if (spec.mutable) addType(buildMutableActual(spec, isJvm = false)) }
+            .builder(spec.packageName, spec.generatedName())
+            .addType(buildView(spec))
+            .apply { if (spec.mutable) addType(buildView(spec, isMutableSibling = true)) }
+            .apply { ValueHolderGenerator.addTo(this, spec) }
+            .addFunction(buildEncodeFunction(spec))
             .build()
             .toString()
     }
@@ -125,77 +72,29 @@ internal object ValueClassGenerator {
     // TypeSpec builders
     // ------------------------------------------------------------------
 
-    private fun buildExpect(
+    /** Builds the immutable view or its opt-in `Mutable<Schema>View` sibling (ADR-0006 D3). */
+    private fun buildView(
         spec: ModelSpec,
         isMutableSibling: Boolean = false,
     ): TypeSpec {
-        val simpleName = if (isMutableSibling) "Mutable${spec.className}" else spec.className
+        val simpleName = if (isMutableSibling) "Mutable${spec.generatedName()}" else spec.generatedName()
         val className = ClassName(spec.packageName, simpleName)
         val builder =
             TypeSpec
                 .classBuilder(simpleName)
-                .addModifiers(KModifier.PUBLIC, KModifier.EXPECT, KModifier.VALUE)
+                .addModifiers(KModifier.PUBLIC, KModifier.VALUE)
+                .addAnnotation(AnnotationSpec.builder(JVM_INLINE).build())
                 .addAnnotation(AnnotationSpec.builder(KOMPAT_PREVIEW).build())
                 .primaryConstructor(
                     FunSpec
                         .constructorBuilder()
                         .addParameter("raw", BYTE_ARRAY_TYPE)
                         .build(),
-                ).addKdoc(
-                    "F-001: platform actuals enforce `require(raw.size >= %L)` in init-blocks.\n",
-                    spec.minBufferSize,
                 )
 
         builder.addProperty(
             PropertySpec
                 .builder("raw", BYTE_ARRAY_TYPE, KModifier.PUBLIC)
-                .build(),
-        )
-
-        if (spec.fields.isNotEmpty()) {
-            builder.addType(buildCompanion(spec, className, isActual = false))
-        }
-
-        if (!isMutableSibling) {
-            builder.addFunction(buildCopyFunction(spec))
-        }
-
-        spec.fields.forEach { f ->
-            builder.addProperty(if (isMutableSibling) buildMutableExpectProperty(f) else buildExpectProperty(f))
-        }
-
-        return builder.build()
-    }
-
-    /** Builds the opt-in `Mutable<ClassName>` expectation (ADR-0006 D3). */
-    private fun buildMutableExpect(spec: ModelSpec): TypeSpec = buildExpect(spec, isMutableSibling = true)
-
-    private fun buildActual(
-        spec: ModelSpec,
-        isJvm: Boolean,
-        isMutableSibling: Boolean = false,
-    ): TypeSpec {
-        val simpleName = if (isMutableSibling) "Mutable${spec.className}" else spec.className
-        val className = ClassName(spec.packageName, simpleName)
-        val builder =
-            TypeSpec
-                .classBuilder(simpleName)
-                .addModifiers(KModifier.PUBLIC, KModifier.ACTUAL, KModifier.VALUE)
-                .addAnnotation(AnnotationSpec.builder(KOMPAT_PREVIEW).build())
-                .primaryConstructor(
-                    FunSpec
-                        .constructorBuilder()
-                        .addParameter("raw", BYTE_ARRAY_TYPE)
-                        .build(),
-                )
-
-        if (isJvm) {
-            builder.addAnnotation(AnnotationSpec.builder(JVM_INLINE).build())
-        }
-
-        builder.addProperty(
-            PropertySpec
-                .builder("raw", BYTE_ARRAY_TYPE, KModifier.PUBLIC, KModifier.ACTUAL)
                 .initializer("raw")
                 .build(),
         )
@@ -214,125 +113,71 @@ internal object ValueClassGenerator {
         )
 
         if (spec.fields.isNotEmpty()) {
-            builder.addType(buildCompanion(spec, className, isActual = true))
+            builder.addType(buildCompanion(spec, className))
         }
 
         if (!isMutableSibling) {
-            builder.addFunction(buildCopyFunction(spec, KModifier.PUBLIC, KModifier.ACTUAL))
+            builder.addFunction(buildCopyFunction(spec))
         }
 
         spec.fields.forEach { f ->
-            builder.addProperty(
-                if (isMutableSibling) buildMutableActualProperty(f) else buildActualProperty(f),
-            )
+            builder.addProperty(buildProperty(f, mutable = isMutableSibling))
         }
 
         return builder.build()
     }
 
-    /** Builds the opt-in `Mutable<ClassName>` actual (ADR-0006 D3). */
-    private fun buildMutableActual(
-        spec: ModelSpec,
-        isJvm: Boolean,
-    ): TypeSpec = buildActual(spec, isJvm, isMutableSibling = true)
-
     // ------------------------------------------------------------------
     // PropertySpec builders
     // ------------------------------------------------------------------
 
-    private fun buildExpectProperty(f: KompactFieldInfo): PropertySpec =
+    /**
+     * Builds a field accessor. ADR-0006 D1: views are immutable by default — `val`, no write-through
+     * setter. The `Mutable<Schema>View` sibling adds a setter that delegates to `KompactRuntime.writeBits*`
+     * and mutates `raw` in place (ADR-0006 D3 bounded escape hatch).
+     */
+    private fun buildProperty(
+        f: KompactFieldInfo,
+        mutable: Boolean,
+    ): PropertySpec =
         PropertySpec
             .builder(f.name, FieldCodeGenerator.resolveTypeName(f.type), KModifier.PUBLIC)
             .addAnnotation(buildFieldAnnotation(f))
-            .mutable(false)
-            .build()
-
-    private fun buildActualProperty(f: KompactFieldInfo): PropertySpec {
-        requireSupportedType(f)
-        return PropertySpec
-            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.type), KModifier.PUBLIC, KModifier.ACTUAL)
-            .addAnnotation(buildFieldAnnotation(f))
-            // ADR-0006 D1: views are immutable by default — `val`, no write-through setter.
-            // The opt-in `Mutable<ClassName>` sibling re-enables mutation (slice 3).
-            .mutable(false)
+            .mutable(mutable)
             .getter(
                 FunSpec
                     .getterBuilder()
                     .addStatement("return %L", FieldCodeGenerator.readCall(f))
                     .build(),
-            ).build()
-    }
+            ).apply {
+                if (mutable) {
+                    setter(
+                        FunSpec
+                            .setterBuilder()
+                            .addParameter("value", FieldCodeGenerator.resolveTypeName(f.type))
+                            .addStatement("%L", FieldCodeGenerator.writeCall(f))
+                            .build(),
+                    )
+                }
+            }.build()
 
-    /**
-     * Builds the shared `companion object` holding the `create(...)` factory.
-     * [isActual] selects the `expect` declaration (abstract, no body) from the
-     * `actual` declaration (concrete, delegating to `encode<ClassName>()`).
-     */
+    /** Builds the `companion object` holding the `create(...)` factory that delegates to the encoder. */
     private fun buildCompanion(
         spec: ModelSpec,
         className: ClassName,
-        isActual: Boolean,
     ): TypeSpec {
-        val companion = TypeSpec.companionObjectBuilder()
-        if (isActual) companion.addModifiers(KModifier.ACTUAL)
         val create =
             FunSpec
                 .builder("create")
-                .addModifiers(
-                    *(
-                        if (isActual) {
-                            listOf(
-                                KModifier.PUBLIC,
-                                KModifier.ACTUAL,
-                            )
-                        } else {
-                            listOf(KModifier.PUBLIC)
-                        }
-                    ).toTypedArray(),
-                ).apply {
+                .addModifiers(KModifier.PUBLIC)
+                .apply {
                     spec.fields.forEach { f ->
                         addParameter(f.name, FieldCodeGenerator.resolveTypeName(f.type))
                     }
                 }.returns(className)
-                .apply {
-                    if (isActual) {
-                        addStatement("return %T(%L)", className, buildEncodeCall(spec))
-                    }
-                }.build()
-        return companion.addFunction(create).build()
-    }
-
-    /** `var` for the `Mutable<ClassName>` sibling — abstract on `expect` (no body). */
-    private fun buildMutableExpectProperty(f: KompactFieldInfo): PropertySpec =
-        PropertySpec
-            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.type), KModifier.PUBLIC)
-            .addAnnotation(buildFieldAnnotation(f))
-            .mutable(true)
-            .build()
-
-    /**
-     * `var` with a write-through setter for the `Mutable<ClassName>` sibling
-     * (ADR-0006 D3 bounded escape hatch). The getter reads raw bits; the setter
-     * delegates to `KompactRuntime.writeBits*` and mutates `raw` in place.
-     */
-    private fun buildMutableActualProperty(f: KompactFieldInfo): PropertySpec {
-        requireSupportedType(f)
-        return PropertySpec
-            .builder(f.name, FieldCodeGenerator.resolveTypeName(f.type), KModifier.PUBLIC, KModifier.ACTUAL)
-            .addAnnotation(buildFieldAnnotation(f))
-            .mutable(true)
-            .getter(
-                FunSpec
-                    .getterBuilder()
-                    .addStatement("return %L", FieldCodeGenerator.readCall(f))
-                    .build(),
-            ).setter(
-                FunSpec
-                    .setterBuilder()
-                    .addParameter("value", FieldCodeGenerator.resolveTypeName(f.type))
-                    .addStatement("%L", FieldCodeGenerator.writeCall(f))
-                    .build(),
-            ).build()
+                .addStatement("return %T(%L)", className, buildEncodeCall(spec))
+                .build()
+        return TypeSpec.companionObjectBuilder().addFunction(create).build()
     }
 
     private fun buildFieldAnnotation(f: KompactFieldInfo): AnnotationSpec {
@@ -348,18 +193,17 @@ internal object ValueClassGenerator {
     }
 
     // ------------------------------------------------------------------
-    // Encode function (shared by JVM + iOS create() delegates)
+    // Encode function (shared by create() and copy())
     // ------------------------------------------------------------------
 
     private fun buildEncodeFunction(spec: ModelSpec): FunSpec {
         val builder =
             FunSpec
-                .builder("encode${spec.className}")
+                .builder("encode${spec.generatedName()}")
                 .addModifiers(KModifier.INTERNAL)
                 .returns(BYTE_ARRAY_TYPE)
 
         spec.fields.sortedBy { it.bitOffset }.forEach { f ->
-            requireSupportedType(f)
             builder.addParameter(f.name, FieldCodeGenerator.resolveTypeName(f.type))
         }
 
@@ -374,45 +218,31 @@ internal object ValueClassGenerator {
 
     private fun buildEncodeCall(spec: ModelSpec): String {
         val args = spec.fields.sortedBy { it.bitOffset }.joinToString { it.name }
-        return "encode${spec.className}($args)"
+        return "encode${spec.generatedName()}($args)"
     }
 
     /**
      * `copy(field = this.field, ...)` member for the immutable default view
      * (ADR-0006 D2). Re-encodes the (possibly overridden) field values into a
-     * fresh buffer via `encode<ClassName>()` and wraps it, preserving all other
-     * bits. On `expect`, it is an abstract member; `actual`s get the body that
-     * delegates to [buildEncodeCall].
+     * fresh buffer via `encode<Schema>View()` and wraps it, preserving all other
+     * bits.
      */
-    private fun buildCopyFunction(
-        spec: ModelSpec,
-        vararg modifiers: KModifier,
-    ): FunSpec {
-        val className = ClassName(spec.packageName, spec.className)
-        val params = spec.fields.sortedBy { it.bitOffset }
+    private fun buildCopyFunction(spec: ModelSpec): FunSpec {
+        val className = ClassName(spec.packageName, spec.generatedName())
         return FunSpec
             .builder("copy")
-            .addModifiers(*modifiers)
+            .addModifiers(KModifier.PUBLIC)
             .apply {
-                params.forEach { f ->
-                    val param =
+                spec.fields.sortedBy { it.bitOffset }.forEach { f ->
+                    addParameter(
                         ParameterSpec
                             .builder(f.name, FieldCodeGenerator.resolveTypeName(f.type))
-                    // KMP: `actual` declarations cannot carry default arguments
-                    // — those live in the `expect` only. Defaults are emitted on
-                    // the expect copy and omitted for the actual so the
-                    // generated JVM/iOS actual declarations compile
-                    // (ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS).
-                    if (KModifier.ACTUAL !in modifiers) {
-                        param.defaultValue(CodeBlock.of("this.%L", f.name))
-                    }
-                    addParameter(param.build())
+                            .defaultValue(CodeBlock.of("this.%L", f.name))
+                            .build(),
+                    )
                 }
             }.returns(className)
-            .apply {
-                if (KModifier.ACTUAL in modifiers) {
-                    addStatement("return %T(%L)", className, buildEncodeCall(spec))
-                }
-            }.build()
+            .addStatement("return %T(%L)", className, buildEncodeCall(spec))
+            .build()
     }
 }

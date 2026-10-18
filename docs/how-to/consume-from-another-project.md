@@ -165,10 +165,11 @@ kotlin {
 }
 ```
 
-Add any other supported targets required by your application. The plugin
-supports JVM, Android JVM, iOS Arm64, iOS Simulator Arm64, and Android Native
-Arm64. Do not also apply standard target-specific KSP processing to the same
-Kompact schemas. See [How to define a framed schema](define-framed-schema.md)
+Add any other targets required by your application. The snapshot plugin
+registers one generated common source per schema in `commonMain` and does not
+restrict Kotlin targets; the runtime must still publish a variant for each
+target you add. Do not also apply standard target-specific KSP processing to
+the same Kompact schemas. See [How to define a framed schema](define-framed-schema.md)
 for a complete schema example.
 
 ## Verify the dependency

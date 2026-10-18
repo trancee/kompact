@@ -29,6 +29,16 @@ Use a [fixed-layout schema](how-to/define-message.md) when offsets are stable.
 Use a [sequential framed schema](how-to/define-framed-schema.md) when fields
 have variable size.
 
+## Generated code is common Kotlin
+
+Both schema kinds are regular annotated classes. The code-generation plugin
+runs the processor once over `commonMain` and writes one ordinary common file
+per schema: a schema `Name` generates `NameView` (a `@JvmInline` value class
+for fixed layouts, a regular class for framed layouts). Kompact uses no
+`expect`/`actual` declarations, so generated sources need no platform-specific
+source sets or compiler flags. See
+[ADR-0009](adr/0009-common-only-code-generation.md).
+
 ## Keep a decode inside its boundary
 
 Bytes from a transport or file may be truncated or malformed. Checked scalar

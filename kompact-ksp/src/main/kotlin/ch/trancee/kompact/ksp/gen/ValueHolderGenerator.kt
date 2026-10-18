@@ -28,7 +28,7 @@ internal object ValueHolderGenerator {
     }
 
     fun buildHolder(spec: ModelSpec): TypeSpec {
-        val className = "${spec.className}Holder"
+        val className = "${spec.generatedName()}Holder"
         val constructor =
             FunSpec.constructorBuilder().apply {
                 spec.fields.sortedBy { it.bitOffset }.forEach { field ->
@@ -44,7 +44,7 @@ internal object ValueHolderGenerator {
             .classBuilder(className)
             .addModifiers(KModifier.PUBLIC)
             .addAnnotation(KOMPAT_PREVIEW)
-            .addKdoc("Caller-reusable primitive state for %L cursor operations.\n", spec.className)
+            .addKdoc("Caller-reusable primitive state for %L cursor operations.\n", spec.generatedName())
             .primaryConstructor(constructor)
             .apply {
                 spec.fields.sortedBy { it.bitOffset }.forEach { field ->
@@ -69,7 +69,7 @@ internal object ValueHolderGenerator {
         }
 
     fun buildDecodeInto(spec: ModelSpec): FunSpec {
-        val holderName = ClassName(spec.packageName, "${spec.className}Holder")
+        val holderName = ClassName(spec.packageName, "${spec.generatedName()}Holder")
         val totalBits = spec.minBufferSize * 8
         val fields = spec.fields.sortedBy { it.bitOffset }
         val code = CodeBlock.builder()
@@ -136,7 +136,7 @@ internal object ValueHolderGenerator {
     }
 
     fun buildEncodeFrom(spec: ModelSpec): FunSpec {
-        val holderName = ClassName(spec.packageName, "${spec.className}Holder")
+        val holderName = ClassName(spec.packageName, "${spec.generatedName()}Holder")
         val totalBits = spec.minBufferSize * 8
         val fields = spec.fields.sortedBy { it.bitOffset }
         val code = CodeBlock.builder()

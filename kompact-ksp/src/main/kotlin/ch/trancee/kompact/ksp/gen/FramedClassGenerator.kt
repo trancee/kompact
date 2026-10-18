@@ -19,91 +19,45 @@ internal object FramedClassGenerator {
     private val FRAME_RESULT = ClassName("ch.trancee.kompact.runtime", "KompactFrameResult")
     private val BYTE_SLICE = ClassName("ch.trancee.kompact.runtime", "KompactByteSlice")
     private val WRITER = ClassName("ch.trancee.kompact.runtime", "KompactWriter")
+    private val DECODE_EXCEPTION = ClassName("ch.trancee.kompact.runtime", "KompactDecodeException")
     private val KOMPAT_PREVIEW = ClassName("ch.trancee.kompact.annotations", "KompactPreview")
 
-    private fun ModelSpec.generatedName(): String = "${className}View"
-
-    fun generateExpect(spec: ModelSpec): String =
+    fun generate(spec: ModelSpec): String =
         com.squareup.kotlinpoet.FileSpec
             .builder(spec.packageName, spec.generatedName())
-            .addType(buildExpect(spec))
+            .addType(buildView(spec))
             .apply { FramedHolderGenerator.addTo(this, spec) }
             .build()
             .toString()
 
-    fun generateJvmActual(spec: ModelSpec): String = generateActual(spec, "${spec.generatedName()}JvmActual")
-
-    fun generateIosActual(spec: ModelSpec): String = generateActual(spec, "${spec.generatedName()}IosActual")
-
-    fun generateAndroidArm64Actual(spec: ModelSpec): String =
-        generateActual(spec, "${spec.generatedName()}AndroidArm64Actual")
-
-    private fun generateActual(
-        spec: ModelSpec,
-        fileName: String,
-    ): String =
-        com.squareup.kotlinpoet.FileSpec
-            .builder(spec.packageName, fileName)
-            .addType(buildActual(spec))
-            .build()
-            .toString()
-
-    private fun buildExpect(spec: ModelSpec): TypeSpec {
+    private fun buildView(spec: ModelSpec): TypeSpec {
         val modelName = ClassName(spec.packageName, spec.generatedName())
         val type =
             TypeSpec
                 .classBuilder(spec.generatedName())
-                .addModifiers(KModifier.PUBLIC, KModifier.EXPECT)
+                .addModifiers(KModifier.PUBLIC)
                 .addAnnotation(KOMPAT_PREVIEW)
-                .primaryConstructor(frameConstructor(actual = false))
-                .addProperty(PropertySpec.builder("raw", BYTE_ARRAY).build())
-                .addProperty(PropertySpec.builder("start", ClassName("kotlin", "Int")).build())
-                .addProperty(PropertySpec.builder("end", ClassName("kotlin", "Int")).build())
-                .addType(buildCompanion(spec, modelName, actual = false))
-                .addFunction(buildCopy(spec, modelName, actual = false))
-
-        spec.orderedFields().forEach { field ->
-            type.addProperty(
-                PropertySpec
-                    .builder(field.name, FramedTypeNames.propertyType(field.type), KModifier.PUBLIC)
-                    .build(),
-            )
-            if (field.type == KompactFieldType.Blob) {
-                type.addProperty(PropertySpec.builder("${field.name}Slice", BYTE_SLICE, KModifier.PUBLIC).build())
-            }
-        }
-        return type.build()
-    }
-
-    private fun buildActual(spec: ModelSpec): TypeSpec {
-        val modelName = ClassName(spec.packageName, spec.generatedName())
-        val type =
-            TypeSpec
-                .classBuilder(spec.generatedName())
-                .addModifiers(KModifier.PUBLIC, KModifier.ACTUAL)
-                .addAnnotation(KOMPAT_PREVIEW)
-                .primaryConstructor(frameConstructor(actual = true))
+                .primaryConstructor(frameConstructor())
                 .addProperty(
                     PropertySpec
                         .builder(
                             "raw",
                             BYTE_ARRAY,
                             KModifier.PUBLIC,
-                            KModifier.ACTUAL,
                         ).initializer("raw")
                         .build(),
                 ).addProperty(
                     PropertySpec
-                        .builder("start", ClassName("kotlin", "Int"), KModifier.PUBLIC, KModifier.ACTUAL)
+                        .builder("start", INT, KModifier.PUBLIC)
                         .initializer("start")
                         .build(),
                 ).addProperty(
                     PropertySpec
-                        .builder("end", ClassName("kotlin", "Int"), KModifier.PUBLIC, KModifier.ACTUAL)
+                        .builder("end", INT, KModifier.PUBLIC)
                         .initializer("end")
                         .build(),
-                ).addType(buildCompanion(spec, modelName, actual = true))
-                .addFunction(buildCopy(spec, modelName, actual = true))
+                ).addType(buildCompanion(spec, modelName))
+                .addFunction(buildCopy(spec, modelName))
 
         val initializer =
             CodeBlock
@@ -116,13 +70,13 @@ internal object FramedClassGenerator {
                 initializer.addStatement("this.%N = frame.readBlob(%L)", backingName, field.lengthPrefixWidth)
                 type.addProperty(
                     PropertySpec
-                        .builder("${field.name}Slice", BYTE_SLICE, KModifier.PUBLIC, KModifier.ACTUAL)
+                        .builder("${field.name}Slice", BYTE_SLICE, KModifier.PUBLIC)
                         .getter(FunSpec.getterBuilder().addStatement("return %N", backingName).build())
                         .build(),
                 )
                 type.addProperty(
                     PropertySpec
-                        .builder(field.name, BYTE_ARRAY, KModifier.PUBLIC, KModifier.ACTUAL)
+                        .builder(field.name, BYTE_ARRAY, KModifier.PUBLIC)
                         .getter(
                             FunSpec
                                 .getterBuilder()
@@ -150,7 +104,6 @@ internal object FramedClassGenerator {
                         field.name,
                         FramedTypeNames.propertyType(field.type),
                         KModifier.PUBLIC,
-                        KModifier.ACTUAL,
                     ).getter(FunSpec.getterBuilder().addStatement("return %N", backingName).build())
                     .build(),
             )
@@ -160,105 +113,75 @@ internal object FramedClassGenerator {
         return type.build()
     }
 
-    private fun frameConstructor(actual: Boolean): FunSpec =
+    private fun frameConstructor(): FunSpec =
         FunSpec
             .constructorBuilder()
-            .apply { if (actual) addModifiers(KModifier.ACTUAL) }
             .addParameter("raw", BYTE_ARRAY)
-            .addParameter("start", ClassName("kotlin", "Int"))
-            .addParameter("end", ClassName("kotlin", "Int"))
+            .addParameter("start", INT)
+            .addParameter("end", INT)
             .build()
 
     private fun buildCompanion(
         spec: ModelSpec,
         modelName: ClassName,
-        actual: Boolean,
     ): TypeSpec {
-        val companion = TypeSpec.companionObjectBuilder()
-        if (actual) companion.addModifiers(KModifier.ACTUAL)
         val decode =
             FunSpec
                 .builder("decode")
-                .addModifiers(*if (actual) arrayOf(KModifier.PUBLIC, KModifier.ACTUAL) else arrayOf(KModifier.PUBLIC))
+                .addModifiers(KModifier.PUBLIC)
                 .addParameter("raw", BYTE_ARRAY)
-                .apply {
-                    addParameter(
-                        ParameterSpec
-                            .builder("start", INT)
-                            .apply { if (!actual) defaultValue("0") }
-                            .build(),
-                    )
-                    addParameter(
-                        ParameterSpec
-                            .builder("end", INT)
-                            .apply { if (!actual) defaultValue("raw.size") }
-                            .build(),
-                    )
-                }.returns(FRAME_RESULT.parameterizedBy(modelName))
-                .apply {
-                    if (actual) {
-                        beginControlFlow("return try")
-                        addStatement("%T.Success(%T(raw, start, end))", FRAME_RESULT, modelName)
-                        nextControlFlow(
-                            "catch (failure: %T)",
-                            ClassName("ch.trancee.kompact.runtime", "KompactDecodeException"),
-                        )
-                        addStatement("%T.Failure(failure.error)", FRAME_RESULT)
-                        endControlFlow()
-                    }
-                }.build()
-        companion.addFunction(decode)
+                .addParameter(ParameterSpec.builder("start", INT).defaultValue("0").build())
+                .addParameter(ParameterSpec.builder("end", INT).defaultValue("raw.size").build())
+                .returns(FRAME_RESULT.parameterizedBy(modelName))
+                .beginControlFlow("return try")
+                .addStatement("%T.Success(%T(raw, start, end))", FRAME_RESULT, modelName)
+                .nextControlFlow("catch (failure: %T)", DECODE_EXCEPTION)
+                .addStatement("%T.Failure(failure.error)", FRAME_RESULT)
+                .endControlFlow()
+                .build()
 
         val create =
             FunSpec
                 .builder("create")
-                .addModifiers(*if (actual) arrayOf(KModifier.PUBLIC, KModifier.ACTUAL) else arrayOf(KModifier.PUBLIC))
+                .addModifiers(KModifier.PUBLIC)
                 .apply {
                     spec.orderedFields().forEach {
                         addParameter(it.name, FramedTypeNames.inputType(it.type))
                     }
-                }.returns(modelName)
-                .apply {
-                    if (actual) {
-                        addStatement("val writer = %T()", WRITER)
-                        spec.orderedFields().forEach { field ->
-                            addStatement("%L", FramedFieldCodeGenerator.writeExpression(field, field.name, "writer"))
-                        }
-                        addStatement("val raw = writer.build()")
-                        addStatement("return %T(raw, 0, raw.size)", modelName)
+                    addStatement("val writer = %T()", WRITER)
+                    spec.orderedFields().forEach { field ->
+                        addStatement("%L", FramedFieldCodeGenerator.writeExpression(field, field.name, "writer"))
                     }
-                }.build()
-        companion.addFunction(create)
-        return companion.build()
+                }.addStatement("val raw = writer.build()")
+                .addStatement("return %T(raw, 0, raw.size)", modelName)
+                .returns(modelName)
+                .build()
+        return TypeSpec
+            .companionObjectBuilder()
+            .addFunction(decode)
+            .addFunction(create)
+            .build()
     }
 
     private fun buildCopy(
         spec: ModelSpec,
         modelName: ClassName,
-        actual: Boolean,
     ): FunSpec {
         val fields = spec.orderedFields()
         return FunSpec
             .builder("copy")
-            .addModifiers(*if (actual) arrayOf(KModifier.PUBLIC, KModifier.ACTUAL) else arrayOf(KModifier.PUBLIC))
+            .addModifiers(KModifier.PUBLIC)
             .apply {
                 fields.forEach { field ->
                     addParameter(
                         ParameterSpec
                             .builder(field.name, FramedTypeNames.inputType(field.type))
-                            .apply { if (!actual) defaultValue("this.%N", field.name) }
+                            .defaultValue("this.%N", field.name)
                             .build(),
                     )
                 }
             }.returns(modelName)
-            .apply {
-                if (actual) {
-                    addStatement(
-                        "return %T.create(%L)",
-                        modelName,
-                        fields.joinToString { it.name },
-                    )
-                }
-            }.build()
+            .addStatement("return %T.create(%L)", modelName, fields.joinToString { it.name })
+            .build()
     }
 }

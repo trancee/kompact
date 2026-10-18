@@ -38,6 +38,7 @@ releases:
 | Immutable model views by default | [ADR-0006](adr/0006-immutable-default-models.md) |
 | Pre-1.0 versioning | [ADR-0007](adr/0007-pre-1-release-versioning.md) |
 | Sequential framed views | [ADR-0008](adr/0008-framed-generated-views.md) |
+| Common-only code generation | [ADR-0009](adr/0009-common-only-code-generation.md) |
 
 ### Technical research
 

@@ -3,6 +3,9 @@
 - **Status:** Accepted
 - **Date:** 2026-09-27
 - **Tags:** schema, wire, codegen
+- **Partially superseded by:** [ADR-0009](0009-common-only-code-generation.md)
+  (generated views are single common declarations; the plugin registers only
+  `commonMain` sources, and fixed-layout schemas also generate `<Name>View`)
 
 ## Context
 

@@ -39,13 +39,7 @@ public class BytePayloadSchema {
 }
 
 @KompactModel
-public expect value class ScalarSchema(public val raw: ByteArray) {
-    public companion object {
-        public fun create(value: Int): ScalarSchema
-    }
-
-    public fun copy(value: Int): ScalarSchema
-
+public class ScalarSchema {
     @KompactField(bitOffset = 0, bitWidth = 8)
-    public val value: Int
+    public val value: Int = 0
 }

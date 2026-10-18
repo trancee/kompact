@@ -3,6 +3,8 @@
 - **Status:** Accepted (implemented; performance measurements are not recorded).
 - **Tags:** api, bc-break, wire
 - **Superseded by:** none
+- **Amended by:** [ADR-0009](0009-common-only-code-generation.md) (generated
+  views are named `<Name>View`; the opt-in sibling is `Mutable<Name>View`)
 - **Supersedes:** [ADR-0001 — Mutable view classes: write-through `var` setters on `VehicleTelemetry`](0001-mutable-view-classes-with-write-through-setters.md)
 - **Reconsiders:** [ticket 07 — write/builder interface](../../.scratch/kompact-spec/issues/07-write-builder-interface.md) (the "generated value-class views are read-only" consequence that ADR-0001 deviated from)
 

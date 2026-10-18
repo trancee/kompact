@@ -8,7 +8,7 @@ import kotlin.test.Test
 @MutFlowTest
 class FramedScalarHolderGeneratorMutationTest {
     private val sourceTests = FramedScalarHolderGeneratorTest()
-    private val actualTests = FramedClassGeneratorActualTest()
+    private val viewTests = FramedClassGeneratorViewTest()
     private val framedTests = FramedClassGeneratorTest()
 
     @Test
@@ -23,6 +23,6 @@ class FramedScalarHolderGeneratorMutationTest {
     fun borrowedHolderGenerationCoversRangesRepeatsAndNestedFields() = MutFlow.underTest { framedTests.borrowedHolderGenerationCoversRangesRepeatsAndNestedFields() }
 
     @Test
-    fun platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() = MutFlow.underTest { actualTests.platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() }
+    fun commonViewExposesFramedDecodeCreateCopyAndCompletionContracts() = MutFlow.underTest { viewTests.commonViewExposesFramedDecodeCreateCopyAndCompletionContracts() }
 
 }

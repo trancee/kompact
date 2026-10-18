@@ -213,7 +213,7 @@ class KompactSymbolProcessorFramedTypeValidationTest {
 
     @Test
     fun process_framedModel_rejectsParameterizedNestedModel() {
-        val (processor, codeGen, logger) = createTestSetup(mode = "jvm")
+        val (processor, codeGen, logger) = createTestSetup()
         val model =
             FakeKSClassDeclaration(
                 simpleNameStr = "GenericChildFrame",

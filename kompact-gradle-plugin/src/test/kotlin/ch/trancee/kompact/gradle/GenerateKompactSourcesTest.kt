@@ -8,6 +8,7 @@ import java.nio.file.attribute.PosixFilePermission
 import org.gradle.api.GradleException
 import org.gradle.testfixtures.ProjectBuilder
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
@@ -138,7 +139,7 @@ class GenerateKompactSourcesTest {
     }
 
     @Test
-    fun generatesSourcesIntoCommonJvmIosAndAndroidNativeDirectories() {
+    fun generatesOneCommonViewSourcePerSchema() {
         val projectDirectory = Files.createTempDirectory("kompact-generation-task")
         try {
             val task = configuredTask(projectDirectory)
@@ -146,14 +147,20 @@ class GenerateKompactSourcesTest {
             task.generate()
             task.generate()
 
-            assertGeneratedSource(projectDirectory, "common", "PacketSchemaViewGen.kt")
-            assertGeneratedSource(projectDirectory, "common", "ScalarSchemaGenEncoder.kt")
-            assertGeneratedSource(projectDirectory, "jvm", "PacketSchemaViewGenJvm.kt")
-            assertGeneratedSource(projectDirectory, "jvm", "ScalarSchemaGenJvm.kt")
-            assertGeneratedSource(projectDirectory, "ios", "PacketSchemaViewGenIos.kt")
-            assertGeneratedSource(projectDirectory, "ios", "ScalarSchemaGenIos.kt")
-            assertGeneratedSource(projectDirectory, "androidArm64", "PacketSchemaViewGenAndroidArm64.kt")
-            assertGeneratedSource(projectDirectory, "androidArm64", "ScalarSchemaGenAndroidArm64.kt")
+            val generatedRoot = projectDirectory.resolve("generated").toFile()
+            assertEquals(
+                setOf(
+                    "example/BytePayloadSchemaView.kt",
+                    "example/ChildSchemaView.kt",
+                    "example/PacketSchemaView.kt",
+                    "example/ScalarSchemaView.kt",
+                ),
+                generatedRoot
+                    .walkTopDown()
+                    .filter { it.isFile }
+                    .map { it.relativeTo(generatedRoot).invariantSeparatorsPath }
+                    .toSet(),
+            )
         } finally {
             projectDirectory.toFile().deleteRecursively()
         }
@@ -224,7 +231,6 @@ class GenerateKompactSourcesTest {
                 .resolve("kompact/src/commonMain/kotlin/ch/trancee/kompact/annotations")
                 .toFile(),
         )
-        task.processorOptions.put("kompact.generate", "kmp")
         task.languageVersion.set("2.4")
         task.apiVersion.set("2.4")
         task.allWarningsAsErrors.set(false)
@@ -248,15 +254,6 @@ class GenerateKompactSourcesTest {
                 System.setProperty(propertyName, previousValue)
             }
         }
-    }
-
-    private fun assertGeneratedSource(
-        projectDirectory: Path,
-        sourceSet: String,
-        fileName: String,
-    ) {
-        val generated = projectDirectory.resolve("generated/$sourceSet/example/$fileName")
-        assertTrue(Files.exists(generated), "Expected generated source $generated.")
     }
 }
 

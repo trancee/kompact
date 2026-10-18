@@ -5,9 +5,11 @@ depend on earlier field values. If the message contains strings, blobs, nested
 messages, or repeated values, use the
 [sequential framed schema guide](define-framed-schema.md) instead.
 
-The `commonMain` generation setup in this guide uses the published `0.9.0`
-KMP plugin. Follow [Consume Kompact](consume-from-another-project.md) to
-configure the plugin and runtime dependencies.
+The regular-class schema in this guide requires the `0.10.0-SNAPSHOT`
+code-generation plugin; the published `0.9.0` plugin used an earlier
+hand-written declaration form. Follow
+[Consume Kompact](consume-from-another-project.md) to configure the snapshot
+plugin and runtime dependencies.
 
 ## 1. Choose the field positions
 
@@ -24,9 +26,11 @@ the schema so the wire positions are easy to review.
 
 ## 2. Add the common schema
 
-In a Kotlin Multiplatform module, declare the schema in `commonMain`. The
-Kompact Gradle plugin generates the platform actuals and encoder for this
-`expect value class`; apply it after the Kotlin Multiplatform plugin. See
+In a Kotlin Multiplatform module, declare the schema as a regular class in
+`commonMain`. The Kompact Gradle plugin reads the annotated properties and
+generates one common `SensorFrameView.kt` source containing the
+`SensorFrameView` value class, its factory, `copy`, and encoder; apply it
+after the Kotlin Multiplatform plugin. See
 [Consume Kompact](consume-from-another-project.md) for repository and dependency
 setup.
 
@@ -40,37 +44,37 @@ import ch.trancee.kompact.annotations.KompactModel
 import ch.trancee.kompact.annotations.KompactPreview
 
 @KompactModel
-public expect value class SensorFrame(public val raw: ByteArray) {
-    public companion object {
-        public fun create(status: Int, temperature: Int): SensorFrame
-    }
-
-    public fun copy(
-        status: Int = this.status,
-        temperature: Int = this.temperature,
-    ): SensorFrame
-
+public class SensorFrame {
     @KompactField(bitOffset = 0, bitWidth = 4)
-    public val status: Int
+    public val status: Int = 0
 
     @KompactField(bitOffset = 4, bitWidth = 12, signed = true)
-    public val temperature: Int
+    public val temperature: Int = 0
 }
 ```
+
+The schema class only describes the layout; its property initializers are
+placeholders and are never used on the wire. Do not mark the schema `expect`:
+the processor reports an error because it generates the `SensorFrameView`
+declaration itself.
 
 Use `bitWidth` for each field and set `signed = true` for two's-complement
 integers. `@KompactPreview` is required while the annotation API is preview.
 
 ## 3. Create, read, and update a frame
 
-The generated factory writes the fields in their declared positions. The
-generated getters read those same positions, and `copy` returns a new frame
-with the requested fields changed.
+The generated `SensorFrameView.create` factory writes the fields in their
+declared positions. The generated getters read those same positions, and
+`copy` returns a new frame with the requested fields changed; omitted
+arguments default to the current values.
 
 ```kotlin
-val frame = SensorFrame.create(status = 5, temperature = -12)
+val frame = SensorFrameView.create(status = 5, temperature = -12)
 check(frame.status == 5)
 check(frame.temperature == -12)
+
+val received = SensorFrameView(frame.raw.copyOf())
+check(received.temperature == -12)
 
 val updated = frame.copy(status = 2)
 check(updated.status == 2)
@@ -83,11 +87,12 @@ representative boundary values as well as the values used by your application.
 ## Mutability
 
 Views are immutable by default. If a workflow needs in-place writes, mark the
-schema `@KompactModel(mutable = true)` to generate a separate `MutableSensorFrame`
-with write-through `var` properties. Those setters store the low bits of the
-assigned value; validate application input before writing if truncation would
-be unsafe. Both views retain the supplied `ByteArray`, so code holding another
-reference to that array can still change the frame.
+schema `@KompactModel(mutable = true)` to generate a separate
+`MutableSensorFrameView` with write-through `var` properties. Those setters
+store the low bits of the assigned value; validate application input before
+writing if truncation would be unsafe. Both views retain the supplied `ByteArray`, so code holding another
+reference to that array can still change the frame. The `SensorFrameView`
+constructor requires at least the layout's byte length.
 
 ## Next steps
 

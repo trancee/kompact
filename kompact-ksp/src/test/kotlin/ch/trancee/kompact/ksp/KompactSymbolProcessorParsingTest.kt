@@ -54,9 +54,9 @@ class KompactSymbolProcessorParsingTest {
         processor.process(resolver)
 
         // Only the annotated field should be included in codegen
-        val expectContent = codeGen.generatedFiles["ch.trancee.test.MixedModelGen.kt"]!!
-        assertTrue(expectContent.contains("field"), "Should include annotated field")
-        assertTrue(!expectContent.contains("extra"), "Should NOT include unannotated field")
+        val content = codeGen.generatedFiles["ch.trancee.test.MixedModelView.kt"]!!
+        assertTrue(content.contains("field"), "Should include annotated field")
+        assertTrue(!content.contains("extra"), "Should NOT include unannotated field")
         assertTrue(logger.errors.isEmpty())
     }
 
@@ -111,8 +111,8 @@ class KompactSymbolProcessorParsingTest {
         processor.process(resolver)
 
         assertTrue(logger.errors.isEmpty())
-        val expectContent = codeGen.generatedFiles["ch.trancee.test.FullArgsModelGen.kt"]!!
-        assertTrue(expectContent.contains("encodeFullArgsModel"))
+        val content = codeGen.generatedFiles["ch.trancee.test.FullArgsModelView.kt"]!!
+        assertTrue(content.contains("encodeFullArgsModel"))
     }
 
     @Test
@@ -147,8 +147,8 @@ class KompactSymbolProcessorParsingTest {
         processor.process(resolver)
 
         // bitOffset defaults to 0 via as? Int ?: 0
-        val expectContent = codeGen.generatedFiles["ch.trancee.test.WrongTypeModelGen.kt"]!!
-        assertTrue(expectContent.contains("bitOffset = 0"), "bitOffset should default to 0")
+        val content = codeGen.generatedFiles["ch.trancee.test.WrongTypeModelView.kt"]!!
+        assertTrue(content.contains("bitOffset = 0"), "bitOffset should default to 0")
         assertTrue(logger.errors.isEmpty())
     }
 
@@ -220,7 +220,7 @@ class KompactSymbolProcessorParsingTest {
         processor.process(resolver)
 
         // The null-name arg should be filtered out, so bitOffset / bitWidth still work
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.NullNameModelGen.kt"))
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.NullNameModelView.kt"))
         assertTrue(logger.errors.isEmpty())
     }
 

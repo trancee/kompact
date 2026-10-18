@@ -164,7 +164,7 @@ class KompactSymbolProcessorFramedValidationTest {
 
     @Test
     fun process_framedModel_withNullableOptionalArgsUsesSafeDefaults() {
-        val (processor, codeGen, logger) = createTestSetup(mode = "jvm")
+        val (processor, codeGen, logger) = createTestSetup()
         val model =
             FakeKSClassDeclaration(
                 simpleNameStr = "DefaultedFrame",
@@ -197,7 +197,7 @@ class KompactSymbolProcessorFramedValidationTest {
         processor.process(FakeResolver(listOf(model)))
 
         assertTrue(logger.errors.isEmpty(), "omitted optional arguments should use declared defaults")
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.DefaultedFrameViewGenJvm.kt"))
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.DefaultedFrameView.kt"))
     }
 
     @Test

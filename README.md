@@ -48,7 +48,8 @@ modules to Maven Local and follow the
 ## Choose a schema
 
 - **Fixed layout:** use `bitOffset` and `bitWidth` when every field has a
-  stable position. Generated value-class views are described in
+  stable position. A regular schema class `Name` generates a `NameView`
+  value class, described in
   [How to define a fixed-layout schema](docs/how-to/define-message.md).
 - **Sequential framed layout:** use `order` and length/count prefixes when a
   message contains strings, byte arrays, nested messages, or repeated values.
@@ -82,7 +83,7 @@ The generated, per-symbol API reference is also available in
 | --- | --- |
 | `:kompact` | KMP runtime, annotations, and generated API documentation |
 | `:kompact-ksp` | KSP processor for fixed-layout and framed schemas |
-| `:kompact-gradle-plugin` | Common-source generation for supported KMP targets |
+| `:kompact-gradle-plugin` | Common-only source generation for KMP consumers |
 
 ## License
 

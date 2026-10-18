@@ -47,37 +47,9 @@ class KompactGradlePluginCompilerOptionsTest {
         assertTrue(failure.message.orEmpty().contains("expected Kotlin compiler option 'value'"))
     }
 
-    @Test
-    fun addsExpectActualCompilerArgumentToKotlinCompilerOptions() {
-        val project = ProjectBuilder.builder().build()
-        val arguments = project.objects.listProperty(String::class.java)
-
-        KompactGradlePlugin().addExpectActualCompilerArgument(
-            PropertyReceiver(arguments),
-            compatibility,
-        )
-
-        assertEquals(listOf("-Xexpect-actual-classes"), arguments.get())
-    }
-
-    @Test
-    fun rejectsCompilerOptionsWithoutAListProperty() {
-        val failure =
-            assertFailsWith<GradleException> {
-                KompactGradlePlugin().addExpectActualCompilerArgument(
-                    PropertyReceiver(Any()),
-                    compatibility,
-                )
-            }
-
-        assertTrue(failure.message.orEmpty().contains("expected Kotlin compiler freeCompilerArgs"))
-    }
-
     class PropertyReceiver(
         val value: Any?,
-    ) {
-        fun getFreeCompilerArgs(): Any? = value
-    }
+    )
 
     private companion object {
         const val compatibility = "Detected Kotlin Gradle Plugin 2.4.20 with KSP 2.3.12."

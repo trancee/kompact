@@ -39,8 +39,9 @@ depend on the API, call shape, compiler, and platform; see the
   `ByteArray`; borrowed slices and lazy repeated views avoid materializing
   values where their API documents borrowing. Some properties copy their
   payload, and no general zero-allocation guarantee is made.
-- **Platform actuals:** common declarations use multiplatform value-class
-  syntax; JVM actuals use `@JvmInline`, while Kotlin/Native actuals do not.
+- **No expect/actual:** runtime result types and generated views are common
+  `@JvmInline value class` declarations; Kotlin/Native ignores `@JvmInline`.
+  Each schema generates exactly one common source file.
 
 ## Project structure (at a glance)
 
@@ -55,7 +56,7 @@ kompact/                        the runtime library (JVM, Android JVM, iOS, Andr
 ├── src/commonMain/kotlin/…/generated/VehicleTelemetry.kt  ← example model
 └── api/                              ← committed ABI goldens (jvm/ + android/ + kompact.klib.api)
 kompact-ksp/                    the KSP code generator
-├── src/main/kotlin/…/gen/ValueClassGenerator.kt  ← generates expect/actual from annotations
+├── src/main/kotlin/…/gen/ValueClassGenerator.kt  ← generates <Name>View from annotated schemas
 └── api/kompact-ksp.api             ← committed KSP ABI golden
 kompact-gradle-plugin/           common-source KMP code-generation plugin
 └── id: ch.trancee.kompact.codegen
@@ -108,8 +109,9 @@ kotlin {
 ```
 
 The Kompact plugin must follow the Kotlin Multiplatform plugin in the `plugins`
-block. It runs common processing once and adds generated common/platform
-sources; do not add the standard KSP plugin for the same Kompact schemas.
+block. It runs common processing once and adds the generated sources to
+`commonMain` only; do not add the standard KSP plugin for the same Kompact
+schemas.
 To try unreleased changes, publish the current snapshot modules locally with
 the commands in the
 [consumer setup guide](../how-to/consume-from-another-project.md).
@@ -266,86 +268,54 @@ the block overload of `KompactFrame.decode` to receive a typed result.
 
 ## Defining a model
 
-### Hand-written (v1 reference)
+Declare a regular schema class in `commonMain`. The annotated properties
+describe the wire layout; their initializers are placeholders.
 
 ```kotlin
 @file:OptIn(KompactPreview::class)
-package ch.trancee.kompact.generated
+package example
 
 @KompactModel
-public expect value class SensorFrame(public val raw: ByteArray) {
-    public companion object {
-        public fun create(status: Int, battery: Int, temperature: Int): SensorFrame
-    }
-    @KompactField(bitOffset = 0,  bitWidth = 4)  public val status: Int
-    @KompactField(bitOffset = 4,  bitWidth = 4)  public val battery: Int
-    @KompactField(bitOffset = 8,  bitWidth = 12, signed = true) public val temperature: Int
+public class SensorFrame {
+    @KompactField(bitOffset = 0,  bitWidth = 4)  public val status: Int = 0
+    @KompactField(bitOffset = 4,  bitWidth = 4)  public val battery: Int = 0
+    @KompactField(bitOffset = 8,  bitWidth = 12, signed = true) public val temperature: Int = 0
 }
 ```
 
-Then in `jvmMain`:
+The processor writes one common file, `SensorFrameView.kt`, containing:
 
 ```kotlin
-@KompactModel @JvmInline
-public actual value class SensorFrame(public actual val raw: ByteArray) {
-    init { require(raw.size >= 2) }  // F-001: validate minimum buffer size
-    public actual companion object {
-        public actual fun create(status: Int, battery: Int, temperature: Int): SensorFrame =
-            SensorFrame(encodeSensorFrame(status, battery, temperature))
-    }
+@JvmInline @KompactPreview
+public value class SensorFrameView(public val raw: ByteArray) {
+    init { require(raw.size >= 3) { "…" } }  // F-001: validate minimum buffer size
     @KompactField(bitOffset = 0, bitWidth = 4)
-    public actual val status: Int
-        get() = KompactRuntime.readScalar(raw, 0, ScalarType.of(4, false)).getOrThrow()
-    // … battery, temperature similarly (val readers; opt-in Mutable sibling for writes)
-}
-```
-
-```kotlin
-internal fun encodeSensorFrame(status: Int, battery: Int, temperature: Int): ByteArray {
-    val w = KompactWriter()
-    w.writeScalar(ScalarType.of(4, signed = false), status.toLong())
-    w.writeScalar(ScalarType.of(4, signed = false), battery.toLong())
-    w.writeScalar(ScalarType.of(12, signed = true), temperature.toLong())
-    return w.build()  // 3 bytes
-}
-```
-
-```kotlin
-@KompactModel
-public actual value class SensorFrame(public actual val raw: ByteArray) {
-    // NO @JvmInline here — Kotlin/Native doesn't support it
-    init { require(raw.size >= 2) }
-    // … identical bodies
-}
-```
-
-### KSP-generated (production)
-
-When the KSP processor is on the classpath, you write **only the `expect`
-declaration** — the processor generates the `actual` class bodies, the
-`create()` factory, and an `encodeSensorFrame()` helper:
-
-```kotlin
-@KompactModel
-public expect value class SensorFrame(public val raw: ByteArray) {
+    public val status: Int
+        get() = KompactRuntime.readBits(raw, 0, 4)
+    // … battery, temperature similarly
+    public fun copy(status: Int = this.status, battery: Int = this.battery,
+        temperature: Int = this.temperature): SensorFrameView = SensorFrameView(encodeSensorFrameView(status, battery, temperature))
     public companion object {
-        public fun create(status: Int, battery: Int, temperature: Int): SensorFrame
+        public fun create(status: Int, battery: Int, temperature: Int): SensorFrameView =
+            SensorFrameView(encodeSensorFrameView(status, battery, temperature))
     }
-    @KompactField(bitOffset = 0,  bitWidth = 4)  public val status: Int
-    @KompactField(bitOffset = 4,  bitWidth = 4)  public val battery: Int
-    @KompactField(bitOffset = 8,  bitWidth = 12, signed = true) public val temperature: Int
 }
+// plus SensorFrameViewHolder (decodeInto/encodeFrom) and
+// internal fun encodeSensorFrameView(...): ByteArray
 ```
 
-The common-generation plugin processes schemas once and registers generated
-common and platform sources for the selected targets. The runtime's JVM
-actuals live in `jvmCommon`; plain Kotlin/Native actuals live in `nativeMain`.
+Usage: `SensorFrameView.create(status = 1, battery = 9, temperature = -40)` or
+`SensorFrameView(receivedBytes)`. Framed schemas
+(`@KompactModel(framed = true)`) follow the same naming and generate a regular
+`<Name>View` class. Marking a schema `expect` is a processor error.
+
 The default view's fields are `val` (read-only). Fixed-layout getters use raw
-bit readers, so the platform actual constructor's minimum-buffer check is
-important; the getter itself does not bounds-check each field. Write-through
-`var` setters live on the opt-in `Mutable<Name>` sibling emitted when
+bit readers, so the view constructor's minimum-buffer check is important; the
+getter itself does not bounds-check each field. Write-through `var` setters
+live on the opt-in `Mutable<Name>View` sibling emitted when
 `@KompactModel(mutable = true)` (see
-[ADR-0006](../../docs/adr/0006-immutable-default-models.md)).
+[ADR-0006](../../docs/adr/0006-immutable-default-models.md) and
+[ADR-0009](../../docs/adr/0009-common-only-code-generation.md)).
 
 **Supported field types:** fixed-layout schemas support `Boolean`, `Int`,
 `Long`, `Float`, and `Double`. Sequential schemas declared with
@@ -371,16 +341,16 @@ framed views, and lazy repeated fields. See
 
 ## Gotchas (the ones that break builds or cause silent data corruption)
 
-1. **`@JvmInline` on expect classes.** Never use it in `commonMain`.
-   `@JvmInline` is JVM-only — use plain `value class`. The
-   annotation only belongs on the JVM `actual`.
+1. **Schemas are regular classes.** Do not declare a schema as `expect`
+   or hand-write its view; the processor rejects `expect` schemas and
+   generates `<Name>View` itself.
 
 2. **`writeBits(bitWidth = 32, …)` throws.** The limit is 1..31.
    Use `writeBitsLong(32, …)` or `writeScalar(ScalarType.of(32, …), …)`.
 
-3. **`expect` properties don't carry `actual`.** The `actual` keyword
-   on `raw`, `create()`, and field getters goes on the **actual** class
-   only. The `expect` declaration just declares the shape.
+3. **Use the generated `View` type.** Application code reads and writes
+   `SensorFrameView`, not the schema class `SensorFrame`; schema
+   property initializers never reach the wire.
 
 4. **Setters are unchecked.** `set(v) { writeBits(raw, 0, 4, v) }` writes
    the low 4 bits only — `v = 16` silently truncates to 0. Validate

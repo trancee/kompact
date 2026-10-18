@@ -1,9 +1,14 @@
 # ADR-0003: KMP Consumer Enablement — Android Target, KSP Publication, Java 17, GFM Markdown
 
-- **Status:** accepted
+- **Status:** accepted; partially superseded by [ADR-0009](0009-common-only-code-generation.md) (2026-10-18)
 - **Date:** 2026-09-12
 - **Deciders:** kompact maintainer, pqcble integrator
 - **Tags:** kmp, android, publication, toolchain, dokka, abi-validation
+
+> The `jvmCommon` source-set hierarchy for `@JvmInline actual` declarations
+> and the `-Xexpect-actual-classes` flag recorded below are superseded by
+> [ADR-0009](0009-common-only-code-generation.md): the runtime and generated
+> code no longer use `expect`/`actual`. The remaining decisions stand.
 
 ## Context
 

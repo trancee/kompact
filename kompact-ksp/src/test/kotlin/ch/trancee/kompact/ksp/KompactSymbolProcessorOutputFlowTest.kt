@@ -35,7 +35,7 @@ class KompactSymbolProcessorOutputFlowTest {
 
         processor.process(resolver)
 
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.DenseModelGen.kt"))
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.DenseModelView.kt"))
         assertTrue(logger.errors.isEmpty())
     }
 
@@ -60,7 +60,7 @@ class KompactSymbolProcessorOutputFlowTest {
         processor.process(resolver)
 
         assertTrue(logger.errors.isEmpty(), "Gaps should be valid per Ticket 06 invariant #2, got: ${logger.errors}")
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.GapModelGen.kt"))
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.GapModelView.kt"))
     }
 
     @Test
@@ -115,7 +115,7 @@ class KompactSymbolProcessorOutputFlowTest {
         // Round 1 — processes the symbol
         val result1 = processor.process(resolver)
         assertEquals(0, result1.size)
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.RoundModelGen.kt"))
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.RoundModelView.kt"))
         val filesAfterRound1 = codeGen.generatedFiles.size
 
         // Round 2 (KSP re-queueing the same symbols) — must not crash with

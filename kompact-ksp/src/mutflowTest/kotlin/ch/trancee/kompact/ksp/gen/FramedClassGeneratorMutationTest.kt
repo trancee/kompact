@@ -9,7 +9,7 @@ import kotlin.test.Test
 class FramedClassGeneratorMutationTest {
     private val sourceTests = FramedClassGeneratorTest()
     private val repeatPrefixWidthTests = FramedRepeatPrefixWidthTest()
-    private val actualTests = FramedClassGeneratorActualTest()
+    private val viewTests = FramedClassGeneratorViewTest()
     private val scalarTests = FramedScalarHolderGeneratorTest()
 
     @Test
@@ -40,7 +40,7 @@ class FramedClassGeneratorMutationTest {
     fun signedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() = MutFlow.underTest { scalarTests.signedBoundaryWidthsKeepDecodeAndValidationAssociatedWithTheirFields() }
 
     @Test
-    fun platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() = MutFlow.underTest { actualTests.platformActualsExposeFramedDecodeCreateCopyAndCompletionContracts() }
+    fun commonViewExposesFramedDecodeCreateCopyAndCompletionContracts() = MutFlow.underTest { viewTests.commonViewExposesFramedDecodeCreateCopyAndCompletionContracts() }
 
     @Test
     fun borrowedStringPreflightValidatesUtf8WhileBlobPreflightDoesNot() = MutFlow.underTest { sourceTests.borrowedStringPreflightValidatesUtf8WhileBlobPreflightDoesNot() }

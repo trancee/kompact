@@ -44,7 +44,7 @@ class FramedScalarHolderGeneratorTest {
                     ),
             )
 
-        val output = FramedClassGenerator.generateExpect(spec)
+        val output = FramedClassGenerator.generate(spec)
 
         assertTrue(output.contains("class ScalarPayloadViewHolder"))
         assertTrue(output.contains("public var flag: Boolean = false"))
@@ -93,7 +93,7 @@ class FramedScalarHolderGeneratorTest {
                     ),
             )
 
-        val output = FramedClassGenerator.generateExpect(spec)
+        val output = FramedClassGenerator.generate(spec)
 
         assertTrue(output.contains("cursor.validateSigned(31, this.signedInt.toLong())"))
         assertTrue(output.contains("cursor.validateSigned(63, this.signedLong)"))
