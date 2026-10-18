@@ -43,24 +43,13 @@ internal object FramedLayoutValidator {
                     add("Scalar field '${field.name}' cannot override lengthPrefixWidth")
                 }
                 when (val type = field.type) {
-                    is KompactFieldType.Scalar, KompactFieldType.StringType, KompactFieldType.Blob -> {
-                        Unit
-                    }
-
-                    is KompactFieldType.Nested -> {
-                        if (type.typeArguments.isNotEmpty()) {
-                            add("Nested field '${field.name}' cannot use a parameterized model")
-                        }
-                    }
-
-                    is KompactFieldType.Repeated -> {
-                        validateRepeatedElement(field, type.elementType)?.let(::add)
-                    }
-
-                    is KompactFieldType.Unsupported -> {
-                        add("Field '${field.name}' has unsupported type ${type.qualifiedName}")
-                    }
-                }
+                    is KompactFieldType.Scalar, KompactFieldType.StringType, KompactFieldType.Blob -> null
+                    is KompactFieldType.Nested ->
+                        "Nested field '${field.name}' cannot use a parameterized model"
+                            .takeIf { type.typeArguments.isNotEmpty() }
+                    is KompactFieldType.Repeated -> validateRepeatedElement(field, type.elementType)
+                    is KompactFieldType.Unsupported -> "Field '${field.name}' has unsupported type ${type.qualifiedName}"
+                }?.let(::add)
                 addAll(LayoutValidator.validateWidths(listOf(field), framed = true))
             }
 
@@ -73,10 +62,8 @@ internal object FramedLayoutValidator {
                     }
 
                     is KompactFieldType.Repeated -> {
-                        if ((bitRemainder != 0 || countDependentRemainder) &&
-                            type.elementType !is KompactFieldType.Scalar
-                        ) {
-                            add("Framed field '${field.name}' needs a byte-aligned start for borrowed payloads")
+                        if (type.elementType !is KompactFieldType.Scalar) {
+                            alignmentError(field, bitRemainder, countDependentRemainder)?.let(::add)
                         }
                         if (type.elementType is KompactFieldType.Scalar && field.bitWidth % 8 != 0) {
                             countDependentRemainder = true
@@ -84,9 +71,7 @@ internal object FramedLayoutValidator {
                     }
 
                     KompactFieldType.StringType, KompactFieldType.Blob, is KompactFieldType.Nested -> {
-                        if (bitRemainder != 0 || countDependentRemainder) {
-                            add("Framed field '${field.name}' needs a byte-aligned start for borrowed payloads")
-                        }
+                        alignmentError(field, bitRemainder, countDependentRemainder)?.let(::add)
                     }
 
                     is KompactFieldType.Unsupported -> {
@@ -95,6 +80,20 @@ internal object FramedLayoutValidator {
                 }
             }
         }
+
+    private fun alignmentError(
+        field: KompactFieldInfo,
+        bitRemainder: Int,
+        countDependentRemainder: Boolean,
+    ): String? {
+        val position =
+            when {
+                countDependentRemainder -> "its start depends on a preceding repeat count"
+                bitRemainder != 0 -> "it starts $bitRemainder bits into a byte"
+                else -> return null
+            }
+        return "Framed field '${field.name}' needs a byte-aligned start for borrowed payloads; $position"
+    }
 
     private fun validateRepeatedElement(
         field: KompactFieldInfo,

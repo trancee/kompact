@@ -16,16 +16,17 @@ Gradle tasks pass, and the evidence is JVM only.
 | Module | Wrapped tests | Discovered / evaluated | Killed | Survived | Timed out | Gaps | Score |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | `:kompact` | 400 | 753 / 753 | 753 | 0 | 0 | 0 | 100% |
-| `:kompact-ksp` | 180 | 192 / 192 | 192 | 0 | 0 | 0 | 100% |
+| `:kompact-ksp` | 183 | 391 / 391 | 391 | 0 | 0 | 0 | 100% |
 
 "Wrapped tests" equals the number of `@Test` methods in the adapter sources.
 
 ### Mutations per production target
 
-The runtime targets the whole `ch.trancee.kompact.runtime.**` package. Files
+The runtime targets the whole `ch.trancee.kompact.runtime.**` package, and
+the processor targets the whole `ch.trancee.kompact.ksp.**` package. Files
 without mutable logic do not appear.
 
-| Target | Mutations |
+| Runtime target | Mutations |
 |---|---:|
 | `KompactByteRange.kt` | 19 |
 | `KompactByteSlice.kt` | 1 |
@@ -43,11 +44,24 @@ without mutable logic do not appear.
 | `KompactWriter.kt` | 62 |
 | `NestedRegionResult.kt` | 14 |
 | `ScalarType.kt` | 2 |
+
+| Processor target | Mutations |
+|---|---:|
+| `FieldCodeGenerator.kt` | 13 |
 | `FramedClassGenerator.kt` | 8 |
+| `FramedFieldCodeGenerator.kt` | 36 |
 | `FramedHolderGenerator.kt` | 44 |
-| `FramedScalarHolderGenerator.kt` | 50 |
+| `FramedLayoutValidator.kt` | 41 |
+| `FramedRepeatHolderGenerator.kt` | 1 |
+| `FramedScalarHolderGenerator.kt` | 49 |
+| `KompactFieldInfo.kt` | 1 |
+| `KompactFieldType.kt` | 21 |
+| `KompactModelParser.kt` | 24 |
+| `KompactSymbolProcessor.kt` | 8 |
+| `LayoutValidator.kt` | 54 |
+| `ModelSpec.kt` | 2 |
 | `ValueClassGenerator.kt` | 25 |
-| `ValueHolderGenerator.kt` | 65 |
+| `ValueHolderGenerator.kt` | 64 |
 
 ## Resolved survivors and timeouts
 
@@ -73,6 +87,10 @@ None of them was suppressed:
 | Writer growth (`> buffer.size`, `* 2`, `/ 8`) and checkpoint sizing (`count / 64`) only changed allocation size. | Internal `capacity` and `checkpointCount` seams let tests pin the growth and sparse-index policies. |
 | One-bit nested padding, empty regions at an offset, truncated prefixes after consumed bits, the largest 32-bit count, one-byte element overruns, trailing-bit limits, unaligned element bytes and UTF-8 sequences cut at the region end survived. | Test gaps. A behavior test was added for each. |
 | `ValueHolderGenerator` `trailingBits > 0` survived. | Test gap. The `>=` mutant emits `skipBits(0)` and `writeZeros(0)`. A dense-holder test now rejects them. |
+| Widening the processor to the whole package: `LayoutValidator.validateNoOverlaps` compared half-open ranges with an inclusive end, so the boundary mutant survived. | Real bug: one-bit overlaps, including two identical 1-bit fields, were accepted, and the message printed the wrong end. The check is now half-open (`a.bitOffset < b.endBit && b.bitOffset < a.endBit`), and a test pins a single-bit overlap. |
+| `FramedFieldCodeGenerator` signed shifts for widths 31 and 63 and repeated-element signedness survived. | Test gaps. Generator tests now pin each width and the signedness of repeated scalar elements. |
+| `FramedFieldCodeGenerator` `bitWidth <= 31` write split survived. | Both branches wrote the same bits. Generated `Int` writes now always use `writeBitsLong`. |
+| `FramedLayoutValidator` bit remainder `+` → `-` survived. | Equivalent modulo 8 for a yes/no check. The alignment error now reports how many bits into a byte the field starts, or that its start depends on a preceding repeat count. |
 
 ## Limitations
 

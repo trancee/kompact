@@ -51,15 +51,8 @@ if (mutationEnabled) {
     extensions.configure<MutflowExtension>("mutflow") {
         enabled = true
         maxMutationRuns.set(Int.MAX_VALUE)
-        targets.addAll(
-            listOf(
-                "ch.trancee.kompact.ksp.gen.FramedClassGenerator",
-                "ch.trancee.kompact.ksp.gen.FramedHolderGenerator",
-                "ch.trancee.kompact.ksp.gen.FramedScalarHolderGenerator",
-                "ch.trancee.kompact.ksp.gen.ValueClassGenerator",
-                "ch.trancee.kompact.ksp.gen.ValueHolderGenerator",
-            ),
-        )
+        // Every processor class and file facade: parser, validators, generators.
+        targets.add("ch.trancee.kompact.ksp.**")
     }
     extensions.configure<ch.trancee.mutation.MutationResultsExtension>("mutationTesting") {
         adapterSources.from("src/test/kotlin")

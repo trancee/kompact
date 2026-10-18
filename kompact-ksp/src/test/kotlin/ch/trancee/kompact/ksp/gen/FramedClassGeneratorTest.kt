@@ -20,6 +20,21 @@ class FramedClassGeneratorTest {
     }
 
     @Test
+    fun repeatedScalarElementsKeepTheFieldSignedness() {
+        val generated =
+            listOf(true, false).map { signed ->
+                val field = field("values", KompactFieldType.Repeated(KompactFieldType.Scalar(KompactScalarKind.INT)), 0, 5, signed)
+                FramedFieldCodeGenerator
+                    .repeatedReadExpression(field, KompactFieldType.Scalar(KompactScalarKind.INT), "frame")
+                    .toString()
+            }
+
+        assertTrue(generated[0].contains("(element.readBits(5).toInt() shl 27) shr 27"), generated[0])
+        assertTrue(generated[1].contains("element.readBits(5).toInt()"), generated[1])
+        assertFalse(generated[1].contains("shl"), generated[1])
+    }
+
+    @Test
     fun readExpression_rejectsUnsupportedFramedFieldType() {
         assertFailsWith<IllegalStateException> {
             FramedFieldCodeGenerator.readExpression(field(KompactFieldType.Unsupported("test.Custom")), "frame")
@@ -79,10 +94,12 @@ class FramedClassGeneratorTest {
             listOf(
                 Triple(KompactScalarKind.BOOLEAN, 1, false),
                 Triple(KompactScalarKind.INT, 5, true),
+                Triple(KompactScalarKind.INT, 31, true),
                 Triple(KompactScalarKind.INT, 32, false),
                 Triple(KompactScalarKind.INT, 32, true),
                 Triple(KompactScalarKind.LONG, 13, true),
                 Triple(KompactScalarKind.LONG, 13, false),
+                Triple(KompactScalarKind.LONG, 63, true),
                 Triple(KompactScalarKind.LONG, 64, true),
                 Triple(KompactScalarKind.FLOAT, 32, false),
                 Triple(KompactScalarKind.DOUBLE, 64, false),
@@ -97,10 +114,12 @@ class FramedClassGeneratorTest {
             listOf(
                 "frame.readBits(1) != 0L",
                 "(frame.readBits(5).toInt() shl 27) shr 27",
+                "(frame.readBits(31).toInt() shl 1) shr 1",
                 "frame.readBits(32).toInt()",
                 "frame.readBits(32).toInt()",
                 "(frame.readBits(13) shl 51) shr 51",
                 "frame.readBits(13)",
+                "(frame.readBits(63) shl 1) shr 1",
                 "frame.readBits(64)",
                 "Float.fromBits(frame.readBits(32).toInt())",
                 "Double.fromBits(frame.readBits(64))",

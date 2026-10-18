@@ -188,11 +188,7 @@ internal object FramedFieldCodeGenerator {
             }
 
             KompactScalarKind.INT -> {
-                if (width <= 31) {
-                    CodeBlock.of("%N.writeBits(%L, %N)", writer, width, value)
-                } else {
-                    CodeBlock.of("%N.writeBitsLong(%L, %N.toLong())", writer, width, value)
-                }
+                CodeBlock.of("%N.writeBitsLong(%L, %N.toLong())", writer, width, value)
             }
 
             KompactScalarKind.LONG -> {

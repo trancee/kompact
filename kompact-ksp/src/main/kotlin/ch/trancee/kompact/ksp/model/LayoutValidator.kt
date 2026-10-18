@@ -31,15 +31,15 @@ internal object LayoutValidator {
      */
     fun validateNoOverlaps(fields: List<KompactFieldInfo>): List<String> {
         val errors = mutableListOf<String>()
-        val ranges = fields.map { it.bitOffset..<it.endBit to it.name }
-        for (i in ranges.indices) {
-            for (j in (i + 1)..<ranges.size) {
-                val (rangeA, nameA) = ranges[i]
-                val (rangeB, nameB) = ranges[j]
-                if (rangeA.overlaps(rangeB)) {
+        for (i in fields.indices) {
+            for (j in (i + 1)..<fields.size) {
+                val a = fields[i]
+                val b = fields[j]
+                // Half-open [bitOffset, endBit) intervals intersect iff each starts before the other ends.
+                if (a.bitOffset < b.endBit && b.bitOffset < a.endBit) {
                     errors.add(
-                        "Field '$nameA' [${rangeA.first}..<${rangeA.last}] overlaps " +
-                            "field '$nameB' [${rangeB.first}..<${rangeB.last}]",
+                        "Field '${a.name}' [${a.bitOffset}..<${a.endBit}] overlaps " +
+                            "field '${b.name}' [${b.bitOffset}..<${b.endBit}]",
                     )
                 }
             }
@@ -169,10 +169,6 @@ internal object LayoutValidator {
         }
         return errors
     }
-
-    // -- helpers --
-
-    private fun IntRange.overlaps(other: IntRange): Boolean = this.first < other.last && other.first < this.last
 
     /**
      * Full validation pass — runs the four layout invariants plus the

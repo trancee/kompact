@@ -51,6 +51,20 @@ class LayoutValidatorTest {
     }
 
     @Test
+    fun `fields sharing a single bit are rejected in either order`() {
+        val cases =
+            listOf(
+                listOf(field("a", 0, 8), field("b", 7, 8)) to "Field 'a' [0..<8] overlaps field 'b' [7..<15]",
+                listOf(field("a", 7, 8), field("b", 0, 8)) to "Field 'a' [7..<15] overlaps field 'b' [0..<8]",
+                listOf(field("a", 3, 1), field("b", 3, 1)) to "Field 'a' [3..<4] overlaps field 'b' [3..<4]",
+            )
+
+        cases.forEach { (fields, message) ->
+            assertEquals(listOf(message), LayoutValidator.validateNoOverlaps(fields))
+        }
+    }
+
+    @Test
     fun `non-overlapping adjacent fields pass overlap check`() {
         val fields =
             listOf(
@@ -63,8 +77,7 @@ class LayoutValidatorTest {
 
     @Test
     fun `non-overlapping fields with reversed order pass overlap check`() {
-        // rangeA = [8..<16), rangeB = [0..<8) — this.first < other.right → 8 < 8 → false
-        // This covers the short-circuit of the && in overlaps()
+        // a = [8, 16), b = [0, 8): a.bitOffset < b.endBit is 8 < 8, so the check short-circuits.
         val fields =
             listOf(
                 field("a", 8, 8),

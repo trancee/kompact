@@ -1,6 +1,7 @@
 package ch.trancee.kompact.ksp.model
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class FramedLayoutValidatorTest {
@@ -15,6 +16,29 @@ class FramedLayoutValidatorTest {
         val errors = LayoutValidator.validateAll(fields, framed = true)
 
         assertTrue(errors.any { it.contains("byte-aligned") }, errors.toString())
+    }
+
+    @Test
+    fun alignmentErrorsReportWhereThePayloadStarts() {
+        val fields =
+            listOf(
+                field("mode", scalarType("Int"), order = 0, bitWidth = 3),
+                field("level", scalarType("Int"), order = 1, bitWidth = 2),
+                field("payload", KompactFieldType.Blob, order = 2),
+                field("items", KompactFieldType.Repeated(scalarType("Int")), order = 3, bitWidth = 3),
+                field("label", KompactFieldType.StringType, order = 4),
+            )
+
+        val errors = LayoutValidator.validateAll(fields, framed = true)
+
+        assertEquals(
+            listOf(
+                "Framed field 'payload' needs a byte-aligned start for borrowed payloads; it starts 5 bits into a byte",
+                "Framed field 'label' needs a byte-aligned start for borrowed payloads; " +
+                    "its start depends on a preceding repeat count",
+            ),
+            errors.filter { it.contains("byte-aligned") },
+        )
     }
 
     @Test

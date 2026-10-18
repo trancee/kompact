@@ -54,7 +54,7 @@ class FramedClassGeneratorViewTest {
         assertFalse(createSignature.contains("="), createSignature)
         assertTrue(view.contains("writer.writeString(8, label)"))
         assertTrue(view.contains("writer.writeBlob(8, payload)"))
-        assertTrue(view.contains("writer.writeBits(5, count)"))
+        assertTrue(view.contains("writer.writeBitsLong(5, count.toLong())"))
         assertTrue(view.contains("public fun copy("))
         assertTrue(view.contains("ActualFrameView.create(label, payload, count)"))
     }
