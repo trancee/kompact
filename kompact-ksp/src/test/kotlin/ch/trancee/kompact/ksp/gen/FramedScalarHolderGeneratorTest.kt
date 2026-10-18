@@ -6,6 +6,7 @@ import ch.trancee.kompact.ksp.model.KompactScalarKind
 import ch.trancee.kompact.ksp.model.ModelSpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FramedScalarHolderGeneratorTest {
@@ -70,7 +71,8 @@ class FramedScalarHolderGeneratorTest {
         assertTrue(output.contains("this.ratio = ratioDecoded"))
         assertTrue(output.contains("cursor.writeBitsUnchecked(1, if (this.flag) 1L else 0L)"))
         assertTrue(output.contains("cursor.writeBitsUnchecked(5, this.signedInt.toLong())"))
-        assertTrue(output.contains("cursor.writeBitsUnchecked(64, this.unsignedLong.toLong())"))
+        assertTrue(output.contains("cursor.writeBitsUnchecked(64, this.unsignedLong)"))
+        assertFalse(output.contains("Long.toLong()"))
         assertTrue(output.contains("cursor.writeBitsUnchecked(32, this.ratio.toRawBits().toLong())"))
         assertTrue(output.contains("cursor.writeBitsUnchecked(64, this.measure.toRawBits())"))
         assertTrue(output.contains("this.signedInt = signedIntDecoded"))

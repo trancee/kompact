@@ -220,7 +220,8 @@ internal object FramedScalarHolderGenerator {
     fun scalarEncodedValue(field: KompactFieldInfo): CodeBlock =
         when ((field.type as KompactFieldType.Scalar).kind) {
             KompactScalarKind.BOOLEAN -> CodeBlock.of("if (this.%N) 1L else 0L", field.name)
-            KompactScalarKind.INT, KompactScalarKind.LONG -> CodeBlock.of("this.%N.toLong()", field.name)
+            KompactScalarKind.INT -> CodeBlock.of("this.%N.toLong()", field.name)
+            KompactScalarKind.LONG -> CodeBlock.of("this.%N", field.name)
             KompactScalarKind.FLOAT -> CodeBlock.of("this.%N.toRawBits().toLong()", field.name)
             KompactScalarKind.DOUBLE -> CodeBlock.of("this.%N.toRawBits()", field.name)
         }

@@ -76,6 +76,8 @@ class ValueHolderGeneratorTest {
         assertTrue(output.contains("cursor.validateSigned(31, signedIntInput.toLong())"))
         assertTrue(output.contains("cursor.validateUnsigned(8, unsignedIntInput.toLong())"))
         assertTrue(output.contains("cursor.validateSigned(63, signedLongInput)"))
+        assertTrue(output.contains("cursor.writeBitsUnchecked(63, signedLongInput)"))
+        assertFalse(output.contains("LongInput.toLong()"))
         assertTrue(output.contains("cursor.skipBits(1)"))
         assertTrue(output.contains("cursor.skipBits(8)"))
         assertTrue(output.contains("cursor.skipBits(16)"))

@@ -204,7 +204,8 @@ internal object ValueHolderGenerator {
     private fun encodedCursorValue(field: KompactFieldInfo): CodeBlock =
         when ((field.type as KompactFieldType.Scalar).kind) {
             KompactScalarKind.BOOLEAN -> CodeBlock.of("if (%N) 1L else 0L", "${field.name}Input")
-            KompactScalarKind.INT, KompactScalarKind.LONG -> CodeBlock.of("%N.toLong()", "${field.name}Input")
+            KompactScalarKind.INT -> CodeBlock.of("%N.toLong()", "${field.name}Input")
+            KompactScalarKind.LONG -> CodeBlock.of("%N", "${field.name}Input")
             KompactScalarKind.FLOAT -> CodeBlock.of("%N.toRawBits().toLong()", "${field.name}Input")
             KompactScalarKind.DOUBLE -> CodeBlock.of("%N.toRawBits()", "${field.name}Input")
         }
