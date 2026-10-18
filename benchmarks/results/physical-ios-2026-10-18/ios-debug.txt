@@ -1,0 +1,41 @@
+Runtime source revision: 465cb86bc0eda247afc4be13928c04c044684cb4; runtime/test sources unchanged
+Toolchain: Xcode 27.1; Build version 27A9275; Kotlin 2.4.21; Gradle 9.8.0; build JDK 21
+Device: iPhone SE (2nd generation); hardware=iPhone12,8; iOS=18.7.8
+Configuration: debug; binary SHA-256: f9b2bdfcd24c3478f244e11c461a683451a5bd88a816565e9b8bd28645741173
+Signing: renewed dedicated development profile; existing identity reused
+Profile expiration UTC: 2026-10-25T11:14:55+00:00
+Command: KOMPACT_IOS_DEVICE_UDID=<private> scripts/test-ios-device.sh kompact/build/bin/iosArm64/debugTest/test.kexe <dedicated-development-profile>
+Only the existing KompactNativeTests host is replaced; it remains installed to preserve trust.
+Execution: exact new PID attached to LLDB; initial SIGSTOP resumed; debuggee and console exited 0
+Runner source SHA-256: scripts/test-ios-device.sh: cc1dc3a0a3aef8a34aa79a8e8d7f773ad207d63fb52b1b65832ba6bd3039ca36
+Runner source SHA-256: scripts/ios_device_tests.py: 3cc7acba549656539db8c57a83e71f1a77276c20d70d6e87fc086930c48b1682
+
+Run 1: UTC=2026-10-18T12:38:28.503403+00:00; exit=0; passed=404; local binary SHA-256 confirmed; strict signature verified; local wrapper cleanup confirmed; device host retained
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.fixedIndexPreservesExactCheckpointsAndUnusedStorageAcrossWidthsAndBlockBoundaries (6551 ms)
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.fixedCountCapacityDiagnosticsPreserveEveryPrefixByte (0 ms)
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.oneBitTruncationPreservesPriorWorkspaceBindingAndEveryCheckpoint (0 ms)
+Native speed-read allocation samples: baseline=[0, 0, 0], reads=[0, 0, 0], control=[4098, 4098, 4098]
+Native speed-write allocation samples: baseline=[0, 0, 0], writes=[0, 0, 0], control=[4098, 4098, 4098]
+Native cursor byte-read allocation samples: baseline=[0, 0, 0], reads=[0, 0, 0], control=[4098, 4098, 4098]
+Native unsigned validation allocation samples: baseline=[0, 0, 0], validation=[0, 0, 0], control=[4098, 4098, 4098]
+Native cursor byte-write allocation samples: baseline=[0, 0, 0], writes=[0, 0, 0], control=[4098, 4098, 4098]
+
+Run 2: UTC=2026-10-18T12:38:58.484874+00:00; exit=0; passed=404; local binary SHA-256 confirmed; strict signature verified; local wrapper cleanup confirmed; device host retained
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.fixedIndexPreservesExactCheckpointsAndUnusedStorageAcrossWidthsAndBlockBoundaries (6605 ms)
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.fixedCountCapacityDiagnosticsPreserveEveryPrefixByte (0 ms)
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.oneBitTruncationPreservesPriorWorkspaceBindingAndEveryCheckpoint (0 ms)
+Native speed-read allocation samples: baseline=[0, 0, 0], reads=[0, 0, 0], control=[4098, 4098, 4098]
+Native speed-write allocation samples: baseline=[0, 0, 0], writes=[0, 0, 0], control=[4098, 4098, 4098]
+Native cursor byte-read allocation samples: baseline=[0, 0, 0], reads=[0, 0, 0], control=[4098, 4098, 4098]
+Native unsigned validation allocation samples: baseline=[0, 0, 0], validation=[0, 0, 0], control=[4098, 4098, 4098]
+Native cursor byte-write allocation samples: baseline=[0, 0, 0], writes=[0, 0, 0], control=[4098, 4098, 4098]
+
+Run 3: UTC=2026-10-18T12:39:29.233585+00:00; exit=0; passed=404; local binary SHA-256 confirmed; strict signature verified; local wrapper cleanup confirmed; device host retained
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.fixedIndexPreservesExactCheckpointsAndUnusedStorageAcrossWidthsAndBlockBoundaries (6639 ms)
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.fixedCountCapacityDiagnosticsPreserveEveryPrefixByte (0 ms)
+[       OK ] ch.trancee.kompact.runtime.KompactFixedRepeatCheckpointTest.oneBitTruncationPreservesPriorWorkspaceBindingAndEveryCheckpoint (0 ms)
+Native speed-read allocation samples: baseline=[0, 0, 0], reads=[0, 0, 0], control=[4098, 4098, 4098]
+Native speed-write allocation samples: baseline=[0, 0, 0], writes=[0, 0, 0], control=[4098, 4098, 4098]
+Native cursor byte-read allocation samples: baseline=[0, 0, 0], reads=[0, 0, 0], control=[4098, 4098, 4098]
+Native unsigned validation allocation samples: baseline=[0, 0, 0], validation=[0, 0, 0], control=[4098, 4098, 4098]
+Native cursor byte-write allocation samples: baseline=[0, 0, 0], writes=[0, 0, 0], control=[4098, 4098, 4098]

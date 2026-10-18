@@ -101,7 +101,7 @@ fi
 
 devices_json="$work_dir/devices.json"
 run_timeout 60 xcrun devicectl list devices --json-output "$devices_json" >/dev/null
-# Prints: udid, name, iOS version for connected devices provisioned in the profile.
+# Prints: udid, iOS version, CoreDevice identifier for eligible provisioned devices.
 eligible_devices="$(python3 - "$devices_json" "$profile_plist" "${KOMPACT_IOS_DEVICE_UDID:-}" <<'PY'
 import json
 import plistlib
@@ -125,7 +125,7 @@ for device in devices:
         and udid in provisioned
         and (not requested or requested == udid)
     ):
-        print("\t".join([udid, properties.get("name", ""), properties.get("osVersionNumber", "")]))
+        print("\t".join([udid, properties.get("osVersionNumber", ""), device.get("identifier", "")]))
 PY
 )"
 if [[ "$(grep -c . <<< "$eligible_devices")" != "1" ]]; then
@@ -134,13 +134,13 @@ if [[ "$(grep -c . <<< "$eligible_devices")" != "1" ]]; then
   exit 1
 fi
 device_udid="$(cut -f1 <<< "$eligible_devices")"
-device_name="$(cut -f2 <<< "$eligible_devices")"
-device_os="$(cut -f3 <<< "$eligible_devices")"
+device_os="$(cut -f2 <<< "$eligible_devices")"
+device_identifier="$(cut -f3 <<< "$eligible_devices")"
 local_sha256="$(shasum -a 256 "$binary" | awk '{ print $1 }')"
 
 echo "Xcode: $(xcodebuild -version | tr '\n' ' ')"
-echo "Target: model=$device_name; iOS=$device_os"
-echo "Profile: team=$team_id; bundle=$bundle_id; expires=$profile_expiry"
+echo "Target: provisioned iOS device; iOS=$device_os"
+echo "Profile: dedicated development profile; expires=$profile_expiry"
 echo "Test binary SHA-256: $local_sha256; minimum iOS=$minimum_os"
 
 app="$work_dir/KompactNativeTests.app"
@@ -185,20 +185,15 @@ codesign --force --sign "$signing_identity" --entitlements "$work_dir/entitlemen
   --generate-entitlement-der --timestamp=none "$app"
 codesign --verify --strict --verbose=1 "$app"
 
-run_timeout 180 xcrun devicectl device install app --device "$device_udid" "$app" >/dev/null
-echo "Installed the signed test host. Running Kotlin/Native tests on the device."
-
 log="$work_dir/console.log"
+runner_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 set +e
-run_timeout 900 xcrun devicectl device process launch --device "$device_udid" \
-  --terminate-existing --console "$bundle_id" 2>&1 | tee "$log"
+python3 "$runner_dir/ios_device_tests.py" "$device_udid" "$device_identifier" "$bundle_id" "$app" \
+  2>&1 | tee "$log"
 launch_status=${PIPESTATUS[0]}
 set -e
 if [[ "$launch_status" -ne 0 ]]; then
   echo "The device test run failed with status $launch_status." >&2
-  if grep -q 'explicitly trusted by the user' "$log"; then
-    echo "Trust the developer in Settings > General > VPN & Device Management, then rerun." >&2
-  fi
   exit 1
 fi
 if grep -qE '^\[  FAILED  \]' "$log" || ! grep -qE '^\[  PASSED  \] [1-9][0-9]* tests?\.' "$log"; then
