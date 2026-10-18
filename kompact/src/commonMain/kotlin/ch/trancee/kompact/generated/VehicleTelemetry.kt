@@ -8,10 +8,11 @@ import ch.trancee.kompact.annotations.KompactPreview
 import ch.trancee.kompact.runtime.KompactRuntime
 import ch.trancee.kompact.runtime.KompactWriter
 import ch.trancee.kompact.runtime.ScalarType
+import kotlin.jvm.JvmInline
 
 /**
- * Concrete shared example (PROMPT §3), realized as an `expect value class`
- * backed by a `ByteArray`. Platform actuals provide the member bodies; their
+ * Concrete shared example (PROMPT §3), implemented as a common `@JvmInline value class`
+ * backed by a `ByteArray`. Its
  * value-class representation does not guarantee allocation behavior at every
  * call site. See the allocation and boxing research note for the evidence
  * needed to support a performance claim.
@@ -43,48 +44,41 @@ import ch.trancee.kompact.runtime.ScalarType
  * available for layouts whose bounds are already known (Ticket 06).
  */
 @KompactModel(mutable = true)
-public expect value class VehicleTelemetry(
+@JvmInline
+public value class VehicleTelemetry(
     public val raw: ByteArray,
 ) {
+    init {
+        require(raw.size >= 2) {
+            "VehicleTelemetry requires a buffer of at least 2 bytes (16-bit layout, bits 0-15); got ${raw.size}"
+        }
+    }
+
     public companion object {
-        /**
-         * Encodes the supplied fields into a frame backed by a fresh buffer.
-         */
         public fun create(
             batteryStatus: Int,
             speed: Int,
             isMalfunctioning: Boolean,
-        ): VehicleTelemetry
+        ): VehicleTelemetry = VehicleTelemetry(encodeVehicleTelemetry(batteryStatus, speed, isMalfunctioning))
     }
 
-    /**
-     * Returns a new `VehicleTelemetry` copying `this` with any supplied fields
-     * overridden. Each parameter defaults to the current value, so only the
-     * fields you want to change need to be passed. The returned frame is backed
-     * by a fresh buffer.
-     */
     public fun copy(
         batteryStatus: Int = this.batteryStatus,
         speed: Int = this.speed,
         isMalfunctioning: Boolean = this.isMalfunctioning,
-    ): VehicleTelemetry
-
-    // F-001: the platform actuals validate raw.size >= 2 (the 16-bit layout,
-    // bits 0-15) in their constructor init-blocks, failing fast with
-    // IllegalArgumentException on a truncated buffer (Ticket 06). These
-    // getters decode untrusted input via the checked `readScalar`/`readBool`
-    // accessors and throw on a bounds error (Ticket 04/07), trading one
-    // bounds-check per field for safety; the unchecked `KompactRuntime.readBits`
-    // fast path stays available for trusted in-memory frames.
+    ): VehicleTelemetry = VehicleTelemetry(encodeVehicleTelemetry(batteryStatus, speed, isMalfunctioning))
 
     @KompactField(bitOffset = 0, bitWidth = 4)
     public val batteryStatus: Int
+        get() = KompactRuntime.readScalar(raw, 0, ScalarType.of(4, signed = false)).getOrThrow()
 
     @KompactField(bitOffset = 4, bitWidth = 10)
     public val speed: Int
+        get() = KompactRuntime.readScalar(raw, 4, ScalarType.of(10, signed = false)).getOrThrow()
 
     @KompactField(bitOffset = 14, bitWidth = 1)
     public val isMalfunctioning: Boolean
+        get() = KompactRuntime.readBool(raw, 14).getOrThrow()
 }
 
 /**
@@ -94,25 +88,44 @@ public expect value class VehicleTelemetry(
  * Use `create(...)` to construct a fresh frame; this sibling intentionally has
  * no `copy`.
  */
-public expect value class MutableVehicleTelemetry(
+@JvmInline
+public value class MutableVehicleTelemetry(
     public val raw: ByteArray,
 ) {
+    init {
+        require(raw.size >= 2) {
+            "MutableVehicleTelemetry requires a buffer of at least 2 bytes (16-bit layout, bits 0-15); got ${raw.size}"
+        }
+    }
+
     public companion object {
         public fun create(
             batteryStatus: Int,
             speed: Int,
             isMalfunctioning: Boolean,
-        ): MutableVehicleTelemetry
+        ): MutableVehicleTelemetry = MutableVehicleTelemetry(encodeVehicleTelemetry(batteryStatus, speed, isMalfunctioning))
     }
 
     @KompactField(bitOffset = 0, bitWidth = 4)
     public var batteryStatus: Int
+        get() = KompactRuntime.readScalar(raw, 0, ScalarType.of(4, signed = false)).getOrThrow()
+        set(value) {
+            KompactRuntime.writeBits(raw, 0, 4, value)
+        }
 
     @KompactField(bitOffset = 4, bitWidth = 10)
     public var speed: Int
+        get() = KompactRuntime.readScalar(raw, 4, ScalarType.of(10, signed = false)).getOrThrow()
+        set(value) {
+            KompactRuntime.writeBits(raw, 4, 10, value)
+        }
 
     @KompactField(bitOffset = 14, bitWidth = 1)
     public var isMalfunctioning: Boolean
+        get() = KompactRuntime.readBool(raw, 14).getOrThrow()
+        set(value) {
+            KompactRuntime.writeBitsBoolean(raw, 14, value)
+        }
 }
 
 /**

@@ -2,9 +2,5 @@
 
 # getOrThrow
 
-[common, jvmCommon, native]\
 [common]\
-expect fun [getOrThrow](get-or-throw.md)(): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
-
-[jvmCommon, native]\
-actual fun [getOrThrow](get-or-throw.md)(): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+fun [getOrThrow](get-or-throw.md)(): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)

@@ -2,9 +2,5 @@
 
 # MutableVehicleTelemetry
 
-[common, jvmCommon, native]\
 [common]\
-expect constructor(raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))
-
-[jvmCommon, native]\
-actual constructor(raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))
+constructor(raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))

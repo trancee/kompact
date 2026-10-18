@@ -15,18 +15,9 @@ kotlin {
     sourceSets {
         commonMain {
             kotlin.srcDir(rootProject.file("kompact/src/commonMain/kotlin"))
-            compilerOptions {
-                freeCompilerArgs.add("-Xexpect-actual-classes")
-            }
             dependencies {
                 implementation(libs.benchmarkRuntime)
             }
-        }
-        jvmMain {
-            kotlin.srcDir(rootProject.file("kompact/src/jvmCommon/kotlin"))
-        }
-        getByName("macosArm64Main") {
-            kotlin.srcDir(rootProject.file("kompact/src/nativeMain/kotlin"))
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

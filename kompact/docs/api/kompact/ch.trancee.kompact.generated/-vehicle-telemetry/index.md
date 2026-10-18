@@ -3,9 +3,11 @@
 # VehicleTelemetry
 
 [common]\
-expect value class [VehicleTelemetry](index.md)(val raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))
+@[JvmInline](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-inline/index.html)
 
-Concrete shared example (PROMPT §3), realized as an `expect value class` backed by a `ByteArray`. Platform actuals provide the member bodies; their value-class representation does not guarantee allocation behavior at every call site. See the allocation and boxing research note for the evidence needed to support a performance claim.
+value class [VehicleTelemetry](index.md)(val raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))
+
+Concrete shared example (PROMPT §3), implemented as a common `@JvmInline value class` backed by a `ByteArray`. Its value-class representation does not guarantee allocation behavior at every call site. See the allocation and boxing research note for the evidence needed to support a performance claim.
 
 Layout matrix (LSB-first), packed into 16 bits:
 
@@ -24,39 +26,29 @@ For write-through mutation (read a BLE characteristic, tweak one field, and re-s
 
 The `ByteArray` is the wire format. A producer builds it via `KompactWriter` or `VehicleTelemetry.create(...)`; a consumer reads fields via the `@KompactField`-annotated properties. The default-view getters are checked accessors (`KompactRuntime.readScalar` / `readBool` returning an `IntResult` / `BooleanResult`). A truncated input is rejected by the constructor, and the unchecked `KompactRuntime.readBits` primitives remain available for layouts whose bounds are already known (Ticket 06).
 
-[jvmCommon]\
-actual value class [VehicleTelemetry](index.md)(val raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))
-
-JVM actual uses `@JvmInline` for the value-class representation (Ticket 03).
-
-[native]\
-actual value class [VehicleTelemetry](index.md)(val raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))
-
-iOS actual: a plain value class (Kotlin/Native) with identical field layout.
-
 ## Constructors
 
 | | |
 |---|---|
-| [VehicleTelemetry](-vehicle-telemetry.md) | [common]<br>expect constructor(raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html))<br>[jvmCommon, native]<br>actual constructor(raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html)) |
+| [VehicleTelemetry](-vehicle-telemetry.md) | [common]<br>constructor(raw: [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html)) |
 
 ## Types
 
 | Name | Summary |
 |---|---|
-| [Companion](-companion/index.md) | [common, jvmCommon, native]<br>[common]<br>expect object [Companion](-companion/index.md)<br>[jvmCommon, native]<br>actual object [Companion](-companion/index.md) |
+| [Companion](-companion/index.md) | [common]<br>object [Companion](-companion/index.md) |
 
 ## Properties
 
 | Name | Summary |
 |---|---|
-| [batteryStatus](battery-status.md) | [common, jvmCommon, native]<br>[common]<br>expect val [batteryStatus](battery-status.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)<br>[jvmCommon, native]<br>actual val [batteryStatus](battery-status.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) |
-| [isMalfunctioning](is-malfunctioning.md) | [common, jvmCommon, native]<br>[common]<br>expect val [isMalfunctioning](is-malfunctioning.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)<br>[jvmCommon, native]<br>actual val [isMalfunctioning](is-malfunctioning.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) |
-| [raw](raw.md) | [common, jvmCommon, native]<br>[common]<br>expect val [raw](raw.md): [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html)<br>[jvmCommon, native]<br>actual val [raw](raw.md): [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html) |
-| [speed](speed.md) | [common, jvmCommon, native]<br>[common]<br>expect val [speed](speed.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)<br>[jvmCommon, native]<br>actual val [speed](speed.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) |
+| [batteryStatus](battery-status.md) | [common]<br>val [batteryStatus](battery-status.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) |
+| [isMalfunctioning](is-malfunctioning.md) | [common]<br>val [isMalfunctioning](is-malfunctioning.md): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) |
+| [raw](raw.md) | [common]<br>val [raw](raw.md): [ByteArray](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html) |
+| [speed](speed.md) | [common]<br>val [speed](speed.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) |
 
 ## Functions
 
 | Name | Summary |
 |---|---|
-| [copy](copy.md) | [common, jvmCommon, native]<br>[common]<br>expect fun [copy](copy.md)(batteryStatus: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = this.batteryStatus, speed: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = this.speed, isMalfunctioning: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) = this.isMalfunctioning): [VehicleTelemetry](index.md)<br>[jvmCommon, native]<br>actual fun [copy](copy.md)(batteryStatus: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), speed: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), isMalfunctioning: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)): [VehicleTelemetry](index.md)<br>Returns a new `VehicleTelemetry` copying `this` with any supplied fields overridden. Each parameter defaults to the current value, so only the fields you want to change need to be passed. The returned frame is backed by a fresh buffer. |
+| [copy](copy.md) | [common]<br>fun [copy](copy.md)(batteryStatus: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = this.batteryStatus, speed: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html) = this.speed, isMalfunctioning: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) = this.isMalfunctioning): [VehicleTelemetry](index.md) |

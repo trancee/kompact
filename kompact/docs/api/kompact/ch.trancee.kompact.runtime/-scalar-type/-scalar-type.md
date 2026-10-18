@@ -2,9 +2,5 @@
 
 # ScalarType
 
-[common, jvmCommon, native]\
 [common]\
-expect constructor(packed: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html))
-
-[jvmCommon, native]\
-actual constructor(packed: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html))
+constructor(packed: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html))

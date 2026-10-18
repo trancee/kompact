@@ -2,9 +2,5 @@
 
 # getOrThrow
 
-[common, jvmCommon, native]\
 [common]\
-expect fun [getOrThrow](get-or-throw.md)(): [NestedRegion](../-nested-region/index.md)
-
-[jvmCommon, native]\
-actual fun [getOrThrow](get-or-throw.md)(): [NestedRegion](../-nested-region/index.md)
+fun [getOrThrow](get-or-throw.md)(): [NestedRegion](../-nested-region/index.md)

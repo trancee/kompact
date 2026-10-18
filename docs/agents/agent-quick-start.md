@@ -52,9 +52,7 @@ build-logic/                    convention plugins (portal-publish, dokka-markdo
 kompact/                        the runtime library (JVM, Android JVM, iOS, Android Native)
 ├── src/commonMain/kotlin/…/runtime/  ← KompactRuntime, KompactWriter, KompactFraming,
 │                                     ←   KompactResult*, ScalarType, KompactDecodeError
-├── src/commonMain/kotlin/…/generated/VehicleTelemetry.kt  ← example model (expect/actual)
-├── src/jvmCommon/kotlin/…/         ← @JvmInline actuals (shared by JVM + Android)
-├── src/nativeMain/kotlin/…/        ← plain actuals shared by iOS + Android Native
+├── src/commonMain/kotlin/…/generated/VehicleTelemetry.kt  ← example model
 └── api/                              ← committed ABI goldens (jvm/ + android/ + kompact.klib.api)
 kompact-ksp/                    the KSP code generator
 ├── src/main/kotlin/…/gen/ValueClassGenerator.kt  ← generates expect/actual from annotations

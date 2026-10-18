@@ -2,9 +2,5 @@
 
 # error
 
-[common, jvmCommon, native]\
 [common]\
-expect val [error](error.md): [KompactDecodeError](../-kompact-decode-error/index.md)?
-
-[jvmCommon, native]\
-actual val [error](error.md): [KompactDecodeError](../-kompact-decode-error/index.md)?
+val [error](error.md): [KompactDecodeError](../-kompact-decode-error/index.md)?

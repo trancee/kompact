@@ -1,5 +1,7 @@
 package ch.trancee.kompact.runtime
 
+import kotlin.jvm.JvmInline
+
 // ====================================================================
 // Ticket 08 — packed-Long encoding constants & shared helpers
 //
@@ -48,7 +50,7 @@ internal const val ERROR_TRUNCATED: Int = 2
 internal const val ERROR_UNKNOWN_ENUM: Int = 3
 internal const val ERROR_INVALID_UTF8: Int = 4
 
-// === Shared helpers (commonMain, visible from platform actuals) ===
+// === Shared helpers ===
 
 internal fun encodeErrorKind(error: KompactDecodeError): Int =
     when (error) {
@@ -138,7 +140,7 @@ internal fun throwDecodeErrorFromPacked(packed: Long): Nothing = throw KompactDe
 internal fun throwDecodeErrorFromDouble(packed: Long): Nothing = throw KompactDecodeException(decodeDoubleError(packed))
 
 // ====================================================================
-// Ticket 08 — result value class declarations (expect)
+// Ticket 08 — result value class declarations
 //
 // Specialized result types:
 //   IntResult     (≤32-bit integer; Byte/Short widen to Int via ScalarType
@@ -149,51 +151,74 @@ internal fun throwDecodeErrorFromDouble(packed: Long): Nothing = throw KompactDe
 // The four packed result types each wrap a Long; LongResult is a regular class.
 // ====================================================================
 
-public expect value class IntResult(
+@JvmInline
+public value class IntResult(
     public val packed: Long,
 ) {
-    public val isSuccess: Boolean
-    public val isFailure: Boolean
-    public val error: KompactDecodeError?
+    public val isSuccess: Boolean get() = (packed and RESULT_OK_FLAG) != 0L
+    public val isFailure: Boolean get() = (packed and RESULT_OK_FLAG) == 0L
+    public val error: KompactDecodeError? get() =
+        if (isSuccess) null else decodeErrorFromSmallBits(packed)
 
-    public fun getOrThrow(): Int
+    public fun getOrThrow(): Int =
+        if (isSuccess) {
+            (packed and RESULT_VALUE_MASK).toInt()
+        } else {
+            throwDecodeErrorFromSmallBits(packed)
+        }
 
     public companion object {
-        public fun success(value: Int): IntResult
+        public fun success(value: Int): IntResult = IntResult(encodeSmallSuccess(value.toLong()))
 
-        public fun failure(error: KompactDecodeError): IntResult
+        public fun failure(error: KompactDecodeError): IntResult = IntResult(encodeSmallFailure(error))
     }
 }
 
-public expect value class FloatResult(
+@JvmInline
+public value class FloatResult(
     public val packed: Long,
 ) {
-    public val isSuccess: Boolean
-    public val isFailure: Boolean
-    public val error: KompactDecodeError?
+    public val isSuccess: Boolean get() = (packed and RESULT_OK_FLAG) != 0L
+    public val isFailure: Boolean get() = (packed and RESULT_OK_FLAG) == 0L
+    public val error: KompactDecodeError? get() =
+        if (isSuccess) null else decodeErrorFromSmallBits(packed)
 
-    public fun getOrThrow(): Float
+    public fun getOrThrow(): Float =
+        if (isSuccess) {
+            Float.fromBits((packed and RESULT_VALUE_MASK).toInt())
+        } else {
+            throwDecodeErrorFromSmallBits(packed)
+        }
 
     public companion object {
-        public fun success(value: Float): FloatResult
+        public fun success(value: Float): FloatResult =
+            FloatResult(encodeSmallSuccess(encodeFloatSuccess(value)))
 
-        public fun failure(error: KompactDecodeError): FloatResult
+        public fun failure(error: KompactDecodeError): FloatResult = FloatResult(encodeSmallFailure(error))
     }
 }
 
-public expect value class BooleanResult(
+@JvmInline
+public value class BooleanResult(
     public val packed: Long,
 ) {
-    public val isSuccess: Boolean
-    public val isFailure: Boolean
-    public val error: KompactDecodeError?
+    public val isSuccess: Boolean get() = (packed and RESULT_OK_FLAG) != 0L
+    public val isFailure: Boolean get() = (packed and RESULT_OK_FLAG) == 0L
+    public val error: KompactDecodeError? get() =
+        if (isSuccess) null else decodeErrorFromSmallBits(packed)
 
-    public fun getOrThrow(): Boolean
+    public fun getOrThrow(): Boolean =
+        if (isSuccess) {
+            (packed and RESULT_VALUE_MASK) != 0L
+        } else {
+            throwDecodeErrorFromSmallBits(packed)
+        }
 
     public companion object {
-        public fun success(value: Boolean): BooleanResult
+        public fun success(value: Boolean): BooleanResult =
+            BooleanResult(encodeSmallSuccess(if (value) 1L else 0L))
 
-        public fun failure(error: KompactDecodeError): BooleanResult
+        public fun failure(error: KompactDecodeError): BooleanResult = BooleanResult(encodeSmallFailure(error))
     }
 }
 
@@ -246,19 +271,26 @@ public class LongResult private constructor(
     }
 }
 
-public expect value class DoubleResult(
+@JvmInline
+public value class DoubleResult(
     public val packed: Long,
 ) {
-    public val isSuccess: Boolean
-    public val isFailure: Boolean
-    public val error: KompactDecodeError?
+    public val isSuccess: Boolean get() = !isDoubleFailure(packed)
+    public val isFailure: Boolean get() = isDoubleFailure(packed)
+    public val error: KompactDecodeError? get() =
+        if (isSuccess) null else decodeDoubleError(packed)
 
-    public fun getOrThrow(): Double
+    public fun getOrThrow(): Double =
+        if (isSuccess) {
+            Double.fromBits(packed)
+        } else {
+            throwDecodeErrorFromDouble(packed)
+        }
 
     public companion object {
-        public fun success(value: Double): DoubleResult
+        public fun success(value: Double): DoubleResult = DoubleResult(encodeDoubleSuccess(value))
 
-        public fun failure(error: KompactDecodeError): DoubleResult
+        public fun failure(error: KompactDecodeError): DoubleResult = DoubleResult(encodeDoubleFailure(error))
     }
 }
 

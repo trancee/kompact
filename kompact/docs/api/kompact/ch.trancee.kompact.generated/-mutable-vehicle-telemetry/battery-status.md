@@ -2,9 +2,5 @@
 
 # batteryStatus
 
-[common, jvmCommon, native]\
 [common]\
-expect var [batteryStatus](battery-status.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
-
-[jvmCommon, native]\
-actual var [batteryStatus](battery-status.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+var [batteryStatus](battery-status.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)

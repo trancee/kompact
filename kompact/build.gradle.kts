@@ -90,21 +90,11 @@ kotlin {
     }
 
     sourceSets {
-        val commonMain =
-            getByName("commonMain") {
-                compilerOptions {
-                    // KT-61573: expect/actual classes are in Beta in Kotlin 2.4.20.
-                    // The -Xexpect-actual-classes flag suppresses the Beta warning.
-                    // Keep this until the feature reaches Stable.
-                    freeCompilerArgs.addAll("-Xexpect-actual-classes")
-                }
+        getByName("commonTest") {
+            dependencies {
+                implementation("org.jetbrains.kotlin:kotlin-test:${libs.versions.kotlin.get()}")
             }
-        val commonTest =
-            getByName("commonTest") {
-                dependencies {
-                    implementation("org.jetbrains.kotlin:kotlin-test:${libs.versions.kotlin.get()}")
-                }
-            }
+        }
         getByName("androidHostTest") {
             dependencies {
                 implementation(kotlin("test-junit5")) {
@@ -116,52 +106,19 @@ kotlin {
                 runtimeOnly(libs.junitPlatformLauncher)
             }
         }
-        // Shared JVM+Android source set: @JvmInline actuals + generated views
-        // that compile for both JVM and Android targets (agp.com.android.kotlin.multiplatform.library).
-        val jvmMain = getByName("jvmMain")
-        val jvmTest =
-            getByName("jvmTest") {
-                dependencies {
-                    // Kotlin 2.4.20 exposes its Jupiter binding under the legacy junit5 artifact name.
-                    // Exclude its JUnit 5 transitives and bind the tests to JUnit 6 explicitly.
-                    implementation(kotlin("test-junit5")) {
-                        exclude(group = "org.junit.jupiter")
-                        exclude(group = "org.junit.platform")
-                    }
-                    implementation("org.junit.jupiter:junit-jupiter-api:${libs.versions.junit.get()}")
-                    runtimeOnly("org.junit.jupiter:junit-jupiter-engine:${libs.versions.junit.get()}")
-                    runtimeOnly("org.junit.platform:junit-platform-launcher:${libs.versions.junit.get()}")
+        getByName("jvmTest") {
+            dependencies {
+                // Kotlin 2.4.20 exposes its Jupiter binding under the legacy junit5 artifact name.
+                // Exclude its JUnit 5 transitives and bind the tests to JUnit 6 explicitly.
+                implementation(kotlin("test-junit5")) {
+                    exclude(group = "org.junit.jupiter")
+                    exclude(group = "org.junit.platform")
                 }
+                implementation("org.junit.jupiter:junit-jupiter-api:${libs.versions.junit.get()}")
+                runtimeOnly("org.junit.jupiter:junit-jupiter-engine:${libs.versions.junit.get()}")
+                runtimeOnly("org.junit.platform:junit-platform-launcher:${libs.versions.junit.get()}")
             }
-        if (!mutationJvmOnly) {
-            // Shared Kotlin/Native source set (Ticket 03 expect/actual value class).
-            // The plain (no-@JvmInline) `actual` views + runtime actuals here are
-            // platform-agnostic Native (no Darwin/Android-specific APIs), so they are
-            // shared by every Native target: iosArm64, iosSimulatorArm64, and
-            // androidNativeArm64 (ADR-0006 follow-up: publishes the android arm64
-            // klib variant so consumers like kemseed resolve it).
-            // gradle.properties: kotlin.mpp.applyDefaultHierarchyTemplate=false so this
-            // intermediate is the sole nativeMain (avoids the default-template conflict).
-            val nativeMain = create("nativeMain")
-            nativeMain.dependsOn(commonMain)
-            getByName("iosArm64Main") { dependsOn(nativeMain) }
-            getByName("iosSimulatorArm64Main") { dependsOn(nativeMain) }
-            getByName("androidNativeArm64Main") { dependsOn(nativeMain) }
-            // Kotlin/Native GC allocation probes run on every Native test target.
-            val nativeTest = create("nativeTest")
-            nativeTest.dependsOn(commonTest)
-            getByName("iosArm64Test") { dependsOn(nativeTest) }
-            getByName("iosSimulatorArm64Test") { dependsOn(nativeTest) }
-            getByName("androidNativeArm64Test") { dependsOn(nativeTest) }
         }
-        // jvmCommon: shared intermediate between commonMain and jvmMain/androidMain.
-        // Moved @JvmInline actuals + VehicleTelemetry here so both JVM and Android
-        // targets compile them. JvmCoveragePinning.java stays in jvmMain (JVM-only).
-        val jvmCommon = create("jvmCommon") {
-            dependsOn(commonMain)
-        }
-        jvmMain.dependsOn(jvmCommon)
-        getByName("androidMain") { dependsOn(jvmCommon) }
     }
 
     // Built-in ABI validation (KGP 2.1.0+): replaces BCV's apiValidation { klib { ... } }.
@@ -274,23 +231,6 @@ tasks.named<Jar>("jvmJar") {
 // Route: Portal Publisher API (direct integration — no third-party plugin).
 // Signing: PGP key injected via environment variables (never in source).
 // See the maven-central-publishing skill for the full workflow.
-
-// KGP auto-creates jvmSourcesJar and auto-attaches it to the JVM publication.
-// KGP already includes commonMain + jvmMain sources; we add jvmCommon as a safety net
-// (custom source set may not be auto-included by KGP's jvmSourcesJar).
-// Uses withGroovyBuilder to avoid type-cast issues with KGP's internal task type.
-val commonMainSource = kotlin.sourceSets.getByName("commonMain")
-val jvmCommonSource = kotlin.sourceSets.getByName("jvmCommon")
-afterEvaluate {
-    val task = tasks.findByName("jvmSourcesJar")
-    if (task != null) {
-        task.withGroovyBuilder {
-            invokeMethod("setDuplicatesStrategy", DuplicatesStrategy.EXCLUDE)
-            invokeMethod("from", commonMainSource.kotlin)
-            invokeMethod("from", jvmCommonSource.kotlin)
-        }
-    }
-}
 
 // Javadoc JAR for the JVM target — Central requires a Javadoc artifact for JVM publications.
 // Dokka 2.x generates GFM Markdown from KDoc via the dokka-markdown convention plugin

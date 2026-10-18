@@ -2,9 +2,5 @@
 
 # BOOL
 
-[common, jvmCommon, native]\
 [common]\
-expect val [BOOL](-b-o-o-l.md): [ScalarType](../index.md)
-
-[jvmCommon, native]\
-actual val [BOOL](-b-o-o-l.md): [ScalarType](../index.md)
+val [BOOL](-b-o-o-l.md): [ScalarType](../index.md)
