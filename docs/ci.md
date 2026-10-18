@@ -13,7 +13,7 @@ jobs run in parallel, and each Gradle job uses Temurin JDK 21.
 |---|---|---|
 | `docs` | `ubuntu-latest` | `Docs + release scripts + tool fixtures (Linux)` |
 | `jvm-test` | `ubuntu-latest` | `JVM tests + Android assemble + Portal dry-run (Linux)` |
-| `gradle-plugin-test` | `ubuntu-latest` | `Gradle plugin KMP consumer (Linux)` |
+| `gradle-plugin-test` | `ubuntu-latest` | `Gradle plugin KMP consumer + coverage (Linux)` |
 | `android-native` | `ubuntu-latest` | `Android Native device-test binaries (Linux)` |
 | `jvm-benchmarks` | `ubuntu-latest` | `JVM benchmark fixtures + smoke results (Linux)` |
 | `mutation-test` | `ubuntu-latest` | `Mutation testing (kompact)` and `Mutation testing (kompact-ksp)` |
@@ -67,7 +67,6 @@ builds Central Portal bundles without publishing them:
   :kompact-ksp-integration:test \
   :kompact-gradle-plugin:validatePlugins \
   :kompact-gradle-plugin:checkKotlinAbi \
-  :kompact-gradle-plugin:koverVerify \
   :build-logic:test \
   --no-build-cache --warning-mode all
 
@@ -83,7 +82,7 @@ these commands. The `android-native` job uploads the debug and release
 Android Native arm64 test binaries as artifacts and keeps them for 7 days:
 
 ```bash
-./gradlew :kompact-gradle-plugin:test --no-build-cache --warning-mode all
+./gradlew :kompact-gradle-plugin:test :kompact-gradle-plugin:koverVerify --no-build-cache --warning-mode all
 
 ./gradlew :kompact:androidNativeArm64TestBinaries --no-build-cache --warning-mode all
 
@@ -103,8 +102,9 @@ before, add `--rerun-tasks` to each Gradle command.
 which needs no connected device. `:kompact-ksp-integration:test` compiles
 generated consumers. `:kompact-gradle-plugin:test` is a Gradle TestKit suite
 that compiles a consumer for JVM, Android, iOS, and Android Native. CI runs
-it in its own job so that its nested builds do not overlap the compiler
-daemons of the root build.
+it in its own job, together with the plugin's `koverVerify`, so that its
+nested builds do not overlap the compiler daemons of the root build.
+`koverVerify` depends on the module's tests, so the job runs the suite once.
 
 `koverVerify` enforces line and branch thresholds for the runtime, the KSP
 processor, and the Gradle plugin. The Gradle plugin requires 100% coverage
@@ -216,8 +216,8 @@ survives or the run has execution gaps. Each command must be the only task
 in its Gradle invocation:
 
 ```bash
-./gradlew -PmutationTest.jvmOnly=true :kompact:mutationResults --no-configuration-cache --console=plain
-./gradlew -PmutationTest.enabled=true :kompact-ksp:mutationResults --no-configuration-cache --console=plain
+./gradlew -PmutationTest.jvmOnly=true :kompact:mutationResults --no-build-cache --no-configuration-cache --console=plain
+./gradlew -PmutationTest.enabled=true :kompact-ksp:mutationResults --no-build-cache --no-configuration-cache --console=plain
 ```
 
 The `mutationTest.jvmOnly` property removes the runtime's iOS and Android
@@ -226,7 +226,8 @@ publishes no Native variants. The `mutationTest.enabled` property applies
 MutFlow to the KSP processor, also only for the mutation task. An ordinary
 `:kompact-ksp:test` run stays a plain JUnit 6 run. The evidence covers the
 JVM only. MutFlow does not support the configuration cache, so both commands
-pass `--no-configuration-cache`.
+pass `--no-configuration-cache`. CI also passes `--no-build-cache`, because
+the restored Gradle cache can hold an earlier `mutflowJvmTest` result.
 
 The two matrix jobs run independently, so a runtime failure does not stop
 the KSP run. Each command writes `build/reports/mutation-results.md` and

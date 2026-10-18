@@ -114,7 +114,6 @@ jobs:
             :kompact-ksp-integration:test \
             :kompact-gradle-plugin:validatePlugins \
             :kompact-gradle-plugin:checkKotlinAbi \
-            :kompact-gradle-plugin:koverVerify \
             :build-logic:test \
             --no-build-cache --warning-mode all
 
@@ -153,7 +152,7 @@ jobs:
   # for JVM, Android, iOS, and Android Native. Its own job keeps the nested
   # builds away from the compiler daemons of the root build.
   gradle-plugin-test:
-    name: Gradle plugin KMP consumer (Linux)
+    name: Gradle plugin KMP consumer + coverage (Linux)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -167,7 +166,7 @@ jobs:
         with:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('gradle/libs.versions.toml') }}
-      - run: ./gradlew :kompact-gradle-plugin:test --no-build-cache --warning-mode all
+      - run: ./gradlew :kompact-gradle-plugin:test :kompact-gradle-plugin:koverVerify --no-build-cache --warning-mode all
 
   # Produce a device-runnable binary on Linux; Apple Silicon's cached
   # Kotlin/Native Android clang is x86_64 and cannot link this target.
@@ -249,7 +248,7 @@ jobs:
           java-version: 21
           cache: gradle
       - name: Mutation-test ${{ matrix.module }}
-        run: ./gradlew -P${{ matrix.property }}=true :${{ matrix.module }}:mutationResults --no-configuration-cache --console=plain
+        run: ./gradlew -P${{ matrix.property }}=true :${{ matrix.module }}:mutationResults --no-build-cache --no-configuration-cache --console=plain
       - name: Upload mutation reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
