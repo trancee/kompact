@@ -136,6 +136,29 @@ on macOS because they analyze Apple target outputs. When KDoc changes,
 regenerate the API pages with the Dokka task above; do not edit files under
 `kompact/docs/api/` directly.
 
+## Mutation testing
+
+The Linux mutation job runs MutFlow against the whole runtime and KSP
+processor packages. It fails if any mutant survives or the run has execution
+gaps. Each command must be the only task in its Gradle invocation:
+
+```bash
+./gradlew -PmutationTest.jvmOnly=true :kompact:mutationResults --no-daemon --no-configuration-cache --console=plain
+./gradlew -PmutationTest.enabled=true :kompact-ksp:mutationResults --no-daemon --no-configuration-cache --console=plain
+```
+
+The runtime's guarded `mutationTest.jvmOnly` model removes the iOS and
+Android Native variants only for its mutation task, because MutFlow 1.7.0
+publishes no Native variants. The KSP property likewise applies MutFlow only
+to its mutation task; ordinary `:kompact-ksp:test` remains a JUnit 6 unit-test
+run. The evidence is JVM only.
+
+Both commands write `build/reports/mutation-results.md` and `.json` in their
+module. CI adds the summary to the job page and uploads both files as the
+`mutation-results` artifact. See the
+[mutation testing disposition](mutation-testing-disposition.md) for current
+results and [`.omp/AGENT-USAGE.md`](../.omp/AGENT-USAGE.md) for the workflow.
+
 ## Platform behavior and allocation evidence
 
 The Linux and macOS CI checks compile or validate target artifacts where the
@@ -262,24 +285,11 @@ in the macOS CI job and on physical iOS through the device script. The
 allocation methodology and current proof status are
 tracked in [allocation and boxing measurement](research/allocation-boxing-measurement.md).
 
-Mutation testing is an opt-in workflow, not a CI gate. Ordinary JVM test
-runs in `:kompact:jvmTest`, `:kompact-ksp:test`,
+Ordinary JVM test runs in `:kompact:jvmTest`, `:kompact-ksp:test`,
 `:kompact-ksp-integration:test`, and `:kompact-gradle-plugin:test` use JUnit 6.
 The Kotlin test adapter retains its historical `kotlin-test-junit5` artifact
 name, but its JUnit 5 transitive dependencies are excluded and JUnit 6 is used
-at runtime. The mutation setup targets `KompactRuntime`, `KompactCursor`,
-`KompactCursorByteRanges`, `KompactCursorRepeats`, and `KompactByteRange` in
-the runtime module, plus the changed KSP generator classes in
-`:kompact-ksp`. The runtime guarded `mutationTest.jvmOnly` model
-removes iOS and Android Native variants only for its explicit mutation task;
-ordinary builds keep their declared targets. MutFlow 1.7.0 does not publish the
-required iOS or Android Native variants, so these runs provide neither Android
-nor Native mutation evidence. Run the two qualified `mutationResults` tasks
-sequentially with their module-specific adapter class filters, as documented in
-the [mutation-testing execution guide](../.omp/AGENT-USAGE.md).
-The KSP mutation task is opt-in with
-`-PmutationTest.enabled=true`; ordinary `:kompact-ksp:test` remains a JUnit 6
-unit-test run.
+at runtime.
 
 ## Run a smaller check while developing
 
