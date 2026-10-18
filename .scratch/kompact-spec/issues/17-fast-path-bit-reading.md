@@ -1,6 +1,6 @@
 ---
 Type: task
-Status: needs-triage
+Status: ready-for-agent
 Labels:
   - scope:runtime
   - kind:performance
@@ -77,3 +77,11 @@ The external review proposes specializing the fast path:
 - [ticket 11 — performance-evidence plan](11-performance-evidence-plan.md)
 - `docs/architecture.md` § "Zero-allocation reads"
 - `docs/research/allocation-boxing-measurement.md` (zero-alloc contract boundaries)
+
+## Comments
+
+2026-10-18 triage: the blocker, ticket 11, is resolved, and
+`benchmarks/src/commonMain/kotlin/ch/trancee/kompact/benchmark/ScalarBenchmark.kt` measures the scalar read
+and write paths. The public `readBits` family does no explicit bounds check
+today, so an unchecked codegen surface would gain nothing. Scope this ticket to
+fast paths inside the existing functions, with no ABI change.

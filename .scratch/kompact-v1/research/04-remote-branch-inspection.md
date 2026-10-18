@@ -1,6 +1,6 @@
 ---
 Type: research
-Status: needs-triage
+Status: resolved
 Labels:
   - wayfinder:research
   - scope:build
@@ -222,3 +222,11 @@ ABI golden state from there.
   No remote refs were mutated. No fetches were required (all origin/* refs present).
   No stray local tracking refs created.
 -->
+
+## Answer
+
+Rechecked on 2026-10-18. The classification still holds. No branch has new
+commits since 2026-09-13, and `main` contains the v1 implementation from
+`feat/laguna`. The five branches are `feat/kompact-v1`, `feat/laguna`,
+`feat/minimax`, `prototype/c99-interface`, and `prototype/kotlin-interface`.
+Deleting them changes the remote, so it waits for maintainer approval.
