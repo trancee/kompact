@@ -6,21 +6,32 @@ of truth. This page lists the tasks they run today.
 
 The `CI` workflow ([`ci.yml`](../.github/workflows/ci.yml)) runs on pushes to
 `main`, `master`, and `feat/**`, and on pull requests that target `main` or
-`master`. It has three jobs, and each job uses Temurin JDK 21.
+`master`. A newer push to the same pull request cancels the older run. The
+jobs run in parallel, and each Gradle job uses Temurin JDK 21.
 
 | Job | Runner | Check name |
 |---|---|---|
+| `docs` | `ubuntu-latest` | `Docs + release scripts + tool fixtures (Linux)` |
 | `jvm-test` | `ubuntu-latest` | `JVM tests + Android assemble + Portal dry-run (Linux)` |
+| `gradle-plugin-test` | `ubuntu-latest` | `Gradle plugin KMP consumer (Linux)` |
+| `android-native` | `ubuntu-latest` | `Android Native device-test binaries (Linux)` |
+| `jvm-benchmarks` | `ubuntu-latest` | `JVM benchmark fixtures + smoke results (Linux)` |
+| `mutation-test` | `ubuntu-latest` | `Mutation testing (kompact)` and `Mutation testing (kompact-ksp)` |
 | `api-check` | `macos-latest` | `ABI + iOS Simulator tests + Markdown + spotless (macOS)` |
-| `mutation-test` | `ubuntu-latest` | `Mutation testing (Linux)` |
+| `native-benchmarks` | `macos-latest` | `Native benchmark fixtures + iOS holder fixtures (macOS)` |
+
+Branch protection on `main` requires the `jvm-test` and `api-check` checks.
+
+Every job starts from a clean checkout and runs its Gradle steps on one
+daemon. A later step reuses the task outputs of an earlier step in the same
+job. Every Gradle command passes `--no-build-cache`, so no task output comes
+from an earlier run. The jobs that compile Kotlin/Native cache `~/.konan`.
+The cache key is the job name plus the hash of `gradle/libs.versions.toml`.
 
 ## Linux checks
 
-The `jvm-test` job runs these commands in order. It tests the release
-scripts, the device-runner tools, and the benchmark fixtures, checks the
-Markdown, runs the JVM, KSP, and Gradle plugin checks, links an Android
-Native arm64 test binary, and builds Central Portal bundles without
-publishing them:
+The `docs` job tests the release scripts, the device-runner tools, and the
+benchmark report tools, and it checks the Markdown. It needs no JDK:
 
 ```bash
 bash .github/scripts/release/version-bump-test.sh
@@ -29,14 +40,19 @@ bash .github/scripts/docs/version-docs-check-test.sh
 bash .github/scripts/docs/check-version-references.sh .
 python3 -m unittest discover -s scripts -p 'test_*.py'
 python3 -m unittest discover -s benchmarks -p 'test_*.py'
-./gradlew :benchmarks:jvmTest :benchmarks:jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
-python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/jvm.json
-./gradlew -p benchmarks/holders jvmTest jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
-python3 benchmarks/check_results.py --profile holders-smoke benchmarks/holders/build/reports/benchmarks/smoke/*/jvm.json
 lychee --offline --no-progress --include-fragments README.md SECURITY.md CONTRIBUTING.md CHANGELOG.md docs
 codespell --count --ignore-words-list=OptIn README.md SECURITY.md CONTRIBUTING.md CHANGELOG.md docs
 npm exec --yes --package=markdownlint-cli2@0.23.2 -- markdownlint-cli2 --config .markdownlint-cli2.jsonc README.md SECURITY.md CONTRIBUTING.md 'docs/**/*.md'
+```
 
+CI runs Lychee, Codespell, and Markdownlint through pinned GitHub Actions.
+The `lychee`, `codespell`, and `npm exec` lines above run the same checks
+when you have the tools installed.
+
+The `jvm-test` job runs the JVM, KSP, and Gradle plugin checks, and then
+builds Central Portal bundles without publishing them:
+
+```bash
 ./gradlew \
   spotlessCheck \
   detekt \
@@ -53,26 +69,32 @@ npm exec --yes --package=markdownlint-cli2@0.23.2 -- markdownlint-cli2 --config 
   :kompact-gradle-plugin:checkKotlinAbi \
   :kompact-gradle-plugin:koverVerify \
   :build-logic:test \
-  --no-daemon --rerun-tasks --no-build-cache --warning-mode all
-
-./gradlew \
-  :kompact-gradle-plugin:test \
-  --no-daemon --rerun-tasks --no-build-cache --warning-mode all
-
-./gradlew \
-  :kompact:androidNativeArm64TestBinaries \
-  --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+  --no-build-cache --warning-mode all
 
 ./gradlew \
   :kompact:generateChecksums :kompact:assembleCentralBundle \
   :kompact-ksp:generateChecksums :kompact-ksp:assembleCentralBundle \
   :kompact-gradle-plugin:generateChecksums :kompact-gradle-plugin:assembleCentralBundle \
-  --no-daemon --console=plain
+  --no-build-cache --console=plain
 ```
 
-CI runs Lychee, Codespell, and Markdownlint through pinned GitHub Actions.
-The `lychee`, `codespell`, and `npm exec` lines above run the same checks
-when you have the tools installed.
+The `gradle-plugin-test`, `android-native`, and `jvm-benchmarks` jobs run
+these commands. The `android-native` job uploads the debug and release
+Android Native arm64 test binaries as artifacts and keeps them for 7 days:
+
+```bash
+./gradlew :kompact-gradle-plugin:test --no-build-cache --warning-mode all
+
+./gradlew :kompact:androidNativeArm64TestBinaries --no-build-cache --warning-mode all
+
+./gradlew :benchmarks:jvmTest :benchmarks:jvmSmokeBenchmark --no-build-cache --console=plain
+python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/jvm.json
+./gradlew -p benchmarks/holders jvmTest jvmSmokeBenchmark --no-build-cache --console=plain
+python3 benchmarks/check_results.py --profile holders-smoke benchmarks/holders/build/reports/benchmarks/smoke/*/jvm.json
+```
+
+To reproduce a clean CI run on a machine that has built the project
+before, add `--rerun-tasks` to each Gradle command.
 
 ### What the Gradle tasks check
 
@@ -81,8 +103,8 @@ when you have the tools installed.
 which needs no connected device. `:kompact-ksp-integration:test` compiles
 generated consumers. `:kompact-gradle-plugin:test` is a Gradle TestKit suite
 that compiles a consumer for JVM, Android, iOS, and Android Native. CI runs
-it in its own Gradle invocation so that its nested builds do not overlap the
-compiler daemons of the root build.
+it in its own job so that its nested builds do not overlap the compiler
+daemons of the root build.
 
 `koverVerify` enforces line and branch thresholds for the runtime, the KSP
 processor, and the Gradle plugin. The Gradle plugin requires 100% coverage
@@ -154,9 +176,9 @@ authoritative iOS check.
 ## macOS checks
 
 The `api-check` job installs the Android SDK `platform-tools` package. It
-checks formatting and the ABI goldens, runs the shared runtime tests on iOS
-Simulator Arm64, and runs the benchmark fixtures. Then it regenerates the
-committed API Markdown and fails if the generated tree changed:
+checks formatting and the ABI goldens and runs the shared runtime tests on
+iOS Simulator Arm64. Then it regenerates the committed API Markdown and
+fails if the generated tree changed:
 
 ```bash
 ./gradlew \
@@ -164,14 +186,19 @@ committed API Markdown and fails if the generated tree changed:
   :kompact:checkKotlinAbi \
   :kompact:iosSimulatorArm64Test \
   :kompact-ksp:checkKotlinAbi \
-  --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+  --no-build-cache --warning-mode all
 
-./gradlew :benchmarks:macosArm64Test :benchmarks:macosArm64SmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
-python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/macosArm64.json
-./gradlew -p benchmarks/holders iosSimulatorArm64Test --no-daemon --rerun-tasks --no-build-cache --console=plain
-
-./gradlew :kompact:dokkaGeneratePublicationMarkdown --no-daemon --console=plain
+./gradlew :kompact:dokkaGeneratePublicationMarkdown --no-build-cache --console=plain
 git diff --exit-code -- kompact/docs/api/
+```
+
+The `native-benchmarks` job runs the benchmark fixtures on macOS Arm64 and
+the generated-holder fixtures on iOS Simulator:
+
+```bash
+./gradlew :benchmarks:macosArm64Test :benchmarks:macosArm64SmokeBenchmark --no-build-cache --console=plain
+python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/macosArm64.json
+./gradlew -p benchmarks/holders iosSimulatorArm64Test --no-build-cache --console=plain
 ```
 
 `:kompact:iosSimulatorArm64Test` runs the common runtime test suite against
@@ -184,12 +211,13 @@ edit files under `kompact/docs/api/` by hand.
 ## Mutation testing
 
 The `mutation-test` job runs MutFlow against the whole runtime and KSP
-processor packages. It fails if any mutant survives or the run has execution
-gaps. Each command must be the only task in its Gradle invocation:
+processor packages, one matrix job per module. A job fails if any mutant
+survives or the run has execution gaps. Each command must be the only task
+in its Gradle invocation:
 
 ```bash
-./gradlew -PmutationTest.jvmOnly=true :kompact:mutationResults --no-daemon --no-configuration-cache --console=plain
-./gradlew -PmutationTest.enabled=true :kompact-ksp:mutationResults --no-daemon --no-configuration-cache --console=plain
+./gradlew -PmutationTest.jvmOnly=true :kompact:mutationResults --no-configuration-cache --console=plain
+./gradlew -PmutationTest.enabled=true :kompact-ksp:mutationResults --no-configuration-cache --console=plain
 ```
 
 The `mutationTest.jvmOnly` property removes the runtime's iOS and Android
@@ -200,12 +228,13 @@ MutFlow to the KSP processor, also only for the mutation task. An ordinary
 JVM only. MutFlow does not support the configuration cache, so both commands
 pass `--no-configuration-cache`.
 
-CI runs the KSP command even when the runtime command fails, unless the run
-was cancelled. Each command writes `build/reports/mutation-results.md` and
+The two matrix jobs run independently, so a runtime failure does not stop
+the KSP run. Each command writes `build/reports/mutation-results.md` and
 `build/reports/mutation-results.json` in its module. The `mutationResults`
 task adds the Markdown summary to the job page through
-`GITHUB_STEP_SUMMARY`. CI uploads the report files of both modules as the
-`mutation-results` artifact and keeps it for 14 days. See the
+`GITHUB_STEP_SUMMARY`. Each job uploads its report files as the
+`mutation-results-kompact` or `mutation-results-kompact-ksp` artifact and
+keeps it for 14 days. See the
 [mutation testing disposition](mutation-testing-disposition.md) for the
 current results and [`.omp/AGENT-USAGE.md`](../.omp/AGENT-USAGE.md) for the
 workflow.
@@ -428,11 +457,11 @@ No release workflow pushes commits to protected `main`. The release version,
 the changelog, and the next snapshot all go through reviewed PRs. See
 [ADR-0004](adr/0004-release-pr-automation.md).
 
-On 2026-10-06, branch protection on `main` required strict status checks for
+On 2026-10-18, branch protection on `main` required strict status checks for
 `JVM tests + Android assemble + Portal dry-run (Linux)` and
-`ABI + iOS Simulator tests + Markdown + spotless (macOS)`. That record
-predates the `Mutation testing (Linux)` job. Branch protection lives outside
-this repository. Before a release, check which contexts are still required.
+`ABI + iOS Simulator tests + Markdown + spotless (macOS)`. It did not require
+the other CI jobs. Branch protection lives outside this repository. Before a
+release, check which contexts are still required.
 
 Before `1.0.0`, a breaking change increments the minor version. From `1.0.0`,
 it increments the major version. Features increment the minor version, and
