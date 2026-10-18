@@ -43,6 +43,7 @@ npm exec --yes --package=markdownlint-cli2@0.23.2 -- markdownlint-cli2 --config 
   :kompact-gradle-plugin:checkKotlinAbi \
   :kompact-gradle-plugin:koverVerify \
   :kompact-gradle-plugin:test \
+  :build-logic:test \
   --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
 ./gradlew \
@@ -270,7 +271,7 @@ at runtime. The mutation setup targets `KompactRuntime`, `KompactCursor`,
 the runtime module, plus the changed KSP generator classes in
 `:kompact-ksp`. The runtime guarded `mutationTest.jvmOnly` model
 removes iOS and Android Native variants only for its explicit mutation task;
-ordinary builds keep their declared targets. MutFlow 1.6.1 does not publish the
+ordinary builds keep their declared targets. MutFlow 1.7.0 does not publish the
 required iOS or Android Native variants, so these runs provide neither Android
 nor Native mutation evidence. Run the two qualified `mutationResults` tasks
 sequentially with their module-specific adapter class filters, as documented in

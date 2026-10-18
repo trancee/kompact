@@ -25,6 +25,7 @@ spotless {
         target("kompact-ksp/src/**/*.kt")
         target("kompact-ksp-integration/src/**/*.kt")
         target("benchmarks/src/**/*.kt", "benchmarks/holders/src/**/*.kt")
+        target("build-logic/src/**/*.kt")
         ktlint()
     }
     kotlinGradle {

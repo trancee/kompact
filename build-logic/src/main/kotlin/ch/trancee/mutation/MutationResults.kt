@@ -8,10 +8,17 @@ import kotlinx.serialization.Serializable
  *   Excellent: >80%, Good: >60%, Fair: >30%, Poor: ≤30%
  */
 enum class QualityBand {
-    @SerialName("Excellent") Excellent,
-    @SerialName("Good") Good,
-    @SerialName("Fair") Fair,
-    @SerialName("Poor") Poor,
+    @SerialName("Excellent")
+    Excellent,
+
+    @SerialName("Good")
+    Good,
+
+    @SerialName("Fair")
+    Fair,
+
+    @SerialName("Poor")
+    Poor,
 }
 
 /**
@@ -19,9 +26,14 @@ enum class QualityBand {
  *   Low: <10, Medium: 10–50, High: >50
  */
 enum class ConfidenceLevel {
-    @SerialName("Low") Low,
-    @SerialName("Medium") Medium,
-    @SerialName("High") High,
+    @SerialName("Low")
+    Low,
+
+    @SerialName("Medium")
+    Medium,
+
+    @SerialName("High")
+    High,
 }
 
 /**

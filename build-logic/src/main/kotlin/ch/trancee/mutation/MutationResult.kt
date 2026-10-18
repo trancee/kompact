@@ -25,7 +25,12 @@ data class MutationResult(
  * The outcome of a mutation run.
  */
 enum class MutationResultType {
-    @SerialName("Killed") Killed,
-    @SerialName("Survived") Survived,
-    @SerialName("TimedOut") TimedOut,
+    @SerialName("Killed")
+    Killed,
+
+    @SerialName("Survived")
+    Survived,
+
+    @SerialName("TimedOut")
+    TimedOut,
 }

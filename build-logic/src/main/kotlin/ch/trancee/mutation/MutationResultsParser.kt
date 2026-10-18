@@ -9,7 +9,6 @@ import java.util.regex.Pattern
  * The Gradle [MutationResultsTask] is a thin adapter that calls these.
  */
 object MutationResultsParser {
-
     /**
      * Parses mutflow's MutationTestingSummary from captured JUnit XML `<system-out>`.
      *
@@ -29,9 +28,10 @@ object MutationResultsParser {
     fun parseMutflowSummary(stdout: String): List<MutationResult> {
         val mutations = mutableListOf<MutationResult>()
 
-        val mutationPattern = Pattern.compile(
-            """([✓✗⏱])\s*\(([^)]+)\)\s+(.+?)\s*(?:→|->)\s*(.+)"""
-        )
+        val mutationPattern =
+            Pattern.compile(
+                """([✓✗⏱])\s*\(([^)]+)\)\s+(.+?)\s*(?:→|->)\s*(.+)""",
+            )
         val killedByPattern = Pattern.compile("""(?:killed by:?\s*(.+))""")
 
         val lines = stdout.lines().filter { it.isNotBlank() }
@@ -45,41 +45,45 @@ object MutationResultsParser {
                 val originalOp = matcher.group(3).trim()
                 val variantOp = matcher.group(4).trim()
 
-                val result = when (statusIcon) {
-                    "✓" -> MutationResultType.Killed
-                    "✗" -> MutationResultType.Survived
-                    "⏱" -> MutationResultType.TimedOut
-                    else -> continue // skip unrecognized status icons
-                }
+                val result =
+                    when (statusIcon) {
+                        "✓" -> MutationResultType.Killed
+                        "✗" -> MutationResultType.Survived
+                        "⏱" -> MutationResultType.TimedOut
+                        else -> continue // skip unrecognized status icons
+                    }
 
                 val killedByTests = mutableListOf<String>()
-                val killedByTest: String? = if (result == MutationResultType.Killed) {
-                    // Collect ALL "killed by:" lines that follow (full killer set)
-                    var j = i + 1
-                    while (j < lines.size) {
-                        val nextLine = lines[j].replace(Regex("[\\u2500-\\u257F]"), "").trim()
-                        val killedMatcher = killedByPattern.matcher(nextLine)
-                        if (killedMatcher.matches()) {
-                            killedByTests.add(killedMatcher.group(1).trim())
-                            j++ // consume the killed-by line
-                        } else {
-                            break // stop at first non-killed-by line
+                val killedByTest: String? =
+                    if (result == MutationResultType.Killed) {
+                        // Collect ALL "killed by:" lines that follow (full killer set)
+                        var j = i + 1
+                        while (j < lines.size) {
+                            val nextLine = lines[j].replace(Regex("[\\u2500-\\u257F]"), "").trim()
+                            val killedMatcher = killedByPattern.matcher(nextLine)
+                            if (killedMatcher.matches()) {
+                                killedByTests.add(killedMatcher.group(1).trim())
+                                j++ // consume the killed-by line
+                            } else {
+                                break // stop at first non-killed-by line
+                            }
                         }
+                        i = j - 1 // advance past all consumed killed-by lines
+                        killedByTests.firstOrNull()
+                    } else {
+                        null
                     }
-                    i = j - 1 // advance past all consumed killed-by lines
-                    killedByTests.firstOrNull()
-                } else {
-                    null
-                }
 
-                mutations.add(MutationResult(
-                    sourceLocation = sourceLocation,
-                    originalOperator = originalOp,
-                    variantOperator = variantOp,
-                    result = result,
-                    killedByTest = killedByTest,
-                    killedByTests = killedByTests,
-                ))
+                mutations.add(
+                    MutationResult(
+                        sourceLocation = sourceLocation,
+                        originalOperator = originalOp,
+                        variantOperator = variantOp,
+                        result = result,
+                        killedByTest = killedByTest,
+                        killedByTests = killedByTests,
+                    ),
+                )
             }
             i++
         }
@@ -108,26 +112,29 @@ object MutationResultsParser {
         val evaluated = total
         val score: Double? = if (evaluated > 0 && gaps == 0) killed.toDouble() / evaluated else null
 
-        val band = score?.let { s ->
-            when {
-                s > 0.8 -> QualityBand.Excellent
-                s > 0.6 -> QualityBand.Good
-                s > 0.3 -> QualityBand.Fair
-                else -> QualityBand.Poor
+        val band =
+            score?.let { s ->
+                when {
+                    s > 0.8 -> QualityBand.Excellent
+                    s > 0.6 -> QualityBand.Good
+                    s > 0.3 -> QualityBand.Fair
+                    else -> QualityBand.Poor
+                }
+            } ?: QualityBand.Poor
+
+        val (ciLow, ciHigh) =
+            if (evaluated > 0 && score != null) {
+                wilsonInterval(killed, evaluated)
+            } else {
+                null to null
             }
-        } ?: QualityBand.Poor
 
-        val (ciLow, ciHigh) = if (evaluated > 0 && score != null) {
-            wilsonInterval(killed, evaluated)
-        } else {
-            null to null
-        }
-
-        val confidence = when {
-            total < 10 -> ConfidenceLevel.Low
-            total <= 50 -> ConfidenceLevel.Medium
-            else -> ConfidenceLevel.High
-        }
+        val confidence =
+            when {
+                total < 10 -> ConfidenceLevel.Low
+                total <= 50 -> ConfidenceLevel.Medium
+                else -> ConfidenceLevel.High
+            }
 
         return MutationStats(
             score = score,
@@ -148,7 +155,10 @@ object MutationResultsParser {
      * Wilson score 95% confidence interval for a binomial proportion.
      * Returns (low, high) bounds. Used for mutation score confidence intervals.
      */
-    private fun wilsonInterval(successes: Int, trials: Int): Pair<Double?, Double?> {
+    private fun wilsonInterval(
+        successes: Int,
+        trials: Int,
+    ): Pair<Double?, Double?> {
         if (trials <= 0) return null to null
         val z = 1.96
         val n = trials.toDouble()
@@ -207,15 +217,20 @@ object MutationResultsParser {
             }
         }
 
-        return groups.filter { it.value.size > threshold }
+        return groups
+            .filter { it.value.size > threshold }
             .map { (signature, tests) ->
                 RedundantGroup(
                     tests = tests.sorted(),
                     count = tests.size,
-                    failureSignature = tests.first().let { testSignatures[it] }.orEmpty().sorted(),
+                    failureSignature =
+                        tests
+                            .first()
+                            .let { testSignatures[it] }
+                            .orEmpty()
+                            .sorted(),
                 )
-            }
-            .sortedByDescending { it.count }
+            }.sortedByDescending { it.count }
     }
 
     /**
@@ -238,38 +253,49 @@ object MutationResultsParser {
         val testedCounts = summaryCounts(stdout, "Tested this run")
         if (stdout.isBlank()) {
             if (gaps.isEmpty()) {
-                gaps.add(ExecutionGap(
-                    type = "NO_OUTPUT",
-                    reason = "No mutflow output captured — test class may have failed to produce JUnit XML",
-                ))
+                gaps.add(
+                    ExecutionGap(
+                        type = "NO_OUTPUT",
+                        reason = "No mutflow output captured — test class may have failed to produce JUnit XML",
+                    ),
+                )
             }
         } else if (mutations.isEmpty() && (testedCounts.isEmpty() || testedCounts.any { it != 0 })) {
-            gaps.add(ExecutionGap(
-                type = "NO_OUTPUT",
-                reason = "Stdout was non-empty but no mutation results could be parsed",
-            ))
+            gaps.add(
+                ExecutionGap(
+                    type = "NO_OUTPUT",
+                    reason = "Stdout was non-empty but no mutation results could be parsed",
+                ),
+            )
         }
 
         val reportedCount = testedCounts.sum()
         if (testedCounts.isNotEmpty() && mutations.size != reportedCount) {
-            gaps.add(ExecutionGap(
-                type = "PARTIAL_RUN",
-                reason = "Parsed ${mutations.size} mutations but mutflow reported $reportedCount tested this run",
-            ))
+            gaps.add(
+                ExecutionGap(
+                    type = "PARTIAL_RUN",
+                    reason = "Parsed ${mutations.size} mutations but mutflow reported $reportedCount tested this run",
+                ),
+            )
         }
 
         val discoveredCounts = summaryCounts(stdout, "Total mutations discovered")
         val remainingCounts = summaryCounts(stdout, "Remaining untested")
         if (listOf(discoveredCounts, testedCounts, remainingCounts).any { it.isNotEmpty() } &&
-            (discoveredCounts.size != testedCounts.size || remainingCounts.size != testedCounts.size ||
-                testedCounts.indices.any { index ->
-                    discoveredCounts[index].toLong() !=
-                        testedCounts[index].toLong() + remainingCounts[index].toLong()
-                })) {
-            gaps.add(ExecutionGap(
-                type = "PARTIAL_RUN",
-                reason = "Mutflow discovered, tested, and remaining counters are missing or inconsistent",
-            ))
+            (
+                discoveredCounts.size != testedCounts.size || remainingCounts.size != testedCounts.size ||
+                    testedCounts.indices.any { index ->
+                        discoveredCounts[index].toLong() !=
+                            testedCounts[index].toLong() + remainingCounts[index].toLong()
+                    }
+            )
+        ) {
+            gaps.add(
+                ExecutionGap(
+                    type = "PARTIAL_RUN",
+                    reason = "Mutflow discovered, tested, and remaining counters are missing or inconsistent",
+                ),
+            )
         }
 
         return gaps
@@ -278,9 +304,14 @@ object MutationResultsParser {
     fun discoveredCount(stdout: String): Int? =
         summaryCounts(stdout, "Total mutations discovered").takeIf { it.isNotEmpty() }?.sum()
 
-    private fun summaryCounts(stdout: String, label: String): List<Int> =
-        Regex("${Regex.escape(label)}:\\s*(\\d+)").findAll(stdout)
-            .map { it.groupValues[1].toInt() }.toList()
+    private fun summaryCounts(
+        stdout: String,
+        label: String,
+    ): List<Int> =
+        Regex("${Regex.escape(label)}:\\s*(\\d+)")
+            .findAll(stdout)
+            .map { it.groupValues[1].toInt() }
+            .toList()
 
     /**
      * Assembles a complete [MutationResults] from parsed mutations, test method

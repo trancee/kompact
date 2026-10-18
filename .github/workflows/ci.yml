@@ -142,6 +142,7 @@ jobs:
             :kompact-gradle-plugin:validatePlugins \
             :kompact-gradle-plugin:checkKotlinAbi \
             :kompact-gradle-plugin:koverVerify \
+            :build-logic:test \
             --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
       # This TestKit suite launches nested Gradle builds that compile the

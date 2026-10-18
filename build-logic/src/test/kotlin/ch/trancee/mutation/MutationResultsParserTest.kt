@@ -1,21 +1,24 @@
 package ch.trancee.mutation
 
-import ch.trancee.mutation.MutationResultsParser.parseMutflowSummary
-import ch.trancee.mutation.MutationResultsParser.detectRedundantTestGroups
 import ch.trancee.mutation.MutationResultsParser.detectGaps
+import ch.trancee.mutation.MutationResultsParser.detectRedundantTestGroups
+import ch.trancee.mutation.MutationResultsParser.parseMutflowSummary
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
 
 class MutationResultsParserTest {
-
     @Test
     fun `multi-killer mutation captures all killing tests`() {
-        val stdout = """
+        val stdout =
+            """
             ✓ (Calculator.kt:7) > → >=
                 killed by: testIsPositive
                 killed by: testIsPositiveBoundary
                 killed by: testPositiveNumbers
-        """.trimIndent()
+            """.trimIndent()
 
         val mutations = parseMutflowSummary(stdout)
         assertEquals(1, mutations.size)
@@ -34,10 +37,11 @@ class MutationResultsParserTest {
 
     @Test
     fun `survived mutation has no killer`() {
-        val stdout = """
+        val stdout =
+            """
             ✗ (Calculator.kt:8) >= → >
                 SURVIVED - no test caught this mutation!
-        """.trimIndent()
+            """.trimIndent()
 
         val mutations = parseMutflowSummary(stdout)
         assertEquals(1, mutations.size)
@@ -50,10 +54,11 @@ class MutationResultsParserTest {
 
     @Test
     fun `timed-out mutation has no killer`() {
-        val stdout = """
+        val stdout =
+            """
             ⏱ (Calculator.kt:12) + → *
                 TIMED OUT - likely causes an infinite loop
-        """.trimIndent()
+            """.trimIndent()
 
         val mutations = parseMutflowSummary(stdout)
         assertEquals(1, mutations.size)
@@ -72,7 +77,8 @@ class MutationResultsParserTest {
 
     @Test
     fun `mixed results parse correctly`() {
-        val stdout = """
+        val stdout =
+            """
             ✓ (Calculator.kt:7) > → >=
                 killed by: testIsPositive
                 killed by: testIsPositiveBoundary
@@ -80,7 +86,7 @@ class MutationResultsParserTest {
                 SURVIVED - no test caught this mutation!
             ⏱ (Calculator.kt:12) + → *
                 TIMED OUT - likely causes an infinite loop
-        """.trimIndent()
+            """.trimIndent()
 
         val mutations = parseMutflowSummary(stdout)
         assertEquals(3, mutations.size)
@@ -92,12 +98,13 @@ class MutationResultsParserTest {
 
     @Test
     fun `malformed lines are skipped`() {
-        val stdout = """
+        val stdout =
+            """
             Some random log line
             ✓ (Calculator.kt:7) > → >=
                 killed by: testIsPositive
             Another random line
-        """.trimIndent()
+            """.trimIndent()
 
         val mutations = parseMutflowSummary(stdout)
         assertEquals(1, mutations.size)
@@ -106,10 +113,11 @@ class MutationResultsParserTest {
 
     @Test
     fun `unicode box-drawing character is stripped from killed-by lines`() {
-        val stdout = """
+        val stdout =
+            """
             ✓ (Calculator.kt:7) > → >=
                 ║ killed by: testIsPositive
-        """.trimIndent()
+            """.trimIndent()
 
         val mutations = parseMutflowSummary(stdout)
         assertEquals(1, mutations.size)
@@ -119,12 +127,13 @@ class MutationResultsParserTest {
 
     @Test
     fun `various box-drawing characters are stripped`() {
-        val stdout = """
+        val stdout =
+            """
             ✓ (Calculator.kt:7) > → >=
                 │ killed by: testIsPositive
                 ┃ killed by: testIsPositiveBoundary
                 ╎ killed by: testPositiveNumbers
-        """.trimIndent()
+            """.trimIndent()
 
         val mutations = parseMutflowSummary(stdout)
         assertEquals(1, mutations.size)
@@ -137,10 +146,17 @@ class MutationResultsParserTest {
     @Test
     fun `redundant group detected when 6 tests share identical signature`() {
         // 6 tests all kill the same mutation → identical signature → redundant group
-        val mutations = listOf(
-            MutationResult("(Calc.kt:7)", ">", ">=", MutationResultType.Killed, null,
-                listOf("testA", "testB", "testC", "testD", "testE", "testF")),
-        )
+        val mutations =
+            listOf(
+                MutationResult(
+                    "(Calc.kt:7)",
+                    ">",
+                    ">=",
+                    MutationResultType.Killed,
+                    null,
+                    listOf("testA", "testB", "testC", "testD", "testE", "testF"),
+                ),
+            )
         val groups = detectRedundantTestGroups(mutations)
         assertEquals(1, groups.size)
         assertEquals(6, groups[0].count)
@@ -152,23 +168,50 @@ class MutationResultsParserTest {
 
     @Test
     fun `five tests with identical signature is not redundant`() {
-        val mutations = listOf(
-            MutationResult("(Calc.kt:7)", ">", ">=", MutationResultType.Killed, null,
-                listOf("testA", "testB", "testC", "testD", "testE")),
-        )
+        val mutations =
+            listOf(
+                MutationResult(
+                    "(Calc.kt:7)",
+                    ">",
+                    ">=",
+                    MutationResultType.Killed,
+                    null,
+                    listOf("testA", "testB", "testC", "testD", "testE"),
+                ),
+            )
         val groups = detectRedundantTestGroups(mutations)
         assertEquals(0, groups.size)
     }
+
     @Test
     fun `different signatures are not grouped`() {
-        val mutations = listOf(
-            MutationResult("(Calc.kt:7)", ">", ">=", MutationResultType.Killed, null,
-                listOf("testA", "testB", "testC", "testD", "testE", "testF")),
-            MutationResult("(Calc.kt:8)", ">=", ">", MutationResultType.Killed, null,
-                listOf("testA", "testB", "testC", "testD", "testE", "testF")),
-            MutationResult("(Calc.kt:9)", "+", "*", MutationResultType.Killed, null,
-                listOf("testG", "testH", "testI")),
-        )
+        val mutations =
+            listOf(
+                MutationResult(
+                    "(Calc.kt:7)",
+                    ">",
+                    ">=",
+                    MutationResultType.Killed,
+                    null,
+                    listOf("testA", "testB", "testC", "testD", "testE", "testF"),
+                ),
+                MutationResult(
+                    "(Calc.kt:8)",
+                    ">=",
+                    ">",
+                    MutationResultType.Killed,
+                    null,
+                    listOf("testA", "testB", "testC", "testD", "testE", "testF"),
+                ),
+                MutationResult(
+                    "(Calc.kt:9)",
+                    "+",
+                    "*",
+                    MutationResultType.Killed,
+                    null,
+                    listOf("testG", "testH", "testI"),
+                ),
+            )
         val groups = detectRedundantTestGroups(mutations)
         // testA-F (6 tests, same signature {7, 8}) → redundant
         // testG-I (3 tests, signature {9}) → below threshold
@@ -176,25 +219,38 @@ class MutationResultsParserTest {
         assertEquals(6, groups[0].count)
     }
 
-
     @Test
     fun `zombies with empty signatures are not flagged as redundant`() {
-        val mutations = listOf(
-            MutationResult("(Calc.kt:7)", ">", ">=", MutationResultType.Survived), // no killer tests
-            MutationResult("(Calc.kt:8)", ">=", ">", MutationResultType.Survived),
-        )
+        val mutations =
+            listOf(
+                MutationResult("(Calc.kt:7)", ">", ">=", MutationResultType.Survived), // no killer tests
+                MutationResult("(Calc.kt:8)", ">=", ">", MutationResultType.Survived),
+            )
         val groups = detectRedundantTestGroups(mutations)
         assertEquals(0, groups.size)
     }
 
     @Test
     fun `multiple redundant groups are sorted by count descending`() {
-        val mutations = listOf(
-            MutationResult("(A.kt:1)", ">", ">=", MutationResultType.Killed, null,
-                listOf("a1", "a2", "a3", "a4", "a5", "a6", "a7")),
-            MutationResult("(B.kt:2)", ">", ">=", MutationResultType.Killed, null,
-                listOf("b1", "b2", "b3", "b4", "b5", "b6")),
-        )
+        val mutations =
+            listOf(
+                MutationResult(
+                    "(A.kt:1)",
+                    ">",
+                    ">=",
+                    MutationResultType.Killed,
+                    null,
+                    listOf("a1", "a2", "a3", "a4", "a5", "a6", "a7"),
+                ),
+                MutationResult(
+                    "(B.kt:2)",
+                    ">",
+                    ">=",
+                    MutationResultType.Killed,
+                    null,
+                    listOf("b1", "b2", "b3", "b4", "b5", "b6"),
+                ),
+            )
         val groups = detectRedundantTestGroups(mutations)
         assertEquals(2, groups.size)
         assertEquals(7, groups[0].count)
@@ -203,32 +259,35 @@ class MutationResultsParserTest {
 
     @Test
     fun `detectGaps returns NO_OUTPUT for empty stdout`() {
-        val gaps = MutationResultsParser.detectGaps(
-            stdout = "",
-            mutations = emptyList(),
-        )
+        val gaps =
+            MutationResultsParser.detectGaps(
+                stdout = "",
+                mutations = emptyList(),
+            )
         assertEquals(1, gaps.size)
         assertEquals("NO_OUTPUT", gaps[0].type)
     }
 
     @Test
     fun `detectGaps returns NO_OUTPUT when stdout non-empty but no mutations parsed`() {
-        val gaps = MutationResultsParser.detectGaps(
-            stdout = "mutflow summary output without recognizable lines",
-            mutations = emptyList(),
-        )
+        val gaps =
+            MutationResultsParser.detectGaps(
+                stdout = "mutflow summary output without recognizable lines",
+                mutations = emptyList(),
+            )
         assertEquals(1, gaps.size)
         assertEquals("NO_OUTPUT", gaps[0].type)
     }
 
     @Test
     fun `detectGaps returns empty for normal output`() {
-        val stdout = """
+        val stdout =
+            """
             ✓ (Calculator.kt:7) > → >=
                 killed by: testIsPositive
             ✗ (Calculator.kt:8) >= → >
                 SURVIVED - no test caught this mutation!
-        """.trimIndent()
+            """.trimIndent()
         val mutations = parseMutflowSummary(stdout)
         val gaps = MutationResultsParser.detectGaps(stdout, mutations)
         assertEquals(0, gaps.size)
@@ -236,13 +295,14 @@ class MutationResultsParserTest {
 
     @Test
     fun `detectGaps detects PARTIAL_RUN from actual upstream counters`() {
-        val stdout = """
+        val stdout =
+            """
             ✓ (Calc.kt:1) > → >=
                 killed by: testA
             ║  Total mutations discovered: 5 ║
             ║  Tested this run: 5 ║
             ║  Remaining untested: 0 ║
-        """.trimIndent()
+            """.trimIndent()
         val mutations = parseMutflowSummary(stdout) // finds 1 mutation
         val gaps = MutationResultsParser.detectGaps(stdout, mutations)
         assertTrue(gaps.any { it.type == "PARTIAL_RUN" })
@@ -250,20 +310,23 @@ class MutationResultsParserTest {
 
     @Test
     fun `budgeted runs retain discovered and untested counts without a gap`() {
-        val stdout = """
+        val stdout =
+            """
             ║  Total mutations discovered: 32 ║
             ║  Tested this run: 1 ║
             ║  Remaining untested: 31 ║
             ✓ (Calc.kt:1) > → >=
                 killed by: testA
-        """.trimIndent()
+            """.trimIndent()
         val mutations = parseMutflowSummary(stdout)
 
-        val report = MutationResultsParser.assembleResults(
-            mutations, listOf("testA"),
-            gaps = detectGaps(stdout, mutations),
-            discoveredMutations = MutationResultsParser.discoveredCount(stdout)!!,
-        )
+        val report =
+            MutationResultsParser.assembleResults(
+                mutations,
+                listOf("testA"),
+                gaps = detectGaps(stdout, mutations),
+                discoveredMutations = MutationResultsParser.discoveredCount(stdout)!!,
+            )
 
         assertEquals(32, report.totalMutations)
         assertEquals(1, report.mutationsEvaluated)
@@ -274,11 +337,12 @@ class MutationResultsParserTest {
 
     @Test
     fun `valid zero discovery summary is not an execution gap`() {
-        val stdout = """
+        val stdout =
+            """
             ║  Total mutations discovered: 0 ║
             ║  Tested this run: 0 ║
             ║  Remaining untested: 0 ║
-        """.trimIndent()
+            """.trimIndent()
 
         val gaps = detectGaps(stdout, emptyList())
 
@@ -287,13 +351,14 @@ class MutationResultsParserTest {
 
     @Test
     fun `remaining counter mismatch is a partial run even when every detail was parsed`() {
-        val stdout = """
+        val stdout =
+            """
             Total mutations discovered: 4
             Tested this run: 1
             Remaining untested: 2
             ✓ (Calc.kt:1) > → >=
                 killed by: boundary()
-        """.trimIndent()
+            """.trimIndent()
         val mutations = parseMutflowSummary(stdout)
 
         val gaps = detectGaps(stdout, mutations)
@@ -303,7 +368,8 @@ class MutationResultsParserTest {
 
     @Test
     fun `multiple complete summaries aggregate discovered counts and retain budgets`() {
-        val stdout = """
+        val stdout =
+            """
             Total mutations discovered: 2
             Tested this run: 1
             Remaining untested: 1
@@ -313,7 +379,7 @@ class MutationResultsParserTest {
             Tested this run: 1
             Remaining untested: 2
             ✗ (Calc.kt:2) + → -
-        """.trimIndent()
+            """.trimIndent()
         val mutations = parseMutflowSummary(stdout)
 
         val gaps = detectGaps(stdout, mutations)
@@ -326,18 +392,20 @@ class MutationResultsParserTest {
     fun `discovered count smaller than evaluated count is rejected at assembly`() {
         val mutations = listOf(MutationResult("Calc.kt:1", ">", ">=", MutationResultType.Killed))
 
-        val failure = assertThrows(IllegalArgumentException::class.java) {
-            MutationResultsParser.assembleResults(mutations, emptyList(), discoveredMutations = 0)
-        }
+        val failure =
+            assertThrows(IllegalArgumentException::class.java) {
+                MutationResultsParser.assembleResults(mutations, emptyList(), discoveredMutations = 0)
+            }
 
         assertTrue(failure.message!!.contains("Discovered count is smaller"))
     }
 
     @Test
     fun `zero discovery across multiple sessions is not missing output`() {
-        val stdout = List(2) {
-            "Total mutations discovered: 0\nTested this run: 0\nRemaining untested: 0"
-        }.joinToString("\n")
+        val stdout =
+            List(2) {
+                "Total mutations discovered: 0\nTested this run: 0\nRemaining untested: 0"
+            }.joinToString("\n")
 
         val gaps = detectGaps(stdout, emptyList())
 
@@ -347,7 +415,8 @@ class MutationResultsParserTest {
 
     @Test
     fun `counter errors cannot cancel each other across sessions`() {
-        val stdout = """
+        val stdout =
+            """
             Total mutations discovered: 2
             Tested this run: 1
             Remaining untested: 0
@@ -356,7 +425,7 @@ class MutationResultsParserTest {
             Tested this run: 1
             Remaining untested: 1
             ✗ (Calc.kt:2) + → -
-        """.trimIndent()
+            """.trimIndent()
         val mutations = parseMutflowSummary(stdout)
 
         val gaps = detectGaps(stdout, mutations)
@@ -366,16 +435,18 @@ class MutationResultsParserTest {
 
     @Test
     fun `detectGaps preserves build-level gaps passed in`() {
-        val buildGap = ExecutionGap(
-            type = "COMPILATION_FAILURE",
-            reason = "IR transformation error",
-            testClass = "CalculatorTest",
-        )
-        val gaps = MutationResultsParser.detectGaps(
-            stdout = "",
-            mutations = emptyList(),
-            buildLevelGaps = listOf(buildGap),
-        )
+        val buildGap =
+            ExecutionGap(
+                type = "COMPILATION_FAILURE",
+                reason = "IR transformation error",
+                testClass = "CalculatorTest",
+            )
+        val gaps =
+            MutationResultsParser.detectGaps(
+                stdout = "",
+                mutations = emptyList(),
+                buildLevelGaps = listOf(buildGap),
+            )
         // Should have the build-level gap, and NO_OUTPUT is skipped because build gap exists
         assertEquals(1, gaps.size)
         assertEquals("COMPILATION_FAILURE", gaps[0].type)

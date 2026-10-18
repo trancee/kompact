@@ -1,18 +1,22 @@
 package ch.trancee.mutation
 
 import ch.trancee.mutation.MutationResultsParser.calculateMetrics
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
 
 class MutationStatsTest {
-
     @Test
     fun `all killed yields Excellent band`() {
-        val mutations = listOf(
-            MutationResult("(Calculator.kt:7)", ">", ">=", MutationResultType.Killed, "testA", listOf("testA")),
-            MutationResult("(Calculator.kt:8)", ">=", ">", MutationResultType.Killed, "testB", listOf("testB")),
-            MutationResult("(Calculator.kt:12)", "+", "*", MutationResultType.Killed, "testC", listOf("testC")),
-        )
+        val mutations =
+            listOf(
+                MutationResult("(Calculator.kt:7)", ">", ">=", MutationResultType.Killed, "testA", listOf("testA")),
+                MutationResult("(Calculator.kt:8)", ">=", ">", MutationResultType.Killed, "testB", listOf("testB")),
+                MutationResult("(Calculator.kt:12)", "+", "*", MutationResultType.Killed, "testC", listOf("testC")),
+            )
 
         val stats = calculateMetrics(mutations)
         assertEquals(1.0, stats.score)
@@ -26,12 +30,13 @@ class MutationStatsTest {
 
     @Test
     fun `all survived yields Poor band`() {
-        val mutations = listOf(
-            MutationResult("(Calculator.kt:7)", ">", ">=", MutationResultType.Survived),
-            MutationResult("(Calculator.kt:8)", ">=", ">", MutationResultType.Survived),
-            MutationResult("(Calculator.kt:12)", "+", "*", MutationResultType.Survived),
-            MutationResult("(Calculator.kt:15)", "-", "+", MutationResultType.Survived),
-        )
+        val mutations =
+            listOf(
+                MutationResult("(Calculator.kt:7)", ">", ">=", MutationResultType.Survived),
+                MutationResult("(Calculator.kt:8)", ">=", ">", MutationResultType.Survived),
+                MutationResult("(Calculator.kt:12)", "+", "*", MutationResultType.Survived),
+                MutationResult("(Calculator.kt:15)", "-", "+", MutationResultType.Survived),
+            )
 
         val stats = calculateMetrics(mutations)
         assertEquals(0.0, stats.score)
@@ -45,9 +50,10 @@ class MutationStatsTest {
 
     @Test
     fun `medium mutation count yields Medium confidence`() {
-        val mutations = (1..15).map {
-            MutationResult("(Calculator.kt:$it)", ">", ">=", MutationResultType.Killed, "test", listOf("test"))
-        }
+        val mutations =
+            (1..15).map {
+                MutationResult("(Calculator.kt:$it)", ">", ">=", MutationResultType.Killed, "test", listOf("test"))
+            }
 
         val stats = calculateMetrics(mutations)
         assertEquals(QualityBand.Excellent, stats.band)
@@ -56,9 +62,10 @@ class MutationStatsTest {
 
     @Test
     fun `50+ mutations yields High confidence`() {
-        val mutations = (1..60).map {
-            MutationResult("(Calculator.kt:$it)", ">", ">=", MutationResultType.Killed, "test", listOf("test"))
-        }
+        val mutations =
+            (1..60).map {
+                MutationResult("(Calculator.kt:$it)", ">", ">=", MutationResultType.Killed, "test", listOf("test"))
+            }
 
         val stats = calculateMetrics(mutations)
         assertEquals(QualityBand.Excellent, stats.band)
@@ -79,11 +86,12 @@ class MutationStatsTest {
 
     @Test
     fun `timed-out counted separately from killed and survived`() {
-        val mutations = listOf(
-            MutationResult("(Calculator.kt:7)", ">", ">=", MutationResultType.Killed, "testA", listOf("testA")),
-            MutationResult("(Calculator.kt:8)", ">=", ">", MutationResultType.Survived),
-            MutationResult("(Calculator.kt:12)", "+", "*", MutationResultType.TimedOut),
-        )
+        val mutations =
+            listOf(
+                MutationResult("(Calculator.kt:7)", ">", ">=", MutationResultType.Killed, "testA", listOf("testA")),
+                MutationResult("(Calculator.kt:8)", ">=", ">", MutationResultType.Survived),
+                MutationResult("(Calculator.kt:12)", "+", "*", MutationResultType.TimedOut),
+            )
 
         val stats = calculateMetrics(mutations)
         assertEquals(1.0 / 3.0, stats.score!!, 0.0001)
@@ -95,12 +103,13 @@ class MutationStatsTest {
 
     @Test
     fun `gap invalidates score without subtracting evaluated mutations`() {
-        val mutations = listOf(
-            MutationResult("(File.kt:7)", ">", ">=", MutationResultType.Killed, "testA", listOf("testA")),
-            MutationResult("(File.kt:8)", ">=", ">", MutationResultType.Survived),
-            MutationResult("(File.kt:9)", "+", "*", MutationResultType.Survived),
-            MutationResult("(File.kt:10)", "-", "+", MutationResultType.Survived),
-        )
+        val mutations =
+            listOf(
+                MutationResult("(File.kt:7)", ">", ">=", MutationResultType.Killed, "testA", listOf("testA")),
+                MutationResult("(File.kt:8)", ">=", ">", MutationResultType.Survived),
+                MutationResult("(File.kt:9)", "+", "*", MutationResultType.Survived),
+                MutationResult("(File.kt:10)", "-", "+", MutationResultType.Survived),
+            )
         val stats = calculateMetrics(mutations, gaps = 1)
         assertNull(stats.score)
         assertNull(stats.confidenceIntervalLow)
@@ -112,19 +121,22 @@ class MutationStatsTest {
 
     @Test
     fun `score is null when all mutations are gaps`() {
-        val mutations = listOf(
-            MutationResult("(File.kt:7)", ">", ">=", MutationResultType.Survived),
-        )
+        val mutations =
+            listOf(
+                MutationResult("(File.kt:7)", ">", ">=", MutationResultType.Survived),
+            )
         val stats = calculateMetrics(mutations, gaps = 1)
         assertNull(stats.score)
         assertEquals(QualityBand.Poor, stats.band)
         assertEquals(1, stats.mutationsEvaluated)
     }
+
     @Test
     fun `class gaps never alter mutation evaluation counts`() {
-        val mutations = listOf(
-            MutationResult("(File.kt:7)", ">", ">=", MutationResultType.Survived),
-        )
+        val mutations =
+            listOf(
+                MutationResult("(File.kt:7)", ">", ">=", MutationResultType.Survived),
+            )
         val stats = calculateMetrics(mutations, gaps = 5)
         assertNull(stats.score)
         assertEquals(1, stats.mutationsEvaluated)
@@ -132,9 +144,10 @@ class MutationStatsTest {
 
     @Test
     fun `unrelated class failure cannot produce a score above one`() {
-        val mutations = List(2) {
-            MutationResult("File.kt:$it", ">", ">=", MutationResultType.Killed, "testA", listOf("testA"))
-        }
+        val mutations =
+            List(2) {
+                MutationResult("File.kt:$it", ">", ">=", MutationResultType.Killed, "testA", listOf("testA"))
+            }
 
         val stats = calculateMetrics(mutations, gaps = 1)
 
@@ -145,9 +158,10 @@ class MutationStatsTest {
 
     @Test
     fun `confidence interval brackets score for all-killed`() {
-        val mutations = List(20) {
-            MutationResult("($it)", ">", ">=", MutationResultType.Killed, "testA", listOf("testA"))
-        }
+        val mutations =
+            List(20) {
+                MutationResult("($it)", ">", ">=", MutationResultType.Killed, "testA", listOf("testA"))
+            }
         val stats = calculateMetrics(mutations)
         assertNotNull(stats.confidenceIntervalLow)
         assertNotNull(stats.confidenceIntervalHigh)
@@ -163,16 +177,25 @@ class MutationStatsTest {
 
     @Test
     fun `quality band boundaries use strict greater than thresholds`() {
-        val cases = listOf(
-            3 to QualityBand.Poor, 4 to QualityBand.Fair,
-            6 to QualityBand.Fair, 7 to QualityBand.Good,
-            8 to QualityBand.Good, 9 to QualityBand.Excellent,
-        )
+        val cases =
+            listOf(
+                3 to QualityBand.Poor,
+                4 to QualityBand.Fair,
+                6 to QualityBand.Fair,
+                7 to QualityBand.Good,
+                8 to QualityBand.Good,
+                9 to QualityBand.Excellent,
+            )
         for ((killed, expectedBand) in cases) {
-            val mutations = List(10) { index ->
-                MutationResult("Calc.kt:$index", ">", ">=",
-                    if (index < killed) MutationResultType.Killed else MutationResultType.Survived)
-            }
+            val mutations =
+                List(10) { index ->
+                    MutationResult(
+                        "Calc.kt:$index",
+                        ">",
+                        ">=",
+                        if (index < killed) MutationResultType.Killed else MutationResultType.Survived,
+                    )
+                }
 
             val stats = calculateMetrics(mutations)
 
@@ -183,14 +206,19 @@ class MutationStatsTest {
     @Test
     fun `confidence boundaries use evaluated outcomes rather than discovered budget`() {
         for ((count, expected) in listOf(
-            9 to ConfidenceLevel.Low, 10 to ConfidenceLevel.Medium,
-            50 to ConfidenceLevel.Medium, 51 to ConfidenceLevel.High,
+            9 to ConfidenceLevel.Low,
+            10 to ConfidenceLevel.Medium,
+            50 to ConfidenceLevel.Medium,
+            51 to ConfidenceLevel.High,
         )) {
             val mutations = List(count) { MutationResult("Calc.kt:$it", ">", ">=", MutationResultType.Killed) }
 
-            val results = MutationResultsParser.assembleResults(
-                mutations, emptyList(), discoveredMutations = 100,
-            )
+            val results =
+                MutationResultsParser.assembleResults(
+                    mutations,
+                    emptyList(),
+                    discoveredMutations = 100,
+                )
 
             assertEquals(expected, results.confidence, "evaluated=$count")
         }
@@ -198,18 +226,20 @@ class MutationStatsTest {
 
     @Test
     fun `negative infrastructure gap count is rejected`() {
-        val failure = assertThrows(IllegalArgumentException::class.java) {
-            calculateMetrics(emptyList(), gaps = -1)
-        }
+        val failure =
+            assertThrows(IllegalArgumentException::class.java) {
+                calculateMetrics(emptyList(), gaps = -1)
+            }
 
         assertTrue(failure.message!!.contains("nonnegative"))
     }
 
     @Test
     fun `confidence interval for 0 kills is centered near zero`() {
-        val mutations = List(20) {
-            MutationResult("($it)", ">", ">=", MutationResultType.Survived)
-        }
+        val mutations =
+            List(20) {
+                MutationResult("($it)", ">", ">=", MutationResultType.Survived)
+            }
         val stats = calculateMetrics(mutations)
         val score = stats.score!!
         assertEquals(0.0, score, 0.0001)

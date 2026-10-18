@@ -1,5 +1,7 @@
 plugins {
     `kotlin-dsl`
+    // The mutation-results model is serialized with kotlinx.serialization; match Gradle's Kotlin.
+    kotlin("plugin.serialization") version embeddedKotlinVersion
 }
 
 repositories {
@@ -15,4 +17,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx.kover:org.jetbrains.kotlinx.kover.gradle.plugin:${libs.versions.kover.get()}") {
         exclude(group = "org.freemarker", module = "freemarker")
     }
+    implementation(libs.kotlinxSerializationJson)
+    testImplementation(libs.junitJupiterApi)
+    testRuntimeOnly(libs.junitJupiterEngine)
+    testRuntimeOnly(libs.junitPlatformLauncher)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

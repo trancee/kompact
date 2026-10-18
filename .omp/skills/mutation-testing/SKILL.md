@@ -63,7 +63,7 @@ writing.
 
 - Kotlin JVM project with Gradle
 - Python 3.10 or newer for setup/update
-- Java 26, Gradle 9.8.0, Kotlin 2.4.20, MutFlow 1.6.1 (validated baseline)
+- Java 26, Gradle 9.8.0, Kotlin 2.4.20, MutFlow 1.7.0 (validated baseline)
 - For fresh projects, use `/mutation-testing setup` first
 
 ### mutflow architecture notes
@@ -72,7 +72,7 @@ Key mutflow constraints that affect orchestration:
 
 - Toolkit support: plain JVM/JUnit 4 or JUnit 6, plus KMP JVM through the
   generated JUnit 6 integration when every declared target can resolve the
-  common-source-set dependencies. In the validated MutFlow `1.6.1` baseline,
+  common-source-set dependencies. In the validated MutFlow `1.7.0` baseline,
   artifacts publish JVM, `linuxX64`, and `mingwX64`, but not iOS or Android
   Native variants. Inspect the full target set before a KMP run: selecting only
   the JVM task does not avoid dependency resolution. The toolkit does not prune

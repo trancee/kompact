@@ -47,7 +47,7 @@ if (mutationEnabled) {
         )
     }
     pluginManager.apply("io.github.anschnapp.mutflow")
-    apply(from = rootProject.file(".omp/mutation-results.gradle.kts"))
+    apply(plugin = "mutation-results")
     extensions.configure<MutflowExtension>("mutflow") {
         enabled = true
         maxMutationRuns.set(Int.MAX_VALUE)

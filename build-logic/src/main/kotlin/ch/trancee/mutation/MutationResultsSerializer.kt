@@ -11,19 +11,20 @@ import kotlinx.serialization.json.Json
  * are still emitted, matching the backward-compatible schema.
  */
 object MutationResultsSerializer {
-
-    private val json = Json {
-        prettyPrint = true
-        encodeDefaults = true
-        isLenient = true
-    }
+    private val json =
+        Json {
+            prettyPrint = true
+            encodeDefaults = true
+            isLenient = true
+        }
 
     /**
      * Serializes [MutationResults] to a JSON string matching the
      * `mutation-results.json` schema consumed by test-auditor.
      */
-    fun toJson(results: MutationResults): String = json.encodeToString(
-        MutationResults.serializer(),
-        results,
-    )
+    fun toJson(results: MutationResults): String =
+        json.encodeToString(
+            MutationResults.serializer(),
+            results,
+        )
 }

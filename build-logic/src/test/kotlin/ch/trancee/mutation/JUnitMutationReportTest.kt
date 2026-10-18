@@ -1,8 +1,11 @@
 package ch.trancee.mutation
 
-import java.nio.file.Files
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.nio.file.Files
 
 class JUnitMutationReportTest {
     private fun read(xml: String): JUnitMutationReport {
@@ -17,7 +20,8 @@ class JUnitMutationReportTest {
 
     @Test
     fun `CDATA and escaped XML preserve qualified killer identities`() {
-        val xml = """
+        val xml =
+            """
             <testsuite name="example.CalcTest">
               <testcase name="handles &amp; boundaries()" />
               <system-out><![CDATA[
@@ -29,7 +33,7 @@ class JUnitMutationReportTest {
                 killed by: handles & boundaries()
               ]]></system-out>
             </testsuite>
-        """.trimIndent()
+            """.trimIndent()
 
         val report = read(xml)
 
@@ -42,11 +46,12 @@ class JUnitMutationReportTest {
 
     @Test
     fun `ordinary failures are gaps even alongside valid mutation output`() {
-        val xml = """
+        val xml =
+            """
             <testsuite name="example.BrokenTest">
               <testcase name="baseline"><failure type="org.opentest4j.AssertionFailedError">broken</failure></testcase>
             </testsuite>
-        """.trimIndent()
+            """.trimIndent()
 
         val report = read(xml)
 
@@ -56,10 +61,13 @@ class JUnitMutationReportTest {
 
     @Test
     fun `strict survivors and mutation timeouts are outcomes not infrastructure gaps`() {
-        val xml = """
+        val xml =
+            """
             <testsuite name="example.WeakTest">
-              <testcase name="survivor"><failure type="io.github.anschnapp.mutflow.MutantSurvivedException" /></testcase>
-              <testcase name="timeout"><failure type="io.github.anschnapp.mutflow.MutationTimedOutException" /></testcase>
+              <testcase name="survivor"><failure
+                type="io.github.anschnapp.mutflow.MutantSurvivedException" /></testcase>
+              <testcase name="timeout"><failure
+                type="io.github.anschnapp.mutflow.MutationTimedOutException" /></testcase>
               <system-out><![CDATA[
             MUTATION TESTING SUMMARY
             Total mutations discovered: 2
@@ -69,17 +77,25 @@ class JUnitMutationReportTest {
             ⏱ (Calc.kt:2) < → >
               ]]></system-out>
             </testsuite>
-        """.trimIndent()
+            """.trimIndent()
 
         val report = read(xml)
 
         assertTrue(report.gaps.isEmpty())
-        assertEquals(listOf(MutationResultType.Survived, MutationResultType.TimedOut), report.mutations.map { it.result })
+        assertEquals(
+            listOf(MutationResultType.Survived, MutationResultType.TimedOut),
+            report.mutations.map { it.result },
+        )
     }
 
     @Test
     fun `missing mutation summary is a gap`() {
-        val xml = """<testsuite name="example.PartialTest"><system-out>[mutflow] Starting baseline run</system-out></testsuite>"""
+        val xml =
+            """
+            <testsuite name="example.PartialTest">
+              <system-out>[mutflow] Starting baseline run</system-out>
+            </testsuite>
+            """.trimIndent()
 
         val report = read(xml)
 
@@ -88,14 +104,15 @@ class JUnitMutationReportTest {
 
     @Test
     fun `missing discovered counter never becomes a complete report`() {
-        val xml = """
+        val xml =
+            """
             <testsuite name="example.PartialTest"><system-out><![CDATA[
             MUTATION TESTING SUMMARY
             Tested this run: 1
             ✓ (Calc.kt:1) > → >=
                 killed by: boundary()
             ]]></system-out></testsuite>
-        """.trimIndent()
+            """.trimIndent()
 
         val report = read(xml)
 
@@ -115,7 +132,8 @@ class JUnitMutationReportTest {
 
     @Test
     fun `contradictory summary counters invalidate the score without losing outcomes`() {
-        val xml = """
+        val xml =
+            """
             <testsuite name="example.PartialTest"><system-out><![CDATA[
             MUTATION TESTING SUMMARY
             Total mutations discovered: 0
@@ -124,13 +142,16 @@ class JUnitMutationReportTest {
             ✓ (Calc.kt:1) > → >=
                 killed by: boundary()
             ]]></system-out></testsuite>
-        """.trimIndent()
+            """.trimIndent()
 
         val report = read(xml)
-        val results = MutationResultsParser.assembleResults(
-            report.mutations, report.testMethods, gaps = report.gaps,
-            discoveredMutations = report.discoveredMutations,
-        )
+        val results =
+            MutationResultsParser.assembleResults(
+                report.mutations,
+                report.testMethods,
+                gaps = report.gaps,
+                discoveredMutations = report.discoveredMutations,
+            )
 
         assertTrue(report.gaps.any { it.type == "PARTIAL_RUN" })
         assertEquals(1, results.mutationsEvaluated)
@@ -140,13 +161,14 @@ class JUnitMutationReportTest {
 
     @Test
     fun `ordinary XML errors set failure status and exclude synthetic test identities`() {
-        val xml = """
+        val xml =
+            """
             <testsuite name="example.BrokenTest">
               <testcase name="executionError"><error type="java.lang.IllegalStateException" /></testcase>
               <testcase name="passes()" />
               <testcase name="passes()" />
             </testsuite>
-        """.trimIndent()
+            """.trimIndent()
 
         val report = read(xml)
 
@@ -157,11 +179,13 @@ class JUnitMutationReportTest {
 
     @Test
     fun `strict survivor without captured summary is not a complete run`() {
-        val xml = """
+        val xml =
+            """
             <testsuite name="example.WeakTest">
-              <testcase name="executionError"><failure type="io.github.anschnapp.mutflow.MutantSurvivedException" /></testcase>
+              <testcase name="executionError"><failure
+                type="io.github.anschnapp.mutflow.MutantSurvivedException" /></testcase>
             </testsuite>
-        """.trimIndent()
+            """.trimIndent()
 
         val report = read(xml)
 
@@ -172,7 +196,8 @@ class JUnitMutationReportTest {
 
     @Test
     fun `escaped system output is parsed without CDATA`() {
-        val xml = """
+        val xml =
+            """
             <testsuite name="example.CalcTest">
               <testcase name="less &lt; than()" />
               <system-out>MUTATION TESTING SUMMARY
@@ -183,7 +208,7 @@ class JUnitMutationReportTest {
                 killed by: less &lt; than()
               </system-out>
             </testsuite>
-        """.trimIndent()
+            """.trimIndent()
 
         val report = read(xml)
 
@@ -195,16 +220,21 @@ class JUnitMutationReportTest {
 
     @Test
     fun `missing suite identity is rejected`() {
-        val failure = assertThrows(IllegalArgumentException::class.java) {
-            read("""<testsuite><testcase name="passes()" /></testsuite>""")
-        }
+        val failure =
+            assertThrows(IllegalArgumentException::class.java) {
+                read("""<testsuite><testcase name="passes()" /></testsuite>""")
+            }
 
         assertTrue(failure.message!!.contains("Missing test suite name"))
     }
 
     @Test
     fun `external entity documents are rejected`() {
-        val xml = """<!DOCTYPE testsuite [<!ENTITY secret SYSTEM "file:///nonexistent">]><testsuite name="Test">&secret;</testsuite>"""
+        val xml =
+            """
+            <!DOCTYPE testsuite [<!ENTITY secret SYSTEM "file:///nonexistent">]>
+            <testsuite name="Test">&secret;</testsuite>
+            """.trimIndent()
 
         assertThrows(org.xml.sax.SAXParseException::class.java) { read(xml) }
     }
