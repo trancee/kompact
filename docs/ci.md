@@ -18,6 +18,7 @@ bash .github/scripts/release/version-bump-test.sh
 bash .github/scripts/release/release-pr-test.sh
 bash .github/scripts/docs/version-docs-check-test.sh
 bash .github/scripts/docs/check-version-references.sh .
+python3 -m unittest discover -s scripts -p 'test_*.py'
 python3 -m unittest discover -s benchmarks -p 'test_*.py'
 ./gradlew :benchmarks:jvmTest :benchmarks:jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache
 python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/jvm.json
@@ -65,6 +66,11 @@ no production exclusions. The Portal tasks use an ephemeral signing key in CI
 and only build bundles; they do not upload or publish artifacts. The release
 fixture also verifies that the managed release PR contains the stable version,
 changelog, and synchronized consumer documentation.
+
+The internal device-runner Python tools are outside production Kover.
+Their hardware-free fixtures run in Linux CI and exercise watchdog-safe
+launch, exact process selection, and asynchronous debugger continuation;
+they do not require Apple tools, signing assets, or connected devices.
 
 The unpublished benchmark module compiles the maintained runtime sources for
 host measurements without changing the published target set. Benchmark
@@ -139,8 +145,10 @@ physical-device evidence.
 The [post-PR-99 validation record](research/physical-runtime-validation.md)
 retains six passing Android debug/release executions at merged `ed7218c`
 and six fresh local-build executions of the aligned-prefix follow-up on base
-`6115b87`, with 404 tests per execution. It identifies the explicitly deferred
-physical-iOS signing prerequisite. Do not interpret
+`6115b87`, with 404 tests per execution. The
+[physical iOS follow-up](research/physical-runtime-validation.md#physical-ios-follow-up)
+adds three debug and three release executions at merged `465cb86`,
+also with 404 tests per execution. Do not interpret
 the older device results below as validation of the current revision.
 
 Android-KMP host-side tests exercise runtime behavior on the Android JVM
@@ -187,8 +195,11 @@ artifact SHA-256 was
 On the iOS Arm64 target, `test.kexe` is an unsigned standalone executable.
 `scripts/test-ios-device.sh` wraps it in a minimal app bundle and signs it
 with a local Apple Development identity. It installs the app on a connected
-iPhone, runs it with `devicectl --console`, and requires a passing test
-summary. Pass `releaseTest/test.kexe` instead to run the
+iPhone and uses `scripts/ios_device_tests.py` to start it suspended with
+`devicectl --console`, attach LLDB to the exact new PID, and resume its
+initial debugger stop. This avoids the iOS app-launch watchdog for a
+standalone test executable. Successful debugger and console exits and a
+passing test summary are all required. Pass `releaseTest/test.kexe` instead to run the
 release-optimized binary:
 
 ```bash
@@ -203,6 +214,8 @@ Prerequisites:
 - Use an explicit-App-ID development profile that lists the device. Create it
   once with Xcode automatic signing for any app using the same bundle ID.
 - The keychain must contain exactly one matching signing identity.
+- Use full Xcode with `devicectl`, LLDB device commands and Python scripting,
+  plus host Python 3. The current physical runs used Xcode `27.1`.
 - The device must be connected, paired, and in Developer Mode.
 - If several connected devices appear in the profile, set
   `KOMPACT_IOS_DEVICE_UDID`.
@@ -214,6 +227,14 @@ needs an unlocked login keychain. In a plain SSH session, `codesign` can fail
 with `errSecInternalComponent`; run the script in the logged-in GUI session or
 use a dedicated unlocked CI keychain. Personal Team profiles expire after
 seven days.
+
+The helper waits for the initial asynchronous `SIGSTOP`; it does not resume
+unexpected later stops. Ambiguous or missing processes, unsuccessful exits,
+and timeouts fail the run. It cleans up its local console/debugger processes
+and the shell wrapper removes the temporary app bundle. Raw CoreDevice and
+debugger diagnostics are not printed because they contain private identifiers.
+Do not treat a generic launch-security error as proof that developer trust
+is the cause; check signing, entitlements, and device readiness as well.
 
 On 2026-10-07, the script ran three times on an iPhone SE (2020) with iOS
 `18.7.8`. Each run of the `iosArm64` debug test binary passed all 396 tests.

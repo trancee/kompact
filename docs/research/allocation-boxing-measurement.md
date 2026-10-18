@@ -37,9 +37,14 @@ prove zero per-operation allocations.
 
 The [2026-10-17 runtime validation](physical-runtime-validation.md) records
 three debug and three release Android runs of merged `ed7218c`, each passing
-403 tests with the existing controlled probes. Current-revision physical iOS
-execution is blocked by expired test-host provisioning; the older iOS results
-below are not current-revision evidence. Separate
+403 tests with the existing controlled probes. The aligned-prefix follow-up
+adds six Android executions with 404 tests each. The
+[2026-10-18 physical iOS follow-up](physical-runtime-validation.md#physical-ios-follow-up)
+records three debug and three release executions of merged `465cb86`,
+404 tests each, under LLDB after dedicated-profile renewal. All five
+scalar/cursor probes again reported zero swept objects against zero
+primitive baselines, with `[4098, 4098, 4098]` positive controls.
+The older iOS results below remain historical evidence. Separate
 [generated-holder measurements](generated-holder-benchmark.md) now cover
 complete borrowed holder binding on the host JVM, not device timing.
 

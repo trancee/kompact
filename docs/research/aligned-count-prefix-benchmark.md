@@ -179,11 +179,14 @@ Fresh physical Android binaries passed 404 tests each in three debug and
 three release executions, with integrity and cleanup verified.
 [Physical evidence](physical-runtime-validation.md#aligned-prefix-follow-up)
 retains exact source/binary hashes and bounded allocation samples.
-Physical iOS remains explicitly deferred for its signing prerequisite;
-Simulator results do not replace it.
+Physical iOS was explicitly deferred at measurement time for its signing
+prerequisite; Simulator results did not replace it. The later
+[physical iOS follow-up](physical-runtime-validation.md#physical-ios-follow-up)
+validates merged `465cb86` with three debug and three release executions,
+404 tests each, after profile renewal and a watchdog-safe runner correction.
 
 This is a compatible internal performance fix: no public API, wire/schema,
 status precedence, workspace capacity, dependencies, or supported targets
 change. No migration or manual edit to released changelog sections is
-needed. These are local results; authoritative remote CI for this change
-has not run.
+needed. These were local results at measurement time; authoritative remote
+CI for that change had not yet run.

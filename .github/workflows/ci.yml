@@ -89,6 +89,9 @@ jobs:
           bash .github/scripts/release/release-pr-test.sh
           bash .github/scripts/docs/version-docs-check-test.sh
           bash .github/scripts/docs/check-version-references.sh .
+      # Internal runner tooling is outside production Kover; fixtures need no hardware.
+      - name: Check physical-device runner fixtures
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
       # Benchmark fixtures/tools are not published or included in production
       # Kover coverage. Shared CI runs smoke checks, not timing regression gates.
       - name: Check JVM benchmark fixtures and finite smoke results

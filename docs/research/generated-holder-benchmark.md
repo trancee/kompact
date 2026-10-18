@@ -175,4 +175,7 @@ metadata compilation; no iOS or macOS benchmark timing is registered.
 
 Physical runtime evidence is recorded
 [separately](physical-runtime-validation.md). In particular, simulator fixture
-tests do not resolve the current physical-iOS signing blocker.
+tests did not resolve the physical-iOS signing blocker. The later
+[physical iOS follow-up](physical-runtime-validation.md#physical-ios-follow-up)
+records six passing runtime executions after profile renewal; those are
+runtime correctness and bounded GC-probe results, not holder timing.
