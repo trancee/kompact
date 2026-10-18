@@ -19,6 +19,10 @@ def smoke_results():
             ("RepeatIndexBenchmark.variableIndex", {"count": "65"}),
             ("ScalarBenchmark.read", {}),
             ("ScalarBenchmark.write", {}),
+            ("ScalarBenchmark.readFrame", {}),
+            ("ScalarBenchmark.writeFrame", {}),
+            ("ScalarBenchmark.readUnaligned", {}),
+            ("ScalarBenchmark.writeUnaligned", {}),
             ("ScalarBenchmark.allocationControl", {}),
         )
     ]
@@ -99,7 +103,7 @@ class CheckResultsTest(unittest.TestCase):
 
         validate_results(results, "smoke")
 
-        self.assertEqual(len(results), 5)
+        self.assertEqual(len(results), 9)
 
     def test_rejects_non_finite_primary_measurements(self):
         for invalid in (float("inf"), float("-inf"), float("nan")):
