@@ -15,7 +15,7 @@ import com.squareup.kotlinpoet.TypeSpec
 
 private val KOMPAT_PREVIEW = ClassName("ch.trancee.kompact.annotations", "KompactPreview")
 private val KOMPACT_CURSOR = ClassName("ch.trancee.kompact.runtime", "KompactCursor")
-private val INT_TYPE = ClassName("kotlin", "Int")
+private val STATUS = ClassName("ch.trancee.kompact.runtime", "KompactStatus")
 
 internal object ValueHolderGenerator {
     fun addTo(
@@ -28,7 +28,7 @@ internal object ValueHolderGenerator {
     }
 
     fun buildHolder(spec: ModelSpec): TypeSpec {
-        val className = "${spec.className}Holder"
+        val className = "${spec.generatedName()}Holder"
         val constructor =
             FunSpec.constructorBuilder().apply {
                 spec.fields.sortedBy { it.bitOffset }.forEach { field ->
@@ -44,7 +44,7 @@ internal object ValueHolderGenerator {
             .classBuilder(className)
             .addModifiers(KModifier.PUBLIC)
             .addAnnotation(KOMPAT_PREVIEW)
-            .addKdoc("Caller-reusable primitive state for %L cursor operations.\n", spec.className)
+            .addKdoc("Caller-reusable primitive state for %L cursor operations.\n", spec.generatedName())
             .primaryConstructor(constructor)
             .apply {
                 spec.fields.sortedBy { it.bitOffset }.forEach { field ->
@@ -69,12 +69,12 @@ internal object ValueHolderGenerator {
         }
 
     fun buildDecodeInto(spec: ModelSpec): FunSpec {
-        val holderName = ClassName(spec.packageName, "${spec.className}Holder")
+        val holderName = ClassName(spec.packageName, "${spec.generatedName()}Holder")
         val totalBits = spec.minBufferSize * 8
         val fields = spec.fields.sortedBy { it.bitOffset }
         val code = CodeBlock.builder()
         code.addStatement("val checked = cursor.ensureAvailable(%L)", totalBits)
-        code.beginControlFlow("if (checked != %T.STATUS_OK)", KOMPACT_CURSOR)
+        code.beginControlFlow("if (checked != %T.OK)", STATUS)
         code.addStatement("return checked")
         code.endControlFlow()
 
@@ -85,7 +85,7 @@ internal object ValueHolderGenerator {
                 code.addStatement("cursor.skipBits(%L)", gap)
             }
             code.addStatement("val %N = cursor.readBits(%L)", "${field.name}ReadStatus", field.bitWidth)
-            code.beginControlFlow("if (%N != %T.STATUS_OK)", "${field.name}ReadStatus", KOMPACT_CURSOR)
+            code.beginControlFlow("if (%N != %T.OK)", "${field.name}ReadStatus", STATUS)
             code.addStatement("return %N", "${field.name}ReadStatus")
             code.endControlFlow()
             code.addStatement("val %N = %L", "${field.name}Decoded", decodedCursorValue(field))
@@ -98,7 +98,7 @@ internal object ValueHolderGenerator {
         fields.forEach { field ->
             code.addStatement("this.%N = %N", field.name, "${field.name}Decoded")
         }
-        code.addStatement("return %T.STATUS_OK", KOMPACT_CURSOR)
+        code.addStatement("return %T.OK", STATUS)
 
         return FunSpec
             .builder("decodeInto")
@@ -106,7 +106,7 @@ internal object ValueHolderGenerator {
             .addModifiers(KModifier.PUBLIC)
             .addAnnotation(KOMPAT_PREVIEW)
             .addParameter("cursor", KOMPACT_CURSOR)
-            .returns(INT_TYPE)
+            .returns(STATUS)
             .addKdoc("Decode into this holder without creating a view or result wrapper.\n")
             .addCode(code.build())
             .build()
@@ -136,12 +136,12 @@ internal object ValueHolderGenerator {
     }
 
     fun buildEncodeFrom(spec: ModelSpec): FunSpec {
-        val holderName = ClassName(spec.packageName, "${spec.className}Holder")
+        val holderName = ClassName(spec.packageName, "${spec.generatedName()}Holder")
         val totalBits = spec.minBufferSize * 8
         val fields = spec.fields.sortedBy { it.bitOffset }
         val code = CodeBlock.builder()
         code.addStatement("val checked = cursor.ensureAvailable(%L)", totalBits)
-        code.beginControlFlow("if (checked != %T.STATUS_OK)", KOMPACT_CURSOR)
+        code.beginControlFlow("if (checked != %T.OK)", STATUS)
         code.addStatement("return checked")
         code.endControlFlow()
 
@@ -168,7 +168,7 @@ internal object ValueHolderGenerator {
                 }
             if (validation != null) {
                 code.addStatement("val %N = %L", validationName, validation)
-                code.beginControlFlow("if (%N != %T.STATUS_OK)", validationName, KOMPACT_CURSOR)
+                code.beginControlFlow("if (%N != %T.OK)", validationName, STATUS)
                 code.addStatement("return %N", validationName)
                 code.endControlFlow()
             }
@@ -187,7 +187,7 @@ internal object ValueHolderGenerator {
         if (trailingBits > 0) {
             code.addStatement("cursor.writeZeros(%L)", trailingBits)
         }
-        code.addStatement("return %T.STATUS_OK", KOMPACT_CURSOR)
+        code.addStatement("return %T.OK", STATUS)
 
         return FunSpec
             .builder("encodeFrom")
@@ -195,7 +195,7 @@ internal object ValueHolderGenerator {
             .addModifiers(KModifier.PUBLIC)
             .addAnnotation(KOMPAT_PREVIEW)
             .addParameter("cursor", KOMPACT_CURSOR)
-            .returns(INT_TYPE)
+            .returns(STATUS)
             .addKdoc("Encode this holder into caller-owned storage after validating all fields.\n")
             .addCode(code.build())
             .build()
@@ -204,7 +204,8 @@ internal object ValueHolderGenerator {
     private fun encodedCursorValue(field: KompactFieldInfo): CodeBlock =
         when ((field.type as KompactFieldType.Scalar).kind) {
             KompactScalarKind.BOOLEAN -> CodeBlock.of("if (%N) 1L else 0L", "${field.name}Input")
-            KompactScalarKind.INT, KompactScalarKind.LONG -> CodeBlock.of("%N.toLong()", "${field.name}Input")
+            KompactScalarKind.INT -> CodeBlock.of("%N.toLong()", "${field.name}Input")
+            KompactScalarKind.LONG -> CodeBlock.of("%N", "${field.name}Input")
             KompactScalarKind.FLOAT -> CodeBlock.of("%N.toRawBits().toLong()", "${field.name}Input")
             KompactScalarKind.DOUBLE -> CodeBlock.of("%N.toRawBits()", "${field.name}Input")
         }

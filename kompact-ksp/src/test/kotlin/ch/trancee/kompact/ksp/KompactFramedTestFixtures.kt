@@ -13,7 +13,7 @@ internal fun assertInvalid(
     modelMutable: Any? = false,
     modelFramed: Any? = true,
 ) {
-    val (processor, codeGen, logger) = createTestSetup(mode = "jvm")
+    val (processor, codeGen, logger) = createTestSetup()
     val model =
         FakeKSClassDeclaration(
             simpleNameStr = "InvalidFrame",
@@ -35,7 +35,7 @@ internal fun assertInvalid(
 }
 
 internal fun assertDeferred(fields: List<FakeKSPropertyDeclaration>) {
-    val (processor, codeGen, logger) = createTestSetup(mode = "jvm")
+    val (processor, codeGen, logger) = createTestSetup()
     val model =
         FakeKSClassDeclaration(
             simpleNameStr = "UnresolvedFrame",
@@ -63,7 +63,7 @@ internal fun field(
     bitWidth: Int = 0,
     lengthPrefixWidth: Int = 8,
     repeatCountWidth: Int = 8,
-    isNested: Boolean = false,
+    nestedModel: Boolean = false,
     bitOffset: Int = 0,
     mutable: Boolean = false,
     signed: Boolean = false,
@@ -89,12 +89,12 @@ internal fun field(
                             typeArgument?.let { argumentType ->
                                 FakeKSTypeReference(
                                     argumentType,
-                                    framedModel = argumentType.startsWith("ch.trancee.test."),
+                                    framedModel = nestedModel && argumentType.startsWith("ch.trancee.test."),
                                 )
                             },
                         )
                     },
-                framedModel = framedModelType ?: (isNested && typeName.startsWith("ch.trancee.test.")),
+                framedModel = framedModelType ?: (nestedModel && typeName.startsWith("ch.trancee.test.")),
                 errorType = errorType,
                 nullableType = nullableType,
                 declarationAnnotations = declarationAnnotations,
@@ -113,7 +113,6 @@ internal fun field(
                         "signed" to signed,
                         "lengthPrefixWidth" to lengthPrefixWidth,
                         "repeatCountWidth" to repeatCountWidth,
-                        "isNested" to isNested,
                     ) + annotationArgs,
                 ),
             ),

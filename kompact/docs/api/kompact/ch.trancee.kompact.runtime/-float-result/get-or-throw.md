@@ -2,9 +2,5 @@
 
 # getOrThrow
 
-[common, jvmCommon, native]\
 [common]\
-expect fun [getOrThrow](get-or-throw.md)(): [Float](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html)
-
-[jvmCommon, native]\
-actual fun [getOrThrow](get-or-throw.md)(): [Float](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html)
+fun [getOrThrow](get-or-throw.md)(): [Float](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html)

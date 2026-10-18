@@ -91,7 +91,7 @@ class KompactSymbolProcessorFramedTypeValidationTest {
                     "child",
                     "ch.trancee.test.Payload",
                     order = 0,
-                    isNested = true,
+                    nestedModel = true,
                     typeArguments = listOf(null),
                 ),
             ),
@@ -106,7 +106,7 @@ class KompactSymbolProcessorFramedTypeValidationTest {
                     "child",
                     "ch.trancee.test.Payload",
                     order = 0,
-                    isNested = true,
+                    nestedModel = true,
                     framedModelType = false,
                     declarationAnnotations = listOf(FakeKSAnnotation("ch.trancee.kompact.annotations.Other")),
                 ),
@@ -122,7 +122,7 @@ class KompactSymbolProcessorFramedTypeValidationTest {
                     "child",
                     "ch.trancee.test.Payload",
                     order = 0,
-                    isNested = true,
+                    nestedModel = true,
                     classType = false,
                 ),
             ),
@@ -137,7 +137,7 @@ class KompactSymbolProcessorFramedTypeValidationTest {
                     "child",
                     "ch.trancee.test.Payload",
                     order = 0,
-                    isNested = true,
+                    nestedModel = true,
                     framedModelType = false,
                     declarationAnnotations =
                         listOf(
@@ -160,7 +160,7 @@ class KompactSymbolProcessorFramedTypeValidationTest {
                     "child",
                     "ch.trancee.test.Payload",
                     order = 0,
-                    isNested = true,
+                    nestedModel = true,
                     framedModelType = false,
                 ),
             ),
@@ -175,7 +175,7 @@ class KompactSymbolProcessorFramedTypeValidationTest {
                     "child",
                     "ch.trancee.test.Payload",
                     order = 0,
-                    isNested = true,
+                    nestedModel = true,
                     framedModelType = false,
                     declarationAnnotations =
                         listOf(
@@ -197,7 +197,7 @@ class KompactSymbolProcessorFramedTypeValidationTest {
                     "child",
                     "ch.trancee.test.Payload",
                     order = 0,
-                    isNested = true,
+                    nestedModel = true,
                     framedModelType = false,
                     declarationAnnotations =
                         listOf(
@@ -212,8 +212,85 @@ class KompactSymbolProcessorFramedTypeValidationTest {
     }
 
     @Test
+    fun process_framedModel_infersNestedFieldsFromFramedModelTypes() {
+        val (processor, codeGen, logger) = createTestSetup()
+        val model =
+            FakeKSClassDeclaration(
+                simpleNameStr = "InferredFrame",
+                packageNameStr = "ch.trancee.test",
+                properties =
+                    listOf(
+                        field("child", "ch.trancee.test.Payload", order = 0, framedModelType = true),
+                        field(
+                            "children",
+                            "kotlin.collections.List",
+                            order = 1,
+                            typeArguments = listOf("ch.trancee.test.Payload"),
+                            nestedModel = true,
+                        ),
+                    ),
+                declAnnotations =
+                    listOf(
+                        FakeKSAnnotation(
+                            "ch.trancee.kompact.annotations.KompactModel",
+                            mapOf("framed" to true),
+                        ),
+                    ),
+            )
+
+        processor.process(FakeResolver(listOf(model)))
+
+        assertTrue(logger.errors.isEmpty(), logger.errors.toString())
+        val generated = codeGen.generatedFiles.getValue("ch.trancee.test.InferredFrameView.kt")
+        assertTrue(generated.contains("public val child: PayloadView"), generated)
+        assertTrue(generated.contains("public val children: KompactRepeatedView<PayloadView>"), generated)
+    }
+
+    @Test
+    fun process_framedModel_withFixedLayoutModelFieldType_reportsFramedRequirement() {
+        val (processor, codeGen, logger) = createTestSetup()
+        val model =
+            FakeKSClassDeclaration(
+                simpleNameStr = "FixedChildFrame",
+                packageNameStr = "ch.trancee.test",
+                properties =
+                    listOf(
+                        field(
+                            "child",
+                            "ch.trancee.test.Payload",
+                            order = 0,
+                            declarationAnnotations =
+                                listOf(
+                                    FakeKSAnnotation(
+                                        "ch.trancee.kompact.annotations.KompactModel",
+                                        mapOf("framed" to false),
+                                    ),
+                                ),
+                        ),
+                    ),
+                declAnnotations =
+                    listOf(
+                        FakeKSAnnotation(
+                            "ch.trancee.kompact.annotations.KompactModel",
+                            mapOf("framed" to true),
+                        ),
+                    ),
+            )
+
+        processor.process(FakeResolver(listOf(model)))
+
+        assertTrue(
+            logger.errors.any {
+                it.contains("Nested field type ch.trancee.test.Payload must be a @KompactModel(framed = true) class")
+            },
+            logger.errors.toString(),
+        )
+        assertTrue(codeGen.generatedFiles.isEmpty())
+    }
+
+    @Test
     fun process_framedModel_rejectsParameterizedNestedModel() {
-        val (processor, codeGen, logger) = createTestSetup(mode = "jvm")
+        val (processor, codeGen, logger) = createTestSetup()
         val model =
             FakeKSClassDeclaration(
                 simpleNameStr = "GenericChildFrame",
@@ -225,7 +302,7 @@ class KompactSymbolProcessorFramedTypeValidationTest {
                             "ch.trancee.test.Payload",
                             order = 0,
                             lengthPrefixWidth = 16,
-                            isNested = true,
+                            nestedModel = true,
                             typeArguments = listOf("kotlin.Int"),
                             nullQualifiedName = true,
                             declarationAnnotations =

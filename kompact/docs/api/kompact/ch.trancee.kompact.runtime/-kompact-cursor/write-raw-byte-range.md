@@ -3,6 +3,6 @@
 # writeRawByteRange
 
 [common]\
-fun [writeRawByteRange](write-raw-byte-range.md)(range: [KompactByteRange](../-kompact-byte-range/index.md)): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+fun [writeRawByteRange](write-raw-byte-range.md)(range: [KompactByteRange](../-kompact-byte-range/index.md)): [KompactStatus](../-kompact-status/index.md)
 
 Copy an already encoded borrowed byte range without adding a prefix.

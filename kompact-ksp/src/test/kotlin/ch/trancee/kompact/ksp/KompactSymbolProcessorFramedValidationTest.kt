@@ -88,21 +88,6 @@ class KompactSymbolProcessorFramedValidationTest {
     }
 
     @Test
-    fun process_framedModel_withWrongBooleanFieldArgument_reportsDiagnosticWithoutOutput() {
-        assertInvalid(
-            listOf(
-                field(
-                    "value",
-                    "kotlin.Int",
-                    order = 0,
-                    bitWidth = 5,
-                    annotationArgs = mapOf("isNested" to "false"),
-                ),
-            ),
-        )
-    }
-
-    @Test
     fun process_framedModel_withWrongSignednessArgument_reportsDiagnosticWithoutOutput() {
         assertInvalid(
             listOf(
@@ -133,38 +118,8 @@ class KompactSymbolProcessorFramedValidationTest {
     }
 
     @Test
-    fun process_framedModel_withWrongEnumFieldArgument_reportsDiagnosticWithoutOutput() {
-        assertInvalid(
-            listOf(
-                field(
-                    "value",
-                    "kotlin.Int",
-                    order = 0,
-                    bitWidth = 5,
-                    annotationArgs = mapOf("enumWidth" to "0"),
-                ),
-            ),
-        )
-    }
-
-    @Test
-    fun process_framedModel_withWrongDefaultFieldArgument_reportsDiagnosticWithoutOutput() {
-        assertInvalid(
-            listOf(
-                field(
-                    "value",
-                    "kotlin.Int",
-                    order = 0,
-                    bitWidth = 5,
-                    annotationArgs = mapOf("defaultValue" to 0),
-                ),
-            ),
-        )
-    }
-
-    @Test
     fun process_framedModel_withNullableOptionalArgsUsesSafeDefaults() {
-        val (processor, codeGen, logger) = createTestSetup(mode = "jvm")
+        val (processor, codeGen, logger) = createTestSetup()
         val model =
             FakeKSClassDeclaration(
                 simpleNameStr = "DefaultedFrame",
@@ -179,9 +134,6 @@ class KompactSymbolProcessorFramedValidationTest {
                             annotationArgs =
                                 mapOf(
                                     "signed" to null,
-                                    "isNested" to null,
-                                    "enumWidth" to 0,
-                                    "defaultValue" to "",
                                 ),
                         ),
                     ),
@@ -197,7 +149,7 @@ class KompactSymbolProcessorFramedValidationTest {
         processor.process(FakeResolver(listOf(model)))
 
         assertTrue(logger.errors.isEmpty(), "omitted optional arguments should use declared defaults")
-        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.DefaultedFrameViewGenJvm.kt"))
+        assertTrue(codeGen.generatedFiles.containsKey("ch.trancee.test.DefaultedFrameView.kt"))
     }
 
     @Test

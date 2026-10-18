@@ -3,6 +3,6 @@
 # ensureDistinct
 
 [common]\
-fun [ensureDistinct](ensure-distinct.md)(other: [KompactCursor](index.md)): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+fun [ensureDistinct](ensure-distinct.md)(other: [KompactCursor](index.md)): [KompactStatus](../-kompact-status/index.md)
 
 Reject using one mutable cursor for two simultaneously active regions.

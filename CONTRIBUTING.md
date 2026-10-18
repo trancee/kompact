@@ -1,23 +1,25 @@
 # Contributing to Kompact
 
-This guide is for people changing Kompact itself. If you only want to use the
-library, start with the [consumer documentation](docs/README.md).
+This guide is for people who change Kompact itself. To use the library, start
+with the [documentation map](docs/README.md).
 
 ## Before you change something
 
-Read the relevant page in [`docs/adr/`](docs/README.md#design-decisions) before
-changing the runtime, wire format, public API, KMP targets, or release flow.
-Keep changes focused and include tests for behavior changes.
+Before you change the runtime, the wire format, the public API, the KMP
+targets, or the release flow, read the matching ADR in
+[`docs/adr/`](docs/README.md#design-decisions). Keep each change focused, and
+add tests for every behavior change.
 
-The repository uses the Gradle wrapper and JDK 21. Kotlin and Android Gradle
-Plugin versions are declared in
-[`gradle/libs.versions.toml`](gradle/libs.versions.toml); the Gradle version is
-pinned separately in
+The build uses the Gradle wrapper and JDK 21. The runtime, the KSP processor,
+and the Gradle plugin compile to JVM bytecode 17. The versions of Kotlin, KSP,
+the Android Gradle Plugin, and the other build tools are in
+[`gradle/libs.versions.toml`](gradle/libs.versions.toml). The Gradle version is
+in
 [`gradle/wrapper/gradle-wrapper.properties`](gradle/wrapper/gradle-wrapper.properties).
 
 ## Run checks
 
-Start with the checks for the module you changed:
+Start with the tests for the module you changed:
 
 ```bash
 ./gradlew :kompact:jvmTest
@@ -26,35 +28,51 @@ Start with the checks for the module you changed:
 ./gradlew :kompact-gradle-plugin:test
 ```
 
-Run the formatter check before opening a pull request:
+Before you open a pull request, run the formatter check and static analysis:
 
 ```bash
-./gradlew spotlessCheck
+./gradlew spotlessCheck detekt
 ```
 
-The CI workflow also checks public ABI baselines, coverage, Android compilation,
-generated-code integration, and publication bundles. The full task list differs
-by host; see [CI checks and local commands](docs/ci.md). iOS Simulator tests,
-iOS ABI validation, and Dokka generation run on macOS.
+If `spotlessCheck` fails, run `./gradlew spotlessApply` to format the sources.
+
+`detekt` analyzes the production sources of `:kompact`, `:kompact-ksp`, and
+`:kompact-gradle-plugin` with the project rules in `config/detekt/detekt.yml`.
+Fix a new finding in the code. Use a narrow `@Suppress` with a comment only
+for a pattern you chose on purpose. `config/detekt/baseline.xml` lists only
+the findings that existed when the project adopted detekt
+([ADR-0014](docs/adr/0014-detekt-static-analysis.md)). Do not regenerate the
+baseline to hide new findings.
+
+CI also checks the public ABI dumps, coverage, Android compilation, generated
+code, and the publication bundles. A separate CI job runs mutation testing
+over the whole runtime and KSP processor packages and fails if any mutant
+survives. The task lists differ by host. See
+[CI checks and local commands](docs/ci.md) for the exact commands, including
+the mutation-testing commands. iOS Simulator tests, iOS ABI validation, and
+Dokka generation run only on macOS.
 
 ## Update documentation
 
+Follow these rules when you change documentation:
+
 - Keep each guide focused on one reader goal. The
-  [documentation index](docs/README.md) describes where each page belongs.
-- Verify commands, API behavior, and examples against the current source.
-- Regenerate the committed API reference with
-  `./gradlew :kompact:dokkaGeneratePublicationMarkdown`; do not edit files under
+  [documentation map](docs/README.md) shows where each page belongs.
+- Check commands, API behavior, and examples against the current source.
+- To regenerate the committed API reference, run
+  `./gradlew :kompact:dokkaGeneratePublicationMarkdown`. Do not edit files under
   `kompact/docs/api/` by hand.
 - The release workflow generates `CHANGELOG.md` from Conventional Commits. Do
-  not add unreleased entries directly to that file.
+  not add unreleased entries to that file.
 
 ## Open a pull request
 
-Use a feature branch and a Conventional Commit title such as
-`docs: clarify framed schema setup` or `fix: reject truncated input`. Explain
-the user-visible effect, list the checks you ran, and call out any host-specific
-validation that could not run. Do not include credentials or private security
-details in the branch, logs, or pull request.
+Work on a feature branch. Give the pull request a Conventional Commit title,
+such as `docs: clarify framed schema setup` or `fix: reject truncated input`.
+In the description, explain the effect that users see, list the checks you
+ran, and name any host-specific check that you could not run. Do not put
+credentials or private security details in the branch, the logs, or the pull
+request.
 
-For a security report, follow [`SECURITY.md`](SECURITY.md) instead of opening a
-public issue with vulnerability details.
+To report a security problem, follow [`SECURITY.md`](SECURITY.md). Do not open
+a public issue with vulnerability details.

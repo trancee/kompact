@@ -67,7 +67,7 @@ private fun runCursorUnsignedValidation(
 ) {
     var checksum = 0
     repeat(count) {
-        checksum += cursor.validateUnsigned(Byte.SIZE_BITS, values[it]) + values[it].toLong().toInt()
+        checksum += cursor.validateUnsigned(Byte.SIZE_BITS, values[it]).ordinal + values[it].toLong().toInt()
     }
     cursorAllocationChecksum = checksum
 }
@@ -115,12 +115,12 @@ class NativeAllocationCursorProbeTest {
             GC.collect()
             baselineSwept[sample] = sweptObjectsAfterLastCollection()
 
-            assertEquals(KompactCursor.STATUS_OK, cursor.reset(measuredBuffer, endBit = iterations * Byte.SIZE_BITS))
+            assertEquals(KompactStatus.OK, cursor.reset(measuredBuffer, endBit = iterations * Byte.SIZE_BITS))
             GC.collect()
             runCursorByteReads(cursor, iterations)
             GC.collect()
             readsSwept[sample] = sweptObjectsAfterLastCollection()
-            assertEquals(KompactCursor.STATUS_OK, cursor.status)
+            assertEquals(KompactStatus.OK, cursor.status)
 
             allocationControlSwept[sample] = collectAfterAllocationControl(iterations)
         }
@@ -167,7 +167,7 @@ class NativeAllocationCursorProbeTest {
             runCursorUnsignedValidation(validationCursor, unsignedValues, iterations)
             GC.collect()
             validationSwept[sample] = sweptObjectsAfterLastCollection()
-            assertEquals(KompactCursor.STATUS_OK, validationCursor.status)
+            assertEquals(KompactStatus.OK, validationCursor.status)
 
             allocationControlSwept[sample] = collectAfterAllocationControl(iterations)
         }
@@ -212,12 +212,12 @@ class NativeAllocationCursorProbeTest {
             GC.collect()
             baselineSwept[sample] = sweptObjectsAfterLastCollection()
 
-            assertEquals(KompactCursor.STATUS_OK, cursor.reset(measuredBuffer, endBit = iterations * Byte.SIZE_BITS))
+            assertEquals(KompactStatus.OK, cursor.reset(measuredBuffer, endBit = iterations * Byte.SIZE_BITS))
             GC.collect()
             runCursorByteWrites(cursor, iterations)
             GC.collect()
             writesSwept[sample] = sweptObjectsAfterLastCollection()
-            assertEquals(KompactCursor.STATUS_OK, cursor.status)
+            assertEquals(KompactStatus.OK, cursor.status)
 
             allocationControlSwept[sample] = collectAfterAllocationControl(iterations)
         }

@@ -20,6 +20,21 @@ class FramedClassGeneratorTest {
     }
 
     @Test
+    fun repeatedScalarElementsKeepTheFieldSignedness() {
+        val generated =
+            listOf(true, false).map { signed ->
+                val field = field("values", KompactFieldType.Repeated(KompactFieldType.Scalar(KompactScalarKind.INT)), 0, 5, signed)
+                FramedFieldCodeGenerator
+                    .repeatedReadExpression(field, KompactFieldType.Scalar(KompactScalarKind.INT), "frame")
+                    .toString()
+            }
+
+        assertTrue(generated[0].contains("(element.readBits(5).toInt() shl 27) shr 27"), generated[0])
+        assertTrue(generated[1].contains("element.readBits(5).toInt()"), generated[1])
+        assertFalse(generated[1].contains("shl"), generated[1])
+    }
+
+    @Test
     fun readExpression_rejectsUnsupportedFramedFieldType() {
         assertFailsWith<IllegalStateException> {
             FramedFieldCodeGenerator.readExpression(field(KompactFieldType.Unsupported("test.Custom")), "frame")
@@ -79,10 +94,12 @@ class FramedClassGeneratorTest {
             listOf(
                 Triple(KompactScalarKind.BOOLEAN, 1, false),
                 Triple(KompactScalarKind.INT, 5, true),
+                Triple(KompactScalarKind.INT, 31, true),
                 Triple(KompactScalarKind.INT, 32, false),
                 Triple(KompactScalarKind.INT, 32, true),
                 Triple(KompactScalarKind.LONG, 13, true),
                 Triple(KompactScalarKind.LONG, 13, false),
+                Triple(KompactScalarKind.LONG, 63, true),
                 Triple(KompactScalarKind.LONG, 64, true),
                 Triple(KompactScalarKind.FLOAT, 32, false),
                 Triple(KompactScalarKind.DOUBLE, 64, false),
@@ -97,10 +114,12 @@ class FramedClassGeneratorTest {
             listOf(
                 "frame.readBits(1) != 0L",
                 "(frame.readBits(5).toInt() shl 27) shr 27",
+                "(frame.readBits(31).toInt() shl 1) shr 1",
                 "frame.readBits(32).toInt()",
                 "frame.readBits(32).toInt()",
                 "(frame.readBits(13) shl 51) shr 51",
                 "frame.readBits(13)",
+                "(frame.readBits(63) shl 1) shr 1",
                 "frame.readBits(64)",
                 "Float.fromBits(frame.readBits(32).toInt())",
                 "Double.fromBits(frame.readBits(64))",
@@ -136,7 +155,7 @@ class FramedClassGeneratorTest {
                     ),
             )
 
-        val output = FramedClassGenerator.generateExpect(spec)
+        val output = FramedClassGenerator.generate(spec)
         val holder = FramedHolderGenerator.buildBorrowedHolder(spec).toString()
         val decoder = FramedHolderGenerator.buildBorrowedDecodeInto(spec).toString()
         val encoder = FramedHolderGenerator.buildBorrowedEncodeFrom(spec).toString()
@@ -179,6 +198,10 @@ class FramedClassGeneratorTest {
         assertTrue(unicodeNestedDecoder.contains("decodeSSpecialInto("))
         assertTrue(unicodeRepeatedDecoder.contains("decodeSSpecialValuesElement("))
         assertTrue(unicodeNestedRepeatedDecoder.contains("decodeSSpecialChildrenElementInto("))
+        listOf(decoder, encoder, nestedDecoder, repeatedDecoder, nestedRepeatedDecoder).forEach { function ->
+            assertTrue(function.contains("): ch.trancee.kompact.runtime.KompactStatus"), function)
+        }
+        assertTrue(decoder.contains("return ch.trancee.kompact.runtime.KompactStatus.OK"), decoder)
     }
 
     @Test
@@ -260,8 +283,8 @@ class FramedClassGeneratorTest {
                 fields = listOf(field("bytes", KompactFieldType.Blob, 0, 0)),
             )
 
-        val stringOutput = FramedClassGenerator.generateExpect(stringSpec)
-        val blobOutput = FramedClassGenerator.generateExpect(blobSpec)
+        val stringOutput = FramedClassGenerator.generate(stringSpec)
+        val blobOutput = FramedClassGenerator.generate(blobSpec)
 
         assertTrue(stringOutput.contains("probeCursor.skipByteRange(8, validateUtf8 = true)"))
         assertTrue(blobOutput.contains("probeCursor.skipByteRange(8)"))
@@ -282,10 +305,7 @@ class FramedClassGeneratorTest {
         bitWidth = bitWidth,
         signed = signed,
         lengthPrefixWidth = 8,
-        isNested = type is KompactFieldType.Nested,
         repeatCountWidth = 8,
-        enumWidth = 0,
-        defaultValue = "",
     )
 
     private fun field(type: KompactFieldType) =
@@ -297,9 +317,6 @@ class FramedClassGeneratorTest {
             bitWidth = 1,
             signed = false,
             lengthPrefixWidth = 8,
-            isNested = false,
             repeatCountWidth = 8,
-            enumWidth = 0,
-            defaultValue = "",
         )
 }

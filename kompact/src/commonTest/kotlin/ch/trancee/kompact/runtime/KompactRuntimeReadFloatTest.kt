@@ -36,6 +36,15 @@ class KompactRuntimeReadFloatTest {
     }
 
     @Test
+    fun readFloat_keepsNanPayloadBits() {
+        val buf = ByteArray(4) { 0 }
+        val payloadNan = 0x7FC0_0001
+        KompactRuntime.writeBitsLong(buf, 0, 32, payloadNan.toLong())
+        val r = KompactRuntime.readFloat(buf, 0)
+        assertEquals(payloadNan, r.getOrThrow().toRawBits())
+    }
+
+    @Test
     fun readFloat_success_infinity() {
         val buf = ByteArray(4) { 0 }
         KompactRuntime.writeBitsLong(buf, 0, 32, Float.POSITIVE_INFINITY.toBits().toLong())

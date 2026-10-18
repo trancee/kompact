@@ -1,7 +1,8 @@
 name: CI
 
 # Validates the public ABI goldens, runs JVM/KSP/Gradle-plugin and iOS Simulator
-# tests, verifies Kover coverage thresholds, tests release-version calculation,
+# tests, verifies Kover coverage thresholds, requires every MutFlow mutant of the
+# runtime and KSP processor to be killed, tests release-version calculation,
 # generates Markdown API docs, and dry-runs Maven Central Portal bundles for the
 # KSP processor and Gradle plugin with an ephemeral PGP key.
 #
@@ -10,6 +11,13 @@ name: CI
 #   - macOS compiles all targets for real (strict).
 #   - Linux infers klib (keepLocallyUnsupportedTargets=true) but validates
 #     JVM + Android for real (ubuntu-latest ships the Android SDK).
+#
+# Speed:
+#   - Independent checks run in parallel jobs. The two required check names
+#     (jvm-test and api-check) stay stable for branch protection.
+#   - Each job starts from a clean checkout, so steps share one Gradle daemon
+#     and reuse task outputs from earlier steps. --no-build-cache keeps
+#     outputs from earlier runs out of the result.
 #
 # Dokka:
 #   - Uses dokkaGeneratePublicationMarkdown (GFM) via the dokka-markdown
@@ -26,94 +34,44 @@ on:
       - main
       - master
 
+# A newer push to the same pull request cancels the older run. Pushes to
+# protected branches always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
   pull-requests: write
 
 jobs:
-  api-check:
-    name: ABI + iOS Simulator tests + Markdown + spotless (macOS)
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: 21
-          cache: gradle
-      # Android SDK required for ABI check + dokka Markdown (which analyses
-      # compiled classes for all targets including Android).
-      # v4 of setup-android uses the `packages` input (not api-level/build-tools
-      # which were removed). The `tools` package is deprecated; installing only
-      # platform-tools here. AGP downloads platforms;android-36 and
-      # build-tools;36.0.0 on-demand during the build.
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
-        with:
-          packages: "platform-tools"
-      - name: Set ANDROID_HOME
-        run: echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
-      - run: ./gradlew spotlessCheck :kompact:checkKotlinAbi :kompact:iosSimulatorArm64Test :kompact-ksp:checkKotlinAbi --no-daemon --rerun-tasks --no-build-cache --warning-mode all
-      # Benchmark fixtures/tools and their source-sharing module are excluded
-      # from production Kover coverage; their behavior and reports are gated.
-      - name: Check Native benchmark fixtures and finite smoke results
-        run: |
-          ./gradlew :benchmarks:macosArm64Test :benchmarks:macosArm64SmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
-          python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/macosArm64.json
-      # The unpublished standalone holder fixtures are also outside production
-      # Kover coverage. This validates generated iOS code, not device timing.
-      - name: Check generated-holder fixtures on iOS Simulator
-        run: ./gradlew -p benchmarks/holders iosSimulatorArm64Test --no-daemon --rerun-tasks --no-build-cache --console=plain
-      # The committed GFM Markdown reference in kompact/docs/api/ must stay in sync
-      # with the KDoc in commonMain. Regenerate and fail if the committed tree
-      # drifts (up-to-date checking means dokka only re-runs when KDoc changes).
-      # macOS only: dokka analyses the iOS klibs, which can't be compiled on Linux.
-      - name: Verify generated Dokka Markdown reference is in sync
-        run: |
-          ./gradlew :kompact:dokkaGeneratePublicationMarkdown --no-daemon --console=plain
-          git diff --exit-code -- kompact/docs/api/
-
-  jvm-test:
-    name: JVM tests + Android assemble + Portal dry-run (Linux)
+  docs:
+    name: Docs + release scripts + tool fixtures (Linux)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: 21
-          cache: gradle
       - name: Test release version calculation
         run: |
           bash .github/scripts/release/version-bump-test.sh
           bash .github/scripts/release/release-pr-test.sh
           bash .github/scripts/docs/version-docs-check-test.sh
           bash .github/scripts/docs/check-version-references.sh .
-      # Internal runner tooling is outside production Kover; fixtures need no hardware.
-      - name: Check physical-device runner fixtures
-        run: python3 -m unittest discover -s scripts -p 'test_*.py'
-      # Benchmark fixtures/tools are not published or included in production
-      # Kover coverage. Shared CI runs smoke checks, not timing regression gates.
-      - name: Check JVM benchmark fixtures and finite smoke results
+      # Internal runner and benchmark tooling is outside production Kover;
+      # fixtures need no hardware.
+      - name: Check physical-device runner and benchmark tool fixtures
         run: |
+          python3 -m unittest discover -s scripts -p 'test_*.py'
           python3 -m unittest discover -s benchmarks -p 'test_*.py'
-          ./gradlew :benchmarks:jvmTest :benchmarks:jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
-          python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/jvm.json
-      # benchmarks/holders is an unpublished fixture/benchmark consumer, excluded
-      # from production Kover coverage but gated by tests and report validation.
-      - name: Check generated-holder decoding and finite smoke results
-        run: |
-          ./gradlew -p benchmarks/holders jvmTest jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
-          python3 benchmarks/check_results.py --profile holders-smoke benchmarks/holders/build/reports/benchmarks/smoke/*/jvm.json
       - name: Check maintained Markdown links
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
-          args: --offline --no-progress README.md SECURITY.md CHANGELOG.md docs
+          args: --offline --no-progress --include-fragments README.md SECURITY.md CONTRIBUTING.md CHANGELOG.md docs
           lycheeVersion: v0.24.2
       - name: Check maintained Markdown spelling
         uses: codespell-project/actions-codespell@e3258cca84ce02b0bb36a3d41f2c18f719a0cc1a # v2.4.3
         with:
-          path: README.md SECURITY.md CHANGELOG.md docs
+          path: README.md SECURITY.md CONTRIBUTING.md CHANGELOG.md docs
           ignore_words_list: OptIn # Kotlin annotation used in documentation examples.
       - name: Lint maintained Markdown
         uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
@@ -122,14 +80,24 @@ jobs:
           globs: |
             README.md
             SECURITY.md
-            docs/getting-started.md
-            docs/api-reference.md
-            docs/ci.md
-            docs/how-to/*.md
-            docs/agents/agent-quick-start.md
+            CONTRIBUTING.md
+            docs/**/*.md
+
+  jvm-test:
+    name: JVM tests + Android assemble + Portal dry-run (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
       - run: |
           ./gradlew \
             spotlessCheck \
+            detekt \
             :kompact:checkKotlinAbi \
             :kompact:jvmTest \
             :kompact:testAndroidHostTest \
@@ -141,39 +109,8 @@ jobs:
             :kompact-ksp-integration:test \
             :kompact-gradle-plugin:validatePlugins \
             :kompact-gradle-plugin:checkKotlinAbi \
-            :kompact-gradle-plugin:koverVerify \
-            --no-daemon --rerun-tasks --no-build-cache --warning-mode all
-
-      # This TestKit suite launches nested Gradle builds that compile the
-      # consumer for JVM, Android, iOS, and Android Native. Keep it separate
-      # from the root multiplatform build to avoid overlapping compiler daemons.
-      - name: Test Gradle plugin KMP consumer
-        run: |
-          ./gradlew \
-            :kompact-gradle-plugin:test \
-            --no-daemon --rerun-tasks --no-build-cache --warning-mode all
-
-      # Produce a device-runnable binary on Linux; Apple Silicon's cached
-      # Kotlin/Native Android clang is x86_64 and cannot link this target.
-      - name: Link Android Native device-test binary
-        run: |
-          ./gradlew \
-            :kompact:androidNativeArm64TestBinaries \
-            --no-daemon --rerun-tasks --no-build-cache --warning-mode all
-      - name: Upload Android Native device-test binary
-        uses: actions/upload-artifact@v7
-        with:
-          name: kompact-android-native-arm64-test
-          path: kompact/build/bin/androidNativeArm64/debugTest/test.kexe
-          if-no-files-found: error
-          retention-days: 7
-      - name: Upload Android Native release device-test binary
-        uses: actions/upload-artifact@v7
-        with:
-          name: kompact-android-native-arm64-release-test
-          path: kompact/build/bin/androidNativeArm64/releaseTest/test.kexe
-          if-no-files-found: error
-          retention-days: 7
+            :build-logic:test \
+            --no-build-cache --warning-mode all
 
       # Portal dry-run: generate checksums + assemble bundles with an ephemeral
       # PGP key (never real credentials). Verifies both JVM module pipelines
@@ -201,7 +138,188 @@ jobs:
             :kompact:generateChecksums :kompact:assembleCentralBundle \
             :kompact-ksp:generateChecksums :kompact-ksp:assembleCentralBundle \
             :kompact-gradle-plugin:generateChecksums :kompact-gradle-plugin:assembleCentralBundle \
-            --no-daemon --console=plain
+            --no-build-cache --console=plain
           test -f kompact/build/kompact-portal-bundle.zip && echo "Runtime Portal bundle OK"
           test -f kompact-ksp/build/kompact-ksp-portal-bundle.zip && echo "Portal bundle OK"
           test -f kompact-gradle-plugin/build/kompact-gradle-plugin-portal-bundle.zip && echo "Gradle plugin Portal bundle OK"
+
+  # This TestKit suite launches nested Gradle builds that compile the consumer
+  # for JVM, Android, iOS, and Android Native. Its own job keeps the nested
+  # builds away from the compiler daemons of the root build.
+  gradle-plugin-test:
+    name: Gradle plugin KMP consumer + coverage (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: ./gradlew :kompact-gradle-plugin:test :kompact-gradle-plugin:koverVerify --no-build-cache --warning-mode all
+
+  # Produce a device-runnable binary on Linux; Apple Silicon's cached
+  # Kotlin/Native Android clang is x86_64 and cannot link this target.
+  android-native:
+    name: Android Native device-test binaries (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - name: Link Android Native device-test binary
+        run: ./gradlew :kompact:androidNativeArm64TestBinaries --no-build-cache --warning-mode all
+      - name: Upload Android Native device-test binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: kompact-android-native-arm64-test
+          path: kompact/build/bin/androidNativeArm64/debugTest/test.kexe
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload Android Native release device-test binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: kompact-android-native-arm64-release-test
+          path: kompact/build/bin/androidNativeArm64/releaseTest/test.kexe
+          if-no-files-found: error
+          retention-days: 7
+
+  # Benchmark fixtures and the standalone holder consumer are unpublished and
+  # outside production Kover; their behavior and smoke reports are gated.
+  # Shared CI runs smoke checks, not timing regression gates.
+  jvm-benchmarks:
+    name: JVM benchmark fixtures + smoke results (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - name: Check JVM benchmark fixtures and finite smoke results
+        run: |
+          ./gradlew :benchmarks:jvmTest :benchmarks:jvmSmokeBenchmark --no-build-cache --console=plain
+          python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/jvm.json
+      - name: Check generated-holder decoding and finite smoke results
+        run: |
+          ./gradlew -p benchmarks/holders jvmTest jvmSmokeBenchmark --no-build-cache --console=plain
+          python3 benchmarks/check_results.py --profile holders-smoke benchmarks/holders/build/reports/benchmarks/smoke/*/jvm.json
+
+  # Each guarded mutation property is valid only when its mutationResults task
+  # is the single requested task, so each module runs in its own job.
+  # MutFlow does not support the configuration cache.
+  mutation-test:
+    name: Mutation testing (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: kompact
+            property: mutationTest.jvmOnly
+          - module: kompact-ksp
+            property: mutationTest.enabled
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - name: Mutation-test ${{ matrix.module }}
+        run: ./gradlew -P${{ matrix.property }}=true :${{ matrix.module }}:mutationResults --no-build-cache --no-configuration-cache --console=plain
+      - name: Upload mutation reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: mutation-results-${{ matrix.module }}
+          path: ${{ matrix.module }}/build/reports/mutation-results.*
+          if-no-files-found: warn
+          retention-days: 14
+
+  api-check:
+    name: ABI + iOS Simulator tests + Markdown + spotless (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      # Android SDK required for ABI check + dokka Markdown (which analyses
+      # compiled classes for all targets including Android).
+      # v4 of setup-android uses the `packages` input (not api-level/build-tools
+      # which were removed). The `tools` package is deprecated; installing only
+      # platform-tools here. AGP downloads platforms;android-36 and
+      # build-tools;36.0.0 on-demand during the build.
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools"
+      - name: Set ANDROID_HOME
+        run: echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+      - run: ./gradlew spotlessCheck :kompact:checkKotlinAbi :kompact:iosSimulatorArm64Test :kompact-ksp:checkKotlinAbi --no-build-cache --warning-mode all
+      # The committed GFM Markdown reference in kompact/docs/api/ must stay in sync
+      # with the KDoc in commonMain. Regenerate and fail if the committed tree
+      # drifts. macOS only: dokka analyses the iOS klibs, which can't be
+      # compiled on Linux.
+      - name: Verify generated Dokka Markdown reference is in sync
+        run: |
+          ./gradlew :kompact:dokkaGeneratePublicationMarkdown --no-build-cache --console=plain
+          git diff --exit-code -- kompact/docs/api/
+
+  # Benchmark fixtures are outside production Kover coverage; their behavior
+  # and reports are gated.
+  native-benchmarks:
+    name: Native benchmark fixtures + smoke results (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools"
+      - name: Set ANDROID_HOME
+        run: echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+      - name: Check Native benchmark fixtures and finite smoke results
+        run: |
+          ./gradlew :benchmarks:macosArm64Test :benchmarks:macosArm64SmokeBenchmark --no-build-cache --console=plain
+          python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/macosArm64.json
+
+  # The unpublished holder fixtures are outside production Kover coverage. The
+  # simulator test validates generated iOS code, not device timing.
+  ios-holders:
+    name: Generated-holder fixtures on iOS Simulator (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools"
+      - name: Set ANDROID_HOME
+        run: echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+      - name: Check generated-holder fixtures on iOS Simulator
+        run: ./gradlew -p benchmarks/holders iosSimulatorArm64Test --no-build-cache --console=plain

@@ -12,9 +12,7 @@ class LayoutValidatorTest {
         kotlinType: String = "Int",
         signed: Boolean = false,
         lengthPrefixWidth: Int = 8,
-        isNested: Boolean = false,
         repeatCountWidth: Int = 8,
-        enumWidth: Int = 0,
     ) = KompactFieldInfo(
         name = name,
         type = scalarType(kotlinType),
@@ -23,10 +21,7 @@ class LayoutValidatorTest {
         bitWidth = bitWidth,
         signed = signed,
         lengthPrefixWidth = lengthPrefixWidth,
-        isNested = isNested,
         repeatCountWidth = repeatCountWidth,
-        enumWidth = enumWidth,
-        defaultValue = "",
     )
 
     // --- Invariant #1: No overlaps ---
@@ -56,6 +51,20 @@ class LayoutValidatorTest {
     }
 
     @Test
+    fun `fields sharing a single bit are rejected in either order`() {
+        val cases =
+            listOf(
+                listOf(field("a", 0, 8), field("b", 7, 8)) to "Field 'a' [0..<8] overlaps field 'b' [7..<15]",
+                listOf(field("a", 7, 8), field("b", 0, 8)) to "Field 'a' [7..<15] overlaps field 'b' [0..<8]",
+                listOf(field("a", 3, 1), field("b", 3, 1)) to "Field 'a' [3..<4] overlaps field 'b' [3..<4]",
+            )
+
+        cases.forEach { (fields, message) ->
+            assertEquals(listOf(message), LayoutValidator.validateNoOverlaps(fields))
+        }
+    }
+
+    @Test
     fun `non-overlapping adjacent fields pass overlap check`() {
         val fields =
             listOf(
@@ -68,8 +77,7 @@ class LayoutValidatorTest {
 
     @Test
     fun `non-overlapping fields with reversed order pass overlap check`() {
-        // rangeA = [8..<16), rangeB = [0..<8) — this.first < other.right → 8 < 8 → false
-        // This covers the short-circuit of the && in overlaps()
+        // a = [8, 16), b = [0, 8): a.bitOffset < b.endBit is 8 < 8, so the check short-circuits.
         val fields =
             listOf(
                 field("a", 8, 8),
@@ -224,10 +232,7 @@ class LayoutValidatorTest {
                     bitWidth = 4,
                     signed = false,
                     lengthPrefixWidth = 8,
-                    isNested = false,
                     repeatCountWidth = 8,
-                    enumWidth = 0,
-                    defaultValue = "",
                 ),
             )
         val errors = LayoutValidator.validateWidths(fields)
@@ -247,10 +252,7 @@ class LayoutValidatorTest {
                     bitWidth = 16,
                     signed = false,
                     lengthPrefixWidth = 8,
-                    isNested = false,
                     repeatCountWidth = 8,
-                    enumWidth = 0,
-                    defaultValue = "",
                 ),
             )
         val errors = LayoutValidator.validateWidths(fields)
@@ -342,24 +344,18 @@ class LayoutValidatorTest {
         assertTrue(errors[0].contains("lengthPrefixWidth"), "Expected lengthPrefixWidth error, got: ${errors[0]}")
     }
 
-    // --- Invariant #4: Nested total-length ≤ declared capacity ---
+    // --- Nested model types are framed-only ---
 
     @Test
-    fun `nested field with valid lengthPrefixWidth passes`() {
-        val fields = listOf(field("a", 0, 4, isNested = true, lengthPrefixWidth = 16))
-        val errors = LayoutValidator.validateNestedTotalLength(fields)
-        assertTrue(errors.isEmpty(), "Nested field with valid prefix width should pass, got: $errors")
-    }
-
-    @Test
-    fun `nested field without lengthPrefixWidth is rejected`() {
-        val fields = listOf(field("a", 0, 4, isNested = true, lengthPrefixWidth = 0))
-        val errors = LayoutValidator.validateNestedTotalLength(fields)
+    fun `nested model type is rejected outside framed schemas`() {
+        val nested =
+            field("child", 0, 0).copy(type = KompactFieldType.Nested("ch.trancee.test.Payload", emptyList()))
+        val errors = LayoutValidator.validateAll(listOf(nested))
         assertEquals(1, errors.size)
-        assertTrue(errors[0].contains("nested"), "Expected nested error, got: ${errors[0]}")
+        assertTrue(errors[0].contains("Payload"), "Expected nested type error, got: ${errors[0]}")
     }
 
-    // --- Invariant #5: Repeated count width ∈ {8, 16, 32} ---
+    // --- Invariant #4: Repeated count width ∈ {8, 16, 32} ---
 
     @Test
     fun `valid repeatCountWidth values are accepted`() {
@@ -379,33 +375,6 @@ class LayoutValidatorTest {
         assertTrue(errors[0].contains("repeatCountWidth"), "Expected repeatCountWidth error, got: ${errors[0]}")
     }
 
-    // --- Invariant #6: Enum width ≥ ordinal bit-width; codes fit ---
-
-    @Test
-    fun `valid enumWidth values are accepted`() {
-        val widths = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8)
-        widths.forEach { w ->
-            val fields = listOf(field("a", 0, w, enumWidth = w))
-            val errors = LayoutValidator.validateEnumWidth(fields)
-            assertTrue(errors.isEmpty(), "enumWidth=$w should be valid, got: $errors")
-        }
-    }
-
-    @Test
-    fun `enumWidth above 8 is rejected`() {
-        val fields = listOf(field("a", 0, 1, enumWidth = 9))
-        val errors = LayoutValidator.validateEnumWidth(fields)
-        assertEquals(1, errors.size)
-        assertTrue(errors[0].contains("enumWidth"), "Expected enumWidth error, got: ${errors[0]}")
-    }
-
-    @Test
-    fun `enumWidth of 0 is accepted (not an enum)`() {
-        val fields = listOf(field("a", 0, 4, enumWidth = 0))
-        val errors = LayoutValidator.validateEnumWidth(fields)
-        assertTrue(errors.isEmpty(), "enumWidth=0 (non-enum) should pass, got: $errors")
-    }
-
     // --- Combined validation ---
 
     @Test
@@ -414,14 +383,14 @@ class LayoutValidatorTest {
             listOf(
                 field("a", 0, 64, "Int", lengthPrefixWidth = 7), // width too large for Int + invalid lengthPrefixWidth
                 field("b", 4, 4), // overlaps with a
-                field("c", 16, 4, enumWidth = 9), // invalid enumWidth
+                field("c", 16, 4, repeatCountWidth = 9), // invalid repeatCountWidth
             )
         val errors = LayoutValidator.validateAll(fields)
         // validateWidths: 1 (Int bitWidth 64)
         // validateNoOverlaps: 2 (b overlaps a, c overlaps a)
         // validateLengthPrefixWidth: 1 (lengthPrefixWidth=7)
-        // validateEnumWidth: 1 (enumWidth=9)
-        // validateBitWidthSum, validateNestedTotalLength, validateRepeatCountWidth: 0
+        // validateRepeatCountWidth: 1 (repeatCountWidth=9)
+        // validateBitWidthSum: 0
         assertEquals(5, errors.size)
     }
 

@@ -11,20 +11,18 @@ import kotlin.test.assertNull
  * or KompactRuntimeCheckedApiTest:
  *
  *  - readLengthPrefix with overrun (valid width, buffer too small) → INVALID_LENGTH_PREFIX
- *  - readLengthPrefix with invalid width (7) → INVALID_LENGTH_PREFIX
- *  - writeLengthPrefix with invalid width → IllegalArgumentException
- *  - nestedRegionOrNull with invalid prefix width → null (INVALID_LENGTH_PREFIX path)
+ *  - readLengthPrefix / readNested / readLengthPrefixOrThrow / writeLengthPrefix with an
+ *    invalid caller width (7) → IllegalArgumentException
  *  - readLengthPrefixOrThrow with overrun → KompactDecodeException
  */
 class KompactFramingEdgeCaseTest {
     // --- readLengthPrefix: invalid width and overrun paths ---
 
     @Test
-    fun readLengthPrefix_invalidWidth_returnsInvalidPrefix() {
-        assertEquals(
-            KompactFraming.INVALID_LENGTH_PREFIX,
-            KompactFraming.readLengthPrefix(ByteArray(4), 0, 7),
-        )
+    fun readLengthPrefix_invalidWidth_throwsIllegalArgument() {
+        assertFailsWith<IllegalArgumentException> {
+            KompactFraming.readLengthPrefix(ByteArray(4), 0, 7)
+        }
     }
 
     @Test
@@ -76,15 +74,17 @@ class KompactFramingEdgeCaseTest {
         assertEquals(Int.MAX_VALUE, KompactFraming.readLengthPrefix(raw, 0, 32))
     }
 
-    // --- nestedRegionOrNull: invalid prefix width → null ---
+    // --- readNested: invalid prefix width is a caller-contract violation ---
 
     @Test
-    fun nestedRegionOrNull_invalidPrefixWidth_returnsNull() {
+    fun readNested_invalidPrefixWidth_throwsIllegalArgument() {
         val buf = byteArrayOf(1, 0, 0)
-        assertNull(
-            KompactFraming.nestedRegionOrNull(buf, 0, 7),
-            "invalid prefix width must return null",
-        )
+        assertFailsWith<IllegalArgumentException> { KompactFraming.readNested(buf, 0, 7) }
+    }
+
+    @Test
+    fun readNested_prefixOverrun_returnsBadLengthPrefix() {
+        assertEquals(KompactDecodeError.BadLengthPrefix, KompactFraming.readNested(ByteArray(1), 0, 16).error)
     }
 
     // --- readLengthPrefixOrThrow: overrun path ---
@@ -100,11 +100,9 @@ class KompactFramingEdgeCaseTest {
     }
 
     @Test
-    fun readLengthPrefixOrThrow_invalidWidth_throwsTyped() {
-        val ex =
-            assertFailsWith<KompactDecodeException> {
-                KompactFraming.readLengthPrefixOrThrow(ByteArray(4), 0, 7)
-            }
-        assertEquals(KompactDecodeError.BadLengthPrefix, ex.error)
+    fun readLengthPrefixOrThrow_invalidWidth_throwsIllegalArgument() {
+        assertFailsWith<IllegalArgumentException> {
+            KompactFraming.readLengthPrefixOrThrow(ByteArray(4), 0, 7)
+        }
     }
 }

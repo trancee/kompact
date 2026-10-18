@@ -24,14 +24,36 @@ class KompactGradlePluginDiagnosticsTest {
         assertEquals("<unknown>", plugin.detectedKotlinVersion(null))
         assertEquals("<unknown>", plugin.detectedKotlinVersion(Any()))
 
-        plugin.requireSupportedKotlinVersion("2.4.20", "2.4.20", compatibility)
+        plugin.requireSupportedKotlinVersion("2.4.20", "2.4.20", compatibility) { error("unexpected warning: $it") }
         val failure =
             assertFailsWith<GradleException> {
-                plugin.requireSupportedKotlinVersion("2.4.10", "2.4.20", compatibility)
+                plugin.requireSupportedKotlinVersion("2.5.0", "2.4.20", compatibility) {}
             }
 
         assertTrue(failure.message.orEmpty().contains("incompatible"))
         assertTrue(failure.message.orEmpty().contains(compatibility))
+    }
+
+    @Test
+    fun acceptsPatchReleasesOfTheTestedKotlinMinorWithoutClaimingAnExactMatch() {
+        val plugin = KompactGradlePlugin()
+
+        val warnings = mutableListOf<String>()
+
+        plugin.requireSupportedKotlinVersion("2.4.10", "2.4.20", "details", warnings::add)
+        plugin.requireSupportedKotlinVersion("2.4.30-RC", "2.4.20", "details", warnings::add)
+
+        assertEquals(2, warnings.size)
+        assertTrue(warnings.all { it.contains("untested") && it.contains("details") })
+    }
+
+    @Test
+    fun rejectsUnknownAndDifferentMajorKotlinVersions() {
+        val plugin = KompactGradlePlugin()
+
+        assertFailsWith<GradleException> { plugin.requireSupportedKotlinVersion("<unknown>", "2.4.20", "d") {} }
+        assertFailsWith<GradleException> { plugin.requireSupportedKotlinVersion("3.4.20", "2.4.20", "d") {} }
+        assertFailsWith<GradleException> { plugin.requireSupportedKotlinVersion("2.3.20", "2.4.20", "d") {} }
     }
 
     @Test

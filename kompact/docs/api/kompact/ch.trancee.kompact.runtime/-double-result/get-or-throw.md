@@ -2,9 +2,5 @@
 
 # getOrThrow
 
-[common, jvmCommon, native]\
 [common]\
-expect fun [getOrThrow](get-or-throw.md)(): [Double](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html)
-
-[jvmCommon, native]\
-actual fun [getOrThrow](get-or-throw.md)(): [Double](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html)
+fun [getOrThrow](get-or-throw.md)(): [Double](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html)

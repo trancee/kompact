@@ -2,9 +2,5 @@
 
 # failure
 
-[common, jvmCommon, native]\
 [common]\
-expect fun [failure](failure.md)(error: [KompactDecodeError](../../-kompact-decode-error/index.md)): [FloatResult](../index.md)
-
-[jvmCommon, native]\
-actual fun [failure](failure.md)(error: [KompactDecodeError](../../-kompact-decode-error/index.md)): [FloatResult](../index.md)
+fun [failure](failure.md)(error: [KompactDecodeError](../../-kompact-decode-error/index.md)): [FloatResult](../index.md)

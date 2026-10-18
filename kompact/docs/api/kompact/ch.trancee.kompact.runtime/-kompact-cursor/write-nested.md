@@ -3,6 +3,6 @@
 # writeNested
 
 [common]\
-fun [writeNested](write-nested.md)(prefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), payloadByteLength: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), nestedCursor: [KompactCursor](index.md)): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+fun [writeNested](write-nested.md)(prefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), payloadByteLength: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), nestedCursor: [KompactCursor](index.md)): [KompactStatus](../-kompact-status/index.md)
 
 Write a known byte length and configure [nestedCursor](write-nested.md) over that bounded payload. The parent advances beyond the payload before it is encoded.

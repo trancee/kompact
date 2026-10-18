@@ -23,14 +23,14 @@ class KompactFixedRepeatCheckpointTest {
                         val workspace = KompactRepeatWorkspace(checkpoints)
                         val cursor = KompactCursor(bytes)
                         assertEquals(
-                            KompactCursor.STATUS_OK,
+                            KompactStatus.OK,
                             cursor.reset(bytes, startBit = startBit, endBit = repeatEnd),
                         )
                         val context = "count=$count prefix=$prefixWidth width=$elementWidth start=$startBit"
 
                         val status = cursor.readFixedRepeat(prefixWidth, elementWidth, workspace)
 
-                        assertEquals(KompactCursor.STATUS_OK, status, context)
+                        assertEquals(KompactStatus.OK, status, context)
                         assertEquals(repeatEnd, cursor.position, context)
                         assertEquals(count.toLong(), cursor.valueBits, context)
                         assertEquals(count, workspace.count, context)
@@ -66,7 +66,7 @@ class KompactFixedRepeatCheckpointTest {
 
             val status = cursor.readFixedRepeat(32, 1, workspace)
 
-            assertEquals(KompactCursor.STATUS_WORKSPACE_TOO_SMALL, status, "capacity=$expectedCapacity")
+            assertEquals(KompactStatus.WORKSPACE_TOO_SMALL, status, "capacity=$expectedCapacity")
             assertEquals(expectedCapacity, cursor.errorDetail)
             assertEquals(0, cursor.errorBitOffset)
             assertEquals(0, cursor.position)
@@ -79,7 +79,7 @@ class KompactFixedRepeatCheckpointTest {
         val original = byteArrayOf(1, 0)
         val checkpoints = IntArray(5) { -1 }
         val workspace = KompactRepeatWorkspace(checkpoints)
-        assertEquals(KompactCursor.STATUS_OK, KompactCursor(original).readFixedRepeat(8, 8, workspace))
+        assertEquals(KompactStatus.OK, KompactCursor(original).readFixedRepeat(8, 8, workspace))
         val priorCheckpoints = checkpoints.copyOf()
         val count = 129
         val startBit = 40
@@ -88,13 +88,13 @@ class KompactFixedRepeatCheckpointTest {
         KompactRuntime.writeBitsLong(bytes, startBit, 16, count.toLong())
         val cursor = KompactCursor(bytes)
         assertEquals(
-            KompactCursor.STATUS_OK,
+            KompactStatus.OK,
             cursor.reset(bytes, startBit = startBit, endBit = repeatStart + count * 13 - 1),
         )
 
         val status = cursor.readFixedRepeat(16, 13, workspace)
 
-        assertEquals(KompactCursor.STATUS_TRUNCATED_INPUT, status)
+        assertEquals(KompactStatus.TRUNCATED_INPUT, status)
         assertEquals(startBit, cursor.position)
         assertEquals(repeatStart, cursor.errorBitOffset)
         assertEquals(count, cursor.errorDetail)

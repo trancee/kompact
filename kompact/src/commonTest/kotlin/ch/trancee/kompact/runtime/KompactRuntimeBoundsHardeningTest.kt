@@ -1,6 +1,7 @@
 package ch.trancee.kompact.runtime
 
 import kotlin.test.Test
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class KompactRuntimeBoundsHardeningTest {
@@ -25,5 +26,13 @@ class KompactRuntimeBoundsHardeningTest {
         assertTrue(scalar32Result.isSuccess, "readScalar/32 signed must succeed")
         assertTrue(floatResult.isSuccess, "readFloat must succeed")
         assertTrue(doubleResult.isSuccess, "readDouble must succeed")
+    }
+
+    @Test
+    fun bitAddressableByteCountsStopWhereTheBitLengthWouldWrap() {
+        assertFalse(KompactRuntime.isBitAddressable(-1))
+        assertTrue(KompactRuntime.isBitAddressable(0))
+        assertTrue(KompactRuntime.isBitAddressable(268_435_455))
+        assertFalse(KompactRuntime.isBitAddressable(268_435_456))
     }
 }

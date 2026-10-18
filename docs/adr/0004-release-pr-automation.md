@@ -1,118 +1,128 @@
-# ADR-0004: Human-Reviewed Release PR Automation
+# ADR-0004: Human-reviewed release PR automation
 
-- **Status:** accepted
-- **Date:** 2026-09-13
-- **Deciders:** kompact maintainer
-- **Tags:** release, ci, github-actions, maven-central, pgp
+- Status: Accepted
+- Date: 2026-09-13
+- Deciders: kompact maintainer
+- Tags: release, ci, github-actions, maven-central, pgp
+- Amended by: [ADR-0007](0007-pre-1-release-versioning.md) (breaking changes
+  before `1.0.0` increment MINOR)
 
 ## Context
 
-Kompact publishes the runtime, KSP processor, and Gradle plugin through its
-custom Central Portal Publisher integration. Release automation must preserve
+Kompact publishes the runtime, the KSP processor, and the Gradle plugin through
+its own Central Portal Publisher integration. Release automation must keep
 Constitution G1: protected `main` receives changes only through reviewed PRs.
-The root `build.gradle.kts` version is the canonical release candidate, and
-maintained consumer documentation and `CHANGELOG.md` must describe the same
-candidate before publication.
+The version in the root `build.gradle.kts` is the canonical release candidate.
+Before publication, the maintained consumer documentation and `CHANGELOG.md`
+must describe the same candidate.
 
-Earlier automation proposed release-version and next-SNAPSHOT commits directly
-to `main`. That conflicts with G1 and leaves release metadata outside the
-reviewed change. The release pipeline must also protect publishing credentials,
-require approval for irreversible publication, and support safe retries after
-partial failure.
+Earlier automation committed the release version and the next SNAPSHOT
+directly to `main`. That conflicts with G1, and it leaves release metadata
+outside the reviewed change. The release pipeline must also protect the
+publishing credentials, require approval before the publication that cannot be
+undone, and support safe retries after a partial failure.
 
 ## Decision
 
-Release-version changes, changelog updates, and next-SNAPSHOT changes are
-separate human-reviewed pull requests. Automation may push only managed topic
-branches and release tags; it never pushes a commit to protected `main`.
+The release-version change, the changelog update, and the next-SNAPSHOT change
+go through separate pull requests that a human reviews. Automation pushes only
+managed topic branches and release tags. It never pushes a commit to protected
+`main`.
 
-### `release-pr.yml` — candidate preparation
+### `release-pr.yml` prepares the candidate
 
-- On pushes to `main`, do nothing unless the root version ends in
-  `-SNAPSHOT`.
-- Create or synchronize `release/ongoing` from `main`.
-- Set the candidate to the stable version by removing `-SNAPSHOT`, generate
-  the changelog for that version, synchronize maintained documentation, and
-  run the documentation-version checker.
-- Open or update a PR labelled `release`. Reviewers approve the version,
-  changelog, and documentation together with the accumulated code changes.
-- Conventional Commits group changelog entries only; they do not override the
-  root Gradle candidate.
+- On a push to `main`, the workflow does nothing unless the root version ends
+  in `-SNAPSHOT`.
+- It creates or updates `release/ongoing` from `main`.
+- It sets the candidate to the stable version by removing `-SNAPSHOT`. It then
+  generates the changelog for that version, updates the maintained
+  documentation, and runs the documentation-version checker.
+- It opens or updates a PR with the `release` label. Reviewers approve the
+  version, the changelog, and the documentation together with the code changes
+  collected since the last release.
+- Conventional Commits only group changelog entries. They do not override the
+  candidate in the root Gradle build.
 
-### `release-publish.yml` — reviewed release execution
+### `release-publish.yml` runs the reviewed release
 
-- Trigger only when a PR labelled `release` is merged into `main`.
-- Use `pull_request_target` for the trusted workflow definition, then check
-  that the event's trusted base-branch commit exactly matches the PR's merge
-  commit before checkout. Check out only the trusted event SHA; never use a
-  PR-controlled ref or execute an unmerged PR head with release permissions.
-- Require the merged root version to be stable and consistent with the
-  changelog and maintained docs. Rerun release fixtures, Linux CI gates,
-  plugin ABI and coverage checks, TestKit integration tests, and the
-  Central Portal bundle dry-run.
-- Create `v<version>` on the reviewed merge commit after all checks pass. A
-  retry may reuse the tag only if it points to that exact commit; a conflicting
-  existing tag fails closed.
-- Build, sign, and deploy all published artifacts to Central Portal. Publishing
-  remains behind the manually approved `release` GitHub Environment.
-- After successful publication, create or update a separate PR from a managed
-  branch that advances the root version and development documentation to the
-  next `-SNAPSHOT`. Do not push this commit directly to `main`.
+- The workflow runs only when a PR with the `release` label is merged into
+  `main`.
+- It uses `pull_request_target` for the trusted workflow definition. Before
+  checkout, it checks that the trusted base-branch commit of the event exactly
+  matches the merge commit of the PR. It checks out only the trusted event SHA.
+  It never uses a ref that the PR controls, and never runs an unmerged PR head
+  with release permissions.
+- The merged root version must be stable and must match the changelog and the
+  maintained docs. The workflow reruns the release fixtures, the Linux CI
+  gates, the plugin ABI and coverage checks, the TestKit integration tests,
+  and the Central Portal bundle dry run.
+- After all checks pass, the workflow creates `v<version>` on the reviewed
+  merge commit. A retry may reuse the tag only if the tag points to that exact
+  commit. If a conflicting tag already exists, the workflow fails closed.
+- The workflow builds, signs, and deploys all published artifacts to Central
+  Portal. Publication stays behind the `release` GitHub Environment, which a
+  maintainer approves by hand.
+- After a successful publication, the workflow creates or updates a separate
+  PR from a managed branch. That PR moves the root version and the development
+  documentation to the next `-SNAPSHOT`. The workflow does not push this commit
+  directly to `main`.
 
-### Supporting infrastructure
+### Supporting scripts and secrets
 
-- `version-bump.sh` reads the canonical root version, strips `-SNAPSHOT` for
-  the release candidate, advances the minor version for the next development
-  cycle, and generates changelog sections from commits since the latest tag.
-- `sync-version-references.py` updates maintained consumer docs for either a
-  stable release candidate or a development snapshot.
-- The docs-version checker compares development references to the root
-  version and published references to the newest `CHANGELOG.md` entry. It
-  delegates to the synchronizer's read-only check mode so their classification
-  cannot drift. Development references retain their role after a stable release:
-  wrapped prose and product coordinates under development/snapshot headings
-  return to the next snapshot, while published references stay on the release.
-- Central Portal tokens and the signing key remain environment-scoped secrets.
-  `RELEASE_PAT` is used only where automation must push a topic branch or tag
-  and create a PR whose checks should run normally.
+- `version-bump.sh` reads the canonical root version. It removes `-SNAPSHOT`
+  for the release candidate, advances the minor version for the next
+  development cycle, and generates changelog sections from the commits since
+  the latest tag.
+- `sync-version-references.py` updates the maintained consumer docs for either
+  a stable release candidate or a development snapshot.
+- The docs-version checker compares development references with the root
+  version, and published references with the newest `CHANGELOG.md` entry. It
+  calls the read-only check mode of the synchronizer, so the two scripts always
+  classify references the same way. Development references keep their role
+  after a stable release. Wrapped prose and product coordinates under
+  development or snapshot headings return to the next snapshot, while
+  published references stay on the release.
+- Central Portal tokens and the signing key stay secrets scoped to the
+  environment. Automation uses `RELEASE_PAT` only where it must push a topic
+  branch or a tag, and create a PR whose checks run normally.
 
-## Alternatives
+## Alternatives considered
 
-1. **Push release and next-SNAPSHOT commits directly to `main`.** Rejected
-   because it violates G1 and bypasses review of release metadata.
-2. **Derive release versions from Conventional Commits.** Rejected because it
-   can disagree with the declared root candidate; commits remain useful for
-   changelog grouping.
-3. **Use a release-please or Maven publishing plugin migration.** Rejected for
-   this change because the current custom Portal Publisher already handles
-   publication and credential redaction; replacing it is unrelated to the
-   governance requirement.
-4. **Perform releases manually.** Rejected because reproducible version,
-   artifact, and publication gates belong in CI.
+1. Push the release commit and the next-SNAPSHOT commit directly to `main`.
+   Rejected: it violates G1 and skips review of release metadata.
+2. Derive release versions from Conventional Commits. Rejected: the derived
+   version can disagree with the root candidate. Commits stay useful for
+   grouping the changelog.
+3. Migrate to release-please or a Maven publishing plugin. Rejected for this
+   change: the current Portal Publisher already handles publication and hides
+   credentials in its output. Replacing it does not help with the governance
+   requirement.
+4. Release by hand. Rejected: reproducible version, artifact, and publication
+   gates belong in CI.
 
-## Consequences and risks
+## Consequences
 
-- Release metadata and next-development metadata are reviewable and auditable
-  PRs; the protected default branch is never modified by a direct automation
-  push.
-- The release requires an additional next-SNAPSHOT PR after publication.
-- A failure after tag creation but before publication requires inspecting the
-  tag and Central Portal state before retry. Tag reuse is safe only when its
-  commit matches the reviewed merge.
-- A failure after publication but before opening the next-SNAPSHOT PR leaves
-  the published release valid; rerunning the follow-up job must create or
-  update the PR without republishing.
-- Physical iOS Arm64 and Android Native Arm64 behavior tests and allocation
-  evidence remain independent release gates documented in
-  [`docs/ci.md`](../ci.md). Simulator results do not satisfy physical-device
-  proof, and no zero-allocation claim is implied without validated
-  per-target counters and positive controls.
+- Release metadata and next-development metadata are PRs that people can
+  review and audit. No automation pushes directly to the protected default
+  branch.
+- Each release needs an extra next-SNAPSHOT PR after publication.
+- If the release fails after the tag exists but before publication, inspect
+  the tag and the Central Portal state before you retry. Reusing the tag is
+  safe only when its commit matches the reviewed merge.
+- If the release fails after publication but before the next-SNAPSHOT PR
+  opens, the published release stays valid. Rerunning the follow-up job must
+  create or update the PR without publishing again.
+- Behavior tests and allocation evidence on physical iOS Arm64 and Android
+  Native Arm64 devices stay independent release gates, documented in
+  [`docs/ci.md`](../ci.md). Simulator results do not count as proof on a
+  physical device. The project makes no zero-allocation claim without
+  validated per-target counters and positive controls.
 
 ## Migration
 
-Replace the former post-merge version/changelog commit and direct `main` push
-with the reviewed candidate PR before the next release. Any in-flight release
-must be reconciled against the root version, changelog, existing tag, and
-Central Portal state before retrying. External branch-protection settings are
-not changed by this ADR; maintainers must require the repository's actual
-macOS and Linux CI checks.
+Before the next release, replace the old post-merge version and changelog
+commit, and its direct push to `main`, with the reviewed candidate PR. Before
+you retry a release that is in flight, reconcile it against the root version,
+the changelog, any existing tag, and the Central Portal state. This ADR does
+not change external branch-protection settings. Maintainers must require the
+actual macOS and Linux CI checks of the repository.

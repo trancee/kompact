@@ -8,10 +8,11 @@ agp = "9.4.1"
 dokka = "2.2.0"
 kover = "0.9.11"
 spotless = "8.10.4"
-skie = "0.10.15"
+detekt = "1.23.8"
 junit = "6.1.3"
 benchmark = "0.5.0"
 jmh = "1.37"
+kotlinxSerialization = "1.11.0"
 
 [plugins]
 kmp = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -22,7 +23,7 @@ agp = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
-skie = { id = "co.touchlab.skie", version.ref = "skie" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kotlinPowerAssert = { id = "org.jetbrains.kotlin.plugin.power-assert", version.ref = "kotlin" }
 benchmark = { id = "org.jetbrains.kotlinx.benchmark", version.ref = "benchmark" }
 
@@ -34,4 +35,5 @@ kotlinTestJupiter = { module = "org.jetbrains.kotlin:kotlin-test-junit5", versio
 junitJupiterApi = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
 junitJupiterEngine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
 junitPlatformLauncher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }
+kotlinxSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 benchmarkRuntime = { module = "org.jetbrains.kotlinx:kotlinx-benchmark-runtime", version.ref = "benchmark" }

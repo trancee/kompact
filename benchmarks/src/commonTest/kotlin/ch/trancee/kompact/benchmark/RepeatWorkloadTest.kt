@@ -1,6 +1,7 @@
 package ch.trancee.kompact.benchmark
 
 import ch.trancee.kompact.runtime.KompactCursor
+import ch.trancee.kompact.runtime.KompactStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -20,10 +21,10 @@ class RepeatWorkloadTest {
             if (count > 0) {
                 val element = KompactCursor(ByteArray(0))
                 assertEquals(
-                    KompactCursor.STATUS_OK,
+                    KompactStatus.OK,
                     workload.fixedCursor.readRepeatedElement(count - 1, workload.fixedWorkspace, element),
                 )
-                assertEquals(KompactCursor.STATUS_OK, element.readBits(13))
+                assertEquals(KompactStatus.OK, element.readBits(13))
                 assertEquals((count - 1).toLong() and 0x1fff, element.valueBits)
             }
         }
@@ -42,12 +43,12 @@ class RepeatWorkloadTest {
             if (count > 0) {
                 val element = KompactCursor(ByteArray(0))
                 assertEquals(
-                    KompactCursor.STATUS_OK,
+                    KompactStatus.OK,
                     workload.variableCursor.readRepeatedElement(count - 1, workload.variableWorkspace, element),
                 )
                 assertEquals((count - 1) % 9 * 8, element.endBit - element.startBit)
                 if (element.position < element.endBit) {
-                    assertEquals(KompactCursor.STATUS_OK, element.readBits(8))
+                    assertEquals(KompactStatus.OK, element.readBits(8))
                     assertEquals((count - 1).toLong() and 0xff, element.valueBits)
                 }
             }

@@ -2,6 +2,7 @@ package ch.trancee.kompact.runtime
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -34,10 +35,13 @@ class KompactRuntimeEdgeCaseTest {
     // --- readScalar edge cases ---
 
     @Test
-    fun readScalar_invalidBitWidth33_returnsBoundsError() {
-        val r = KompactRuntime.readScalar(ByteArray(8), 0, ScalarType.of(33, signed = true))
-        assertFalse(r.isSuccess)
-        assertEquals(KompactDecodeError.BoundsError, r.error)
+    fun readScalar_bitWidth33_throwsIllegalArgument() {
+        assertFailsWith<IllegalArgumentException> {
+            KompactRuntime.readScalar(ByteArray(8), 0, ScalarType.of(33, signed = true))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            KompactRuntime.readScalarOrThrow(ByteArray(0), 0, ScalarType.INT_64)
+        }
     }
 
     @Test
@@ -49,13 +53,6 @@ class KompactRuntimeEdgeCaseTest {
     }
 
     // --- readScalarAsLong edge cases ---
-
-    @Test
-    fun readScalarAsLong_bitWidth65_returnsBoundsError() {
-        val r = KompactRuntime.readScalarAsLong(ByteArray(9), 0, ScalarType.of(65, signed = false))
-        assertFalse(r.isSuccess)
-        assertEquals(KompactDecodeError.BoundsError, r.error)
-    }
 
     @Test
     fun readScalarAsLong_signedWidth64_negativeValue() {

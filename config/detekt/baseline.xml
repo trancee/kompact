@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:FramedLayoutValidator.kt$FramedLayoutValidator$( field.type is KompactFieldType.Scalar || ( field.type is KompactFieldType.Repeated &amp;&amp; field.type.elementType is KompactFieldType.Scalar ) ) &amp;&amp; field.lengthPrefixWidth != 8</ID>
+    <ID>ComplexCondition:KompactUtf8Validator.kt$KompactUtf8Validator$index + 3 >= end || !isContinuation(bytes[index + 1]) || !isContinuation(bytes[index + 2]) || !isContinuation(bytes[index + 3])</ID>
+    <ID>CyclomaticComplexMethod:FramedLayoutValidator.kt$FramedLayoutValidator$fun validate( fields: List&lt;KompactFieldInfo>, mutable: Boolean, ): List&lt;String></ID>
+    <ID>CyclomaticComplexMethod:KompactCursorRepeats.kt$KompactCursorRepeats$fun skipVariableRepeat( cursor: KompactCursor, countPrefixWidth: Int, elementPrefixWidth: Int, workspaceCapacity: Int, ): KompactStatus</ID>
+    <ID>CyclomaticComplexMethod:KompactUtf8Validator.kt$KompactUtf8Validator$fun isValid( bytes: ByteArray, start: Int, end: Int, ): Boolean</ID>
+    <ID>CyclomaticComplexMethod:LayoutValidator.kt$LayoutValidator$fun validateWidths( fields: List&lt;KompactFieldInfo>, framed: Boolean = false, ): List&lt;String></ID>
+    <ID>LongMethod:FramedClassGenerator.kt$FramedClassGenerator$private fun buildView(spec: ModelSpec): TypeSpec</ID>
+    <ID>LongMethod:FramedHolderGenerator.kt$FramedHolderGenerator$internal fun buildBorrowedHolder(spec: ModelSpec): TypeSpec</ID>
+    <ID>LongMethod:FramedHolderGenerator.kt$FramedHolderGenerator$private fun borrowedDecodePlan(field: KompactFieldInfo): BorrowedDecodePlan</ID>
+    <ID>LongMethod:FramedLayoutValidator.kt$FramedLayoutValidator$fun validate( fields: List&lt;KompactFieldInfo>, mutable: Boolean, ): List&lt;String></ID>
+    <ID>LongMethod:KompactCursorRepeats.kt$KompactCursorRepeats$fun readRepeatedElement( cursor: KompactCursor, index: Int, workspace: KompactRepeatWorkspace, elementCursor: KompactCursor, ): KompactStatus</ID>
+    <ID>LongMethod:KompactGradlePlugin.kt$KompactGradlePlugin$override fun apply(target: Project)</ID>
+    <ID>LongMethod:KompactUtf8Validator.kt$KompactUtf8Validator$fun isValid( bytes: ByteArray, start: Int, end: Int, ): Boolean</ID>
+    <ID>LongMethod:ValueHolderGenerator.kt$ValueHolderGenerator$fun buildEncodeFrom(spec: ModelSpec): FunSpec</ID>
+    <ID>LongParameterList:KompactRepeatWorkspace.kt$KompactRepeatWorkspace$( buffer: ByteArray, count: Int, startBit: Int, endBit: Int, elementPrefixWidth: Int, elementBitWidth: Int, )</ID>
+    <ID>LongParameterList:KompactRepeatedView.kt$KompactRepeatedView$( private val raw: ByteArray, private val firstBit: Int, private val repeatEndBit: Int, override val size: Int, private val elementWidth: Int, private val elementPrefixWidth: Int, private val checkpoints: IntArray, private val decodeElement: (KompactFrame) -> T, )</ID>
+    <ID>NestedBlockDepth:GenerateKompactSources.kt$GenerateKompactSources$private fun runKsp(config: KSPCommonConfig)</ID>
+    <ID>NestedBlockDepth:LayoutValidator.kt$LayoutValidator$fun validateWidths( fields: List&lt;KompactFieldInfo>, framed: Boolean = false, ): List&lt;String></ID>
+    <ID>ReturnCount:KompactCursor.kt$KompactCursor$public fun ensureAvailable(bitCount: Int): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursor.kt$KompactCursor$public fun readBits(bitWidth: Int): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursor.kt$KompactCursor$public fun validateSigned( bitWidth: Int, value: Long, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursor.kt$KompactCursor$public fun validateUnsigned( bitWidth: Int, value: Long, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursor.kt$KompactCursor$public fun validateUnsigned( bitWidth: Int, value: ULong, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursor.kt$KompactCursor$public fun writeBitsUnchecked( bitWidth: Int, value: Long, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursor.kt$KompactCursor$public fun writeUnsigned( bitWidth: Int, value: ULong, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorByteRanges.kt$KompactCursorByteRanges$fun captureRegion( cursor: KompactCursor, range: KompactByteRange, validateUtf8: Boolean, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorByteRanges.kt$KompactCursorByteRanges$fun preflightByteRangeWrite( cursor: KompactCursor, prefixWidth: Int, range: KompactByteRange, validateUtf8: Boolean, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorByteRanges.kt$KompactCursorByteRanges$fun preflightRawByteRange( cursor: KompactCursor, range: KompactByteRange, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorByteRanges.kt$KompactCursorByteRanges$fun readNested( cursor: KompactCursor, prefixWidth: Int, nestedCursor: KompactCursor, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorByteRanges.kt$KompactCursorByteRanges$fun skipByteRange( cursor: KompactCursor, prefixWidth: Int, validateUtf8: Boolean, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorByteRanges.kt$KompactCursorByteRanges$fun writeByteRange( cursor: KompactCursor, prefixWidth: Int, range: KompactByteRange, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorByteRanges.kt$KompactCursorByteRanges$fun writeNested( cursor: KompactCursor, prefixWidth: Int, payloadByteLength: Int, nestedCursor: KompactCursor, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorByteRanges.kt$KompactCursorByteRanges$private fun readPrefixedRange( cursor: KompactCursor, prefixWidth: Int, range: KompactByteRange, validateUtf8: Boolean, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorRepeats.kt$KompactCursorRepeats$fun readFixedRepeat( cursor: KompactCursor, countPrefixWidth: Int, elementBitWidth: Int, workspace: KompactRepeatWorkspace, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorRepeats.kt$KompactCursorRepeats$fun readRepeatedElement( cursor: KompactCursor, index: Int, workspace: KompactRepeatWorkspace, elementCursor: KompactCursor, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorRepeats.kt$KompactCursorRepeats$fun readVariableRepeat( cursor: KompactCursor, countPrefixWidth: Int, elementPrefixWidth: Int, workspace: KompactRepeatWorkspace, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorRepeats.kt$KompactCursorRepeats$fun skipFixedRepeat( cursor: KompactCursor, countPrefixWidth: Int, elementBitWidth: Int, workspaceCapacity: Int, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactCursorRepeats.kt$KompactCursorRepeats$fun skipVariableRepeat( cursor: KompactCursor, countPrefixWidth: Int, elementPrefixWidth: Int, workspaceCapacity: Int, ): KompactStatus</ID>
+    <ID>ReturnCount:KompactFraming.kt$KompactFraming$public fun readNested( raw: ByteArray, bitOffset: Int, prefixBitWidth: Int, ): NestedRegionResult</ID>
+    <ID>ReturnCount:KompactModelParser.kt$KompactModelParser$private fun resolveFieldType(resolved: KSType): KompactFieldType</ID>
+    <ID>ReturnCount:KompactUtf8Validator.kt$KompactUtf8Validator$fun isValid( bytes: ByteArray, start: Int, end: Int, ): Boolean</ID>
+    <ID>ThrowsCount:GenerateKompactSources.kt$GenerateKompactSources$private fun runKsp(config: KSPCommonConfig)</ID>
+    <ID>ThrowsCount:KompactGradlePlugin.kt$KompactGradlePlugin$internal fun readKotlinProperty( receiver: Any, propertyName: String, compatibility: String, ): Any</ID>
+    <ID>TooManyFunctions:KompactCursor.kt$KompactCursor</ID>
+    <ID>TooManyFunctions:KompactCursorByteRanges.kt$KompactCursorByteRanges</ID>
+    <ID>TooManyFunctions:KompactGradlePlugin.kt$KompactGradlePlugin : Plugin</ID>
+    <ID>TooManyFunctions:KompactResult.kt$ch.trancee.kompact.runtime.KompactResult.kt</ID>
+    <ID>TooManyFunctions:KompactRuntime.kt$KompactRuntime</ID>
+    <ID>TooManyFunctions:KompactWriter.kt$KompactWriter</ID>
+  </CurrentIssues>
+</SmellBaseline>

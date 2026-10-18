@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 class KompactSymbolProcessorFramedGenericTest {
     @Test
     fun process_framedModel_rejectsGenericSchemaDeclaration() {
-        val (processor, codeGen, logger) = createTestSetup(mode = "jvm")
+        val (processor, codeGen, logger) = createTestSetup()
         val parameter =
             Proxy.newProxyInstance(
                 KSTypeParameter::class.java.classLoader,

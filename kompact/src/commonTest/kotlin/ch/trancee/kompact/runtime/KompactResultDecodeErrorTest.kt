@@ -4,82 +4,50 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * The three per-shape failure decoders (Ticket 08: small / Long-sentinel /
- * Double-NaN) each reconstruct a [KompactDecodeError] with the SAME kind->case
- * mapping. ADR-0005's simplification consolidates that mapping into one internal
- * `decodeError(kind, rawCode)` mapper so the kinds cannot drift apart.
- *
- * This pins the unified mapper directly; the existing `*Result` failure tests
- * pin each shape's bit-extraction, which now routes through it.
+ * The per-shape failure decoders (small / packed-region / Double-NaN) all
+ * route through one internal `decodeError(kind)` mapper so the kind->case
+ * mapping cannot drift. These tests pin the mapper and each shape's
+ * defensive fallback for kinds no public `failure(...)` call can produce.
  */
 class KompactResultDecodeErrorTest {
     @Test
-    fun decodeError_boundsKind_mapsToBoundsError() {
-        // Arrange
-        val kind = ERROR_BOUNDS
-
-        // Act
-        val error = decodeError(kind, rawCode = 0)
-
-        // Assert
-        assertEquals(KompactDecodeError.BoundsError, error)
-    }
-
-    @Test
-    fun decodeError_badLengthKind_mapsToBadLengthPrefix() {
-        val kind = ERROR_BAD_LENGTH
-
-        val error = decodeError(kind, rawCode = 0)
-
-        assertEquals(KompactDecodeError.BadLengthPrefix, error)
-    }
-
-    @Test
-    fun decodeError_truncatedKind_mapsToTruncatedNested() {
-        val kind = ERROR_TRUNCATED
-
-        val error = decodeError(kind, rawCode = 0)
-
-        assertEquals(KompactDecodeError.TruncatedNested, error)
-    }
-
-    @Test
-    fun decodeError_unknownEnumKind_preservesRawCode() {
-        val kind = ERROR_UNKNOWN_ENUM
-
-        val error = decodeError(kind, rawCode = 42)
-
-        assertEquals(KompactDecodeError.UnknownEnumCode(42), error)
-    }
-
-    @Test
-    fun decodeError_invalidUtf8Kind_mapsToInvalidUtf8() {
-        val error = decodeError(ERROR_INVALID_UTF8, rawCode = 0)
-
-        assertEquals(KompactDecodeError.InvalidUtf8, error)
-    }
-
-    @Test
-    fun intResult_failurePreservesInvalidUtf8() {
-        val result = IntResult.failure(KompactDecodeError.InvalidUtf8)
-
-        assertEquals(KompactDecodeError.InvalidUtf8, result.error)
-    }
-
-    @Test
-    fun longResult_formatsInvalidUtf8Failure() {
-        val result = LongResult.failure(KompactDecodeError.InvalidUtf8)
-
-        assertEquals("LongResult(error=InvalidUtf8)", result.toString())
+    fun decodeError_mapsEveryKnownKind() {
+        assertEquals(KompactDecodeError.BoundsError, decodeError(ERROR_BOUNDS))
+        assertEquals(KompactDecodeError.BadLengthPrefix, decodeError(ERROR_BAD_LENGTH))
+        assertEquals(KompactDecodeError.TruncatedNested, decodeError(ERROR_TRUNCATED))
+        assertEquals(KompactDecodeError.InvalidUtf8, decodeError(ERROR_INVALID_UTF8))
+        assertEquals(KompactDecodeError.TrailingData, decodeError(ERROR_TRAILING_DATA))
     }
 
     @Test
     fun decodeError_unrecognizedKind_defaultsToBoundsError() {
-        // 7-bit kind field can carry 0..7; 99 is outside the known set.
-        val kind = 99
+        assertEquals(KompactDecodeError.BoundsError, decodeError(99))
+    }
 
-        val error = decodeError(kind, rawCode = 0)
+    @Test
+    fun everyErrorRoundTripsThroughEveryPackedShape() {
+        val errors =
+            listOf(
+                KompactDecodeError.BoundsError,
+                KompactDecodeError.BadLengthPrefix,
+                KompactDecodeError.TruncatedNested,
+                KompactDecodeError.InvalidUtf8,
+                KompactDecodeError.TrailingData,
+            )
 
-        assertEquals(KompactDecodeError.BoundsError, error)
+        for (error in errors) {
+            assertEquals(error, IntResult.failure(error).error)
+            assertEquals(error, FloatResult.failure(error).error)
+            assertEquals(error, BooleanResult.failure(error).error)
+            assertEquals(error, DoubleResult.failure(error).error)
+            assertEquals(error, NestedRegionResult.failure(error).error)
+        }
+    }
+
+    @Test
+    fun unknownKindsInEachPackedShapeDecodeAsBoundsError() {
+        assertEquals(KompactDecodeError.BoundsError, decodeErrorFromSmallBits(7L shl RESULT_ERROR_KIND_SHIFT))
+        assertEquals(KompactDecodeError.BoundsError, decodePackedError(PACKED_FAILURE_BASE or 5L))
+        assertEquals(KompactDecodeError.BoundsError, decodeDoubleError(DOUBLE_NAN_CANONICAL or 15L))
     }
 }

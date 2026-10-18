@@ -1,0 +1,22 @@
+# Project overrides on top of detekt's default configuration (buildUponDefaultConfig = true).
+
+style:
+  # Bit widths, masks, and prefix sizes (8/16/32/64, 0xFF, ...) are the wire format itself;
+  # naming each one would obscure the bit arithmetic.
+  MagicNumber:
+    active: false
+  # Line length is owned by spotless/ktlint.
+  MaxLineLength:
+    active: false
+
+exceptions:
+  SwallowedException:
+    ignoredExceptionTypes:
+      - 'InterruptedException'
+      - 'MalformedURLException'
+      - 'NumberFormatException'
+      - 'ParseException'
+      # Reflection wrappers are unwrapped to their targetException on purpose.
+      - 'InvocationTargetException'
+      # KSP re-queues symbols; an already generated file is the expected outcome.
+      - 'FileAlreadyExistsException'

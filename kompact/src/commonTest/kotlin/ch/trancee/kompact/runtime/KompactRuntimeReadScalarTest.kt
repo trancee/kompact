@@ -59,14 +59,6 @@ class KompactRuntimeReadScalarTest {
     }
 
     @Test
-    fun readScalar_boundsError_bitWidthTooLarge() {
-        val buf = ByteArray(1) { 0 }
-        val r = KompactRuntime.readScalar(buf, 0, ScalarType.of(33, signed = true)) // max 32
-        assertFalse(r.isSuccess)
-        assertEquals(KompactDecodeError.BoundsError, r.error)
-    }
-
-    @Test
     fun readScalar_width8_unsigned_value() {
         // 0xFF as unsigned → 255 (zero-extended to Int)
         val r = KompactRuntime.readScalar(byteArrayOf(0xFF.toByte()), 0, ScalarType.of(8, signed = false))

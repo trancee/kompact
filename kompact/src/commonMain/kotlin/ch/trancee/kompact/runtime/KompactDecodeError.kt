@@ -3,32 +3,36 @@ package ch.trancee.kompact.runtime
 /**
  * Runtime decode error taxonomy for checked scalar reads and framed decoding.
  *
- * Checked scalar accessors return a typed `Kompact*Result` value class whose
- * [packed][Long] encodes the error kind. Framed readers expose throwing
- * `read*` methods; the block overload of `KompactFrame.decode` translates
- * [KompactDecodeException] into a `KompactFrameResult`.
- *
- * Accessing `.error` on a packed scalar result reconstructs the concrete case
- * lazily. `UnknownEnumCode` carries its raw code in a data-class payload.
+ * Checked scalar accessors return a typed `*Result` value class that encodes
+ * the error kind. Framed readers expose throwing `read*` methods; the block
+ * overload of `KompactFrame.decode` translates [KompactDecodeException] into a
+ * `KompactFrameResult`. Every case is a `data object`, so `toString()` prints
+ * the case name.
  */
-public sealed class KompactDecodeError {
-    public object BoundsError : KompactDecodeError()
+public sealed interface KompactDecodeError {
+    /** A read would extend past the end of the input or region. */
+    public data object BoundsError : KompactDecodeError
 
-    public object BadLengthPrefix : KompactDecodeError()
+    /** A length or count prefix is unreadable or exceeds the remaining input. */
+    public data object BadLengthPrefix : KompactDecodeError
 
-    public object TruncatedNested : KompactDecodeError()
+    /** A nested region ends before its declared content. */
+    public data object TruncatedNested : KompactDecodeError
 
-    public object InvalidUtf8 : KompactDecodeError()
+    /** A string field contains malformed UTF-8. */
+    public data object InvalidUtf8 : KompactDecodeError
 
-    public data class UnknownEnumCode(
-        public val rawCode: Int,
-    ) : KompactDecodeError()
+    /**
+     * A complete framed decode left unread bytes, or non-zero padding bits in
+     * the final partial byte, after the declared fields.
+     */
+    public data object TrailingData : KompactDecodeError
 }
 
 /**
- * Thrown by result `getOrThrow()` / `readOrThrow()` and by direct framed-reader
- * methods when decoding fails. The block overload of `KompactFrame.decode`
- * converts it to a typed `KompactFrameResult` failure.
+ * Thrown by result `getOrThrow()` and by direct framed-reader methods when
+ * decoding fails. The block overload of `KompactFrame.decode` converts it to a
+ * typed `KompactFrameResult` failure.
  */
 public class KompactDecodeException(
     public val error: KompactDecodeError,

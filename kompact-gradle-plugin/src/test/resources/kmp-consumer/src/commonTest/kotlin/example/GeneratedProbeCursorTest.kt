@@ -3,6 +3,7 @@
 package example
 
 import ch.trancee.kompact.runtime.KompactCursor
+import ch.trancee.kompact.runtime.KompactStatus
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -13,7 +14,7 @@ class GeneratedProbeCursorTest {
         val holder = PacketSchemaViewHolder(marker = 9)
         val cursor = KompactCursor(byteArrayOf(0x2A))
 
-        assertEquals(KompactCursor.STATUS_INVALID_ARGUMENT, holder.decodeInto(cursor, cursor))
+        assertEquals(KompactStatus.INVALID_ARGUMENT, holder.decodeInto(cursor, cursor))
 
         assertEquals(9, holder.marker)
         assertEquals(0, cursor.position)
@@ -25,7 +26,7 @@ class GeneratedProbeCursorTest {
         val holder = PacketSchemaViewHolder(marker = 42)
         val cursor = KompactCursor(raw)
 
-        assertEquals(KompactCursor.STATUS_INVALID_ARGUMENT, holder.encodeFrom(cursor, cursor))
+        assertEquals(KompactStatus.INVALID_ARGUMENT, holder.encodeFrom(cursor, cursor))
 
         assertContentEquals(byteArrayOf(0x55), raw)
         assertEquals(0, cursor.position)
@@ -39,7 +40,7 @@ class GeneratedProbeCursorTest {
         cursor.reset(raw, endBit = 7)
         val probe = KompactCursor(ByteArray(0))
 
-        assertEquals(KompactCursor.STATUS_BOUNDS_ERROR, holder.decodeInto(cursor, probe))
+        assertEquals(KompactStatus.BOUNDS_ERROR, holder.decodeInto(cursor, probe))
 
         assertEquals(9, holder.marker)
         assertEquals(0, cursor.position)
@@ -52,7 +53,7 @@ class GeneratedProbeCursorTest {
         val cursor = KompactCursor(raw)
         val probe = KompactCursor(ByteArray(0))
 
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, holder.encodeFrom(cursor, probe))
+        assertEquals(KompactStatus.INVALID_VALUE, holder.encodeFrom(cursor, probe))
 
         assertContentEquals(byteArrayOf(0x55), raw)
         assertEquals(0, cursor.position)

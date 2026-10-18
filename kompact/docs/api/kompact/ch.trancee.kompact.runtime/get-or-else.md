@@ -12,5 +12,3 @@ inline fun [FloatResult](-float-result/index.md).[getOrElse](get-or-else.md)(fal
 inline fun [DoubleResult](-double-result/index.md).[getOrElse](get-or-else.md)(fallback: ([KompactDecodeError](-kompact-decode-error/index.md)) -&gt; [Double](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html)): [Double](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html)
 
 inline fun [BooleanResult](-boolean-result/index.md).[getOrElse](get-or-else.md)(fallback: ([KompactDecodeError](-kompact-decode-error/index.md)) -&gt; [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)): [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)
-
-inline fun [NestedRegionResult](-nested-region-result/index.md).[getOrElse](get-or-else.md)(fallback: ([KompactDecodeError](-kompact-decode-error/index.md)) -&gt; [NestedRegion](-nested-region/index.md)): [NestedRegion](-nested-region/index.md)

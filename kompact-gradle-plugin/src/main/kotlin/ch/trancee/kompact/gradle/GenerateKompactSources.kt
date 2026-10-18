@@ -11,7 +11,6 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Classpath
@@ -53,9 +52,6 @@ internal abstract class GenerateKompactSources : DefaultTask() {
 
     @get:Input
     abstract val kspVersion: Property<String>
-
-    @get:Input
-    abstract val processorOptions: MapProperty<String, String>
 
     @get:Input
     abstract val languageVersion: Property<String>
@@ -101,7 +97,7 @@ internal abstract class GenerateKompactSources : DefaultTask() {
                 commonSourceRoots = commonSources
                 libraries = commonLibraries
                 friends = emptyList()
-                processorOptions = this@GenerateKompactSources.processorOptions.get().toMap()
+                processorOptions = emptyMap()
                 projectBaseDir = this@GenerateKompactSources.projectDirectory.get().asFile
                 outputBaseDir = kspOutputRoot
                 cachesDir = kspCacheDirectory
@@ -123,7 +119,7 @@ internal abstract class GenerateKompactSources : DefaultTask() {
             }.build()
 
         runKsp(config)
-        routeGeneratedSources(kotlinOutput, outputRoot)
+        copyGeneratedSources(kotlinOutput, outputRoot)
     }
 
     private fun runKsp(config: KSPCommonConfig) {
@@ -180,7 +176,7 @@ internal abstract class GenerateKompactSources : DefaultTask() {
         }
     }
 
-    internal fun routeGeneratedSources(
+    internal fun copyGeneratedSources(
         kotlinOutput: File,
         outputRoot: File,
     ) {
@@ -192,21 +188,11 @@ internal abstract class GenerateKompactSources : DefaultTask() {
                 if (source.extension != "kt") {
                     throw GradleException("Kompact KSP generated an unsupported file: ${source.name}")
                 }
-                val destination = outputRoot.resolve(sourceSetFor(source)).resolve(kotlinOutput.toPath().relativize(source.toPath()).toString())
+                val destination = outputRoot.resolve(source.relativeTo(kotlinOutput).path)
                 createDirectory(destination.parentFile)
                 source.copyTo(destination, overwrite = true)
             }
     }
-
-    internal fun sourceSetFor(file: File): String =
-        when {
-            file.name.endsWith("GenJvm.kt") -> "jvm"
-            file.name.endsWith("GenIos.kt") -> "ios"
-            file.name.endsWith("GenAndroidArm64.kt") -> "androidArm64"
-            file.name.endsWith("GenEncoder.kt") -> "common"
-            file.name.endsWith("Gen.kt") -> "common"
-            else -> throw GradleException("Kompact KSP generated an unexpected Kotlin file: ${file.name}")
-        }
 
     private fun deleteDirectory(directory: File) {
         if (directory.exists() && !directory.deleteRecursively()) {

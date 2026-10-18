@@ -2,9 +2,5 @@
 
 # success
 
-[common, jvmCommon, native]\
 [common]\
-expect fun [success](success.md)(value: [Double](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html)): [DoubleResult](../index.md)
-
-[jvmCommon, native]\
-actual fun [success](success.md)(value: [Double](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html)): [DoubleResult](../index.md)
+fun [success](success.md)(value: [Double](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html)): [DoubleResult](../index.md)

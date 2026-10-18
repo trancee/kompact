@@ -20,7 +20,7 @@ class KompactGradlePluginIntegrationTest {
             copyFixture(projectDir)
             val generatedFile =
                 projectDir.resolve(
-                    "build/generated/kompact/main/common/example/PacketSchemaViewGen.kt",
+                    "build/generated/kompact/main/example/PacketSchemaView.kt",
                 )
 
             val initialRun =
@@ -78,7 +78,7 @@ class KompactGradlePluginIntegrationTest {
     }
 
     @Test
-    fun generatesCommonAndPlatformSourcesForKmpConsumer() {
+    fun generatesCommonSourcesCompiledByEveryKmpTarget() {
         val projectDir = Files.createTempDirectory("kompact-kmp-consumer")
         try {
             copyFixture(projectDir)
@@ -92,14 +92,16 @@ class KompactGradlePluginIntegrationTest {
                     setOf(TaskOutcome.SUCCESS, TaskOutcome.FROM_CACHE),
                 "Expected the generator to execute or restore its output from cache.",
             )
-            assertGeneratedSource(projectDir, "common", "PacketSchemaViewGen.kt")
-            assertGeneratedSource(projectDir, "common", "ScalarSchemaGenEncoder.kt")
-            assertGeneratedSource(projectDir, "jvm", "PacketSchemaViewGenJvm.kt")
-            assertGeneratedSource(projectDir, "jvm", "ScalarSchemaGenJvm.kt")
-            assertGeneratedSource(projectDir, "ios", "PacketSchemaViewGenIos.kt")
-            assertGeneratedSource(projectDir, "ios", "ScalarSchemaGenIos.kt")
-            assertGeneratedSource(projectDir, "androidArm64", "PacketSchemaViewGenAndroidArm64.kt")
-            assertGeneratedSource(projectDir, "androidArm64", "ScalarSchemaGenAndroidArm64.kt")
+            assertEquals(
+                setOf(
+                    "example/BytePayloadSchemaView.kt",
+                    "example/ChildSchemaView.kt",
+                    "example/PacketSchemaView.kt",
+                    "example/ScalarSchemaView.kt",
+                ),
+                generatedSources(projectDir).keys,
+                "Expected exactly one common view source per schema.",
+            )
 
             val firstRun =
                 gradle(
@@ -142,7 +144,7 @@ class KompactGradlePluginIntegrationTest {
     }
 
     @Test
-    fun rejectsUntestedKotlinGradlePluginVersionBeforeGeneration() {
+    fun rejectsDifferentKotlinMinorLineBeforeGeneration() {
         val projectDir = Files.createTempDirectory("kompact-unsupported-kotlin-consumer")
         try {
             copyFixture(projectDir)
@@ -151,15 +153,15 @@ class KompactGradlePluginIntegrationTest {
                 buildFile,
                 Files.readString(buildFile).replace(
                     "kotlin(\"multiplatform\") version \"${versions.kotlin}\"",
-                    "kotlin(\"multiplatform\") version \"2.4.10\"",
+                    "kotlin(\"multiplatform\") version \"2.3.20\"",
                 ),
             )
 
             val result = gradle(projectDir, ":generateKompactSources").buildAndFail()
 
-            assertTrue(result.output.contains("Kotlin Gradle Plugin 2.4.10"))
+            assertTrue(result.output.contains("Kotlin Gradle Plugin 2.3.20"))
             assertTrue(result.output.contains("KSP ${versions.ksp}"))
-            assertTrue(result.output.contains("only tested pair"))
+            assertTrue(result.output.contains("incompatible"))
         } finally {
             projectDir.toFile().deleteRecursively()
         }
@@ -206,25 +208,6 @@ class KompactGradlePluginIntegrationTest {
         } finally {
             projectDir.toFile().deleteRecursively()
         }
-    }
-
-    private fun assertGeneratedSource(
-        projectDir: Path,
-        sourceSet: String,
-        fileName: String,
-    ) {
-        val outputDirectory = projectDir.resolve("build/generated/kompact/main").toFile()
-        val generatedFile = projectDir.resolve("build/generated/kompact/main/$sourceSet/example/$fileName")
-        val generatedFiles =
-            outputDirectory
-                .walkTopDown()
-                .filter { it.isFile }
-                .map { it.relativeTo(outputDirectory).invariantSeparatorsPath }
-                .toList()
-        assertTrue(
-            Files.exists(generatedFile),
-            "Expected $sourceSet/example/$fileName; found $generatedFiles",
-        )
     }
 
     private fun generatedSources(projectDir: Path): Map<String, ByteArray> {

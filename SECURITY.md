@@ -1,32 +1,31 @@
 # Security policy
 
-## Reporting a vulnerability
+## Report a vulnerability
 
-Please do not open a public GitHub issue for a suspected security problem.
+Do not open a public GitHub issue for a suspected security problem.
 
 If GitHub offers private vulnerability reporting for this repository, use it.
-If that option is unavailable, do not include vulnerability details in a public
-issue. Ask the maintainers for a private reporting route using a message that
-contains no sensitive information.
+If it does not, ask the maintainers for a private reporting route. Keep that
+first message free of vulnerability details.
 
-Include as much of the following as you can:
+Include as much of the following information as you can:
 
-- affected version, branch, or commit
-- supported platform and OS version
-- reproduction steps or proof of concept
-- expected impact
-- any known mitigations or workarounds
+- The affected version, branch, or commit.
+- The platform and OS version.
+- The steps to reproduce the problem, or a proof of concept.
+- The expected impact.
+- Any known mitigations or workarounds.
 
-## Versions
+## Supported versions
 
-Kompact is pre-1.0. The latest published release is `0.9.0`; the current
-development version, `0.10.0-SNAPSHOT`, is not published to Maven Central.
+Kompact is pre-1.0. The latest published release is `0.9.0`. The development
+version, `0.10.0-SNAPSHOT`, is not published to Maven Central.
 
-Report issues affecting the latest published release or the current default
-branch. Maintainers assess older versions individually; do not assume they
-receive backported fixes.
+Report problems that affect the latest published release or the current
+default branch. The maintainers decide case by case whether to fix an older
+version. Do not expect backported fixes.
 
-## Disclosure expectations
+## Disclosure
 
-Give maintainers time to confirm the issue, prepare a fix, and agree on
-disclosure timing before publishing technical details.
+Before you publish technical details, give the maintainers time to confirm the
+problem, prepare a fix, and agree on a disclosure date with you.

@@ -1,8 +1,7 @@
 package ch.trancee.kompact.runtime
 
 /*
- * getOrElse / map extensions on the five result types plus
- * NestedRegionResult (ergonomics-04: result-ergonomics extensions).
+ * getOrElse / map extensions on the five scalar result types.
  *
  * These mirror stdlib Result<T>.getOrElse / Result<T>.map, specialized per type
  * so packed result value classes stay unboxed. LongResult is a regular
@@ -14,8 +13,8 @@ package ch.trancee.kompact.runtime
  *     are specialized value classes, not a generic Result<T>).
  *
  * `error` is non-null on the failure path (guarded by [isFailure]), so the
- * `error!!` assertions are safe. Both fns are inline so the value-class
- * accessors stay concise at the call site (Ticket 03).
+ * `error!!` assertions are safe. Both functions are inline so the value-class
+ * accessors stay concise at the call site.
  */
 
 public inline fun IntResult.getOrElse(fallback: (KompactDecodeError) -> Int): Int =
@@ -47,14 +46,3 @@ public inline fun BooleanResult.getOrElse(fallback: (KompactDecodeError) -> Bool
 
 public inline fun BooleanResult.map(transform: (Boolean) -> Boolean): BooleanResult =
     if (isSuccess) BooleanResult.success(transform(getOrThrow())) else this
-
-public inline fun NestedRegionResult.getOrElse(fallback: (KompactDecodeError) -> NestedRegion): NestedRegion =
-    if (isSuccess) getOrThrow() else fallback(error!!)
-
-public inline fun NestedRegionResult.map(transform: (NestedRegion) -> NestedRegion): NestedRegionResult =
-    if (isSuccess) {
-        val region = transform(getOrThrow())
-        NestedRegionResult.success(region.first, region.second)
-    } else {
-        this
-    }

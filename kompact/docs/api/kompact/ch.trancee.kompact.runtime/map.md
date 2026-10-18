@@ -12,5 +12,3 @@ inline fun [FloatResult](-float-result/index.md).[map](map.md)(transform: ([Floa
 inline fun [DoubleResult](-double-result/index.md).[map](map.md)(transform: ([Double](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html)) -&gt; [Double](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html)): [DoubleResult](-double-result/index.md)
 
 inline fun [BooleanResult](-boolean-result/index.md).[map](map.md)(transform: ([Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)) -&gt; [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)): [BooleanResult](-boolean-result/index.md)
-
-inline fun [NestedRegionResult](-nested-region-result/index.md).[map](map.md)(transform: ([NestedRegion](-nested-region/index.md)) -&gt; [NestedRegion](-nested-region/index.md)): [NestedRegionResult](-nested-region-result/index.md)

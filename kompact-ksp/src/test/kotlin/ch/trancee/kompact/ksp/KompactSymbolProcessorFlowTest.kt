@@ -157,7 +157,7 @@ class KompactSymbolProcessorFlowTest {
 
         assertTrue(logger.errors.any { it.contains("InvalidModel") })
         assertTrue(codeGen.generatedFiles.keys.none { it.contains("InvalidModel") })
-        assertTrue(codeGen.generatedFiles.keys.any { it == "ch.trancee.test.ValidModelGen.kt" })
+        assertTrue(codeGen.generatedFiles.keys.any { it == "ch.trancee.test.ValidModelView.kt" })
     }
 
     @Test
@@ -181,14 +181,14 @@ class KompactSymbolProcessorFlowTest {
 
         processor.process(resolver)
 
-        val expectContent = codeGen.generatedFiles["ch.trancee.test.MultiModelGen.kt"]!!
-        assertTrue(expectContent.contains("require(raw.size >= 11)"))
-        assertTrue(expectContent.contains("bitOffset = 0"))
-        assertTrue(expectContent.contains("bitWidth = 1"))
-        assertTrue(expectContent.contains("bitOffset = 1"))
-        assertTrue(expectContent.contains("bitWidth = 16"))
-        assertTrue(expectContent.contains("bitOffset = 17"))
-        assertTrue(expectContent.contains("bitWidth = 64"))
+        val content = codeGen.generatedFiles["ch.trancee.test.MultiModelView.kt"]!!
+        assertTrue(content.contains("require(raw.size >= 11)"))
+        assertTrue(content.contains("bitOffset = 0"))
+        assertTrue(content.contains("bitWidth = 1"))
+        assertTrue(content.contains("bitOffset = 1"))
+        assertTrue(content.contains("bitWidth = 16"))
+        assertTrue(content.contains("bitOffset = 17"))
+        assertTrue(content.contains("bitWidth = 64"))
     }
 
     @Test

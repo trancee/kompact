@@ -33,7 +33,7 @@ The review's 6 headline proposals, mapped to existing artifacts:
 | # | Review proposal (headline) | Lives in | Status |
 |---|---|---|---|
 | 1 | Specialize the bit primitives — fast paths for narrow/aligned 1–2 byte fields; make the general loop the slow path | `[ticket 17](17-fast-path-bit-reading.md)` (new — no existing home) | Proposed / open |
-| 2 | Drop the fail-path zero-alloc requirement; collapse the 7 `*Result` types into a tiered `KompactResult<T>` (alloc on failure) | `[ADR-0005](../../../docs/adr/0005-relax-fail-path-zero-alloc.md)` (proposed; **revisits decided** [ticket 08](08-runtime-error-model.md)) | Proposed ADR |
+| 2 | Drop the fail-path zero-alloc requirement; collapse the 7 `*Result` types into a tiered `KompactResult<T>` (alloc on failure) | `[ADR-0005](../../../docs/adr/0005-full-domain-long-result.md)` (proposed; **revisits decided** [ticket 08](08-runtime-error-model.md)) | Proposed ADR |
 | 3 | Immutable-by-default value-class views (`val` + builder); mutable scratch opt-in | `[ADR-0006](../../../docs/adr/0006-immutable-default-models.md)` (proposed; **supersedes** [ADR-0001](../../../docs/adr/0001-mutable-view-classes-with-write-through-setters.md), revisits [ticket 07](07-write-builder-interface.md)) | Proposed ADR |
 | 4 | Declarative layout DSL (processor assigns offsets) + full type-set in annotations | `[ticket 02](02-generation-strategy.md)` (codegen emits whole value-class files) + `[ticket 04](04-v1-type-set.md)` (type set expanded) | Decided type set; **declarative offset DSL is open** under 02/04 |
 | 5 | Writer reuse (`reset`/`clear`) + write into caller-supplied buffer | `[ticket 07](07-write-builder-interface.md)` (write/builder) — 07 chose single-shot writer-owned buffer; reuse is an **open extension** | Open sub-item of 07 |
@@ -56,7 +56,7 @@ ratifying ADR (it is binary-incompatible on the wire).
 ## Proposed resolution (for maintainer triage)
 
 - **Proposals 2 and 3 are ADR-level** because they revert ratified decisions
-  (08 and ADR-0001). They are captured as `[ADR-0005](../../../docs/adr/0005-relax-fail-path-zero-alloc.md)`
+  (08 and ADR-0001). They are captured as `[ADR-0005](../../../docs/adr/0005-full-domain-long-result.md)`
   and `[ADR-0006](../../../docs/adr/0006-immutable-default-models.md)`, both
   `Status: proposed`. **No code.** Ratify or reject explicitly.
 - **Proposal 1 (fast paths)** is the only purely-internal, non-breaking,
@@ -83,6 +83,6 @@ ratifying ADR (it is binary-incompatible on the wire).
 - [ticket 08 — runtime error model](08-runtime-error-model.md)
 - [ticket 07 — write/builder interface](07-write-builder-interface.md)
 - [ADR-0001](../../../docs/adr/0001-mutable-view-classes-with-write-through-setters.md)
-- [ADR-0005](../../../docs/adr/0005-relax-fail-path-zero-alloc.md)
+- [ADR-0005](../../../docs/adr/0005-full-domain-long-result.md)
 - [ADR-0006](../../../docs/adr/0006-immutable-default-models.md)
 - [ticket 17](17-fast-path-bit-reading.md)

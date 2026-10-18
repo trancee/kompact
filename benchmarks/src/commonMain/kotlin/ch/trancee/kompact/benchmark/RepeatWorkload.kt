@@ -2,6 +2,7 @@ package ch.trancee.kompact.benchmark
 
 import ch.trancee.kompact.runtime.KompactCursor
 import ch.trancee.kompact.runtime.KompactRepeatWorkspace
+import ch.trancee.kompact.runtime.KompactStatus
 import ch.trancee.kompact.runtime.KompactWriter
 
 public class RepeatWorkload(
@@ -34,13 +35,13 @@ public class RepeatWorkload(
 
     public fun fixedIndex(): Int {
         fixedCursor.reset(fixedBytes)
-        check(fixedCursor.readFixedRepeat(32, 13, fixedWorkspace) == KompactCursor.STATUS_OK)
+        check(fixedCursor.readFixedRepeat(32, 13, fixedWorkspace) == KompactStatus.OK)
         return fixedCursor.position xor fixedWorkspace.count
     }
 
     public fun variableIndex(): Int {
         variableCursor.reset(variableBytes)
-        check(variableCursor.readVariableRepeat(32, 8, variableWorkspace) == KompactCursor.STATUS_OK)
+        check(variableCursor.readVariableRepeat(32, 8, variableWorkspace) == KompactStatus.OK)
         return variableCursor.position xor variableWorkspace.count
     }
 

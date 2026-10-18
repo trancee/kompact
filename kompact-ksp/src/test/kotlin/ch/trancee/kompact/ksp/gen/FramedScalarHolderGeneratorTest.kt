@@ -6,6 +6,7 @@ import ch.trancee.kompact.ksp.model.KompactScalarKind
 import ch.trancee.kompact.ksp.model.ModelSpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FramedScalarHolderGeneratorTest {
@@ -44,7 +45,7 @@ class FramedScalarHolderGeneratorTest {
                     ),
             )
 
-        val output = FramedClassGenerator.generateExpect(spec)
+        val output = FramedClassGenerator.generate(spec)
 
         assertTrue(output.contains("class ScalarPayloadViewHolder"))
         assertTrue(output.contains("public var flag: Boolean = false"))
@@ -56,8 +57,8 @@ class FramedScalarHolderGeneratorTest {
         assertTrue(output.contains("cursor.validateUnsigned(64, this.unsignedLong)"))
         assertTrue(output.contains("Float.fromBits(cursor.valueBits.toInt())"))
         assertTrue(output.contains("Double.fromBits(cursor.valueBits)"))
-        assertTrue(output.contains(".decodeInto(cursor: KompactCursor, probeCursor: KompactCursor): Int"))
-        assertTrue(output.contains(".encodeFrom(cursor: KompactCursor, probeCursor: KompactCursor): Int"))
+        assertTrue(output.contains(".decodeInto(cursor: KompactCursor, probeCursor: KompactCursor): KompactStatus"))
+        assertTrue(output.contains(".encodeFrom(cursor: KompactCursor, probeCursor: KompactCursor): KompactStatus"))
         assertTrue(output.contains("cursor.ensureDistinct(probeCursor)"))
         assertTrue(output.contains("probeCursor.ensureAvailable(242)"))
         assertTrue(output.contains("probeCursor.validateSigned(5, this.signedInt.toLong())"))
@@ -70,7 +71,8 @@ class FramedScalarHolderGeneratorTest {
         assertTrue(output.contains("this.ratio = ratioDecoded"))
         assertTrue(output.contains("cursor.writeBitsUnchecked(1, if (this.flag) 1L else 0L)"))
         assertTrue(output.contains("cursor.writeBitsUnchecked(5, this.signedInt.toLong())"))
-        assertTrue(output.contains("cursor.writeBitsUnchecked(64, this.unsignedLong.toLong())"))
+        assertTrue(output.contains("cursor.writeBitsUnchecked(64, this.unsignedLong)"))
+        assertFalse(output.contains("Long.toLong()"))
         assertTrue(output.contains("cursor.writeBitsUnchecked(32, this.ratio.toRawBits().toLong())"))
         assertTrue(output.contains("cursor.writeBitsUnchecked(64, this.measure.toRawBits())"))
         assertTrue(output.contains("this.signedInt = signedIntDecoded"))
@@ -93,7 +95,7 @@ class FramedScalarHolderGeneratorTest {
                     ),
             )
 
-        val output = FramedClassGenerator.generateExpect(spec)
+        val output = FramedClassGenerator.generate(spec)
 
         assertTrue(output.contains("cursor.validateSigned(31, this.signedInt.toLong())"))
         assertTrue(output.contains("cursor.validateSigned(63, this.signedLong)"))
@@ -115,10 +117,7 @@ class FramedScalarHolderGeneratorTest {
         bitWidth = bitWidth,
         signed = signed,
         lengthPrefixWidth = 8,
-        isNested = false,
         repeatCountWidth = 8,
-        enumWidth = 0,
-        defaultValue = "",
     )
 
     private fun assertScalarDecode(

@@ -4,21 +4,10 @@ plugins {
     alias(libs.plugins.agp) apply false
     alias(libs.plugins.dokka) apply false
     alias(libs.plugins.spotless)
-    alias(libs.plugins.skie) apply false
+    alias(libs.plugins.detekt)
     alias(libs.plugins.kotlinPowerAssert) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.benchmark) apply false
-}
-
-val koverVersion = libs.versions.kover.get()
-subprojects {
-    buildscript {
-        dependencies {
-            classpath("org.jetbrains.kotlinx.kover:org.jetbrains.kotlinx.kover.gradle.plugin:$koverVersion") {
-                exclude(group = "org.freemarker", module = "freemarker")
-            }
-        }
-    }
 }
 
 allprojects {
@@ -37,6 +26,7 @@ spotless {
         target("kompact-ksp/src/**/*.kt")
         target("kompact-ksp-integration/src/**/*.kt")
         target("benchmarks/src/**/*.kt", "benchmarks/holders/src/**/*.kt")
+        target("build-logic/src/**/*.kt")
         ktlint()
     }
     kotlinGradle {
@@ -56,4 +46,17 @@ spotless {
         )
         ktlint()
     }
+}
+
+// Detekt: static analysis of published production sources (tests and build tooling excluded).
+// Type resolution is not used; findings come from the plain `detekt` task.
+detekt {
+    source.setFrom(
+        "kompact/src/commonMain/kotlin",
+        "kompact-ksp/src/main/kotlin",
+        "kompact-gradle-plugin/src/main/kotlin",
+    )
+    config.setFrom("config/detekt/detekt.yml")
+    baseline = file("config/detekt/baseline.xml")
+    buildUponDefaultConfig = true
 }

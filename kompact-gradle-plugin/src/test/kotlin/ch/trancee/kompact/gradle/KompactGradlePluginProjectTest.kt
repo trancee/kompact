@@ -8,6 +8,7 @@ import org.gradle.api.tasks.Internal
 import org.gradle.testfixtures.ProjectBuilder
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -34,7 +35,7 @@ class KompactGradlePluginProjectTest {
     @Test
     fun reportsCompatibilityWhenKotlinPropertyGetterIsMissing() {
         val plugin = KompactGradlePlugin()
-        val compatibility = "Detected Kotlin Gradle Plugin 2.4.20 with KSP 2.3.12; only tested pair is compatible."
+        val compatibility = "Detected Kotlin Gradle Plugin 2.4.20 with KSP 2.3.12; tested with this pair."
 
         val failure =
             assertFailsWith<GradleException> {
@@ -66,8 +67,8 @@ class KompactGradlePluginProjectTest {
     }
 
     @Test
-    fun registersGeneratedJvmSourcesForKotlinTarget() {
-        val projectDirectory = Files.createTempDirectory("kompact-generated-jvm-sources")
+    fun registersGeneratedSourcesOnlyInCommonMainForAnyKotlinTarget() {
+        val projectDirectory = Files.createTempDirectory("kompact-generated-common-sources")
         try {
             val project =
                 ProjectBuilder
@@ -76,26 +77,19 @@ class KompactGradlePluginProjectTest {
                     .build()
             project.pluginManager.apply("org.jetbrains.kotlin.multiplatform")
             val kotlin = project.extensions.getByType(KotlinMultiplatformExtension::class.java)
-            val plugin = KompactGradlePlugin()
-            plugin.apply(project)
+            KompactGradlePlugin().apply(project)
 
             kotlin.jvm()
-            plugin.configureTargetSources(
-                kotlin.targets.getByName("jvm"),
-                "test",
-                project.tasks.named("generateKompactSources", GenerateKompactSources::class.java),
-            )
+            kotlin.linuxX64()
+            kotlin.js { nodejs() }
 
-            val generatedJvmDirectory = projectDirectory.resolve("build/generated/kompact/main/jvm")
-            Files.createDirectories(generatedJvmDirectory)
-            val jvmGeneratedSources = kotlin.sourceSets.getByName("jvmMain").kotlin.srcDirs
+            val generatedDirectory = projectDirectory.resolve("build/generated/kompact/main").toFile().canonicalFile
+            val sourceSetsWithGeneratedSources =
+                kotlin.sourceSets
+                    .filter { sourceSet -> sourceSet.kotlin.srcDirs.any { it.canonicalFile == generatedDirectory } }
+                    .map { it.name }
 
-            assertTrue(
-                jvmGeneratedSources.any {
-                    it.canonicalFile == generatedJvmDirectory.toFile().canonicalFile
-                },
-                "Expected the generated JVM source directory in $jvmGeneratedSources",
-            )
+            assertEquals(listOf("commonMain"), sourceSetsWithGeneratedSources)
         } finally {
             projectDirectory.toFile().deleteRecursively()
         }
@@ -123,7 +117,7 @@ class KompactGradlePluginProjectTest {
             KompactGradlePlugin().apply(project)
 
             val task = project.tasks.getByName("generateKompactSources") as GenerateKompactSources
-            val generatedRoot = projectDirectory.resolve("build/generated/kompact/main/common").toFile()
+            val generatedRoot = projectDirectory.resolve("build/generated/kompact/main").toFile()
             val generatedFile = generatedRoot.resolve("example/Generated.kt")
             Files.createDirectories(generatedFile.parentFile.toPath())
             Files.writeString(generatedFile.toPath(), "package example\nclass Generated")

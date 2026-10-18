@@ -1,19 +1,19 @@
-# How to encode and read long-form payloads
+# How to write and read variable-length fields
 
-Use the writer and bounded frame reader when a message contains strings, byte
-arrays, nested records, or repeated values. This guide uses the low-level
-runtime API; for generated properties, see
-[How to define a framed schema](define-framed-schema.md).
+Use `KompactWriter` and `KompactFrame` when you encode strings, byte arrays,
+nested records, or repeats by hand. To get generated properties for the same
+fields, follow [How to define a framed model](define-framed-schema.md)
+instead.
 
-The `KompactFrame` reader used below is included in the published `0.9.0`
-release. Follow [Consume Kompact](consume-from-another-project.md) to add the
-runtime dependency.
+The writer and frame calls in this guide work with the published `0.9.0`
+runtime. The cursor section at the end needs `0.10.0-SNAPSHOT`. To add the
+runtime, follow
+[How to add Kompact to a project](consume-from-another-project.md).
 
-## Encode strings, blobs, and repeated values
+## Write and read strings, blobs, and repeats
 
-Write fields in wire order. Strings and blobs have a fixed-width little-endian
-byte-count prefix. Repeats have a fixed-width count prefix followed by their
-elements.
+Write the fields in wire order, then read them back in the same order with the
+same prefix widths:
 
 ```kotlin
 import ch.trancee.kompact.runtime.KompactFrame
@@ -47,16 +47,19 @@ check(decoded.third.size == 2)
 check(decoded.third[0] == 42)
 ```
 
-The `readRepeated` call validates the count and element boundaries, then
-decodes each element when you access it. Use a manual count prefix and loop
-instead of `writeRepeated` when each element has a different value; its block
-does not receive an element index.
+`readRepeated` checks the count and every element boundary first. It decodes
+an element when you access it.
 
-## Encode and read a nested record
+The `writeRepeated` block does not receive an element index, so every
+iteration writes the same thing. To write a different value for each element,
+write the count with `writeBits` and loop over your elements yourself.
 
-`writeNested` builds the child first, then writes its byte length and bytes.
-`readNested` returns a borrowed slice bounded to that child payload. Decode the
-slice separately so the nested reader cannot cross into the following field.
+## Write and read a nested record
+
+`writeNested` writes the child and then fills in its byte length.
+`readNested` returns a slice that covers only the child. Decode that slice
+with its own `KompactFrame.decode` call so that the child reader stops at the
+child's end:
 
 ```kotlin
 import ch.trancee.kompact.runtime.KompactFrame
@@ -82,47 +85,51 @@ val childValue = KompactFrame.decode(bytes) { frame ->
 check(childValue == 42)
 ```
 
-The block overload of `KompactFrame.decode` returns a typed failure for
-malformed prefixes, truncated data, invalid UTF-8, or out-of-bounds reads.
-Direct `read*` calls throw `KompactDecodeException` on malformed input; see
-[Handle decode errors](handle-decode-errors.md) to choose a recovery path.
+Inside the block, `read*` calls throw `KompactDecodeException` on malformed
+input. The block overload of `KompactFrame.decode` turns that exception into a
+`KompactFrameResult.Failure`. Other exceptions from your block, such as the
+`check` failure above, pass through unchanged. To choose what to do with a
+failure, follow [How to handle malformed input](handle-decode-errors.md).
 
 ## Choose prefix widths
 
-`countWidth` and `lengthPrefixWidth` are widths in bits. Kompact accepts `8`,
-`16`, or `32`:
+`countWidth`, `lengthPrefixWidth`, and `prefixWidth` are widths in bits. Use
+`8`, `16`, or `32`:
 
-| Prefix width | Maximum count or byte length |
+| Prefix width | Largest count or byte length |
 | ---: | ---: |
 | 8 | 255 |
 | 16 | 65,535 |
 | 32 | `Int.MAX_VALUE` |
 
-Choose a width that can represent the largest valid payload. The writer rejects
-an invalid width or a value that does not fit before it appends that field.
-Writer and reader must use the same width.
+Pick a width that holds your largest valid value. The writer rejects an
+invalid width, or a value that does not fit, before it appends the field. Use
+the same width on the writing and reading sides.
 
-When reading variable-length values with `KompactFrame`, start each one at a
-byte boundary. Keep the backing `ByteArray` unchanged while using a borrowed
-slice or lazy repeated view.
+Start each string, blob, and nested record on a byte boundary. Keep the
+backing `ByteArray` unchanged while you use a slice or a lazy repeat that
+borrows it.
 
-## Read a borrowed UTF-8 range with caller-owned state
+## Read a UTF-8 range into caller-owned storage
 
-The current checkout also provides `KompactCursor` for checked operations
-without returning wrapper results. `readUtf8Range` validates the complete
-length-prefixed payload and binds a caller-created `KompactByteRange` to the
-original buffer. The range borrows those bytes; copy them only when you need
-independent ownership.
+This section needs `0.10.0-SNAPSHOT`. In `0.9.0`, `readUtf8Range` returns an
+`Int` code instead of a `KompactStatus`.
+
+Use `KompactCursor` when you want to reuse your own objects instead of
+receiving a new result. `readUtf8Range` checks the whole length-prefixed
+string and points a `KompactByteRange` that you created at the bytes in the
+original buffer:
 
 ```kotlin
 import ch.trancee.kompact.runtime.KompactByteRange
 import ch.trancee.kompact.runtime.KompactCursor
+import ch.trancee.kompact.runtime.KompactStatus
 
 val encoded = byteArrayOf(2, 0xC3.toByte(), 0xA9.toByte())
 val cursor = KompactCursor(encoded)
 val textBytes = KompactByteRange(ByteArray(0))
 
-check(cursor.readUtf8Range(prefixWidth = 8, range = textBytes) == KompactCursor.STATUS_OK)
+check(cursor.readUtf8Range(prefixWidth = 8, range = textBytes) == KompactStatus.OK)
 check(textBytes.size == 2)
 
 val ownedCopy = ByteArray(textBytes.size)
@@ -130,31 +137,21 @@ check(textBytes.copyTo(ownedCopy))
 check(ownedCopy.contentEquals(byteArrayOf(0xC3.toByte(), 0xA9.toByte())))
 ```
 
-Keep `encoded` unchanged while `textBytes` is in use. `KompactByteRange.copyTo`
-copies into storage you supply; it does not allocate a destination. For
-generated reusable holders, nested payloads, and repeated-field workspaces,
-see the [caller-owned codec API reference](../api-reference.md). The
-caller-owned cursor API is available in this checkout and is not included in
-the published `0.9.0` artifact. Bounded Native probes recorded no detectable
-allocation delta for selected scalar and cursor operations on Android Arm64
-and iOS Arm64 debug and release test binaries. These GC sweep-statistics
-results are testing/debugging data; they do not cover every API or call shape,
-including the payload conversions and repeat operations described here. Do
-not infer a general allocation guarantee from this example; see the
-[allocation research note](../research/allocation-boxing-measurement.md).
+`textBytes` borrows `encoded`, so keep `encoded` unchanged while you use it.
+`copyTo` writes into the array that you pass and does not allocate one. For
+generated holders, nested payloads, and repeat workspaces, see the
+[API reference](../api-reference.md).
 
-Probe-taking generated framed-holder operations use distinct cursors and
-preflight the complete bounded input or output before committing. Scalar-only
-framed schemas use the same checked call shape and validate scalar ranges on
-the probe cursor. Variable-width repeats are traversed once for preflight and
-again while building their reusable workspace during decode; this preserves
-failure atomicity but has not been performance-measured.
+Do not assume that this code is allocation-free. Native probes found no
+allocation for some scalar and cursor calls on Android Arm64 and iOS Arm64.
+Those probes did not cover the conversions or repeat calls in this guide. See
+the [allocation research note](../research/allocation-boxing-measurement.md).
 
 ## Next steps
 
-- Define the same fields as generated view properties:
-  [Framed schema guide](define-framed-schema.md).
-- Choose a malformed-input recovery strategy:
-  [Decode errors](handle-decode-errors.md).
-- Pass the resulting `ByteArray` to a transport:
-  [BLE integration](integrate-ble.md).
+- To get generated properties for these fields, follow
+  [How to define a framed model](define-framed-schema.md).
+- To handle malformed input, follow
+  [How to handle malformed input](handle-decode-errors.md).
+- To send the bytes over BLE, follow
+  [How to pass Kompact frames over BLE](integrate-ble.md).

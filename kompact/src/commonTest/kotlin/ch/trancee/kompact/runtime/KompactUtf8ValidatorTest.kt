@@ -36,6 +36,7 @@ class KompactUtf8ValidatorTest {
                 byteArrayOf(0xE1.toByte(), 0x41, 0x80.toByte()) to false,
                 byteArrayOf(0xE1.toByte(), 0x80.toByte(), 0x41) to false,
                 byteArrayOf(0xED.toByte()) to false,
+                byteArrayOf(0xED.toByte(), 0x80.toByte()) to false,
                 byteArrayOf(0xED.toByte(), 0xA0.toByte(), 0x80.toByte()) to false,
                 byteArrayOf(0xED.toByte(), 0x7F, 0x80.toByte()) to false,
                 byteArrayOf(0xED.toByte(), 0x80.toByte(), 0x41) to false,
@@ -51,6 +52,7 @@ class KompactUtf8ValidatorTest {
                 byteArrayOf(0xF1.toByte(), 0x80.toByte(), 0x41, 0x80.toByte()) to false,
                 byteArrayOf(0xF1.toByte(), 0x80.toByte(), 0x80.toByte(), 0x41) to false,
                 byteArrayOf(0xF4.toByte()) to false,
+                byteArrayOf(0xF4.toByte(), 0x80.toByte(), 0x80.toByte()) to false,
                 byteArrayOf(0xF4.toByte(), 0x90.toByte(), 0x80.toByte(), 0x80.toByte()) to false,
                 byteArrayOf(0xF4.toByte(), 0x7F, 0x80.toByte(), 0x80.toByte()) to false,
                 byteArrayOf(0xF4.toByte(), 0x80.toByte(), 0x41, 0x80.toByte()) to false,
@@ -64,7 +66,7 @@ class KompactUtf8ValidatorTest {
 
             val status = cursor.captureRegion(range, validateUtf8 = true)
 
-            assertEquals(if (valid) KompactCursor.STATUS_OK else KompactCursor.STATUS_INVALID_UTF8, status)
+            assertEquals(if (valid) KompactStatus.OK else KompactStatus.INVALID_UTF8, status)
         }
     }
 }

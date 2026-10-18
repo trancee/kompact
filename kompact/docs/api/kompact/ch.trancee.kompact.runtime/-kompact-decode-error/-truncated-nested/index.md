@@ -3,4 +3,6 @@
 # TruncatedNested
 
 [common]\
-object [TruncatedNested](index.md) : [KompactDecodeError](../index.md)
+data object [TruncatedNested](index.md) : [KompactDecodeError](../index.md)
+
+A nested region ends before its declared content.

@@ -2,33 +2,31 @@
 
 Use a fixed-layout model when each field has a known bit offset that does not
 depend on earlier field values. If the message contains strings, blobs, nested
-messages, or repeated values, use the
-[sequential framed schema guide](define-framed-schema.md) instead.
+models, or repeats, follow
+[How to define a framed model](define-framed-schema.md) instead.
 
-The `commonMain` generation setup in this guide uses the published `0.9.0`
-KMP plugin. Follow [Consume Kompact](consume-from-another-project.md) to
-configure the plugin and runtime dependencies.
+This guide needs the `0.10.0-SNAPSHOT` code-generation plugin and runtime.
+The published `0.9.0` plugin expects a different schema declaration. To set up
+the snapshot, follow
+[How to add Kompact to a project](consume-from-another-project.md#enable-schema-generation).
 
 ## 1. Choose the field positions
 
 This example packs a 4-bit status and a signed 12-bit temperature into two
-bytes. Fields are numbered from the least-significant bit of the first byte.
+bytes. Bit 0 is the least significant bit of the first byte.
 
 | Bit range | Width | Field | Type |
 | --- | ---: | --- | --- |
-| 0–3 | 4 | `status` | unsigned `Int` |
-| 4–15 | 12 | `temperature` | signed `Int` |
+| 0 to 3 | 4 | `status` | unsigned `Int` |
+| 4 to 15 | 12 | `temperature` | signed `Int` |
 
-Offsets may leave gaps, but fields must not overlap. Keep the layout beside
-the schema so the wire positions are easy to review.
+You can leave gaps between fields. Fields must not overlap. Keep a table like
+this one next to the schema so that reviewers can check the wire positions.
 
-## 2. Add the common schema
+## 2. Declare the schema
 
-In a Kotlin Multiplatform module, declare the schema in `commonMain`. The
-Kompact Gradle plugin generates the platform actuals and encoder for this
-`expect value class`; apply it after the Kotlin Multiplatform plugin. See
-[Consume Kompact](consume-from-another-project.md) for repository and dependency
-setup.
+In a Kotlin Multiplatform module, declare the schema as a regular class in
+`commonMain`:
 
 ```kotlin
 @file:OptIn(KompactPreview::class)
@@ -40,60 +38,95 @@ import ch.trancee.kompact.annotations.KompactModel
 import ch.trancee.kompact.annotations.KompactPreview
 
 @KompactModel
-public expect value class SensorFrame(public val raw: ByteArray) {
-    public companion object {
-        public fun create(status: Int, temperature: Int): SensorFrame
-    }
-
-    public fun copy(
-        status: Int = this.status,
-        temperature: Int = this.temperature,
-    ): SensorFrame
-
+public class SensorFrame {
     @KompactField(bitOffset = 0, bitWidth = 4)
-    public val status: Int
+    public val status: Int = 0
 
     @KompactField(bitOffset = 4, bitWidth = 12, signed = true)
-    public val temperature: Int
+    public val temperature: Int = 0
 }
 ```
 
-Use `bitWidth` for each field and set `signed = true` for two's-complement
-integers. `@KompactPreview` is required while the annotation API is preview.
+Give each field a `bitWidth`. Set `signed = true` for two's-complement
+integers. The annotations are preview API, so opt in to `KompactPreview`.
+
+The property initializers are placeholders. Kompact never writes them to the
+wire. Do not mark the schema `expect`. The processor rejects an `expect`
+schema because it generates the `SensorFrameView` declaration itself.
+
+The plugin generates one common file, `SensorFrameView.kt`. It contains the
+`SensorFrameView` value class with its `create`, `decode`, and `copy`
+functions, and a `SensorFrameViewHolder` class for caller-owned cursor
+decoding. The [API reference](../api-reference.md) describes holders.
 
 ## 3. Create, read, and update a frame
 
-The generated factory writes the fields in their declared positions. The
-generated getters read those same positions, and `copy` returns a new frame
-with the requested fields changed.
+Generated views also carry `@KompactPreview`. Add
+`@file:OptIn(KompactPreview::class)` to each file that uses them, or the
+compiler warns.
+
+`SensorFrameView.create` writes each field at its declared position, and the
+generated properties read the same positions. `copy` returns a new frame with
+the fields that you pass changed. The other fields keep their current values.
 
 ```kotlin
-val frame = SensorFrame.create(status = 5, temperature = -12)
+val frame = SensorFrameView.create(status = 5, temperature = -12)
 check(frame.status == 5)
 check(frame.temperature == -12)
+
+val received = SensorFrameView(frame.raw.copyOf())
+check(received.temperature == -12)
 
 val updated = frame.copy(status = 2)
 check(updated.status == 2)
 check(updated.temperature == -12)
 ```
 
-Add a `commonTest` round-trip test for each wire schema you publish. Test
-representative boundary values as well as the values used by your application.
+`create` and `copy` store only the low `bitWidth` bits of each value. A
+`status` of `17` reads back as `1`. Check application values against the
+field range before you pass them in.
 
-## Mutability
+## 4. Wrap bytes from another source
 
-Views are immutable by default. If a workflow needs in-place writes, mark the
-schema `@KompactModel(mutable = true)` to generate a separate `MutableSensorFrame`
-with write-through `var` properties. Those setters store the low bits of the
-assigned value; validate application input before writing if truncation would
-be unsafe. Both views retain the supplied `ByteArray`, so code holding another
-reference to that array can still change the frame.
+For bytes from a peer, a file, or any other untrusted source, call the checked
+`decode` function instead of the constructor:
+
+```kotlin
+when (val result = SensorFrameView.decode(receivedBytes)) {
+    is KompactFrameResult.Success -> handle(result.value)
+    is KompactFrameResult.Failure -> reject(result.error)
+}
+```
+
+If the array is shorter than the layout, `decode` returns
+`KompactFrameResult.Failure(KompactDecodeError.BoundsError)`. Otherwise it
+wraps the array without copying it. The `SensorFrameView` constructor throws
+`IllegalArgumentException` for the same short array.
+
+Add a `commonTest` round-trip test for each wire schema that you publish. Test
+boundary values as well as the values that your application uses.
+
+## Generate a mutable view
+
+Views are immutable by default. To write fields in place, declare the schema
+with `@KompactModel(mutable = true)`. The plugin then also generates
+`MutableSensorFrameView`, whose `var` properties write through to the backing
+array. Its setters store only the low bits of the assigned value, like
+`create`. Check application input before you assign it if truncation would be
+unsafe.
+
+`MutableSensorFrameView` has the same `create` and `decode` functions and the
+same constructor check as `SensorFrameView`.
+
+Both views keep the `ByteArray` that you pass in. Code that holds another
+reference to that array can still change the frame. For the ownership rules,
+see [Design and trade-offs](../architecture.md).
 
 ## Next steps
 
-- For variable-length fields, continue with
-  [sequential framed schemas](define-framed-schema.md).
-- To use a generated model in a BLE path, see
-  [Integrate with BLE](integrate-ble.md).
-- For the exact annotation and runtime APIs, see the
+- To add variable-length fields, follow
+  [How to define a framed model](define-framed-schema.md).
+- To send a generated model over BLE, follow
+  [How to pass Kompact frames over BLE](integrate-ble.md).
+- For the annotation and runtime signatures, see the
   [API reference](../api-reference.md).

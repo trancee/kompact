@@ -2,8 +2,6 @@
     org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class,
 )
 
-import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
-import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 import io.github.anschnapp.mutflow.gradle.MutflowExtension
 import org.gradle.api.GradleException
 import org.gradle.api.publish.maven.MavenPublication
@@ -13,6 +11,7 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     id("dokka-markdown")
     id("portal-publish")
+    id("kover-conventions")
     // maven-publish is also applied by portal-publish convention plugin, but
     // listed here to ensure KGP's kotlin("jvm") publication auto-creation
     // detects it during plugins{} block processing (convention plugin
@@ -48,21 +47,18 @@ if (mutationEnabled) {
         )
     }
     pluginManager.apply("io.github.anschnapp.mutflow")
-    apply(from = rootProject.file(".omp/mutation-results.gradle.kts"))
+    apply(plugin = "mutation-results")
     extensions.configure<MutflowExtension>("mutflow") {
         enabled = true
         maxMutationRuns.set(Int.MAX_VALUE)
-        targets.addAll(
-            listOf(
-                "ch.trancee.kompact.ksp.gen.FramedClassGenerator",
-                "ch.trancee.kompact.ksp.gen.FramedHolderGenerator",
-                "ch.trancee.kompact.ksp.gen.FramedScalarHolderGenerator",
-                "ch.trancee.kompact.ksp.gen.ValueClassGenerator",
-                "ch.trancee.kompact.ksp.gen.ValueHolderGenerator",
-            ),
-        )
+        // Every processor class and file facade: parser, validators, generators.
+        targets.add("ch.trancee.kompact.ksp.**")
     }
-    sourceSets.getByName("test").kotlin.srcDir("src/mutflowTest/kotlin")
+    extensions.configure<ch.trancee.mutation.MutationResultsExtension>("mutationTesting") {
+        adapterSources.from("src/test/kotlin")
+        adapterPackage.set("ch.trancee.kompact.ksp")
+    }
+    sourceSets.getByName("test").kotlin.srcDir(tasks.named("generateMutationAdapter"))
 } else {
     tasks.register("mutationResults") {
         group = "verification"
@@ -116,22 +112,6 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
-}
-
-// --- Kover (100 % line + branch coverage on the KSP processor) ---
-apply(plugin = "org.jetbrains.kotlinx.kover")
-
-extensions.configure<KoverProjectExtension>("kover") {
-    reports {
-        total {
-            xml { onCheck.set(true) }
-            html { onCheck.set(false) }
-        }
-        verify {
-            rule { minBound(100, CoverageUnit.LINE) }
-            rule { minBound(100, CoverageUnit.BRANCH) }
-        }
-    }
 }
 
 // --- KSP processor: registered via ServiceLoader so KSP discovers it ---

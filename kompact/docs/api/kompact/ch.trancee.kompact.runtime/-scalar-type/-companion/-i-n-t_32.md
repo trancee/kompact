@@ -2,9 +2,5 @@
 
 # INT_32
 
-[common, jvmCommon, native]\
 [common]\
-expect val [INT_32](-i-n-t_32.md): [ScalarType](../index.md)
-
-[jvmCommon, native]\
-actual val [INT_32](-i-n-t_32.md): [ScalarType](../index.md)
+val [INT_32](-i-n-t_32.md): [ScalarType](../index.md)

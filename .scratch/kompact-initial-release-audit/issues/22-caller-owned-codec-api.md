@@ -1,5 +1,6 @@
 ---
 Type: task
+Status: resolved
 ---
 
 ## Objective

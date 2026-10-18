@@ -6,6 +6,7 @@ import ch.trancee.kompact.runtime.KompactByteRange
 import ch.trancee.kompact.runtime.KompactCursor
 import ch.trancee.kompact.runtime.KompactRepeatWorkspace
 import ch.trancee.kompact.runtime.KompactRepeatWorkspace.Companion.CHECKPOINT_INTERVAL
+import ch.trancee.kompact.runtime.KompactStatus
 import ch.trancee.kompact.runtime.KompactWriter
 
 public class HolderWorkload(
@@ -35,21 +36,21 @@ public class HolderWorkload(
             chunksBytes = KompactByteRange(ByteArray(0)),
             chunksElement = KompactByteRange(ByteArray(0)),
         )
-    public var lastStatus: Int = KompactCursor.STATUS_OK
+    public var lastStatus: KompactStatus = KompactStatus.OK
         private set
     private var nextInput: Int = 0
 
     public fun decodeScalar(): Long {
         reset(scalarInputs)
         lastStatus = scalarHolder.decodeInto(cursor, probe)
-        check(lastStatus == KompactCursor.STATUS_OK) { "Scalar holder decode failed: status=$lastStatus" }
+        check(lastStatus == KompactStatus.OK) { "Scalar holder decode failed: status=$lastStatus" }
         return scalarHolder.id.toLong() + scalarHolder.sequence + scalarHolder.timestamp + cursor.position
     }
 
     public fun decodeFixed(): Long {
         reset(fixedInputs)
         lastStatus = fixedHolder.decodeInto(cursor, probe)
-        check(lastStatus == KompactCursor.STATUS_OK) { "Fixed holder decode failed: status=$lastStatus" }
+        check(lastStatus == KompactStatus.OK) { "Fixed holder decode failed: status=$lastStatus" }
         return fixedHolder.id.toLong() + fixedHolder.sequence + fixedHolder.payload.size +
             fixedHolder.samplesWorkspace.count + cursor.position
     }
@@ -57,14 +58,14 @@ public class HolderWorkload(
     public fun decodeVariable(): Long {
         reset(variableInputs)
         lastStatus = variableHolder.decodeInto(cursor, probe)
-        check(lastStatus == KompactCursor.STATUS_OK) { "Variable holder decode failed: status=$lastStatus" }
+        check(lastStatus == KompactStatus.OK) { "Variable holder decode failed: status=$lastStatus" }
         return variableHolder.id.toLong() + variableHolder.sequence + variableHolder.payload.size +
             variableHolder.chunksWorkspace.count + cursor.position
     }
 
     private fun reset(inputs: Array<ByteArray>) {
         lastStatus = cursor.reset(inputs[nextInput])
-        check(lastStatus == KompactCursor.STATUS_OK) { "Prepared frame reset failed: status=$lastStatus" }
+        check(lastStatus == KompactStatus.OK) { "Prepared frame reset failed: status=$lastStatus" }
         nextInput = nextInput xor 1
     }
 

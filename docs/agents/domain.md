@@ -1,51 +1,57 @@
-# Domain Docs
+# Domain docs
 
-How the engineering skills should consume this repo's domain documentation when exploring the codebase.
+This page tells the engineering skills which domain documentation to read
+before they explore the codebase.
 
-## Before exploring, read these
+## Read these before you explore
 
-- **`CONTEXT.md`** at the repo root, or
-- **`CONTEXT-MAP.md`** at the repo root if it exists: it points at one `CONTEXT.md` per context. Read each one relevant to the topic.
-- **`docs/adr/`**: read ADRs that touch the area you're about to work in. In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
+Kompact is a single-context repository. Read these sources:
 
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
+- `CONTEXT.md` at the repository root. The file does not exist yet. When it
+  exists, it is the glossary.
+- [`docs/adr/`](../adr/). Read the ADRs that touch the area you work in. The
+  ADRs are numbered `0001` to `0015` and cover system-wide decisions.
+- [`docs/architecture.md`](../architecture.md) for the wire format, the error
+  encoding, and the value-class layout.
 
-## File structure
+There is no `CONTEXT-MAP.md` and there are no context-scoped ADR folders.
 
-Single-context repo (most repos):
+If a file in this list does not exist, continue without it. Do not flag that
+it is missing, and do not suggest that someone create it up front. The
+`/domain-modeling` skill creates `CONTEXT.md` and new ADRs when a term or a
+decision is resolved.
 
-```
+## Repository layout for domain docs
+
+Kompact uses the single-context layout:
+
+```text
 /
-├── CONTEXT.md
-├── docs/adr/
-│   ├── 0001-event-sourced-orders.md
-│   └── 0002-postgres-for-write-model.md
-└── src/
+├── CONTEXT.md          (not created yet)
+├── docs/adr/           (system-wide decisions, 0001 to 0015)
+├── kompact/            (runtime)
+├── kompact-ksp/        (KSP processor)
+└── kompact-gradle-plugin/
 ```
 
-Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
+## Use the project's vocabulary
 
-```
-/
-├── CONTEXT-MAP.md
-├── docs/adr/                          ← system-wide decisions
-└── src/
-    ├── ordering/
-    │   ├── CONTEXT.md
-    │   └── docs/adr/                  ← context-specific decisions
-    └── billing/
-        ├── CONTEXT.md
-        └── docs/adr/
-```
+When your output names a domain concept, use the name that the code and the
+docs use. This applies to issue titles, refactor proposals, hypotheses, and
+test names. Until `CONTEXT.md` exists, take the names from the public API and
+the ADRs: model, view, holder, frame, cursor (`KompactCursor`), writer
+(`KompactWriter`), repeat, nested region, length prefix, fixed-layout model,
+framed model, `KompactStatus`, and `KompactResult`. Do not use synonyms for
+these names.
 
-## Use the glossary's vocabulary
-
-When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
-
-If the concept you need isn't in the glossary yet, that's a signal: either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/domain-modeling`).
+If the concept you need has no name yet, decide which case applies. Either
+you are inventing language that the project does not use, so reconsider, or
+there is a real gap, so note it for `/domain-modeling`.
 
 ## Flag ADR conflicts
 
-If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
+If your output contradicts an existing ADR, say so explicitly. Do not
+override the ADR silently:
 
-> _Contradicts ADR-0007 (event-sourced orders), but worth reopening because…_
+> _Contradicts ADR-0006 (immutable value-class views by default), but worth
+> reopening because..._

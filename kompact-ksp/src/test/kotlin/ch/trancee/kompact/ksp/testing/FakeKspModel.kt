@@ -55,8 +55,8 @@ fun buildModelDeclaration(
 /**
  * Builds a @KompactModel class declaration where every @KompactField
  * annotation carries ALL optional members (signed, lengthPrefixWidth,
- * isNested, repeatCountWidth, enumWidth, defaultValue)
- * so the processor's `as? Int` / `as? Boolean` / `as? String` cast
+ * repeatCountWidth)
+ * so the processor's `as? Int` / `as? Boolean` cast
  * **success** branches are exercised.
  */
 fun buildModelDeclarationWithAllArgs(
@@ -83,10 +83,7 @@ fun buildModelDeclarationWithAllArgs(
                                     put("bitWidth", bitWidth)
                                     put("signed", bitOffset > 10)
                                     put("lengthPrefixWidth", 8)
-                                    put("isNested", false)
                                     put("repeatCountWidth", 8)
-                                    put("enumWidth", 2)
-                                    put("defaultValue", "0")
                                 },
                         ),
                     ),

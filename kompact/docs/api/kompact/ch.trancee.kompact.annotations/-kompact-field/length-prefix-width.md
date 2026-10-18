@@ -11,4 +11,4 @@ common
 
 | | |
 |---|---|
-| lengthPrefixWidth | fixed-width LE byte-count prefix width in {8,16,32}         used when the field is a string/blob/nested/repeat (Ticket 05) |
+| lengthPrefixWidth | fixed-width LE byte-count prefix width in {8,16,32}         used when the field is a string, blob, nested model or variable-length repeat |

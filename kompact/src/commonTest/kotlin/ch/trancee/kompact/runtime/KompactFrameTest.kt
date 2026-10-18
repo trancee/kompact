@@ -67,7 +67,7 @@ class KompactFrameTest {
             }
 
         assertEquals(KompactDecodeError.TruncatedNested, truncated.error)
-        assertEquals(KompactDecodeError.BoundsError, trailing.error)
+        assertEquals(KompactDecodeError.TrailingData, trailing.error)
     }
 
     @Test
@@ -91,7 +91,7 @@ class KompactFrameTest {
             }
 
         assertEquals(KompactDecodeError.InvalidUtf8, utf8.error)
-        assertEquals(KompactDecodeError.BoundsError, padding.error)
+        assertEquals(KompactDecodeError.TrailingData, padding.error)
     }
 
     @Test
@@ -101,7 +101,7 @@ class KompactFrameTest {
                 it.readBits(8)
             }
 
-        assertEquals(KompactDecodeError.BoundsError, result.error)
+        assertEquals(KompactDecodeError.TrailingData, result.error)
     }
 
     @Test
@@ -173,6 +173,7 @@ class KompactFrameTest {
 
         assertSame(raw, slice.raw)
         assertEquals(2, slice.start)
+        assertEquals(2, slice.size)
         assertContentEquals(byteArrayOf(8, 9), slice.toByteArray())
     }
 
@@ -222,14 +223,7 @@ class KompactFrameTest {
         val malformed =
             listOf(
                 KompactFrame.decode(byteArrayOf()) { it.readString(8) },
-                KompactFrame.decode(byteArrayOf(1)) { it.readBlob(7) },
                 KompactFrame.decode(byteArrayOf(1)) { it.readNested(16) },
-                KompactFrame.decode(byteArrayOf(1, 0)) { it.readRepeated(8, 0, 0) { 1 } },
-                KompactFrame.decode(byteArrayOf(1, 0)) { it.readRepeated(8, 65, 0) { 1 } },
-                KompactFrame.decode(byteArrayOf(1, 0)) { it.readRepeated(8, -1, 0) { 1 } },
-                KompactFrame.decode(byteArrayOf(1, 0)) { it.readRepeated(8, 0, 7) { 1 } },
-                KompactFrame.decode(byteArrayOf(1, 0)) { it.readRepeated(8, 0, -1) { 1 } },
-                KompactFrame.decode(byteArrayOf(1, 0)) { it.readRepeated(8, 8, 8) { 1 } },
                 KompactFrame.decode(byteArrayOf(2, 1)) { it.readRepeated(8, 0, 8) { 1 } },
                 KompactFrame.decode(byteArrayOf(1, 1)) { it.readRepeated(8, 0, 8) { 1 } },
                 KompactFrame.decode(byteArrayOf(0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte())) {
@@ -238,6 +232,36 @@ class KompactFrameTest {
             )
 
         assertTrue(malformed.all { it.error != null })
+    }
+
+    @Test
+    fun invalidCallerWidthsAndRepeatedShapesThrowIllegalArgument() {
+        val frame = KompactFrame.decode(byteArrayOf(1, 0, 0, 0)).getOrThrow()
+        val misuses: List<() -> Unit> =
+            listOf(
+                { frame.readBits(0) },
+                { frame.readBits(65) },
+                { frame.readBlob(7) },
+                { frame.readString(0) },
+                { frame.readNested(64) },
+                { frame.readRepeated(7, 8, 0) { 1 } },
+                { frame.readRepeated(8, 0, 0) { 1 } },
+                { frame.readRepeated(8, 65, 0) { 1 } },
+                { frame.readRepeated(8, -1, 0) { 1 } },
+                { frame.readRepeated(8, 0, 7) { 1 } },
+                { frame.readRepeated(8, 0, -1) { 1 } },
+                { frame.readRepeated(8, 8, 8) { 1 } },
+            )
+
+        misuses.forEach { misuse -> assertFailsWith<IllegalArgumentException> { misuse() } }
+        assertEquals(1L, frame.readBits(8))
+    }
+
+    @Test
+    fun decodeBlockPropagatesCallerContractViolations() {
+        assertFailsWith<IllegalArgumentException> {
+            KompactFrame.decode(byteArrayOf(0)) { it.readBits(0) }
+        }
     }
 
     @Test
@@ -259,8 +283,6 @@ class KompactFrameTest {
                 KompactFrame.decode(raw, -1, 1),
                 KompactFrame.decode(raw, 1, 0),
                 KompactFrame.decode(raw, 0, 2),
-                KompactFrame.decode(raw) { it.readBits(0) },
-                KompactFrame.decode(raw) { it.readBits(65) },
                 KompactFrame.decode(raw) { it.readBits(16) },
             )
 
@@ -308,5 +330,86 @@ class KompactFrameTest {
         assertEquals(KompactDecodeError.BadLengthPrefix, assertFailsWith<KompactDecodeException> {
             failure.getOrThrow()
         }.error)
+    }
+
+    @Test
+    fun repeatedViewKeepsOneCheckpointPerStartedInterval() {
+        val counts = listOf(0 to 0, 1 to 1, 64 to 1, 65 to 2)
+
+        counts.forEach { (count, checkpoints) ->
+            val writer = KompactWriter()
+            writer.writeRepeated(count, 8) { writeString(8, "") }
+            val frame = KompactFrame.decode(writer.build()).getOrThrow()
+
+            val values = frame.readRepeated(8, 0, 8) { it.readString(8) }
+
+            assertEquals(checkpoints, values.checkpointCount, "count $count")
+        }
+    }
+
+    @Test
+    fun unalignedFixedRepeatElementsExposeTheirCoveringBytes() {
+        val raw = byteArrayOf(0x20, 0x10, 0x32, 0x04)
+        val bounds =
+            KompactFrame.decode(raw) { frame ->
+                frame.readBits(4)
+                val values = frame.readRepeated(8, 8, 0) { element -> Triple(element.start, element.end, element.readBits(8)) }
+                frame.readBits(4)
+                values.toList()
+            }
+
+        assertEquals(listOf(Triple(1, 3, 0x21L), Triple(2, 4, 0x43L)), bounds.getOrThrow())
+    }
+
+    @Test
+    fun truncatedPrefixAfterConsumedBitsIsABadLengthPrefix() {
+        val result =
+            KompactFrame.decode(byteArrayOf(0, 0)) { frame ->
+                frame.readBits(12)
+                frame.readString(8)
+            }
+
+        assertEquals(KompactDecodeError.BadLengthPrefix, result.error)
+    }
+
+    @Test
+    fun largestThirtyTwoBitCountIsTruncatedNotAMalformedPrefix() {
+        val raw = byteArrayOf(0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0x7F)
+
+        val result = KompactFrame.decode(raw) { it.readRepeated(32, 8, 0) { element -> element.readBits(8) } }
+
+        assertEquals(KompactDecodeError.TruncatedNested, result.error)
+    }
+
+    @Test
+    fun variableElementOverrunningTheFrameByOneByteIsTruncated() {
+        val result = KompactFrame.decode(byteArrayOf(1, 2, 0xAA.toByte())) { it.readRepeated(8, 0, 8) { 1 } }
+
+        assertEquals(KompactDecodeError.TruncatedNested, result.error)
+    }
+
+    @Test
+    fun trailingBitsAreCheckedUpToAndIncludingOneWholeByte() {
+        val cases =
+            listOf(
+                byteArrayOf(0x01) to 1 to null,
+                byteArrayOf(0x80.toByte()) to 7 to KompactDecodeError.TrailingData,
+                byteArrayOf(0x00, 0x00) to 8 to KompactDecodeError.TrailingData,
+                byteArrayOf(0x00) to 8 to null,
+            )
+
+        cases.forEach { (input, expected) ->
+            val (raw, consumed) = input
+            val result = KompactFrame.decode(raw) { frame -> frame.readBits(consumed) }
+
+            assertEquals(expected, result.error, "consumed $consumed of ${raw.size} bytes")
+        }
+    }
+
+    @Test
+    fun emptyRegionInsideTheArrayIsAValidFrame() {
+        val result = KompactFrame.decode(byteArrayOf(1, 2), 1, 1) { frame -> frame.start to frame.end }
+
+        assertEquals(1 to 1, result.getOrThrow())
     }
 }

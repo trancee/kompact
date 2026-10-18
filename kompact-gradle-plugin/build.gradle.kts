@@ -1,7 +1,5 @@
 @file:OptIn(org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class)
 
-import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
-import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.api.publish.maven.MavenPublication
 
@@ -9,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     `maven-publish`
     id("portal-publish")
+    id("kover-conventions")
     `java-gradle-plugin`
 }
 
@@ -112,19 +111,4 @@ publishing {
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     systemProperty("kompact.repository.root", rootProject.projectDir.absolutePath)
-}
-
-apply(plugin = "org.jetbrains.kotlinx.kover")
-
-extensions.configure<KoverProjectExtension>("kover") {
-    reports {
-        total {
-            xml { onCheck.set(true) }
-            html { onCheck.set(false) }
-        }
-        verify {
-            rule { minBound(100, CoverageUnit.LINE) }
-            rule { minBound(100, CoverageUnit.BRANCH) }
-        }
-    }
 }

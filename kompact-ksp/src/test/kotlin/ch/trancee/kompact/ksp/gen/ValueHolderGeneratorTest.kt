@@ -28,9 +28,9 @@ class ValueHolderGeneratorTest {
                     ),
             )
 
-        val output = ValueClassGenerator.generateCommonEncoder(spec)
+        val output = ValueClassGenerator.generate(spec)
 
-        assertTrue(output.contains("class CursorCoverageHolder"))
+        assertTrue(output.contains("class CursorCoverageViewHolder"))
         assertTrue(output.contains("flag: Boolean = false"))
         assertTrue(output.contains("signedInt: Int = 0"))
         assertTrue(output.contains("public var flag: Boolean = false"))
@@ -66,7 +66,7 @@ class ValueHolderGeneratorTest {
                     ),
             )
 
-        val output = ValueClassGenerator.generateCommonEncoder(spec)
+        val output = ValueClassGenerator.generate(spec)
 
         assertTrue(output.contains("signedIntDecoded = (cursor.valueBits.toInt() shl 1) shr 1"))
         assertTrue(output.contains("signedLongDecoded = (cursor.valueBits shl 1) shr 1"))
@@ -76,6 +76,8 @@ class ValueHolderGeneratorTest {
         assertTrue(output.contains("cursor.validateSigned(31, signedIntInput.toLong())"))
         assertTrue(output.contains("cursor.validateUnsigned(8, unsignedIntInput.toLong())"))
         assertTrue(output.contains("cursor.validateSigned(63, signedLongInput)"))
+        assertTrue(output.contains("cursor.writeBitsUnchecked(63, signedLongInput)"))
+        assertFalse(output.contains("LongInput.toLong()"))
         assertTrue(output.contains("cursor.skipBits(1)"))
         assertTrue(output.contains("cursor.skipBits(8)"))
         assertTrue(output.contains("cursor.skipBits(16)"))
@@ -104,10 +106,10 @@ class ValueHolderGeneratorTest {
                     ),
             )
 
-        val output = ValueClassGenerator.generateCommonEncoder(spec)
-        val decoded = output.substringAfter("fun SparseBoundaryHolder.decodeInto")
-            .substringBefore("fun SparseBoundaryHolder.encodeFrom")
-        val encoded = output.substringAfter("fun SparseBoundaryHolder.encodeFrom")
+        val output = ValueClassGenerator.generate(spec)
+        val decoded = output.substringAfter("fun SparseBoundaryHolderViewHolder.decodeInto")
+            .substringBefore("fun SparseBoundaryHolderViewHolder.encodeFrom")
+        val encoded = output.substringAfter("fun SparseBoundaryHolderViewHolder.encodeFrom")
 
         assertTrue(decoded.contains("cursor.ensureAvailable(8)"))
         assertTrue(decoded.contains("cursor.skipBits(1)"))
@@ -124,6 +126,23 @@ class ValueHolderGeneratorTest {
         assertTrue(encoded.contains("cursor.writeBitsUnchecked(1, if (flagInput) 1L else 0L)"))
     }
 
+    @Test
+    fun generatedHolderEmitsNoPaddingWhenFieldsFillTheFrame() {
+        val spec =
+            ModelSpec(
+                packageName = "test",
+                className = "DenseHolder",
+                fields = listOf(field("low", 0, 4, "Int"), field("high", 4, 4, "Int")),
+            )
+
+        val output = ValueClassGenerator.generate(spec)
+        val holder = output.substringAfter("fun DenseHolderViewHolder.decodeInto")
+
+        assertTrue(holder.contains("cursor.ensureAvailable(8)"))
+        assertFalse(holder.contains("cursor.skipBits("))
+        assertFalse(holder.contains("cursor.writeZeros("))
+    }
+
     private fun field(
         name: String,
         bitOffset: Int,
@@ -138,9 +157,6 @@ class ValueHolderGeneratorTest {
         bitWidth = bitWidth,
         signed = signed,
         lengthPrefixWidth = 8,
-        isNested = false,
         repeatCountWidth = 8,
-        enumWidth = 0,
-        defaultValue = "",
     )
 }

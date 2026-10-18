@@ -6,20 +6,21 @@ On 2026-10-17, the runtime merged by
 [#99](https://github.com/trancee/kompact/pull/99), commit `ed7218c`, passed
 six physical Android Native arm64 executions. The aligned-prefix follow-up
 also passed six Android executions. On 2026-10-18, merged `465cb86` passed
-six physical iOS executions after renewal of the dedicated test-host profile
-and correction of the runner's launch-watchdog failure. An unrelated app's
-profile was never reused: the runner installs the bundle selected by its
-profile and could replace that app.
+six physical iOS executions. Two fixes came first: the dedicated test-host
+profile was renewed, and the runner's launch-watchdog failure was corrected.
+No other app's profile was ever reused. The runner installs the bundle that
+its profile selects, so it could replace that app.
 
-These are runtime correctness and bounded Native allocation-probe results,
-not physical-device timing benchmarks or an Instruments allocation trace.
+These are runtime correctness results and bounded Native allocation-probe
+results. They are not physical-device timing benchmarks or an Instruments
+allocation trace.
 
 ## Android evidence
 
-The test binaries came from successful
-[CI run 39061939916](https://github.com/trancee/kompact/actions/runs/39061939916),
-revision `5eb6832`. The runtime/test and device-runner trees were verified
-identical to merged `ed7218c`:
+The test binaries came from the successful
+[CI run 39061939916](https://github.com/trancee/kompact/actions/runs/39061939916)
+at revision `5eb6832`. The runtime and test tree and the device-runner tree
+were verified identical to merged `ed7218c`:
 
 ```bash
 git diff 5eb6832 ed7218c --exit-code -- kompact scripts
@@ -27,8 +28,8 @@ git diff 5eb6832 ed7218c --exit-code -- kompact scripts
 
 The device was Android model `A063`, Android `15`, API `35`, build
 `AQ3A.240929.001`, arm64. The host used macOS `27.0.1` and ADB
-`37.0.1-15733141`. No serial number, personal device name, or signing
-identity is retained.
+`37.0.1-15733141`. The records keep no serial number, personal device name, or
+signing identity.
 
 | Configuration | Artifact | Physical executions | Tests per execution | Evidence |
 | --- | --- | ---: | ---: | --- |
@@ -41,54 +42,57 @@ Each execution used:
 scripts/test-android-native-device.sh <downloaded-artifact>/test.kexe
 ```
 
-The runner verified local/on-device SHA-256, ran the full shared Native
-suite, and confirmed device temporary-directory cleanup. The retained logs
-explicitly include both fixed-repeat checkpoint regressions: exact checkpoint
-and unused-storage preservation across widths/boundaries, and failure
-atomicity after one-bit truncation.
+The runner verified the SHA-256 both locally and on the device, ran the full
+shared Native suite, and confirmed that the device's temporary directory was
+cleaned up. The retained logs include both fixed-repeat checkpoint regression
+tests by name. One checks exact checkpoints and that unused storage is
+preserved across widths and boundaries. The other checks failure atomicity
+after a one-bit truncation.
 
 The debug binary SHA-256 is
 `71f1d11efe65a68e22f74eedf86292dca1fbb3a381bb88593fea5cf60913456d`.
 The release binary SHA-256 is
 `ba59813b8d92cf66b27d736a57a558e25d5c7436c1334fc1585846fc7f8383ba`.
 
-For every run, three samples of generated scalar speed reads/writes, cursor
-byte reads/writes, and unsigned validation reported `[0, 0, 0]` swept objects,
-matching primitive baselines. Each intentional-allocation control reported
-`[4098, 4098, 4098]`. The tests exercise 4,096 operations per sample.
-This is a GC sweep-statistics signal for those call shapes, not an exact
-per-operation allocation counter. The physical probes do not measure repeat
-indexing or complete framed-holder decoding allocations.
+In every run, three samples of each probe reported `[0, 0, 0]` swept objects,
+matching the primitive baselines. The probes cover generated scalar speed
+reads and writes, cursor byte reads and writes, and unsigned validation. Each
+intentional-allocation control reported `[4098, 4098, 4098]`. The tests run
+4,096 operations per sample. The probe reads GC sweep statistics for those
+call shapes. It is not an exact per-operation allocation counter. The physical
+probes do not measure allocations for repeat indexing or for complete
+framed-holder decoding.
 
 ## Aligned-prefix follow-up
 
-The subsequent [prefix-reader correction](aligned-count-prefix-benchmark.md)
-on base `6115b87` was validated with freshly linked local binaries, not the
-older CI artifacts above. The retained logs identify the exact uncommitted
-runtime source and binary SHA-256 values:
+The later [prefix-reader correction](aligned-count-prefix-benchmark.md), on
+base `6115b87`, was validated with freshly linked local binaries, not with
+the older CI artifacts above. The retained logs identify the exact SHA-256
+values of the runtime source, uncommitted at the time, and of the binaries:
 
 | Configuration | Physical executions | Tests per execution | Evidence |
 | --- | ---: | ---: | --- |
 | Debug | 3 | 404 passed | [redacted log](../../benchmarks/results/physical-prefix-2026-10-17/android-debug.txt) |
 | Release | 3 | 404 passed | [redacted log](../../benchmarks/results/physical-prefix-2026-10-17/android-release.txt) |
 
-Both configurations linked locally using JDK `21.0.12.1`, Kotlin `2.4.21`,
-and the existing `:kompact:androidNativeArm64TestBinaries` task, forced with
-`--rerun-tasks --no-build-cache`. Each binary then ran three times through
-`scripts/test-android-native-device.sh` on the same `A063` Android 15/API 35
-test device. Integrity verification and temporary-file cleanup succeeded
-in all six executions.
+Both configurations were linked locally with JDK `21.0.12.1`, Kotlin
+`2.4.21`, and the existing `:kompact:androidNativeArm64TestBinaries` task,
+forced with `--rerun-tasks --no-build-cache`. Each binary then ran three
+times through `scripts/test-android-native-device.sh` on the same `A063`
+Android 15, API 35 test device. Integrity verification and temporary-file
+cleanup succeeded in all six executions.
 
-All three checkpoint regressions passed, including the new per-byte unsigned
-count/capacity diagnostic test. The five scalar/cursor allocation probes
-again reported zero swept objects in every primitive/read/write sample
-and `[4098, 4098, 4098]` in every intentional-allocation control.
-These probes still do not measure complete holder/repeat-index allocations
-or establish device timing guarantees.
+All three checkpoint regression tests passed, including the new test that
+checks unsigned interpretation of each count byte through capacity
+diagnostics. The five scalar and cursor allocation probes again reported zero
+swept objects in every primitive, read, and write sample. They reported
+`[4098, 4098, 4098]` in every intentional-allocation control. These probes
+still do not measure allocations for complete holders or repeat indexing, and
+they do not set device timing guarantees.
 
 ## iOS provisioning history
 
-After PR 99, fresh debug and release `iosArm64` binaries linked successfully with Kotlin
+After PR 99, fresh debug and release `iosArm64` binaries linked with Kotlin
 `2.4.21` and Xcode `27.0` (`27A266a`):
 
 ```bash
@@ -103,28 +107,29 @@ Those historical binaries have these SHA-256 values:
 | `debugTest/test.kexe` | `715b5dd925c6fd5f498e8ef6ff38e55dc0115c8b6e4bdca73fbb6a3d46f93fa4` |
 | `releaseTest/test.kexe` | `4599e2828d7dbfb53eec64d5ace4d9cc1c7fcd1a6bc9fe75f6b02470318c7915` |
 
-A connected, developer-mode iOS device was available, but prerequisite
-inspection found the designated test-host profile expired. At that stage,
-no current physical-iOS execution or installation was attempted. Validation
-required an unexpired development profile for the intended Kompact test host,
-covering the connected device, and a matching usable local signing identity.
+A connected iOS device in developer mode was available. A check of the
+prerequisites found that the profile for the designated test host had
+expired. At that stage, nobody attempted a physical-iOS execution or
+installation. Validation needed two things: an unexpired development profile
+for the intended Kompact test host that covered the connected device, and a
+matching local signing identity that worked.
 
-The aligned-prefix follow-up also links fresh iOS Arm64 debug/release binaries
-and passed 404 tests on iOS Simulator. Physical iOS was explicitly deferred
-at the user's direction; neither result substituted for physical execution.
+The aligned-prefix follow-up also linked fresh iOS Arm64 debug and release
+binaries and passed 404 tests on the iOS Simulator. Physical iOS was deferred
+at the user's direction. Neither result replaced a physical execution.
 
 Older physical-iOS results in the
 [allocation methodology](allocation-boxing-measurement.md) are historical
-evidence, not proof for merged `ed7218c`. Likewise, the new
-[generated-holder host comparison](generated-holder-benchmark.md) and iOS
-Simulator fixture tests did not substitute for the missing device execution.
+evidence. They do not prove anything about merged `ed7218c`. In the same way,
+the [generated-holder host comparison](generated-holder-benchmark.md) and the
+iOS Simulator fixture tests did not replace the missing device execution.
 
 ## Physical iOS follow-up
 
 On 2026-10-18, fresh debug and release `iosArm64` binaries from merged
 `465cb86bc0eda247afc4be13928c04c044684cb4` ran on the original iPhone SE
-(2nd generation), hardware `iPhone12,8`, iOS `18.7.8`. Runtime and test
-sources were unchanged. The forced build used JDK 21, Kotlin `2.4.21`,
+(2nd generation), hardware `iPhone12,8`, iOS `18.7.8`. The runtime and test
+sources had not changed. The forced build used JDK 21, Kotlin `2.4.21`,
 Gradle `9.8.0`, and Xcode `27.1` (`27A9275`):
 
 ```bash
@@ -132,46 +137,53 @@ Gradle `9.8.0`, and Xcode `27.1` (`27A9275`):
   --no-daemon --rerun-tasks --no-build-cache --console=plain
 ```
 
-The dedicated development profile was renewed with explicit authorization,
-reusing the existing signing identity; no new valid local signing identity
-was created. The renewed profile expires on 2026-10-25. Only the existing
-`KompactNativeTests` host was replaced.
+The dedicated development profile was renewed with explicit authorization.
+The renewal reused the existing signing identity and created no new local
+signing identity. The renewed profile expires on 2026-10-25. Only the
+existing `KompactNativeTests` host was replaced.
 
-The post-renewal full-suite failure was an iOS `FRONTBOARD`
-`process-launch` watchdog termination, code `0x8badf00d` and signal `SIGKILL`.
-A standalone test executable does not complete a UIKit app launch merely
-because it is wrapped in an app bundle. A small Xcode-built control launched
-with the same signing assets; the Native suite also passed under LLDB.
-Generic launch-security messages alone did not establish a trust failure.
+After the renewal, the full suite first failed with an iOS `FRONTBOARD`
+`process-launch` watchdog termination, code `0x8badf00d` and signal
+`SIGKILL`. Wrapping a standalone test executable in an app bundle does not
+make it finish a UIKit app launch. A small control app built with Xcode
+launched with the same signing assets, and the Native suite also passed under
+LLDB. Generic launch-security messages alone did not show a trust failure.
 
-The corrected `scripts/test-ios-device.sh` delegates launch to
-`scripts/ios_device_tests.py`. It identifies the installed executable from
-installation metadata, starts it suspended, attaches LLDB to the exact new
-PID, waits for CoreDevice's asynchronous initial `SIGSTOP`, and then
-continues it asynchronously with a bounded wait. Cached initial-stop state
-is not resumed twice. A synchronous debugger-control attempt timed out during
-diagnosis; the final six-run evidence uses the asynchronous runner.
-Both the debuggee and console must exit successfully, and
-the shell wrapper still requires a passing Kotlin/Native test summary.
-Unexpected stops, ambiguous processes, and timeouts fail the run.
-Existing development entitlements and signature verification are unchanged.
-Hardware-free fixtures reproduce the old watchdog failure and test the
-new debugger lifecycle in CI.
+The corrected `scripts/test-ios-device.sh` hands the launch to
+`scripts/ios_device_tests.py`. That script runs these steps:
+
+1. Find the installed executable from the installation metadata.
+2. Start it suspended.
+3. Attach LLDB to the exact new PID.
+4. Wait for CoreDevice's asynchronous initial `SIGSTOP`.
+5. Continue the process asynchronously, with a bounded wait.
+
+The script does not resume a cached initial stop twice. During diagnosis, an
+attempt to control the debugger synchronously timed out. The final six-run
+evidence uses the asynchronous runner. Both the debuggee and the console must
+exit successfully, and the shell wrapper still requires a passing
+Kotlin/Native test summary. Unexpected stops, ambiguous processes, and
+timeouts fail the run. The existing development entitlements and signature
+verification did not change. In CI, hardware-free fixtures reproduce the old
+watchdog failure and test the new debugger lifecycle.
 
 | Configuration | Physical executions | Tests per execution | Evidence |
 | --- | ---: | ---: | --- |
 | Debug | 3 | 404 passed | [redacted log](../../benchmarks/results/physical-ios-2026-10-18/ios-debug.txt) |
 | Release | 3 | 404 passed | [redacted log](../../benchmarks/results/physical-ios-2026-10-18/ios-release.txt) |
 
-Each execution used the [device procedure](../ci.md#platform-behavior-and-allocation-evidence).
-The logs identify the exact binary and uncommitted runner source SHA-256
-values, strict signature verification, successful debugger/console exits,
-and local wrapper cleanup. The real Native test host remains installed to
-preserve developer trust; no diagnostic C control is left installed.
+Each execution followed the
+[device procedure](../ci.md#platform-behavior-and-allocation-evidence).
+The logs record the exact SHA-256 values of the binary and of the runner
+source, uncommitted at the time. They also record strict signature
+verification, successful debugger and console exits, and local wrapper
+cleanup. After the runs, the real Native test host stayed installed so that
+the device keeps trusting the developer. No diagnostic C control app was left
+installed.
 
-All three checkpoint regressions passed in every execution. All five
-scalar/cursor GC probes reported `[0, 0, 0]` swept objects for primitive and
-measured samples, and `[4098, 4098, 4098]` for intentional-allocation controls.
-These are bounded correctness and GC-probe results under a debugger, not
-physical-device timing, complete holder-allocation measurements, or an
-Instruments allocation trace.
+All three checkpoint regression tests passed in every execution. All five
+scalar and cursor GC probes reported `[0, 0, 0]` swept objects for the
+primitive and measured samples, and `[4098, 4098, 4098]` for the
+intentional-allocation controls. These are bounded correctness and GC-probe
+results under a debugger. They are not physical-device timing, complete
+holder-allocation measurements, or an Instruments allocation trace.

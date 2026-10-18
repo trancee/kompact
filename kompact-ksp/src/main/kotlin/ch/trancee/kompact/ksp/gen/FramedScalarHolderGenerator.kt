@@ -13,7 +13,7 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 
 private val CURSOR = ClassName("ch.trancee.kompact.runtime", "KompactCursor")
-private val INT = ClassName("kotlin", "Int")
+private val STATUS = ClassName("ch.trancee.kompact.runtime", "KompactStatus")
 private val KOMPAT_PREVIEW = ClassName("ch.trancee.kompact.annotations", "KompactPreview")
 
 internal data class ScalarDecodePlan(
@@ -29,18 +29,18 @@ internal object FramedScalarHolderGenerator {
             .addAnnotation(KOMPAT_PREVIEW)
             .addParameter("cursor", CURSOR)
             .addParameter("probeCursor", CURSOR)
-            .returns(INT)
+            .returns(STATUS)
             .addKdoc("Preflight and decode this scalar holder using a distinct probe cursor.\n")
             .addStatement("val distinct = cursor.ensureDistinct(probeCursor)")
-            .beginControlFlow("if (distinct != %T.STATUS_OK)", CURSOR)
+            .beginControlFlow("if (distinct != %T.OK)", STATUS)
             .addStatement("return distinct")
             .endControlFlow()
             .addStatement("val reset = probeCursor.reset(cursor.buffer, cursor.position, cursor.position, cursor.endBit)")
-            .beginControlFlow("if (reset != %T.STATUS_OK)", CURSOR)
+            .beginControlFlow("if (reset != %T.OK)", STATUS)
             .addStatement("return cursor.copyErrorFrom(probeCursor)")
             .endControlFlow()
             .addStatement("val checked = probeCursor.ensureAvailable(%L)", spec.orderedFields().sumOf { it.bitWidth })
-            .beginControlFlow("if (checked != %T.STATUS_OK)", CURSOR)
+            .beginControlFlow("if (checked != %T.OK)", STATUS)
             .addStatement("return cursor.copyErrorFrom(probeCursor)")
             .endControlFlow()
             .addStatement("return decodeInto(cursor)")
@@ -52,18 +52,18 @@ internal object FramedScalarHolderGenerator {
             .addAnnotation(KOMPAT_PREVIEW)
             .addParameter("cursor", CURSOR)
             .addParameter("probeCursor", CURSOR)
-            .returns(INT)
+            .returns(STATUS)
             .addKdoc("Preflight and encode this scalar holder using a distinct probe cursor.\n")
             .addStatement("val distinct = cursor.ensureDistinct(probeCursor)")
-            .beginControlFlow("if (distinct != %T.STATUS_OK)", CURSOR)
+            .beginControlFlow("if (distinct != %T.OK)", STATUS)
             .addStatement("return distinct")
             .endControlFlow()
             .addStatement("val reset = probeCursor.reset(cursor.buffer, cursor.position, cursor.position, cursor.endBit)")
-            .beginControlFlow("if (reset != %T.STATUS_OK)", CURSOR)
+            .beginControlFlow("if (reset != %T.OK)", STATUS)
             .addStatement("return cursor.copyErrorFrom(probeCursor)")
             .endControlFlow()
             .addStatement("val checked = probeCursor.ensureAvailable(%L)", spec.orderedFields().sumOf { it.bitWidth })
-            .beginControlFlow("if (checked != %T.STATUS_OK)", CURSOR)
+            .beginControlFlow("if (checked != %T.OK)", STATUS)
             .addStatement("return cursor.copyErrorFrom(probeCursor)")
             .endControlFlow()
             .apply {
@@ -72,7 +72,7 @@ internal object FramedScalarHolderGenerator {
                     if (validation != null) {
                         val validationName = "${field.name}Validation"
                         addStatement("val %N = %L", validationName, validation)
-                        beginControlFlow("if (%N != %T.STATUS_OK)", validationName, CURSOR)
+                        beginControlFlow("if (%N != %T.OK)", validationName, STATUS)
                         addStatement("return cursor.copyErrorFrom(probeCursor)")
                         endControlFlow()
                     }
@@ -122,20 +122,20 @@ internal object FramedScalarHolderGenerator {
         val fields = spec.orderedFields()
         val code = CodeBlock.builder()
         code.addStatement("val checked = cursor.ensureAvailable(%L)", fields.sumOf { it.bitWidth })
-        code.beginControlFlow("if (checked != %T.STATUS_OK)", CURSOR)
+        code.beginControlFlow("if (checked != %T.OK)", STATUS)
         code.addStatement("return checked")
         code.endControlFlow()
         val plans = fields.map(::scalarDecodePlan)
         plans.forEach { code.add("%L", it.decode) }
         plans.forEach { code.add("%L", it.commit) }
-        code.addStatement("return %T.STATUS_OK", CURSOR)
+        code.addStatement("return %T.OK", STATUS)
         return FunSpec
             .builder("decodeInto")
             .receiver(ClassName(spec.packageName, "${spec.generatedName()}Holder"))
             .addModifiers(KModifier.PUBLIC)
             .addAnnotation(KOMPAT_PREVIEW)
             .addParameter("cursor", CURSOR)
-            .returns(INT)
+            .returns(STATUS)
             .addKdoc("Decode this framed scalar schema into the reusable holder.\n")
             .addCode(code.build())
             .build()
@@ -149,7 +149,7 @@ internal object FramedScalarHolderGenerator {
         val decode =
             CodeBlock.builder()
                 .addStatement("val %N = %N.readBits(%L)", statusName, cursorName, field.bitWidth)
-                .beginControlFlow("if (%N != %T.STATUS_OK)", statusName, CURSOR)
+                .beginControlFlow("if (%N != %T.OK)", statusName, STATUS)
                 .addStatement("return %N", statusName)
                 .endControlFlow()
                 .addStatement("val %N = %L", decodedName, scalarDecodedValue(field, cursorName))
@@ -189,7 +189,7 @@ internal object FramedScalarHolderGenerator {
         val fields = spec.orderedFields()
         val code = CodeBlock.builder()
         code.addStatement("val checked = cursor.ensureAvailable(%L)", fields.sumOf { it.bitWidth })
-        code.beginControlFlow("if (checked != %T.STATUS_OK)", CURSOR)
+        code.beginControlFlow("if (checked != %T.OK)", STATUS)
         code.addStatement("return checked")
         code.endControlFlow()
         fields.forEach { field ->
@@ -197,7 +197,7 @@ internal object FramedScalarHolderGenerator {
             if (validation != null) {
                 val validationName = "${field.name}Validation"
                 code.addStatement("val %N = %L", validationName, validation)
-                code.beginControlFlow("if (%N != %T.STATUS_OK)", validationName, CURSOR)
+                code.beginControlFlow("if (%N != %T.OK)", validationName, STATUS)
                 code.addStatement("return %N", validationName)
                 code.endControlFlow()
             }
@@ -205,14 +205,14 @@ internal object FramedScalarHolderGenerator {
         fields.forEach { field ->
             code.addStatement("cursor.writeBitsUnchecked(%L, %L)", field.bitWidth, scalarEncodedValue(field))
         }
-        code.addStatement("return %T.STATUS_OK", CURSOR)
+        code.addStatement("return %T.OK", STATUS)
         return FunSpec
             .builder("encodeFrom")
             .receiver(ClassName(spec.packageName, "${spec.generatedName()}Holder"))
             .addModifiers(KModifier.PUBLIC)
             .addAnnotation(KOMPAT_PREVIEW)
             .addParameter("cursor", CURSOR)
-            .returns(INT)
+            .returns(STATUS)
             .addKdoc("Encode this framed scalar holder after validating every field.\n")
             .addCode(code.build())
             .build()
@@ -220,7 +220,8 @@ internal object FramedScalarHolderGenerator {
     fun scalarEncodedValue(field: KompactFieldInfo): CodeBlock =
         when ((field.type as KompactFieldType.Scalar).kind) {
             KompactScalarKind.BOOLEAN -> CodeBlock.of("if (this.%N) 1L else 0L", field.name)
-            KompactScalarKind.INT, KompactScalarKind.LONG -> CodeBlock.of("this.%N.toLong()", field.name)
+            KompactScalarKind.INT -> CodeBlock.of("this.%N.toLong()", field.name)
+            KompactScalarKind.LONG -> CodeBlock.of("this.%N", field.name)
             KompactScalarKind.FLOAT -> CodeBlock.of("this.%N.toRawBits().toLong()", field.name)
             KompactScalarKind.DOUBLE -> CodeBlock.of("this.%N.toRawBits()", field.name)
         }

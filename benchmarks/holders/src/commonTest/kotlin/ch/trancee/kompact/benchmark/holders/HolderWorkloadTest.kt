@@ -3,6 +3,7 @@
 package ch.trancee.kompact.benchmark.holders
 
 import ch.trancee.kompact.runtime.KompactCursor
+import ch.trancee.kompact.runtime.KompactStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -16,7 +17,7 @@ class HolderWorkloadTest {
 
         val checksum = workload.decodeScalar()
 
-        assertEquals(KompactCursor.STATUS_OK, workload.lastStatus)
+        assertEquals(KompactStatus.OK, workload.lastStatus)
         assertEquals(7, workload.scalarHolder.id)
         assertEquals(17, workload.scalarHolder.sequence)
         assertEquals(123456789L, workload.scalarHolder.timestamp)
@@ -31,7 +32,7 @@ class HolderWorkloadTest {
 
             val checksum = workload.decodeFixed()
 
-            assertEquals(KompactCursor.STATUS_OK, workload.lastStatus, "count=$count")
+            assertEquals(KompactStatus.OK, workload.lastStatus, "count=$count")
             assertEquals(7, workload.fixedHolder.id)
             assertEquals(17, workload.fixedHolder.sequence)
             assertEquals(128, workload.fixedHolder.payload.size)
@@ -50,7 +51,7 @@ class HolderWorkloadTest {
 
             val checksum = workload.decodeVariable()
 
-            assertEquals(KompactCursor.STATUS_OK, workload.lastStatus, "count=$count")
+            assertEquals(KompactStatus.OK, workload.lastStatus, "count=$count")
             assertEquals(7, workload.variableHolder.id)
             assertEquals(17, workload.variableHolder.sequence)
             assertEquals(128, workload.variableHolder.payload.size)
@@ -68,7 +69,7 @@ class HolderWorkloadTest {
 
         workload.decodeFixed()
 
-        assertEquals(KompactCursor.STATUS_OK, workload.lastStatus)
+        assertEquals(KompactStatus.OK, workload.lastStatus)
         assertEquals(8, workload.fixedHolder.id)
         assertEquals(18, workload.fixedHolder.sequence)
         assertSame(workload.fixedInputs[1], workload.fixedHolder.payload.buffer)
@@ -94,7 +95,7 @@ class HolderWorkloadTest {
 
         workload.decodeVariable()
 
-        assertEquals(KompactCursor.STATUS_OK, workload.lastStatus)
+        assertEquals(KompactStatus.OK, workload.lastStatus)
         assertEquals(8, workload.variableHolder.id)
         assertEquals(18, workload.variableHolder.sequence)
         assertSame(workload.variableInputs[1], workload.variableHolder.payload.buffer)
@@ -109,7 +110,7 @@ class HolderWorkloadTest {
 
             val status = workload.fixedHolder.decodeSamplesElement(index, workload.cursor, elementCursor)
 
-            assertEquals(KompactCursor.STATUS_OK, status, "index=$index")
+            assertEquals(KompactStatus.OK, status, "index=$index")
             assertEquals(index, workload.fixedHolder.samplesElement, "index=$index")
         }
     }
@@ -123,7 +124,7 @@ class HolderWorkloadTest {
 
             val status = workload.variableHolder.decodeChunksElement(index, workload.cursor, elementCursor)
 
-            assertEquals(KompactCursor.STATUS_OK, status, "index=$index")
+            assertEquals(KompactStatus.OK, status, "index=$index")
             assertEquals(index % 9, workload.variableHolder.chunksElement.size, "index=$index")
             assertSame(workload.variableInputs[0], workload.variableHolder.chunksElement.buffer)
         }
@@ -138,7 +139,7 @@ class HolderWorkloadTest {
 
         val status = workload.fixedHolder.decodeInto(workload.cursor, workload.probe)
 
-        assertEquals(KompactCursor.STATUS_TRUNCATED_INPUT, status)
+        assertEquals(KompactStatus.TRUNCATED_INPUT, status)
         assertEquals(0, workload.cursor.position)
         assertEquals(7, workload.fixedHolder.id)
         assertEquals(17, workload.fixedHolder.sequence)
@@ -156,7 +157,7 @@ class HolderWorkloadTest {
 
         val status = workload.variableHolder.decodeInto(workload.cursor, workload.probe)
 
-        assertEquals(KompactCursor.STATUS_TRUNCATED_INPUT, status)
+        assertEquals(KompactStatus.TRUNCATED_INPUT, status)
         assertEquals(0, workload.cursor.position)
         assertEquals(7, workload.variableHolder.id)
         assertEquals(17, workload.variableHolder.sequence)

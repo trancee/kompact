@@ -2,9 +2,7 @@
 
 # bitLength
 
-[common, jvmCommon, native]\
 [common]\
-expect val [bitLength](bit-length.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+val [bitLength](bit-length.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
 
-[jvmCommon, native]\
-actual val [bitLength](bit-length.md): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+Payload length in bits. Throws [KompactDecodeException](../-kompact-decode-exception/index.md) on failure.

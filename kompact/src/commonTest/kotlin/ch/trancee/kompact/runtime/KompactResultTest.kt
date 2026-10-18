@@ -27,18 +27,6 @@ class KompactResultTest {
         assertSame(KompactDecodeError.TruncatedNested, KompactDecodeError.TruncatedNested)
     }
 
-    @Test
-    fun unknownEnumCode_preservesRawCode() {
-        val err = KompactDecodeError.UnknownEnumCode(17)
-        assertEquals(17, err.rawCode)
-    }
-
-    @Test
-    fun unknownEnumCode_equalityByRawCode() {
-        assertEquals(KompactDecodeError.UnknownEnumCode(5), KompactDecodeError.UnknownEnumCode(5))
-        assertNotEquals(KompactDecodeError.UnknownEnumCode(5), KompactDecodeError.UnknownEnumCode(6))
-    }
-
     // === IntResult — ≤32-bit integer shape (Byte/Short widen to Int) ===
 
     @Test
@@ -49,12 +37,6 @@ class KompactResultTest {
             assertTrue(r.isSuccess, "value=$v")
             assertEquals(v, r.getOrThrow(), "value=$v")
         }
-    }
-
-    @Test
-    fun intResult_failure_unknownEnumCode() {
-        val r = IntResult.failure(KompactDecodeError.UnknownEnumCode(255))
-        assertEquals(KompactDecodeError.UnknownEnumCode(255), r.error)
     }
 
     // === ADR-0005 ≤32-bit-int shape: IntResult is the single ≤32-bit result.
@@ -185,10 +167,6 @@ class KompactResultTest {
             "LongResult(error=TruncatedNested)",
             LongResult.failure(KompactDecodeError.TruncatedNested).toString(),
         )
-        assertEquals(
-            "LongResult(error=UnknownEnumCode(rawCode=42))",
-            LongResult.failure(KompactDecodeError.UnknownEnumCode(42)).toString(),
-        )
         assertNotEquals(
             LongResult.success(42L),
             LongResult.failure(KompactDecodeError.BoundsError),
@@ -253,12 +231,6 @@ class KompactResultTest {
     }
 
     @Test
-    fun longResult_failure_unknownEnumCode() {
-        val r = LongResult.failure(KompactDecodeError.UnknownEnumCode(200))
-        assertEquals(KompactDecodeError.UnknownEnumCode(200), r.error)
-    }
-
-    @Test
     fun longResult_getOrThrow_throwsOnFailure() {
         val r = LongResult.failure(KompactDecodeError.BoundsError)
         assertFailsWith<KompactDecodeException> { r.getOrThrow() }
@@ -269,12 +241,12 @@ class KompactResultTest {
         val bounds = LongResult.failure(KompactDecodeError.BoundsError)
         val badLen = LongResult.failure(KompactDecodeError.BadLengthPrefix)
         val trunc = LongResult.failure(KompactDecodeError.TruncatedNested)
-        val unknown = LongResult.failure(KompactDecodeError.UnknownEnumCode(42))
+        val utf8 = LongResult.failure(KompactDecodeError.InvalidUtf8)
 
         assertEquals(KompactDecodeError.BoundsError, bounds.error)
         assertEquals(KompactDecodeError.BadLengthPrefix, badLen.error)
         assertEquals(KompactDecodeError.TruncatedNested, trunc.error)
-        assertEquals(KompactDecodeError.UnknownEnumCode(42), unknown.error)
+        assertEquals(KompactDecodeError.InvalidUtf8, utf8.error)
     }
 
     // === DoubleResult — 64-bit NaN error encoding ===
@@ -335,12 +307,6 @@ class KompactResultTest {
     }
 
     @Test
-    fun doubleResult_failure_unknownEnumCode() {
-        val r = DoubleResult.failure(KompactDecodeError.UnknownEnumCode(42))
-        assertEquals(KompactDecodeError.UnknownEnumCode(42), r.error)
-    }
-
-    @Test
     fun doubleResult_getOrThrow_throwsOnFailure() {
         val r = DoubleResult.failure(KompactDecodeError.BoundsError)
         assertFailsWith<KompactDecodeException> { r.getOrThrow() }
@@ -351,11 +317,21 @@ class KompactResultTest {
         val bounds = DoubleResult.failure(KompactDecodeError.BoundsError)
         val badLen = DoubleResult.failure(KompactDecodeError.BadLengthPrefix)
         val trunc = DoubleResult.failure(KompactDecodeError.TruncatedNested)
-        val unknown = DoubleResult.failure(KompactDecodeError.UnknownEnumCode(42))
+        val utf8 = DoubleResult.failure(KompactDecodeError.InvalidUtf8)
 
         assertEquals(KompactDecodeError.BoundsError, bounds.error)
         assertEquals(KompactDecodeError.BadLengthPrefix, badLen.error)
         assertEquals(KompactDecodeError.TruncatedNested, trunc.error)
-        assertEquals(KompactDecodeError.UnknownEnumCode(42), unknown.error)
+        assertEquals(KompactDecodeError.InvalidUtf8, utf8.error)
+    }
+
+    @Test
+    fun longResultHashesItsSuccessValueOrItsError() {
+        assertEquals(0L.hashCode(), LongResult.success(0L).hashCode())
+        assertEquals(7L.hashCode(), LongResult.success(7L).hashCode())
+        assertEquals(
+            KompactDecodeError.BoundsError.hashCode(),
+            LongResult.failure(KompactDecodeError.BoundsError).hashCode(),
+        )
     }
 }

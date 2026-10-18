@@ -11,9 +11,9 @@ import kotlin.test.assertTrue
  *
  *  - the five `…OrThrow` wrappers (return the decoded value, or throw
  *    `KompactDecodeException(BoundsError)` when the buffer overruns),
- *  - `getOrElse` / `map` extensions on the typed results (`IntResult`, `LongResult`, `FloatResult`, `DoubleResult`, `BooleanResult`, `NestedRegionResult`),
- *  - the typed nested framing: `readNested`, `readNestedOrThrow`,
- *    `readLengthPrefixOrThrow`, and `NestedRegionResult`'s success/failure shape.
+ *  - `getOrElse` / `map` extensions on the typed results (`IntResult`, `LongResult`, `FloatResult`, `DoubleResult`, `BooleanResult`),
+ *  - the typed nested framing: `readNested`, `readLengthPrefixOrThrow`, and
+ *    `NestedRegionResult`'s success/failure shape.
  *
  * Same package as `ScalarType`/`KompactDecodeError`/`KompactDecodeException`
  * -> no cross-package imports required.
@@ -145,7 +145,7 @@ class KompactRuntimeCheckedApiTest {
 
     @Test
     fun remainingResultTypes_getOrElseAndMap_preserveTypedFailure() {
-        // IntResult + NestedRegion are covered above; these pin the wiring for the
+        // IntResult is covered above; these pin the wiring for the
         // other specialised value classes.
 
         // BooleanResult: success map, failure-fallback, and failure-propagation.
@@ -188,7 +188,7 @@ class KompactRuntimeCheckedApiTest {
         assertEquals(0.0, doubleBad.getOrElse { 0.0 })
     }
 
-    // ---- readNested / readNestedOrThrow / readLengthPrefixOrThrow / NestedRegionResult ----
+    // ---- readNested / readLengthPrefixOrThrow / NestedRegionResult ----
 
     @Test
     fun readNested_parsesValidRegionAndClassifiedFailures() {
@@ -198,12 +198,9 @@ class KompactRuntimeCheckedApiTest {
         assertTrue(ok.isSuccess)
         assertEquals(8, ok.startBit)
         assertEquals(8, ok.bitLength)
-        assertEquals(Pair(8, 8), ok.getOrThrow())
 
-        // Bad prefix width (7 ∉ 8/16/32) -> BadLengthPrefix.
-        val badWidth = KompactFraming.readNested(valid, 0, 7)
-        assertTrue(badWidth.isFailure)
-        assertEquals(KompactDecodeError.BadLengthPrefix, badWidth.error)
+        // Bad prefix width (7 ∉ 8/16/32) is a caller-contract violation.
+        assertFailsWith<IllegalArgumentException> { KompactFraming.readNested(valid, 0, 7) }
 
         // Prefix claims 2 payload bytes but only 1 present -> length-prefix
         // exceeds remaining bytes -> BadLengthPrefix (Ticket 06/09).
@@ -214,22 +211,19 @@ class KompactRuntimeCheckedApiTest {
     }
 
     @Test
-    fun readNestedOrThrow_and_readLengthPrefixOrThrow_succeedOrThrowTyped() {
+    fun readLengthPrefixOrThrow_succeedsOrThrowsTyped() {
         val valid = byteArrayOf(0x01, 0xAB.toByte())
-        assertEquals(Pair(8, 8), KompactFraming.readNestedOrThrow(valid, 0, 8))
         assertEquals(1, KompactFraming.readLengthPrefixOrThrow(valid, 0, 8))
 
-        // Bad prefix width throws BadLengthPrefix.
-        val ex1 =
-            assertFailsWith<KompactDecodeException> {
-                KompactFraming.readLengthPrefixOrThrow(valid, 0, 7)
-            }
-        assertEquals(KompactDecodeError.BadLengthPrefix, ex1.error)
+        // Bad prefix width is a caller-contract violation.
+        assertFailsWith<IllegalArgumentException> {
+            KompactFraming.readLengthPrefixOrThrow(valid, 0, 7)
+        }
 
         // Prefix exceeds remaining bytes throws BadLengthPrefix (Ticket 06/09).
         val ex2 =
             assertFailsWith<KompactDecodeException> {
-                KompactFraming.readNestedOrThrow(byteArrayOf(0x02, 0xAB.toByte()), 0, 8)
+                KompactFraming.readNested(byteArrayOf(0x02, 0xAB.toByte()), 0, 8).startBit
             }
         assertEquals(KompactDecodeError.BadLengthPrefix, ex2.error)
     }
@@ -244,20 +238,5 @@ class KompactRuntimeCheckedApiTest {
         val res = KompactFraming.readNested(buf, 0, 32)
         assertTrue(res.isFailure)
         assertEquals(KompactDecodeError.BadLengthPrefix, res.error)
-    }
-
-    @Test
-    fun nestedRegionResult_getOrElse_and_map() {
-        val ok = NestedRegionResult.success(8, 8)
-        assertEquals(Pair(8, 8), ok.getOrElse { Pair(-1, -1) })
-        val grown = ok.map { Pair(it.first + 4, it.second) }
-        assertTrue(grown.isSuccess)
-        assertEquals(Pair(12, 8), grown.getOrThrow())
-
-        val bad = NestedRegionResult.failure(KompactDecodeError.TruncatedNested)
-        assertEquals(Pair(-1, -1), bad.getOrElse { Pair(-1, -1) })
-        val mappedBad = bad.map { Pair(it.first + 1, it.second) }
-        assertTrue(mappedBad.isFailure)
-        assertEquals(KompactDecodeError.TruncatedNested, mappedBad.error)
     }
 }

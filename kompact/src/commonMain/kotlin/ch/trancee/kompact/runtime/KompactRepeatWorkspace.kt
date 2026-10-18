@@ -1,18 +1,12 @@
 package ch.trancee.kompact.runtime
 
 /**
- * Caller-owned sparse index storage for variable-width repeated payloads.
- *
- * Allocate [checkpointStorage] before decoding. The workspace stores one
- * element offset per [CHECKPOINT_INTERVAL] elements and is reused by subsequent
- * repeat reads. Keep the indexed source bytes unchanged while using it.
- */
-/**
  * Caller-owned sparse-index storage for one variable- or fixed-width repeat.
  *
  * The workspace retains [checkpointStorage] and the buffer bound by the last
  * successful repeat read. Keep that buffer unchanged while using the index.
- * Reusing this workspace replaces its current repeat binding.
+ * Reusing this workspace replaces its current repeat binding. Size the
+ * storage to at least `ceil(count / CHECKPOINT_INTERVAL)` slots.
  *
  * @param checkpointStorage caller-owned slots for sparse bit-offset checkpoints
  */

@@ -15,10 +15,7 @@ internal data class KompactFieldInfo(
     val bitWidth: Int,
     val signed: Boolean,
     val lengthPrefixWidth: Int,
-    val isNested: Boolean,
     val repeatCountWidth: Int,
-    val enumWidth: Int,
-    val defaultValue: String,
     val isMutable: Boolean = false,
 ) {
     /** The bit range [bitOffset, bitOffset + bitWidth) — exclusive upper bound. */

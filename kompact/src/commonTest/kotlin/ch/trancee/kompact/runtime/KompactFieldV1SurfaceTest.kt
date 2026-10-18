@@ -6,7 +6,7 @@ import ch.trancee.kompact.annotations.KompactField
 import kotlin.test.Test
 
 /**
- * Ticket 04/06 v1 annotation surface — compile-time existence check.
+ * `@KompactField` annotation surface — compile-time existence check.
  *
  * `@KompactField` is SOURCE-retained, so reflection can't see its members at
  * runtime; the contract is that this file *compiles*, which pins every v1
@@ -17,11 +17,10 @@ private class KompactFieldV1Probe(
     @KompactField(
         bitOffset = 0,
         bitWidth = 4,
+        signed = false,
         lengthPrefixWidth = 16,
-        isNested = true,
         repeatCountWidth = 8,
-        enumWidth = 4,
-        defaultValue = "0",
+        order = -1,
     )
     val tag: Int,
     // Scalar default: only bitOffset/bitWidth declared.
@@ -33,9 +32,10 @@ class KompactFieldV1SurfaceTest {
     @Test
     @Suppress("UNUSED_EXPRESSION")
     fun v1AnnotationMembersExist_compileTimeContract() {
-        // If any of lengthPrefixWidth/isNested/repeatCountWidth/enumWidth/
-        // defaultValue is absent on @KompactField, the probe above fails to
-        // compile — this assert only confirms the class loads.
+        // If any of bitOffset/bitWidth/signed/lengthPrefixWidth/repeatCountWidth/
+        // order is absent on @KompactField, the probe above fails to compile —
+        // this assert only confirms the class loads. Nesting is inferred from
+        // the field type (ADR-0011), so there is no isNested member.
         KompactFieldV1Probe::class
     }
 }

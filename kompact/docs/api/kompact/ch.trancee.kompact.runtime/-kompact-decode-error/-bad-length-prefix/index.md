@@ -3,4 +3,6 @@
 # BadLengthPrefix
 
 [common]\
-object [BadLengthPrefix](index.md) : [KompactDecodeError](../index.md)
+data object [BadLengthPrefix](index.md) : [KompactDecodeError](../index.md)
+
+A length or count prefix is unreadable or exceeds the remaining input.

@@ -41,12 +41,15 @@ public class KompactRepeatedView<T> internal constructor(
 
     override fun get(index: Int): T = getResult(index).getOrThrow()
 
+    /** Sparse checkpoints retained for variable elements; exposed to pin the allocation policy in tests. */
+    internal val checkpointCount: Int get() = checkpoints.size
+
     private fun elementStart(index: Int): Int {
         if (index !in 0 until size) throw IndexOutOfBoundsException("index $index, size $size")
         if (elementWidth != 0) return firstBit + index * elementWidth
-        val checkpoint = index / CHECKPOINT_INTERVAL
+        val checkpoint = index / KompactRepeatWorkspace.CHECKPOINT_INTERVAL
         var cursor = checkpoints[checkpoint]
-        repeat(index % CHECKPOINT_INTERVAL) {
+        repeat(index % KompactRepeatWorkspace.CHECKPOINT_INTERVAL) {
             cursor = elementEnd(cursor)
         }
         return cursor
@@ -54,19 +57,12 @@ public class KompactRepeatedView<T> internal constructor(
 
     private fun elementEnd(startBit: Int): Int {
         if (elementWidth != 0) return startBit + elementWidth
-        val encodedLength = KompactRuntime.readBitsLong(raw, startBit, elementPrefixWidth)
-        if (encodedLength > Int.MAX_VALUE) {
-            throw KompactDecodeException(KompactDecodeError.BadLengthPrefix)
-        }
-        val length = encodedLength.toInt()
-        val endBit = startBit.toLong() + elementPrefixWidth + length.toLong() * 8
+        // A prefix is at most 32 bits, so the Long arithmetic cannot overflow.
+        val length = KompactRuntime.readBitsLong(raw, startBit, elementPrefixWidth)
+        val endBit = startBit.toLong() + elementPrefixWidth + length * 8
         if (endBit > repeatEndBit.toLong()) {
             throw KompactDecodeException(KompactDecodeError.BadLengthPrefix)
         }
         return endBit.toInt()
-    }
-
-    internal companion object {
-        const val CHECKPOINT_INTERVAL: Int = 64
     }
 }

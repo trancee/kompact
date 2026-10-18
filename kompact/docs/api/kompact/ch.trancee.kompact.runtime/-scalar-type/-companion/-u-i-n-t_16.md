@@ -2,9 +2,5 @@
 
 # UINT_16
 
-[common, jvmCommon, native]\
 [common]\
-expect val [UINT_16](-u-i-n-t_16.md): [ScalarType](../index.md)
-
-[jvmCommon, native]\
-actual val [UINT_16](-u-i-n-t_16.md): [ScalarType](../index.md)
+val [UINT_16](-u-i-n-t_16.md): [ScalarType](../index.md)

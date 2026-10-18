@@ -3,8 +3,7 @@
     org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class,
 )
 
-import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
-import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
+import ch.trancee.mutation.MutationResultsExtension
 import io.github.anschnapp.mutflow.gradle.MutflowExtension
 import org.gradle.api.GradleException
 import org.gradle.api.publish.maven.MavenPublication
@@ -17,6 +16,7 @@ plugins {
     alias(libs.plugins.kotlinPowerAssert)
     id("dokka-markdown")
     id("portal-publish")
+    id("kover-conventions")
 }
 
 dokka {
@@ -37,26 +37,25 @@ if (mutationJvmOnly) {
             "-PmutationTest.jvmOnly=true is only valid for the :kompact:mutationResults task."
         )
     }
-    // MutFlow 1.6.1 injects dependencies into common source sets. Apply it only
+    // MutFlow 1.7.0 injects dependencies into common source sets. Apply it only
     // when the reduced model contains JVM, the target for which it publishes variants.
     pluginManager.apply("io.github.anschnapp.mutflow")
-    apply(from = rootProject.file(".omp/mutation-results.gradle.kts"))
+    apply(plugin = "mutation-results")
+    extensions.configure<MutationResultsExtension>("mutationTesting") {
+        adapterSources.from("src/commonTest/kotlin")
+        adapterPackage.set("ch.trancee.kompact.runtime")
+    }
     extensions.configure<MutflowExtension>("mutflow") {
-        targets.addAll(
-            listOf(
-                "ch.trancee.kompact.runtime.KompactRuntime",
-                "ch.trancee.kompact.runtime.KompactCursor",
-                "ch.trancee.kompact.runtime.KompactCursorByteRanges",
-                "ch.trancee.kompact.runtime.KompactCursorRepeats",
-                "ch.trancee.kompact.runtime.KompactByteRange",
-            ),
-        )
+        // Every runtime class and file facade, including top-level functions.
+        targets.add("ch.trancee.kompact.runtime.**")
         maxMutationRuns.set(Int.MAX_VALUE)
+        // Bounds a mutant that escapes MutFlow's per-test budget; the whole suite runs in seconds.
+        timeoutMs.set(10_000L)
     }
 } else {
     tasks.register("mutationResults") {
         group = "verification"
-        description = "Requires -PmutationTest.jvmOnly=true for this MutFlow 1.6.1 evaluation."
+        description = "Requires -PmutationTest.jvmOnly=true for this MutFlow 1.7.0 evaluation."
         doLast {
             throw GradleException(
                 "Run :kompact:mutationResults with -PmutationTest.jvmOnly=true."
@@ -66,9 +65,8 @@ if (mutationJvmOnly) {
 }
 
 kotlin {
-    // Pin JVM target to 21 LTS so the built-in ABI validation (ASM) can parse the
-    // emitted class files on hosts running JDK 25 (without an explicit target,
-    // Kotlin 2.4.x emits v67 for JVM and v68 for Android).
+    // Pin the published JVM bytecode to 17 so JDK 17 consumers can load the runtime and the
+    // built-in ABI validation (ASM) can parse it on newer hosts.
     android {
         namespace = "ch.trancee.kompact"
         compileSdk = 36
@@ -78,7 +76,7 @@ kotlin {
     }
     jvm {
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
     if (!mutationJvmOnly) {
@@ -90,21 +88,11 @@ kotlin {
     }
 
     sourceSets {
-        val commonMain =
-            getByName("commonMain") {
-                compilerOptions {
-                    // KT-61573: expect/actual classes are in Beta in Kotlin 2.4.20.
-                    // The -Xexpect-actual-classes flag suppresses the Beta warning.
-                    // Keep this until the feature reaches Stable.
-                    freeCompilerArgs.addAll("-Xexpect-actual-classes")
-                }
+        getByName("commonTest") {
+            dependencies {
+                implementation("org.jetbrains.kotlin:kotlin-test:${libs.versions.kotlin.get()}")
             }
-        val commonTest =
-            getByName("commonTest") {
-                dependencies {
-                    implementation("org.jetbrains.kotlin:kotlin-test:${libs.versions.kotlin.get()}")
-                }
-            }
+        }
         getByName("androidHostTest") {
             dependencies {
                 implementation(kotlin("test-junit5")) {
@@ -116,52 +104,19 @@ kotlin {
                 runtimeOnly(libs.junitPlatformLauncher)
             }
         }
-        // Shared JVM+Android source set: @JvmInline actuals + generated views
-        // that compile for both JVM and Android targets (agp.com.android.kotlin.multiplatform.library).
-        val jvmMain = getByName("jvmMain")
-        val jvmTest =
-            getByName("jvmTest") {
-                dependencies {
-                    // Kotlin 2.4.20 exposes its Jupiter binding under the legacy junit5 artifact name.
-                    // Exclude its JUnit 5 transitives and bind the tests to JUnit 6 explicitly.
-                    implementation(kotlin("test-junit5")) {
-                        exclude(group = "org.junit.jupiter")
-                        exclude(group = "org.junit.platform")
-                    }
-                    implementation("org.junit.jupiter:junit-jupiter-api:${libs.versions.junit.get()}")
-                    runtimeOnly("org.junit.jupiter:junit-jupiter-engine:${libs.versions.junit.get()}")
-                    runtimeOnly("org.junit.platform:junit-platform-launcher:${libs.versions.junit.get()}")
+        getByName("jvmTest") {
+            dependencies {
+                // Kotlin 2.4.20 exposes its Jupiter binding under the legacy junit5 artifact name.
+                // Exclude its JUnit 5 transitives and bind the tests to JUnit 6 explicitly.
+                implementation(kotlin("test-junit5")) {
+                    exclude(group = "org.junit.jupiter")
+                    exclude(group = "org.junit.platform")
                 }
+                implementation("org.junit.jupiter:junit-jupiter-api:${libs.versions.junit.get()}")
+                runtimeOnly("org.junit.jupiter:junit-jupiter-engine:${libs.versions.junit.get()}")
+                runtimeOnly("org.junit.platform:junit-platform-launcher:${libs.versions.junit.get()}")
             }
-        if (!mutationJvmOnly) {
-            // Shared Kotlin/Native source set (Ticket 03 expect/actual value class).
-            // The plain (no-@JvmInline) `actual` views + runtime actuals here are
-            // platform-agnostic Native (no Darwin/Android-specific APIs), so they are
-            // shared by every Native target: iosArm64, iosSimulatorArm64, and
-            // androidNativeArm64 (ADR-0006 follow-up: publishes the android arm64
-            // klib variant so consumers like kemseed resolve it).
-            // gradle.properties: kotlin.mpp.applyDefaultHierarchyTemplate=false so this
-            // intermediate is the sole nativeMain (avoids the default-template conflict).
-            val nativeMain = create("nativeMain")
-            nativeMain.dependsOn(commonMain)
-            getByName("iosArm64Main") { dependsOn(nativeMain) }
-            getByName("iosSimulatorArm64Main") { dependsOn(nativeMain) }
-            getByName("androidNativeArm64Main") { dependsOn(nativeMain) }
-            // Kotlin/Native GC allocation probes run on every Native test target.
-            val nativeTest = create("nativeTest")
-            nativeTest.dependsOn(commonTest)
-            getByName("iosArm64Test") { dependsOn(nativeTest) }
-            getByName("iosSimulatorArm64Test") { dependsOn(nativeTest) }
-            getByName("androidNativeArm64Test") { dependsOn(nativeTest) }
         }
-        // jvmCommon: shared intermediate between commonMain and jvmMain/androidMain.
-        // Moved @JvmInline actuals + VehicleTelemetry here so both JVM and Android
-        // targets compile them. JvmCoveragePinning.java stays in jvmMain (JVM-only).
-        val jvmCommon = create("jvmCommon") {
-            dependsOn(commonMain)
-        }
-        jvmMain.dependsOn(jvmCommon)
-        getByName("androidMain") { dependsOn(jvmCommon) }
     }
 
     // Built-in ABI validation (KGP 2.1.0+): replaces BCV's apiValidation { klib { ... } }.
@@ -177,59 +132,10 @@ kotlin {
 if (mutationJvmOnly) {
     val mutatedTest = kotlin.targets.getByName<KotlinJvmTarget>("jvm")
         .compilations.getByName("mutatedTest")
-    mutatedTest.defaultSourceSet.kotlin.srcDir(layout.projectDirectory.dir("src/mutflowTest/kotlin"))
+    mutatedTest.defaultSourceSet.kotlin.srcDir(tasks.named("generateMutationAdapter"))
     // MutFlow's generated test compilation omits the regular JVM Java output.
     mutatedTest.defaultSourceSet.dependencies {
         implementation(files(tasks.named<JavaCompile>("compileJvmMainJava").map { it.destinationDirectory }))
-    }
-}
-
-// --- SKIE (iOS/Swift interop improvements) ---
-// SKIE (co.touchlab.skie) provides KMP-to-Swift interop via a Gradle plugin
-// extension. SKIE 0.10.14 (latest) supports Kotlin up to 2.4.20; the project
-// runs Kotlin 2.4.20, which is within SKIE's supported range. SKIE is declared
-// as `apply false` in the root build.gradle.kts and is NOT yet applied to
-// this module. When enabled, add `alias(libs.plugins.skie)` to this module's
-// plugins block and enable the desired features:
-//   - Sealed class → Swift enum conversion (e.g. KompactDecodeError)
-//   - Value class Swift-friendliness (e.g. BooleanResult, ByteResult, etc.)
-
-// --- Kover (100 % line + branch coverage on the JVM target) ---
-// Kover measures coverage from the jvmTest execution via its JVM TI agent
-// (not JaCoCo). For KMP projects, coverage is collected from the compiled JVM
-// bytecode (commonMain + jvmMain). The verify rules enforce strict 100 % thresholds.
-// See: kotlinx.kover.gradle.plugin.dsl (KoverProjectExtension → reports → total/verify)
-//
-// Kover filters exclude test-only utility classes that intentionally contain
-// never-called constructors and assertion branches — these are coverage-pinning
-// scaffolding (see JvmCoveragePinning.java), not production logic. The JVM TI
-// agent tracks INVOKEVIRTUAL (synthetic @JvmInline getters), not GETFIELD, so
-// the Java scaffolding forces method-level coverage.
-apply(plugin = "org.jetbrains.kotlinx.kover")
-
-extensions.configure<KoverProjectExtension>("kover") {
-    reports {
-        filters {
-            excludes {
-                classes("ch.trancee.kompact.runtime.JvmCoveragePinning*")
-            }
-        }
-        total {
-            xml {
-                onCheck.set(true)
-            }
-            html {
-                onCheck.set(false)
-            }
-        }
-        verify {
-            rule {
-                minBound(100, CoverageUnit.LINE)
-            }
-            rule {
-                minBound(100, CoverageUnit.BRANCH)
-            }
-        }
     }
 }
 
@@ -260,37 +166,10 @@ powerAssert {
         )
 }
 
-// Exclude JVM-coverage-pinning scaffolding (JvmCoveragePinning.java) from the
-// published JVM JAR. It lives in jvmMain so KMP compiles it before the Kotlin
-// test sources that reflectively exercise @JvmInline getters (JaCoCo/Kover
-// tracks INVOKEVIRTUAL but not GETFIELD). It is package-private (excluded from
-// ABI) and Kover-filtered — it must not ship in the Maven artifact.
-tasks.named<Jar>("jvmJar") {
-    exclude("ch/trancee/kompact/runtime/JvmCoveragePinning*.class")
-    exclude("ch/trancee/kompact/runtime/JvmCoveragePinning*.java")
-}
-
 // --- Maven Central Portal publishing ---
 // Route: Portal Publisher API (direct integration — no third-party plugin).
 // Signing: PGP key injected via environment variables (never in source).
 // See the maven-central-publishing skill for the full workflow.
-
-// KGP auto-creates jvmSourcesJar and auto-attaches it to the JVM publication.
-// KGP already includes commonMain + jvmMain sources; we add jvmCommon as a safety net
-// (custom source set may not be auto-included by KGP's jvmSourcesJar).
-// Uses withGroovyBuilder to avoid type-cast issues with KGP's internal task type.
-val commonMainSource = kotlin.sourceSets.getByName("commonMain")
-val jvmCommonSource = kotlin.sourceSets.getByName("jvmCommon")
-afterEvaluate {
-    val task = tasks.findByName("jvmSourcesJar")
-    if (task != null) {
-        task.withGroovyBuilder {
-            invokeMethod("setDuplicatesStrategy", DuplicatesStrategy.EXCLUDE)
-            invokeMethod("from", commonMainSource.kotlin)
-            invokeMethod("from", jvmCommonSource.kotlin)
-        }
-    }
-}
 
 // Javadoc JAR for the JVM target — Central requires a Javadoc artifact for JVM publications.
 // Dokka 2.x generates GFM Markdown from KDoc via the dokka-markdown convention plugin

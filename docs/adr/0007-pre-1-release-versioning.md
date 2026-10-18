@@ -1,57 +1,55 @@
-# ADR-0007 — Pre-1.0 breaking-change versioning
+# ADR-0007: Pre-1.0 breaking-change versioning
 
-- **Status:** Accepted
-- **Date:** 2026-09-27
-- **Tags:** governance, release, semver
-- **Amends:** Constitution Q6 and ADR-0004
+- Status: Accepted
+- Date: 2026-09-27
+- Tags: governance, release, semver
+- Amends: Constitution Q6 and [ADR-0004](0004-release-pr-automation.md)
 
 ## Context
 
 The `0.4.0-SNAPSHOT` development cycle contains a deliberate breaking API
-change to `LongResult`. The release script previously treated every
-Conventional Commit breaking marker as a major bump, which changed the
-generated release PR from `0.4.0` to `1.0.0`.
+change to `LongResult`. The release script treated every Conventional Commit
+breaking marker as a major bump. That changed the generated release PR from
+`0.4.0` to `1.0.0`.
 
-Kompact is still explicitly pre-stable. Advancing to `1.0.0` would communicate
-a stable compatibility commitment that the project is not ready to make.
+Kompact is still explicitly pre-stable. A `1.0.0` release would announce a
+stable compatibility commitment that the project is not ready to make.
 
 ## Decision
 
-While the current major version is `0`, a breaking public or serialized
-contract increments the MINOR version and resets PATCH to zero. Starting with
-`1.0.0`, a breaking contract increments MAJOR. Additive changes remain MINOR
-and compatible fixes remain PATCH in both phases.
+While the major version is `0`, a breaking change to a public or serialized
+contract increments the MINOR version and resets PATCH to zero. From `1.0.0`
+on, a breaking contract change increments MAJOR. In both phases, additive
+changes increment MINOR and compatible fixes increment PATCH.
 
-The release version script enforces this rule and its CI regression test covers
-both breaking-marker forms, both sides of the `1.0.0` boundary, additive
-features, and compatible fixes.
+The release version script enforces this rule. Its CI regression test covers
+both forms of the breaking marker, both sides of the `1.0.0` boundary,
+additive features, and compatible fixes.
 
-## Alternatives
+## Alternatives considered
 
-1. **Release `1.0.0`.** Rejected because it would prematurely declare API
-   stability.
-2. **Remove the breaking marker from history.** Rejected because the changelog
-   must continue to identify the compatibility break accurately.
-3. **Add a one-off `0.4.0` override.** Rejected because an undocumented bypass
-   would leave future pre-stable releases ambiguous.
+1. Release `1.0.0`. Rejected: it would declare API stability too early.
+2. Remove the breaking marker from history. Rejected: the changelog must keep
+   identifying the compatibility break correctly.
+3. Add a one-off `0.4.0` override. Rejected: an undocumented bypass would leave
+   future pre-stable releases unclear.
 
-## Risks
+## Consequences
 
-- Pre-`1.0` consumers must inspect MINOR release notes for migration
-  requirements.
-- Tooling that assumes every breaking marker means a major increment must use
-  the repository release script as the source of truth.
-- Once `1.0.0` is released, the automation switches to major increments for
-  breaking changes without another policy change.
+- Consumers before `1.0` must read the MINOR release notes for migration
+  steps.
+- Tooling that assumes every breaking marker means a major increment must
+  treat the release script of the repository as the source of truth.
+- After `1.0.0` is released, the automation switches to major increments for
+  breaking changes with no further policy change.
 
 ## Migration
 
-This policy was applied when `0.4.0` was released; future releases continue to
-use the same pre-`1.0` rule. No artifact or wire-format migration is introduced
-by the policy itself.
+The `0.4.0` release applied this policy, and later releases keep the same
+pre-`1.0` rule. The policy itself adds no artifact or wire-format migration.
 
 ## Approval
 
 The repository maintainer approved the pre-`1.0` MINOR policy on 2026-09-27.
-The Constitution version advances from `2.0.1` to `3.0.0` because this changes
-a normative release obligation.
+The Constitution version advanced from `2.0.1` to `3.0.0`, because this
+changes a normative release obligation.

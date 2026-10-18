@@ -2,9 +2,5 @@
 
 # success
 
-[common, jvmCommon, native]\
 [common]\
-expect fun [success](success.md)(value: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)): [BooleanResult](../index.md)
-
-[jvmCommon, native]\
-actual fun [success](success.md)(value: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)): [BooleanResult](../index.md)
+fun [success](success.md)(value: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html)): [BooleanResult](../index.md)

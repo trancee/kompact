@@ -84,9 +84,9 @@ class KompactFramingTest {
     fun nestedRegionBoundsFromLengthPrefix8() {
         // [0..7] prefix byte = 4 (8-bit, 4 bytes follow); payload at bits 8..39.
         val buf = byteArrayOf(4, 0xAB.toByte(), 0xCD.toByte(), 0xEF.toByte(), 0x10)
-        val region = KompactFraming.nestedRegionOrNull(buf, 0, 8)
-        assertNotNull(region)
-        val (startBit, bitLen) = region
+        val region = KompactFraming.readNested(buf, 0, 8)
+        val startBit = region.startBit
+        val bitLen = region.bitLength
         assertEquals(8, startBit)
         assertEquals(32, bitLen)
         // First payload byte at bit 8 == 0xAB; last byte at bits 32..39 == 0x10.
@@ -98,10 +98,9 @@ class KompactFramingTest {
     fun nestedRegion8_truncatedReturnsNull() {
         // length prefix says 10 bytes but only 3 available past the prefix byte.
         val buf = byteArrayOf(10, 1, 2, 3)
-        val region = KompactFraming.nestedRegionOrNull(buf, 0, 8)
-        // BadLengthPrefix at the caller: prefix exceeds remaining bytes
-        // (fail-fast, never silent — Ticket 06/09).
-        assertEquals(null, region)
+        val region = KompactFraming.readNested(buf, 0, 8)
+        // The prefix exceeds the remaining bytes: fail fast, never silently.
+        assertEquals(KompactDecodeError.BadLengthPrefix, region.error)
     }
 
     // --- repeat count: fixed-width LE count prefix, sequential ---
@@ -120,22 +119,18 @@ class KompactFramingTest {
     // so it must fail fast to null (BadLengthPrefix at the caller, Ticket 06/09).
 
     @Test
-    fun nestedRegionOrNull_rejectsIntMaxByteCountPrefix() {
+    fun readNested_rejectsIntMaxByteCountPrefix() {
         val buf = byteArrayOf(0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0x7F)
         // 32-bit LE prefix = 0x7FFFFFFF = Int.MAX_VALUE bytes (largest positive count).
-        assertNull(
-            KompactFraming.nestedRegionOrNull(buf, 0, 32),
-            "0x7FFFFFFF prefix must return null, not a corrupt Pair",
-        )
+        assertEquals(KompactDecodeError.BadLengthPrefix, KompactFraming.readNested(buf, 0, 32).error)
     }
 
     @Test
-    fun nestedRegionOrNull32_roundTripsLegitByteCount() {
+    fun readNested32_roundTripsLegitByteCount() {
         val buf = ByteArray(8)
         KompactFraming.writeLengthPrefix(buf, 0, 32, 4)
-        val r = KompactFraming.nestedRegionOrNull(buf, 0, 32)
-        assertNotNull(r)
-        assertEquals(32, r.first) // prefix occupies [0..31], payload starts at bit 32
-        assertEquals(32, r.second) // 4 bytes * 8 bits = 32-bit payload
+        val r = KompactFraming.readNested(buf, 0, 32)
+        assertEquals(32, r.startBit) // prefix occupies [0..31], payload starts at bit 32
+        assertEquals(32, r.bitLength) // 4 bytes * 8 bits = 32-bit payload
     }
 }
