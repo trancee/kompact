@@ -238,7 +238,7 @@ public object KompactRuntime {
         }
     }
 
-    /** Reads 32 bits at [bitOffset] as a checked [FloatResult]. NaN is canonicalized. */
+    /** Reads 32 bits at [bitOffset] as a checked [FloatResult]. NaN payload bits are preserved. */
     public fun readFloat(
         raw: ByteArray,
         bitOffset: Int,
