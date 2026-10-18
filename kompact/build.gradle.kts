@@ -3,8 +3,6 @@
     org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class,
 )
 
-import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
-import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 import io.github.anschnapp.mutflow.gradle.MutflowExtension
 import org.gradle.api.GradleException
 import org.gradle.api.publish.maven.MavenPublication
@@ -17,6 +15,7 @@ plugins {
     alias(libs.plugins.kotlinPowerAssert)
     id("dokka-markdown")
     id("portal-publish")
+    id("kover-conventions")
 }
 
 dokka {
@@ -137,34 +136,6 @@ if (mutationJvmOnly) {
     // MutFlow's generated test compilation omits the regular JVM Java output.
     mutatedTest.defaultSourceSet.dependencies {
         implementation(files(tasks.named<JavaCompile>("compileJvmMainJava").map { it.destinationDirectory }))
-    }
-}
-
-// --- Kover (100 % line + branch coverage on the JVM target) ---
-// Kover measures coverage from the jvmTest execution via its JVM TI agent
-// (not JaCoCo). For KMP projects, coverage is collected from the compiled JVM
-// bytecode (commonMain + jvmMain). The verify rules enforce strict 100 % thresholds.
-// See: kotlinx.kover.gradle.plugin.dsl (KoverProjectExtension → reports → total/verify)
-apply(plugin = "org.jetbrains.kotlinx.kover")
-
-extensions.configure<KoverProjectExtension>("kover") {
-    reports {
-        total {
-            xml {
-                onCheck.set(true)
-            }
-            html {
-                onCheck.set(false)
-            }
-        }
-        verify {
-            rule {
-                minBound(100, CoverageUnit.LINE)
-            }
-            rule {
-                minBound(100, CoverageUnit.BRANCH)
-            }
-        }
     }
 }
 

@@ -2,8 +2,6 @@
     org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class,
 )
 
-import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
-import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 import io.github.anschnapp.mutflow.gradle.MutflowExtension
 import org.gradle.api.GradleException
 import org.gradle.api.publish.maven.MavenPublication
@@ -13,6 +11,7 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     id("dokka-markdown")
     id("portal-publish")
+    id("kover-conventions")
     // maven-publish is also applied by portal-publish convention plugin, but
     // listed here to ensure KGP's kotlin("jvm") publication auto-creation
     // detects it during plugins{} block processing (convention plugin
@@ -116,22 +115,6 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
-}
-
-// --- Kover (100 % line + branch coverage on the KSP processor) ---
-apply(plugin = "org.jetbrains.kotlinx.kover")
-
-extensions.configure<KoverProjectExtension>("kover") {
-    reports {
-        total {
-            xml { onCheck.set(true) }
-            html { onCheck.set(false) }
-        }
-        verify {
-            rule { minBound(100, CoverageUnit.LINE) }
-            rule { minBound(100, CoverageUnit.BRANCH) }
-        }
-    }
 }
 
 // --- KSP processor: registered via ServiceLoader so KSP discovers it ---

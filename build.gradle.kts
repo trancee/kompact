@@ -9,17 +9,6 @@ plugins {
     alias(libs.plugins.benchmark) apply false
 }
 
-val koverVersion = libs.versions.kover.get()
-subprojects {
-    buildscript {
-        dependencies {
-            classpath("org.jetbrains.kotlinx.kover:org.jetbrains.kotlinx.kover.gradle.plugin:$koverVersion") {
-                exclude(group = "org.freemarker", module = "freemarker")
-            }
-        }
-    }
-}
-
 allprojects {
     group = "ch.trancee.kompact"
     version = "0.10.0-SNAPSHOT"
