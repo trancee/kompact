@@ -6,7 +6,7 @@ class [KompactRepeatWorkspace](index.md)(checkpointStorage: [IntArray](https://k
 
 Caller-owned sparse-index storage for one variable- or fixed-width repeat.
 
-The workspace retains checkpointStorage and the buffer bound by the last successful repeat read. Keep that buffer unchanged while using the index. Reusing this workspace replaces its current repeat binding.
+The workspace retains checkpointStorage and the buffer bound by the last successful repeat read. Keep that buffer unchanged while using the index. Reusing this workspace replaces its current repeat binding. Size the storage to at least `ceil(count / CHECKPOINT_INTERVAL)` slots.
 
 #### Parameters
 

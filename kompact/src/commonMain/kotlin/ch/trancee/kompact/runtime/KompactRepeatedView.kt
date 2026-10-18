@@ -44,9 +44,9 @@ public class KompactRepeatedView<T> internal constructor(
     private fun elementStart(index: Int): Int {
         if (index !in 0 until size) throw IndexOutOfBoundsException("index $index, size $size")
         if (elementWidth != 0) return firstBit + index * elementWidth
-        val checkpoint = index / CHECKPOINT_INTERVAL
+        val checkpoint = index / KompactRepeatWorkspace.CHECKPOINT_INTERVAL
         var cursor = checkpoints[checkpoint]
-        repeat(index % CHECKPOINT_INTERVAL) {
+        repeat(index % KompactRepeatWorkspace.CHECKPOINT_INTERVAL) {
             cursor = elementEnd(cursor)
         }
         return cursor
@@ -64,9 +64,5 @@ public class KompactRepeatedView<T> internal constructor(
             throw KompactDecodeException(KompactDecodeError.BadLengthPrefix)
         }
         return endBit.toInt()
-    }
-
-    internal companion object {
-        const val CHECKPOINT_INTERVAL: Int = 64
     }
 }

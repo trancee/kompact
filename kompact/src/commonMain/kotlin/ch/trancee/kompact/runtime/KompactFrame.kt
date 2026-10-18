@@ -86,8 +86,8 @@ public class KompactFrame private constructor(
         val firstBit = cursor
         val checkpointCount =
             if (elementWidth == 0) {
-                count / KompactRepeatedView.CHECKPOINT_INTERVAL +
-                    if (count % KompactRepeatedView.CHECKPOINT_INTERVAL == 0) 0 else 1
+                count / KompactRepeatWorkspace.CHECKPOINT_INTERVAL +
+                    if (count % KompactRepeatWorkspace.CHECKPOINT_INTERVAL == 0) 0 else 1
             } else {
                 0
             }
@@ -96,8 +96,8 @@ public class KompactFrame private constructor(
             cursor += count * elementWidth
         } else {
             for (index in 0 until count) {
-                if (index % KompactRepeatedView.CHECKPOINT_INTERVAL == 0) {
-                    checkpoints[index / KompactRepeatedView.CHECKPOINT_INTERVAL] = cursor
+                if (index % KompactRepeatWorkspace.CHECKPOINT_INTERVAL == 0) {
+                    checkpoints[index / KompactRepeatWorkspace.CHECKPOINT_INTERVAL] = cursor
                 }
                 val length = prefix(elementPrefixWidth)
                 if (cursor % 8 != 0 || length > (endBit - cursor) / 8) {
