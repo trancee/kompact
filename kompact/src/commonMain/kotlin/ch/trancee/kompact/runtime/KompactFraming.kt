@@ -13,35 +13,35 @@ package ch.trancee.kompact.runtime
  * - **Repeated fields** — one fixed-width count prefix, then `count` elements
  *   in sequence (the count width is the field's declared prefix width).
  *
- * Reads never throw on the hot path: a prefix that overruns the buffer is
- * reported as a typed `BadLengthPrefix` result; skew is fail-fast, never
- * silent.
+ * Malformed input never throws on the hot path: a prefix that overruns the
+ * buffer is reported as a typed `BadLengthPrefix` result; skew is fail-fast,
+ * never silent. An invalid caller-supplied prefix width is a programming error
+ * and throws [IllegalArgumentException].
  */
 public object KompactFraming {
     /** Valid length-prefix bit widths (Ticket 06 invariant matrix). */
     public val VALID_PREFIX_WIDTHS: Set<Int> = setOf(8, 16, 32)
 
     /**
-     * Sentinel returned by [readLengthPrefix] when `bitWidth` is invalid or the
-     * prefix field overruns `raw` — the sentinel [INVALID_LENGTH_PREFIX]
-     * isolates failure from success without scattering bare sentinel values
-     * across call sites. This is the only value [readLengthPrefix]
-     * returns on failure; it is never a valid (non-negative) byte count.
+     * Sentinel returned by [readLengthPrefix] when the prefix field overruns
+     * `raw`. It is never a valid (non-negative) byte count.
      */
     public const val INVALID_LENGTH_PREFIX: Int = -1
 
     /**
      * Reads a fixed-width (8/16/32-bit) little-endian byte count at [bitOffset].
-     * Unsigned magnitude via the raw bit primitives; returns [INVALID_LENGTH_PREFIX]
-     * (-1) when [bitWidth] is invalid or the region overruns [raw] (caller maps to a
-     * typed error — never throws on the read path, Ticket 06).
+     * Returns [INVALID_LENGTH_PREFIX] (-1) when the prefix overruns [raw]; the
+     * caller maps it to a typed error.
+     *
+     * @throws IllegalArgumentException if [bitWidth] is not 8, 16, or 32.
      */
     public fun readLengthPrefix(
         raw: ByteArray,
         bitOffset: Int,
         bitWidth: Int,
     ): Int {
-        if (bitWidth !in VALID_PREFIX_WIDTHS || !KompactRuntime.fits(raw, bitOffset, bitWidth)) {
+        requirePrefixWidth(bitWidth)
+        if (!KompactRuntime.fits(raw, bitOffset, bitWidth)) {
             return INVALID_LENGTH_PREFIX
         }
         return when (bitWidth) {
@@ -51,12 +51,20 @@ public object KompactFraming {
         }
     }
 
+    internal fun requirePrefixWidth(width: Int) {
+        require(width == 8 || width == 16 || width == 32) {
+            "length-prefix bit width must be 8, 16, or 32, was $width"
+        }
+    }
+
     /**
      * Writes [length] as a fixed-width little-endian byte count at [bitOffset].
      * Mirrors [readLengthPrefix] (Ticket 07: the writer selects the per-field
      * prefix width at codegen time; it must be one of [VALID_PREFIX_WIDTHS]).
      * [length] must be non-negative and fit the selected width; invalid values
      * throw before the buffer is modified.
+     *
+     * @throws IllegalArgumentException for an invalid width or unrepresentable [length].
      */
     public fun writeLengthPrefix(
         raw: ByteArray,
@@ -64,9 +72,7 @@ public object KompactFraming {
         bitWidth: Int,
         length: Int,
     ) {
-        if (bitWidth !in VALID_PREFIX_WIDTHS) {
-            throw IllegalArgumentException("length-prefix bit width must be 8, 16, or 32 (Ticket 06)")
-        }
+        requirePrefixWidth(bitWidth)
         require(length >= 0) { "length-prefix value must be non-negative, was $length" }
         val maximum =
             when (bitWidth) {
@@ -88,9 +94,11 @@ public object KompactFraming {
      * Parses the [prefixBitWidth]-bit length prefix at [bitOffset] and returns
      * the payload region `[startBit, startBit + bitLength)` that follows it.
      *
-     * Returns a [KompactDecodeError.BadLengthPrefix] failure when the width is
-     * not 8/16/32, the prefix is unreadable, the payload's bit length would
-     * overflow `Int`, or the payload exceeds the remaining buffer.
+     * Returns a [KompactDecodeError.BadLengthPrefix] failure when the prefix is
+     * unreadable, the payload's bit length would overflow `Int`, or the payload
+     * exceeds the remaining buffer.
+     *
+     * @throws IllegalArgumentException if [prefixBitWidth] is not 8, 16, or 32.
      */
     public fun readNested(
         raw: ByteArray,
@@ -111,7 +119,12 @@ public object KompactFraming {
         return NestedRegionResult.success(regionStart, regionBits)
     }
 
-    /** Throwing variant of [readLengthPrefix]: throws [KompactDecodeException] on a bad prefix (Ticket 05). */
+    /**
+     * Throwing variant of [readLengthPrefix].
+     *
+     * @throws IllegalArgumentException if [bitWidth] is not 8, 16, or 32.
+     * @throws KompactDecodeException with [KompactDecodeError.BadLengthPrefix] when the prefix overruns [raw].
+     */
     public fun readLengthPrefixOrThrow(
         raw: ByteArray,
         bitOffset: Int,

@@ -64,7 +64,7 @@ class KompactUtf8ValidatorTest {
 
             val status = cursor.captureRegion(range, validateUtf8 = true)
 
-            assertEquals(if (valid) KompactCursor.STATUS_OK else KompactCursor.STATUS_INVALID_UTF8, status)
+            assertEquals(if (valid) KompactStatus.OK else KompactStatus.INVALID_UTF8, status)
         }
     }
 }

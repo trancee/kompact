@@ -3,6 +3,6 @@
 # readByteRange
 
 [common]\
-fun [readByteRange](read-byte-range.md)(prefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), range: [KompactByteRange](../-kompact-byte-range/index.md)): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+fun [readByteRange](read-byte-range.md)(prefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), range: [KompactByteRange](../-kompact-byte-range/index.md)): [KompactStatus](../-kompact-status/index.md)
 
 Read a length-prefixed byte range into caller-owned [range](read-byte-range.md) state.

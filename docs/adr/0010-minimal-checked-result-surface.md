@@ -5,6 +5,8 @@
 - **Supersedes:** the opt-in `decodeFull` diagnostics tier described in
   [ADR-0005](0005-relax-fail-path-zero-alloc.md) (the `LongResult` decision
   there still applies)
+- **Amended by:** [ADR-0013](0013-typed-status-and-caller-contract-errors.md)
+  (adds `KompactDecodeError.TrailingData` as a fifth case)
 
 ## Context
 

@@ -42,6 +42,7 @@ releases:
 | Minimal checked-result surface | [ADR-0010](adr/0010-minimal-checked-result-surface.md) |
 | Inferred nested fields and checked fixed-layout decode | [ADR-0011](adr/0011-inferred-nested-fields-and-checked-fixed-decode.md) |
 | Kotlin minor-line compatibility | [ADR-0012](adr/0012-kotlin-minor-line-compatibility.md) |
+| Typed cursor status and caller-contract errors | [ADR-0013](adr/0013-typed-status-and-caller-contract-errors.md) |
 
 ### Technical research
 

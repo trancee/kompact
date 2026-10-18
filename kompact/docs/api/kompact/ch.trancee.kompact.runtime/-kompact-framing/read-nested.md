@@ -7,4 +7,10 @@ fun [readNested](read-nested.md)(raw: [ByteArray](https://kotlinlang.org/api/cor
 
 Parses the [prefixBitWidth](read-nested.md)-bit length prefix at [bitOffset](read-nested.md) and returns the payload region `[startBit, startBit + bitLength)` that follows it.
 
-Returns a [KompactDecodeError.BadLengthPrefix](../-kompact-decode-error/-bad-length-prefix/index.md) failure when the width is not 8/16/32, the prefix is unreadable, the payload's bit length would overflow `Int`, or the payload exceeds the remaining buffer.
+Returns a [KompactDecodeError.BadLengthPrefix](../-kompact-decode-error/-bad-length-prefix/index.md) failure when the prefix is unreadable, the payload's bit length would overflow `Int`, or the payload exceeds the remaining buffer.
+
+#### Throws
+
+| | |
+|---|---|
+| [IllegalArgumentException](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-illegal-argument-exception/index.html) | if [prefixBitWidth](read-nested.md) is not 8, 16, or 32. |

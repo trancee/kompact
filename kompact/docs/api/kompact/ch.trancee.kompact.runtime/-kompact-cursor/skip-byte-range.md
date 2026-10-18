@@ -3,6 +3,6 @@
 # skipByteRange
 
 [common]\
-fun [skipByteRange](skip-byte-range.md)(prefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), validateUtf8: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) = false): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+fun [skipByteRange](skip-byte-range.md)(prefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), validateUtf8: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) = false): [KompactStatus](../-kompact-status/index.md)
 
 Validate and skip a length-prefixed byte region without storing a range. Set [validateUtf8](skip-byte-range.md) for string payloads.

@@ -16,6 +16,7 @@ class KompactResultDecodeErrorTest {
         assertEquals(KompactDecodeError.BadLengthPrefix, decodeError(ERROR_BAD_LENGTH))
         assertEquals(KompactDecodeError.TruncatedNested, decodeError(ERROR_TRUNCATED))
         assertEquals(KompactDecodeError.InvalidUtf8, decodeError(ERROR_INVALID_UTF8))
+        assertEquals(KompactDecodeError.TrailingData, decodeError(ERROR_TRAILING_DATA))
     }
 
     @Test
@@ -31,6 +32,7 @@ class KompactResultDecodeErrorTest {
                 KompactDecodeError.BadLengthPrefix,
                 KompactDecodeError.TruncatedNested,
                 KompactDecodeError.InvalidUtf8,
+                KompactDecodeError.TrailingData,
             )
 
         for (error in errors) {

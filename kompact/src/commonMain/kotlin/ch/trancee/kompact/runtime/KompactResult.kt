@@ -14,7 +14,7 @@ import kotlin.jvm.JvmInline
 // and lengths occupy only non-negative 32-bit halves.
 //
 // DoubleResult (64-bit) has no spare bits, so it reserves quiet-NaN payloads:
-//   a quiet NaN whose low 4 payload bits are 1..4 is a failure (error kind + 1);
+//   a quiet NaN whose low 4 payload bits are 1..5 is a failure (error kind + 1);
 //   every successful NaN is canonicalized to payload 0. Double NaN payloads are
 //   therefore not preserved — read raw bits with `readBitsLong` if they matter.
 //
@@ -44,6 +44,7 @@ internal const val ERROR_BOUNDS: Int = 0
 internal const val ERROR_BAD_LENGTH: Int = 1
 internal const val ERROR_TRUNCATED: Int = 2
 internal const val ERROR_INVALID_UTF8: Int = 3
+internal const val ERROR_TRAILING_DATA: Int = 4
 
 // === Shared helpers ===
 
@@ -53,6 +54,7 @@ internal fun encodeErrorKind(error: KompactDecodeError): Int =
         KompactDecodeError.BadLengthPrefix -> ERROR_BAD_LENGTH
         KompactDecodeError.TruncatedNested -> ERROR_TRUNCATED
         KompactDecodeError.InvalidUtf8 -> ERROR_INVALID_UTF8
+        KompactDecodeError.TrailingData -> ERROR_TRAILING_DATA
     }
 
 /**
@@ -65,6 +67,7 @@ internal fun decodeError(kind: Int): KompactDecodeError =
         ERROR_BAD_LENGTH -> KompactDecodeError.BadLengthPrefix
         ERROR_TRUNCATED -> KompactDecodeError.TruncatedNested
         ERROR_INVALID_UTF8 -> KompactDecodeError.InvalidUtf8
+        ERROR_TRAILING_DATA -> KompactDecodeError.TrailingData
         else -> KompactDecodeError.BoundsError
     }
 
@@ -87,7 +90,7 @@ internal fun isDoubleFailure(packed: Long): Boolean {
     return payload != 0L && (packed and 0x7FF8_0000_0000_0000L) == DOUBLE_NAN_CANONICAL
 }
 
-// payload = kind + 1 (1..4); 0 is reserved for the canonical success NaN.
+// payload = kind + 1 (1..5); 0 is reserved for the canonical success NaN.
 internal fun encodeDoubleFailure(error: KompactDecodeError): Long =
     DOUBLE_NAN_CANONICAL or (encodeErrorKind(error) + 1L)
 

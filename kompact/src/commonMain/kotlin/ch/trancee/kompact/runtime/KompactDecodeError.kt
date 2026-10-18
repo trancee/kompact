@@ -21,6 +21,12 @@ public sealed interface KompactDecodeError {
 
     /** A string field contains malformed UTF-8. */
     public data object InvalidUtf8 : KompactDecodeError
+
+    /**
+     * A complete framed decode left unread bytes, or non-zero padding bits in
+     * the final partial byte, after the declared fields.
+     */
+    public data object TrailingData : KompactDecodeError
 }
 
 /**

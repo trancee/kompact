@@ -4,6 +4,10 @@ package ch.trancee.kompact.runtime
  * Bounded forward-only reader over a borrowed array. Reads advance the cursor; direct
  * read methods throw [KompactDecodeException] on malformed input. The block overload
  * of [decode] translates those failures into [KompactFrameResult].
+ *
+ * Invalid caller-supplied widths or repeat shapes are programming errors, not
+ * malformed input: they throw [IllegalArgumentException], which [decode] does not
+ * translate.
  */
 public class KompactFrame private constructor(
     public val raw: ByteArray,
@@ -15,9 +19,16 @@ public class KompactFrame private constructor(
     private var cursor: Int = initialBit
     private val endBit: Int = finalBit
 
-    /** Read 1..64 low bits in wire order, without crossing this frame's boundary. */
+    /**
+     * Read 1..64 low bits in wire order, without crossing this frame's boundary.
+     *
+     * @throws IllegalArgumentException if [width] is not in 1..64.
+     * @throws KompactDecodeException with [KompactDecodeError.BoundsError] if fewer
+     *   than [width] bits remain.
+     */
     public fun readBits(width: Int): Long {
-        if (width !in 1..64 || width > endBit - cursor) {
+        require(width in 1..64) { "readBits width must be 1..64, was $width" }
+        if (width > endBit - cursor) {
             throw KompactDecodeException(KompactDecodeError.BoundsError)
         }
         val value = KompactRuntime.readBitsLong(raw, cursor, width)
@@ -26,7 +37,8 @@ public class KompactFrame private constructor(
     }
 
     private fun prefix(width: Int): Int {
-        if (width !in KompactFraming.VALID_PREFIX_WIDTHS || width > endBit - cursor) {
+        KompactFraming.requirePrefixWidth(width)
+        if (width > endBit - cursor) {
             throw KompactDecodeException(KompactDecodeError.BadLengthPrefix)
         }
         val count = readBits(width)
@@ -46,7 +58,12 @@ public class KompactFrame private constructor(
         return KompactByteSlice(raw, first, first + length)
     }
 
-    /** Read a length-prefixed UTF-8 string; throws [KompactDecodeException] for malformed input. */
+    /**
+     * Read a length-prefixed UTF-8 string.
+     *
+     * @throws IllegalArgumentException if [prefixWidth] is not 8, 16, or 32.
+     * @throws KompactDecodeException for a malformed prefix or malformed UTF-8.
+     */
     public fun readString(prefixWidth: Int): String {
         val bytes = region(prefixWidth)
         return try {
@@ -56,15 +73,31 @@ public class KompactFrame private constructor(
         }
     }
 
-    /** Read a borrowed length-prefixed byte region without copying. */
+    /**
+     * Read a borrowed length-prefixed byte region without copying.
+     *
+     * @throws IllegalArgumentException if [prefixWidth] is not 8, 16, or 32.
+     * @throws KompactDecodeException with [KompactDecodeError.BadLengthPrefix] for a malformed prefix.
+     */
     public fun readBlob(prefixWidth: Int): KompactByteSlice = region(prefixWidth)
 
-    /** Read a bounded nested payload sharing the original backing array. */
+    /**
+     * Read a bounded nested payload sharing the original backing array.
+     *
+     * @throws IllegalArgumentException if [prefixWidth] is not 8, 16, or 32.
+     * @throws KompactDecodeException with [KompactDecodeError.BadLengthPrefix] for a malformed prefix.
+     */
     public fun readNested(prefixWidth: Int): KompactByteSlice = region(prefixWidth)
 
     /**
      * Validate a count-prefixed sequence; retain sparse boundaries for variable elements
      * and defer each element's value decoding until it is accessed.
+     *
+     * Exactly one of [elementWidth] (1..64) and [elementPrefixWidth] (8, 16, or 32)
+     * must be non-zero, and [countWidth] must be 8, 16, or 32.
+     *
+     * @throws IllegalArgumentException for an invalid count width or element shape.
+     * @throws KompactDecodeException when the count prefix or element payloads are malformed.
      */
     public fun <T> readRepeated(
         countWidth: Int,
@@ -72,11 +105,14 @@ public class KompactFrame private constructor(
         elementPrefixWidth: Int,
         decodeElement: (KompactFrame) -> T,
     ): KompactRepeatedView<T> {
-        if ((elementWidth == 0) == (elementPrefixWidth == 0) ||
-            (elementWidth != 0 && elementWidth !in 1..64) ||
-            (elementPrefixWidth != 0 && elementPrefixWidth !in KompactFraming.VALID_PREFIX_WIDTHS)
-        ) {
-            throw KompactDecodeException(KompactDecodeError.BoundsError)
+        KompactFraming.requirePrefixWidth(countWidth)
+        require((elementWidth == 0) != (elementPrefixWidth == 0)) {
+            "exactly one of elementWidth and elementPrefixWidth must be non-zero"
+        }
+        if (elementWidth != 0) {
+            require(elementWidth in 1..64) { "elementWidth must be 1..64, was $elementWidth" }
+        } else {
+            KompactFraming.requirePrefixWidth(elementPrefixWidth)
         }
         val count = prefix(countWidth)
         val minimum = if (elementWidth != 0) elementWidth else elementPrefixWidth
@@ -118,11 +154,16 @@ public class KompactFrame private constructor(
         )
     }
 
-    /** Reject extra bytes/bits after the declared fields. */
+    /**
+     * Reject extra bytes or non-zero padding bits after the declared fields.
+     *
+     * @throws KompactDecodeException with [KompactDecodeError.TrailingData] when a
+     *   whole unread byte or a non-zero padding bit remains.
+     */
     public fun requireComplete() {
         val remaining = endBit - cursor
         if (remaining > 7 || (remaining > 0 && KompactRuntime.readBitsLong(raw, cursor, remaining) != 0L)) {
-            throw KompactDecodeException(KompactDecodeError.BoundsError)
+            throw KompactDecodeException(KompactDecodeError.TrailingData)
         }
     }
 
@@ -157,7 +198,12 @@ public class KompactFrame private constructor(
                 KompactFrameResult.Success(KompactFrame(raw, start, end))
             }
 
-        /** Parse an untrusted region and translate only decoder failures into typed results. */
+        /**
+         * Parse an untrusted region and translate only decoder failures into typed results.
+         *
+         * Caller-contract violations raised by [block], such as an invalid width
+         * ([IllegalArgumentException]), propagate unchanged.
+         */
         public fun <T> decode(
             raw: ByteArray,
             start: Int = 0,

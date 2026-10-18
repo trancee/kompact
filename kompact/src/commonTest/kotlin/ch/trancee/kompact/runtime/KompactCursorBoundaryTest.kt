@@ -23,7 +23,7 @@ class KompactCursorBoundaryTest {
             val (start, position, end) = bounds
             val status = cursor.reset(byteArrayOf(0), start, position, end)
 
-            assertEquals(KompactCursor.STATUS_INVALID_BOUNDS, status)
+            assertEquals(KompactStatus.INVALID_BOUNDS, status)
             assertEquals(expectedErrorDetail, cursor.errorDetail)
             assertEquals(position, cursor.errorBitOffset)
             assertSame(original, cursor.buffer)
@@ -41,7 +41,7 @@ class KompactCursorBoundaryTest {
 
         val status = cursor.reset(byteArrayOf(0x55), startBit = 0, position = -1, endBit = 8)
 
-        assertEquals(KompactCursor.STATUS_INVALID_BOUNDS, status)
+        assertEquals(KompactStatus.INVALID_BOUNDS, status)
         assertEquals(0, cursor.errorBitOffset)
         assertEquals(-1, cursor.errorDetail)
         assertSame(previous, cursor.buffer)
@@ -53,17 +53,17 @@ class KompactCursorBoundaryTest {
     @Test
     fun resetAcceptsValidSubrangeAndClearsPriorDiagnostics() {
         val cursor = KompactCursor(byteArrayOf(0x7F))
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.skipBits(-1))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.skipBits(-1))
 
         val raw = byteArrayOf(0x12, 0x34, 0x56)
         val status = cursor.reset(raw, startBit = 3, position = 7, endBit = 19)
 
-        assertEquals(KompactCursor.STATUS_OK, status)
+        assertEquals(KompactStatus.OK, status)
         assertSame(raw, cursor.buffer)
         assertEquals(3, cursor.startBit)
         assertEquals(7, cursor.position)
         assertEquals(19, cursor.endBit)
-        assertEquals(KompactCursor.STATUS_OK, cursor.status)
+        assertEquals(KompactStatus.OK, cursor.status)
         assertEquals(0, cursor.errorBitOffset)
         assertEquals(0, cursor.errorDetail)
     }
@@ -77,7 +77,7 @@ class KompactCursorBoundaryTest {
 
         val status = cursor.resetByteRange(byteArrayOf(0x55), 0, endByte)
 
-        assertEquals(KompactCursor.STATUS_INVALID_BOUNDS, status)
+        assertEquals(KompactStatus.INVALID_BOUNDS, status)
         assertSame(previous, cursor.buffer)
         assertEquals(1, cursor.startBit)
         assertEquals(3, cursor.position)
@@ -91,10 +91,10 @@ class KompactCursorBoundaryTest {
         val raw = byteArrayOf(1, 2)
         val cursor = KompactCursor(raw)
 
-        assertEquals(KompactCursor.STATUS_INVALID_BOUNDS, cursor.resetByteRange(raw, -1, 1))
-        assertEquals(KompactCursor.STATUS_INVALID_BOUNDS, cursor.resetByteRange(raw, 2, 1))
-        assertEquals(KompactCursor.STATUS_INVALID_BOUNDS, cursor.resetByteRange(raw, 0, 3))
-        assertEquals(KompactCursor.STATUS_INVALID_BOUNDS, cursor.resetByteRange(raw, 0, Int.MAX_VALUE / 8 + 1))
+        assertEquals(KompactStatus.INVALID_BOUNDS, cursor.resetByteRange(raw, -1, 1))
+        assertEquals(KompactStatus.INVALID_BOUNDS, cursor.resetByteRange(raw, 2, 1))
+        assertEquals(KompactStatus.INVALID_BOUNDS, cursor.resetByteRange(raw, 0, 3))
+        assertEquals(KompactStatus.INVALID_BOUNDS, cursor.resetByteRange(raw, 0, Int.MAX_VALUE / 8 + 1))
         assertEquals(0, cursor.position)
     }
 
@@ -103,13 +103,13 @@ class KompactCursorBoundaryTest {
         val raw = byteArrayOf(0x41, 0x42)
         val cursor = KompactCursor(raw)
 
-        assertEquals(KompactCursor.STATUS_OK, cursor.resetByteRange(raw, startByte = 0, endByte = 1))
+        assertEquals(KompactStatus.OK, cursor.resetByteRange(raw, startByte = 0, endByte = 1))
         assertSame(raw, cursor.buffer)
         assertEquals(0, cursor.startBit)
         assertEquals(0, cursor.position)
         assertEquals(8, cursor.endBit)
 
-        assertEquals(KompactCursor.STATUS_INVALID_BOUNDS, cursor.resetByteRange(raw, startByte = -1, endByte = 1))
+        assertEquals(KompactStatus.INVALID_BOUNDS, cursor.resetByteRange(raw, startByte = -1, endByte = 1))
         assertSame(raw, cursor.buffer)
         assertEquals(0, cursor.startBit)
         assertEquals(0, cursor.position)
@@ -122,7 +122,7 @@ class KompactCursorBoundaryTest {
         val raw = ByteArray(3)
         val cursor = KompactCursor(raw)
 
-        assertEquals(KompactCursor.STATUS_INVALID_BOUNDS, cursor.reset(raw, startBit = 2, position = 2, endBit = 25))
+        assertEquals(KompactStatus.INVALID_BOUNDS, cursor.reset(raw, startBit = 2, position = 2, endBit = 25))
         assertEquals(2, cursor.errorBitOffset)
         assertEquals(25, cursor.errorDetail)
     }
@@ -134,7 +134,7 @@ class KompactCursorBoundaryTest {
 
         val status = cursor.resetByteRange(raw, startByte = raw.size, endByte = raw.size)
 
-        assertEquals(KompactCursor.STATUS_OK, status)
+        assertEquals(KompactStatus.OK, status)
         assertSame(raw, cursor.buffer)
         assertEquals(16, cursor.startBit)
         assertEquals(16, cursor.position)
@@ -145,18 +145,18 @@ class KompactCursorBoundaryTest {
     fun checkedReadsAndSkipsRejectInvalidWidthsAndBoundsWithoutAdvancing() {
         val cursor = KompactCursor(byteArrayOf(0xFF.toByte()))
 
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.readBits(0))
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.readBits(65))
-        assertEquals(KompactCursor.STATUS_OK, cursor.readBits(8))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.readBits(0))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.readBits(65))
+        assertEquals(KompactStatus.OK, cursor.readBits(8))
         assertEquals(8, cursor.position)
-        assertEquals(KompactCursor.STATUS_BOUNDS_ERROR, cursor.readBits(1))
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.ensureAvailable(-1))
-        assertEquals(KompactCursor.STATUS_BOUNDS_ERROR, cursor.ensureAvailable(1))
-        assertEquals(KompactCursor.STATUS_BOUNDS_ERROR, cursor.skipBits(1))
+        assertEquals(KompactStatus.BOUNDS_ERROR, cursor.readBits(1))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.ensureAvailable(-1))
+        assertEquals(KompactStatus.BOUNDS_ERROR, cursor.ensureAvailable(1))
+        assertEquals(KompactStatus.BOUNDS_ERROR, cursor.skipBits(1))
 
         cursor.reset(cursor.buffer)
-        assertEquals(KompactCursor.STATUS_OK, cursor.skipBits(0))
-        assertEquals(KompactCursor.STATUS_OK, cursor.skipBits(8))
+        assertEquals(KompactStatus.OK, cursor.skipBits(0))
+        assertEquals(KompactStatus.OK, cursor.skipBits(8))
         assertEquals(8, cursor.position)
     }
 
@@ -166,11 +166,11 @@ class KompactCursorBoundaryTest {
         val cursor = KompactCursor(bytes)
         cursor.reset(bytes, startBit = 4, position = 4, endBit = 8)
 
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.writeBitsUnchecked(0, 1L))
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.writeBitsUnchecked(65, 1L))
-        assertEquals(KompactCursor.STATUS_OK, cursor.writeBitsUnchecked(4, 0xAL))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.writeBitsUnchecked(0, 1L))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.writeBitsUnchecked(65, 1L))
+        assertEquals(KompactStatus.OK, cursor.writeBitsUnchecked(4, 0xAL))
         val encoded = bytes.copyOf()
-        assertEquals(KompactCursor.STATUS_BOUNDS_ERROR, cursor.writeBitsUnchecked(1, 1L))
+        assertEquals(KompactStatus.BOUNDS_ERROR, cursor.writeBitsUnchecked(1, 1L))
 
         assertContentEquals(encoded, bytes)
         assertEquals(8, cursor.position)
@@ -180,12 +180,12 @@ class KompactCursorBoundaryTest {
     fun successfulWriteClearsPriorCursorDiagnostics() {
         val bytes = ByteArray(1)
         val cursor = KompactCursor(bytes)
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.writeZeros(-1))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.writeZeros(-1))
         assertEquals(-1, cursor.errorDetail)
 
         val status = cursor.writeZeros(1)
 
-        assertEquals(KompactCursor.STATUS_OK, status)
+        assertEquals(KompactStatus.OK, status)
         assertEquals(1, cursor.position)
         assertEquals(0, cursor.errorBitOffset)
         assertEquals(0, cursor.errorDetail)
@@ -195,15 +195,15 @@ class KompactCursorBoundaryTest {
     fun signedValidationCoversNarrowAndFullWidthValues() {
         val cursor = KompactCursor(ByteArray(8))
 
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.validateSigned(0, 0L))
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.validateSigned(65, 0L))
-        assertEquals(KompactCursor.STATUS_OK, cursor.validateSigned(3, -4L))
-        assertEquals(KompactCursor.STATUS_OK, cursor.validateSigned(3, 3L))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.validateSigned(3, -5L))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.validateSigned(3, 4L))
-        assertEquals(KompactCursor.STATUS_OK, cursor.writeSigned(64, Long.MIN_VALUE))
-        assertEquals(KompactCursor.STATUS_OK, cursor.validateSigned(64, Long.MAX_VALUE))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.writeSigned(3, 4L))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.validateSigned(0, 0L))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.validateSigned(65, 0L))
+        assertEquals(KompactStatus.OK, cursor.validateSigned(3, -4L))
+        assertEquals(KompactStatus.OK, cursor.validateSigned(3, 3L))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.validateSigned(3, -5L))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.validateSigned(3, 4L))
+        assertEquals(KompactStatus.OK, cursor.writeSigned(64, Long.MIN_VALUE))
+        assertEquals(KompactStatus.OK, cursor.validateSigned(64, Long.MAX_VALUE))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.writeSigned(3, 4L))
     }
 
     @Test
@@ -211,17 +211,17 @@ class KompactCursorBoundaryTest {
         val bytes = ByteArray(2)
         val cursor = KompactCursor(bytes)
 
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.writeSigned(4, 8L))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.writeSigned(4, 8L))
         assertEquals(0, cursor.position)
-        assertEquals(KompactCursor.STATUS_OK, cursor.writeSigned(4, -8L))
+        assertEquals(KompactStatus.OK, cursor.writeSigned(4, -8L))
         val signedBytes = bytes.copyOf()
         cursor.reset(bytes)
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.writeUnsigned(4, -1L))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.writeUnsigned(4, 16L))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.writeUnsigned(4, -1L))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.writeUnsigned(4, 16L))
         assertContentEquals(signedBytes, bytes)
-        assertEquals(KompactCursor.STATUS_OK, cursor.writeUnsigned(4, 15L))
+        assertEquals(KompactStatus.OK, cursor.writeUnsigned(4, 15L))
         val fullWidth = KompactCursor(ByteArray(8))
-        assertEquals(KompactCursor.STATUS_OK, fullWidth.writeUnsigned(64, ULong.MAX_VALUE))
+        assertEquals(KompactStatus.OK, fullWidth.writeUnsigned(64, ULong.MAX_VALUE))
     }
 
     @Test
@@ -233,7 +233,7 @@ class KompactCursorBoundaryTest {
 
         val status = cursor.writeUnsigned(4, 16uL)
 
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, status)
+        assertEquals(KompactStatus.INVALID_VALUE, status)
         assertContentEquals(originalBytes, bytes)
         assertEquals(3, cursor.position)
     }
@@ -247,8 +247,8 @@ class KompactCursorBoundaryTest {
 
         val status = cursor.writeUnsigned(0, 0uL)
 
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, status)
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.writeUnsigned(65, 0uL))
+        assertEquals(KompactStatus.INVALID_WIDTH, status)
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.writeUnsigned(65, 0uL))
         assertContentEquals(originalBytes, bytes)
         assertEquals(3, cursor.position)
     }
@@ -261,7 +261,7 @@ class KompactCursorBoundaryTest {
 
         val status = cursor.writeUnsigned(4, 15uL)
 
-        assertEquals(KompactCursor.STATUS_OK, status)
+        assertEquals(KompactStatus.OK, status)
         assertContentEquals(byteArrayOf(0x7d), bytes)
         assertEquals(7, cursor.position)
     }
@@ -274,9 +274,9 @@ class KompactCursorBoundaryTest {
         val narrowOverflowStatus = cursor.validateUnsigned(62, Long.MAX_VALUE)
         val width63Status = cursor.validateUnsigned(63, Long.MAX_VALUE)
 
-        assertEquals(KompactCursor.STATUS_OK, zeroStatus)
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, narrowOverflowStatus)
-        assertEquals(KompactCursor.STATUS_OK, width63Status)
+        assertEquals(KompactStatus.OK, zeroStatus)
+        assertEquals(KompactStatus.INVALID_VALUE, narrowOverflowStatus)
+        assertEquals(KompactStatus.OK, width63Status)
     }
 
     @Test
@@ -285,7 +285,7 @@ class KompactCursorBoundaryTest {
 
         val status = cursor.validateUnsigned(64, ULong.MAX_VALUE)
 
-        assertEquals(KompactCursor.STATUS_OK, status)
+        assertEquals(KompactStatus.OK, status)
         assertEquals(0, cursor.errorDetail)
     }
 
@@ -293,9 +293,9 @@ class KompactCursorBoundaryTest {
     fun signedLongOverloadRejectsNegativeUnsignedValuesAtFullWidth() {
         val cursor = KompactCursor(ByteArray(8))
 
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.validateUnsigned(63, -1L))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.validateUnsigned(64, -1L))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.writeUnsigned(64, -1L))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.validateUnsigned(63, -1L))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.validateUnsigned(64, -1L))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.writeUnsigned(64, -1L))
         assertEquals(0, cursor.position)
     }
 
@@ -303,18 +303,18 @@ class KompactCursorBoundaryTest {
     fun unsignedValidationCoversLongAndUnsignedLongDomains() {
         val cursor = KompactCursor(ByteArray(8))
 
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.validateUnsigned(0, 0L))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.validateUnsigned(4, -1L))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.validateUnsigned(4, 16L))
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.validateUnsigned(65, 0L))
-        assertEquals(KompactCursor.STATUS_OK, cursor.validateUnsigned(63, Long.MAX_VALUE))
-        assertEquals(KompactCursor.STATUS_OK, cursor.validateUnsigned(64, Long.MAX_VALUE))
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.validateUnsigned(0, 0uL))
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.validateUnsigned(65, 0uL))
-        assertEquals(KompactCursor.STATUS_OK, cursor.validateUnsigned(7, 127uL))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.validateUnsigned(7, 128uL))
-        assertEquals(KompactCursor.STATUS_OK, cursor.validateUnsigned(64, ULong.MAX_VALUE))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.writeUnsigned(7, 128uL))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.validateUnsigned(0, 0L))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.validateUnsigned(4, -1L))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.validateUnsigned(4, 16L))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.validateUnsigned(65, 0L))
+        assertEquals(KompactStatus.OK, cursor.validateUnsigned(63, Long.MAX_VALUE))
+        assertEquals(KompactStatus.OK, cursor.validateUnsigned(64, Long.MAX_VALUE))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.validateUnsigned(0, 0uL))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.validateUnsigned(65, 0uL))
+        assertEquals(KompactStatus.OK, cursor.validateUnsigned(7, 127uL))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.validateUnsigned(7, 128uL))
+        assertEquals(KompactStatus.OK, cursor.validateUnsigned(64, ULong.MAX_VALUE))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.writeUnsigned(7, 128uL))
     }
 
     @Test
@@ -324,14 +324,14 @@ class KompactCursorBoundaryTest {
         val signedMaximum = (1L shl 62) - 1L
         val unsignedMaximum = (1uL shl 63) - 1uL
 
-        assertEquals(KompactCursor.STATUS_OK, cursor.validateSigned(63, signedMinimum))
-        assertEquals(KompactCursor.STATUS_OK, cursor.validateSigned(63, signedMaximum))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.validateSigned(63, signedMinimum - 1L))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.validateSigned(63, signedMaximum + 1L))
-        assertEquals(KompactCursor.STATUS_OK, cursor.validateUnsigned(63, unsignedMaximum))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.validateUnsigned(63, 1uL shl 63))
-        assertEquals(KompactCursor.STATUS_OK, cursor.validateUnsigned(62, (1L shl 62) - 1L))
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, cursor.validateUnsigned(62, 1L shl 62))
+        assertEquals(KompactStatus.OK, cursor.validateSigned(63, signedMinimum))
+        assertEquals(KompactStatus.OK, cursor.validateSigned(63, signedMaximum))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.validateSigned(63, signedMinimum - 1L))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.validateSigned(63, signedMaximum + 1L))
+        assertEquals(KompactStatus.OK, cursor.validateUnsigned(63, unsignedMaximum))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.validateUnsigned(63, 1uL shl 63))
+        assertEquals(KompactStatus.OK, cursor.validateUnsigned(62, (1L shl 62) - 1L))
+        assertEquals(KompactStatus.INVALID_VALUE, cursor.validateUnsigned(62, 1L shl 62))
     }
 
     @Test
@@ -339,13 +339,13 @@ class KompactCursorBoundaryTest {
         val bytes = ByteArray(17) { 0x7F }
         val cursor = KompactCursor(bytes)
 
-        assertEquals(KompactCursor.STATUS_OK, cursor.writeZeros(0))
-        assertEquals(KompactCursor.STATUS_OK, cursor.writeZeros(129))
+        assertEquals(KompactStatus.OK, cursor.writeZeros(0))
+        assertEquals(KompactStatus.OK, cursor.writeZeros(129))
         assertEquals(129, cursor.position)
         assertContentEquals(ByteArray(16) + byteArrayOf(0x7E), bytes)
-        assertEquals(KompactCursor.STATUS_INVALID_WIDTH, cursor.writeZeros(-1))
+        assertEquals(KompactStatus.INVALID_WIDTH, cursor.writeZeros(-1))
         val before = bytes.copyOf()
-        assertEquals(KompactCursor.STATUS_BOUNDS_ERROR, cursor.writeZeros(8))
+        assertEquals(KompactStatus.BOUNDS_ERROR, cursor.writeZeros(8))
 
         assertContentEquals(before, bytes)
         assertEquals(129, cursor.position)

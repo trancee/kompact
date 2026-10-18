@@ -3,7 +3,7 @@
 # writeBitsUnchecked
 
 [common]\
-fun [writeBitsUnchecked](write-bits-unchecked.md)(bitWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), value: [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+fun [writeBitsUnchecked](write-bits-unchecked.md)(bitWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), value: [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)): [KompactStatus](../-kompact-status/index.md)
 
 Write the low [bitWidth](write-bits-unchecked.md) bits of [value](write-bits-unchecked.md) at the current position.
 

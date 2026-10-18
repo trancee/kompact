@@ -211,7 +211,8 @@ val bytes: ByteArray = w.build()  // exact-length snapshot; repeated calls prese
 ```kotlin
 // Parse-forward: read a length prefix, then consume that many bytes
 val n: Int = KompactFraming.readLengthPrefix(bytes, bitCursor, bitWidth = 8)
-// Returns INVALID_LENGTH_PREFIX (-1) if the prefix is invalid or overruns the buffer.
+// Returns INVALID_LENGTH_PREFIX (-1) if the prefix overruns the buffer.
+// A width other than 8, 16, or 32 throws IllegalArgumentException.
 
 // Nested regions: returns a typed result instead of throwing on malformed input
 val region = KompactFraming.readNested(bytes, bitCursor, prefixBitWidth = 16)
@@ -241,18 +242,28 @@ fields — this collapses the old 8-per-width overload set
 (`readInt8`, `readUInt16`, …) into one accessor per band. `ScalarType.of`
 throws `IllegalArgumentException` for widths outside 1–64.
 
-### KompactDecodeError — the 4 cases
+### KompactDecodeError — the 5 cases
 
 ```kotlin
 KompactDecodeError.BoundsError      // data object — buffer too short
-KompactDecodeError.BadLengthPrefix  // data object — prefix overruns buffer or invalid width
+KompactDecodeError.BadLengthPrefix  // data object — prefix overruns buffer
 KompactDecodeError.TruncatedNested  // data object — nested region truncated
 KompactDecodeError.InvalidUtf8      // data object — framed string payload is malformed UTF-8
+KompactDecodeError.TrailingData     // data object — unread bytes or non-zero padding after a framed decode
 ```
 
 Checked scalar accessors return errors as result values. Direct `KompactFrame`
 read methods throw `KompactDecodeException` on malformed input; wrap them in
 the block overload of `KompactFrame.decode` to receive a typed result.
+Invalid caller arguments (a `readBits` width outside 1–64, a prefix width
+other than 8/16/32, an invalid repeat shape, or a `ScalarType` wider than 32
+bits passed to `readScalar`) throw `IllegalArgumentException` instead.
+
+`KompactCursor` operations return a `KompactStatus` enum entry
+(`KompactStatus.OK`, `BOUNDS_ERROR`, `INVALID_WIDTH`, …). Generated holder
+`decodeInto`/`encodeFrom` functions return the same type.
+`KompactStatus.decodeError` maps malformed-input statuses to
+`KompactDecodeError` and is `null` for `OK` and caller-contract statuses.
 `getOrThrow()` / `NestedRegionResult.startBit` / `readOrThrow` also throw only on failure.
 
 ## Defining a model

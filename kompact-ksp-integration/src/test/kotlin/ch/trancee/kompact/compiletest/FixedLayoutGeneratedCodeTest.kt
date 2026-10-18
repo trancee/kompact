@@ -3,6 +3,7 @@
 package ch.trancee.kompact.compiletest
 
 import ch.trancee.kompact.runtime.KompactCursor
+import ch.trancee.kompact.runtime.KompactStatus
 import ch.trancee.kompact.runtime.KompactDecodeError
 import ch.trancee.kompact.runtime.KompactFrameResult
 import kotlin.test.Test
@@ -73,9 +74,9 @@ class FixedLayoutGeneratedCodeTest {
         val raw = ByteArray(3)
         val source = SensorFrameViewHolder(status = 9, temperature = 100, alarm = true)
 
-        assertEquals(KompactCursor.STATUS_OK, source.encodeFrom(KompactCursor(raw)))
+        assertEquals(KompactStatus.OK, source.encodeFrom(KompactCursor(raw)))
         val decoded = SensorFrameViewHolder()
-        assertEquals(KompactCursor.STATUS_OK, decoded.decodeInto(KompactCursor(raw)))
+        assertEquals(KompactStatus.OK, decoded.decodeInto(KompactCursor(raw)))
 
         assertEquals(9, decoded.status)
         assertEquals(100, decoded.temperature)

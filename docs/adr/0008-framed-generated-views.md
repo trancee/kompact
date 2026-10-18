@@ -8,6 +8,9 @@
   `commonMain` sources, and fixed-layout schemas also generate `<Name>View`)
 - **Amended by:** [ADR-0011](0011-inferred-nested-fields-and-checked-fixed-decode.md)
   (nested fields are inferred from the property type; `isNested` is removed)
+- **Amended by:** [ADR-0013](0013-typed-status-and-caller-contract-errors.md)
+  (cursor and generated-holder operations return `KompactStatus`; trailing
+  framed data reports `TrailingData`)
 
 ## Context
 
@@ -87,9 +90,9 @@ an untrusted view directly. The new public API is additive in the pre-1.0
 An aligned caller-owned cursor can lack enough space for the nested length
 prefix itself. `writeNested` previously classified this as an alignment error,
 even though its position was byte-aligned. It now returns
-`STATUS_BOUNDS_ERROR` for insufficient prefix or payload capacity, with the
+`KompactStatus.BOUNDS_ERROR` for insufficient prefix or payload capacity, with the
 original position as `errorBitOffset` and the payload byte length as
-`errorDetail`. An unaligned position still returns `STATUS_UNALIGNED_REGION`
+`errorDetail`. An unaligned position still returns `KompactStatus.UNALIGNED_REGION`
 before checking capacity. Both failures preserve destination bytes, parent
 position, and child binding.
 

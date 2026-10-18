@@ -3,6 +3,6 @@
 # writeZeros
 
 [common]\
-fun [writeZeros](write-zeros.md)(bitCount: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+fun [writeZeros](write-zeros.md)(bitCount: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)): [KompactStatus](../-kompact-status/index.md)
 
 Write zero bits across an arbitrary bounded region.

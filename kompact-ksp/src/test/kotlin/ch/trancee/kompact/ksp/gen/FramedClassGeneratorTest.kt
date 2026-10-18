@@ -179,6 +179,10 @@ class FramedClassGeneratorTest {
         assertTrue(unicodeNestedDecoder.contains("decodeSSpecialInto("))
         assertTrue(unicodeRepeatedDecoder.contains("decodeSSpecialValuesElement("))
         assertTrue(unicodeNestedRepeatedDecoder.contains("decodeSSpecialChildrenElementInto("))
+        listOf(decoder, encoder, nestedDecoder, repeatedDecoder, nestedRepeatedDecoder).forEach { function ->
+            assertTrue(function.contains("): ch.trancee.kompact.runtime.KompactStatus"), function)
+        }
+        assertTrue(decoder.contains("return ch.trancee.kompact.runtime.KompactStatus.OK"), decoder)
     }
 
     @Test

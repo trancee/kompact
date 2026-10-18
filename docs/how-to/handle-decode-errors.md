@@ -94,15 +94,27 @@ when (val result = SensorFrameView.decode(receivedBytes)) {
 - Direct `KompactFrame.read*` calls throw `KompactDecodeException` on malformed
   input. The block overload of `KompactFrame.decode` translates that exception
   into `KompactFrameResult.Failure`.
+- Invalid caller arguments are programming errors, not malformed input. A
+  `readBits` width outside 1..64, a prefix width other than 8, 16, or 32, an
+  invalid `readRepeated` element shape, or a `ScalarType` wider than 32 bits
+  passed to `KompactRuntime.readScalar` throws `IllegalArgumentException`.
+  `KompactFrame.decode` does not translate it.
 
 `KompactDecodeError` has these cases:
 
 | Error | Typical source |
 | --- | --- |
 | `BoundsError` | A checked read exceeds the available bytes or bits. |
-| `BadLengthPrefix` | A prefix has an unsupported width or declares more bytes than remain. |
+| `BadLengthPrefix` | A prefix is unreadable or declares more bytes than remain. |
 | `TruncatedNested` | A repeated or nested region ends before its declared contents. |
 | `InvalidUtf8` | A framed string payload is not valid UTF-8. |
+| `TrailingData` | A framed decode left unread bytes or non-zero padding bits after its fields. |
+
+`KompactCursor` operations return a `KompactStatus`. Its `decodeError` property
+maps the malformed-input statuses `BOUNDS_ERROR`, `BAD_LENGTH_PREFIX`,
+`INVALID_UTF8`, and `TRUNCATED_INPUT` to `BoundsError`, `BadLengthPrefix`,
+`InvalidUtf8`, and `TruncatedNested`. It is `null` for `OK` and for
+caller-contract statuses such as `INVALID_WIDTH` or `WORKSPACE_TOO_SMALL`.
 
 Kompact has no enum field type: read the scalar, map its wire value to your
 enum, and decide how your protocol handles unknown values.

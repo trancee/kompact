@@ -3,6 +3,6 @@
 # skipBits
 
 [common]\
-fun [skipBits](skip-bits.md)(bitCount: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+fun [skipBits](skip-bits.md)(bitCount: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)): [KompactStatus](../-kompact-status/index.md)
 
 Advance over [bitCount](skip-bits.md) bits after checking the complete skip.

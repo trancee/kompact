@@ -5,7 +5,7 @@ package ch.trancee.kompact.runtime
  *
  * The cursor retains the buffer and bit bounds supplied by the caller. Reset
  * validates the complete region before replacing its current binding. Failures
- * are reported through primitive status and offset fields. This mutable cursor
+ * are reported through a typed [KompactStatus] and primitive offset fields. This mutable cursor
  * is not thread-safe; use separate cursors for simultaneously active regions.
  */
 public class KompactCursor(
@@ -32,7 +32,7 @@ public class KompactCursor(
         internal set
 
     /** Status code from the most recent cursor operation. */
-    public var status: Int = STATUS_OK
+    public var status: KompactStatus = KompactStatus.OK
         internal set
 
     /** Bit position associated with the most recent non-success status. */
@@ -52,7 +52,7 @@ public class KompactCursor(
      *
      * The default [position] is [startBit]; the default [endBit] is the
      * complete buffer. Invalid bounds leave the previous buffer and region
-     * intact and set [status] to [STATUS_INVALID_BOUNDS]. Diagnostics use the
+     * intact and set [status] to [KompactStatus.INVALID_BOUNDS]. Diagnostics use the
      * first violated bound in this order: negative [startBit], [position]
      * before [startBit], then [endBit] before [position]. If no specific
      * detail is selected, or the selected detail is zero, [errorDetail] is
@@ -63,7 +63,7 @@ public class KompactCursor(
         startBit: Int = 0,
         position: Int = startBit,
         endBit: Int = buffer.size * 8,
-    ): Int {
+    ): KompactStatus {
         val bufferEnd = buffer.size.toLong() * 8L
         val valid = startBit >= 0 &&
             position >= startBit &&
@@ -77,7 +77,7 @@ public class KompactCursor(
                     endBit < position -> endBit
                     else -> 0
                 }
-            status = STATUS_INVALID_BOUNDS
+            status = KompactStatus.INVALID_BOUNDS
             errorBitOffset = position.coerceAtLeast(0)
             errorDetail = if (invalidDetail == 0) endBit else invalidDetail
             return status
@@ -88,7 +88,7 @@ public class KompactCursor(
         this.position = position
         this.endBit = endBit
         valueBits = 0L
-        status = STATUS_OK
+        status = KompactStatus.OK
         errorBitOffset = 0
         errorDetail = 0
         return status
@@ -99,9 +99,9 @@ public class KompactCursor(
         buffer: ByteArray,
         startByte: Int,
         endByte: Int,
-    ): Int {
+    ): KompactStatus {
         if (startByte < 0 || endByte < startByte || endByte.toLong() * 8L > Int.MAX_VALUE.toLong()) {
-            return fail(STATUS_INVALID_BOUNDS, position, endByte)
+            return fail(KompactStatus.INVALID_BOUNDS, position, endByte)
         }
         return reset(buffer, startByte * 8, startByte * 8, endByte * 8)
     }
@@ -127,12 +127,12 @@ public class KompactCursor(
      * Read [bitWidth] bits into [valueBits], advancing only when the entire
      * read fits in this cursor's region.
      */
-    public fun readBits(bitWidth: Int): Int {
+    public fun readBits(bitWidth: Int): KompactStatus {
         if (bitWidth !in 1..64) {
-            return fail(STATUS_INVALID_WIDTH, position, bitWidth)
+            return fail(KompactStatus.INVALID_WIDTH, position, bitWidth)
         }
         if (bitWidth.toLong() > endBit.toLong() - position.toLong()) {
-            return fail(STATUS_BOUNDS_ERROR, position, bitWidth)
+            return fail(KompactStatus.BOUNDS_ERROR, position, bitWidth)
         }
 
         valueBits = KompactRuntime.readBitsLong(buffer, position, bitWidth)
@@ -145,45 +145,45 @@ public class KompactCursor(
      * Validate and skip a variable-width repeat without binding workspace state.
      *
      * [workspaceCapacity] must provide one slot per 64-element block, rounded
-     * up. An insufficient capacity returns [STATUS_WORKSPACE_TOO_SMALL].
+     * up. An insufficient capacity returns [KompactStatus.WORKSPACE_TOO_SMALL].
      */
     public fun skipVariableRepeat(
         countPrefixWidth: Int,
         elementPrefixWidth: Int,
         workspaceCapacity: Int,
-    ): Int = KompactCursorRepeats.skipVariableRepeat(this, countPrefixWidth, elementPrefixWidth, workspaceCapacity)
+    ): KompactStatus = KompactCursorRepeats.skipVariableRepeat(this, countPrefixWidth, elementPrefixWidth, workspaceCapacity)
 
     /**
      * Validate and skip a fixed-width repeat without binding workspace state.
      *
      * [workspaceCapacity] must provide one slot per 64-element block, rounded
-     * up. An insufficient capacity returns [STATUS_WORKSPACE_TOO_SMALL].
+     * up. An insufficient capacity returns [KompactStatus.WORKSPACE_TOO_SMALL].
      */
     public fun skipFixedRepeat(
         countPrefixWidth: Int,
         elementBitWidth: Int,
         workspaceCapacity: Int,
-    ): Int = KompactCursorRepeats.skipFixedRepeat(this, countPrefixWidth, elementBitWidth, workspaceCapacity)
+    ): KompactStatus = KompactCursorRepeats.skipFixedRepeat(this, countPrefixWidth, elementBitWidth, workspaceCapacity)
 
     /** Check that [bitCount] bits fit without advancing this cursor. */
-    public fun ensureAvailable(bitCount: Int): Int {
+    public fun ensureAvailable(bitCount: Int): KompactStatus {
         if (bitCount < 0) {
-            return fail(STATUS_INVALID_WIDTH, position, bitCount)
+            return fail(KompactStatus.INVALID_WIDTH, position, bitCount)
         }
         if (bitCount.toLong() > endBit.toLong() - position.toLong()) {
-            return fail(STATUS_BOUNDS_ERROR, position, bitCount)
+            return fail(KompactStatus.BOUNDS_ERROR, position, bitCount)
         }
         clearError()
         return status
     }
 
     /** Preflight a raw byte copy, advancing without mutating the destination. */
-    public fun preflightRawByteRange(range: KompactByteRange): Int {
+    public fun preflightRawByteRange(range: KompactByteRange): KompactStatus {
         return KompactCursorByteRanges.preflightRawByteRange(this, range)
     }
 
     /** Copy an already encoded borrowed byte range without adding a prefix. */
-    public fun writeRawByteRange(range: KompactByteRange): Int {
+    public fun writeRawByteRange(range: KompactByteRange): KompactStatus {
         return KompactCursorByteRanges.writeRawByteRange(this, range)
     }
 
@@ -191,12 +191,12 @@ public class KompactCursor(
     public fun captureRegion(
         range: KompactByteRange,
         validateUtf8: Boolean = false,
-    ): Int = KompactCursorByteRanges.captureRegion(this, range, validateUtf8)
+    ): KompactStatus = KompactCursorByteRanges.captureRegion(this, range, validateUtf8)
 
     /** Advance over [bitCount] bits after checking the complete skip. */
-    public fun skipBits(bitCount: Int): Int {
+    public fun skipBits(bitCount: Int): KompactStatus {
         val checked = ensureAvailable(bitCount)
-        if (checked != STATUS_OK) return checked
+        if (checked != KompactStatus.OK) return checked
         position += bitCount
         return status
     }
@@ -212,12 +212,12 @@ public class KompactCursor(
     public fun writeBitsUnchecked(
         bitWidth: Int,
         value: Long,
-    ): Int {
+    ): KompactStatus {
         if (bitWidth !in 1..64) {
-            return fail(STATUS_INVALID_WIDTH, position, bitWidth)
+            return fail(KompactStatus.INVALID_WIDTH, position, bitWidth)
         }
         if (bitWidth.toLong() > endBit.toLong() - position.toLong()) {
-            return fail(STATUS_BOUNDS_ERROR, position, bitWidth)
+            return fail(KompactStatus.BOUNDS_ERROR, position, bitWidth)
         }
 
         KompactRuntime.writeBitsLong(buffer, position, bitWidth, value)
@@ -231,9 +231,9 @@ public class KompactCursor(
     public fun writeSigned(
         bitWidth: Int,
         value: Long,
-    ): Int {
+    ): KompactStatus {
         val checked = validateSigned(bitWidth, value)
-        if (checked != STATUS_OK) return checked
+        if (checked != KompactStatus.OK) return checked
         return writeBitsUnchecked(bitWidth, value)
     }
 
@@ -241,16 +241,16 @@ public class KompactCursor(
     public fun validateSigned(
         bitWidth: Int,
         value: Long,
-    ): Int {
+    ): KompactStatus {
         if (bitWidth !in 1..64) {
-            return fail(STATUS_INVALID_WIDTH, position, bitWidth)
+            return fail(KompactStatus.INVALID_WIDTH, position, bitWidth)
         }
         if (bitWidth < 64) {
             val shift = Long.SIZE_BITS - bitWidth
             val minimum = Long.MIN_VALUE shr shift
             val maximum = Long.MAX_VALUE shr shift
             if (value < minimum || value > maximum) {
-                return fail(STATUS_INVALID_VALUE, position, bitWidth)
+                return fail(KompactStatus.INVALID_VALUE, position, bitWidth)
             }
         }
         clearError()
@@ -261,9 +261,9 @@ public class KompactCursor(
     public fun writeUnsigned(
         bitWidth: Int,
         value: Long,
-    ): Int {
+    ): KompactStatus {
         val checked = validateUnsigned(bitWidth, value)
-        if (checked != STATUS_OK) return checked
+        if (checked != KompactStatus.OK) return checked
         return writeBitsUnchecked(bitWidth, value)
     }
 
@@ -271,12 +271,12 @@ public class KompactCursor(
     public fun validateUnsigned(
         bitWidth: Int,
         value: Long,
-    ): Int {
+    ): KompactStatus {
         if (bitWidth !in 1..64) {
-            return fail(STATUS_INVALID_WIDTH, position, bitWidth)
+            return fail(KompactStatus.INVALID_WIDTH, position, bitWidth)
         }
         if (value < 0L || (bitWidth < 63 && value ushr bitWidth != 0L)) {
-            return fail(STATUS_INVALID_VALUE, position, bitWidth)
+            return fail(KompactStatus.INVALID_VALUE, position, bitWidth)
         }
         clearError()
         return status
@@ -286,12 +286,12 @@ public class KompactCursor(
     public fun writeUnsigned(
         bitWidth: Int,
         value: ULong,
-    ): Int {
+    ): KompactStatus {
         if (bitWidth !in 1..64) {
-            return fail(STATUS_INVALID_WIDTH, position, bitWidth)
+            return fail(KompactStatus.INVALID_WIDTH, position, bitWidth)
         }
         if (bitWidth < 64 && value.toLong() ushr bitWidth != 0L) {
-            return fail(STATUS_INVALID_VALUE, position, bitWidth)
+            return fail(KompactStatus.INVALID_VALUE, position, bitWidth)
         }
         clearError()
         return writeBitsUnchecked(bitWidth, value.toLong())
@@ -301,21 +301,21 @@ public class KompactCursor(
     public fun validateUnsigned(
         bitWidth: Int,
         value: ULong,
-    ): Int {
+    ): KompactStatus {
         if (bitWidth !in 1..64) {
-            return fail(STATUS_INVALID_WIDTH, position, bitWidth)
+            return fail(KompactStatus.INVALID_WIDTH, position, bitWidth)
         }
         if (bitWidth < 64 && value.toLong() ushr bitWidth != 0L) {
-            return fail(STATUS_INVALID_VALUE, position, bitWidth)
+            return fail(KompactStatus.INVALID_VALUE, position, bitWidth)
         }
         clearError()
         return status
     }
 
     /** Write zero bits across an arbitrary bounded region. */
-    public fun writeZeros(bitCount: Int): Int {
+    public fun writeZeros(bitCount: Int): KompactStatus {
         val checked = ensureAvailable(bitCount)
-        if (checked != STATUS_OK) return checked
+        if (checked != KompactStatus.OK) return checked
         var remaining = bitCount
         while (remaining > 0) {
             val chunk = minOf(remaining, Long.SIZE_BITS)
@@ -336,7 +336,7 @@ public class KompactCursor(
     public fun readNested(
         prefixWidth: Int,
         nestedCursor: KompactCursor,
-    ): Int = KompactCursorByteRanges.readNested(this, prefixWidth, nestedCursor)
+    ): KompactStatus = KompactCursorByteRanges.readNested(this, prefixWidth, nestedCursor)
 
     /**
      * Write a known byte length and configure [nestedCursor] over that bounded
@@ -346,13 +346,13 @@ public class KompactCursor(
         prefixWidth: Int,
         payloadByteLength: Int,
         nestedCursor: KompactCursor,
-    ): Int = KompactCursorByteRanges.writeNested(this, prefixWidth, payloadByteLength, nestedCursor)
+    ): KompactStatus = KompactCursorByteRanges.writeNested(this, prefixWidth, payloadByteLength, nestedCursor)
 
     /** Read a length-prefixed byte range into caller-owned [range] state. */
     public fun readByteRange(
         prefixWidth: Int,
         range: KompactByteRange,
-    ): Int = KompactCursorByteRanges.readByteRange(this, prefixWidth, range)
+    ): KompactStatus = KompactCursorByteRanges.readByteRange(this, prefixWidth, range)
 
     /**
      * Read and validate a length-prefixed UTF-8 byte range without creating a
@@ -362,7 +362,7 @@ public class KompactCursor(
     public fun readUtf8Range(
         prefixWidth: Int,
         range: KompactByteRange,
-    ): Int = KompactCursorByteRanges.readUtf8Range(this, prefixWidth, range)
+    ): KompactStatus = KompactCursorByteRanges.readUtf8Range(this, prefixWidth, range)
 
     /**
      * Validate and skip a length-prefixed byte region without storing a range.
@@ -371,7 +371,7 @@ public class KompactCursor(
     public fun skipByteRange(
         prefixWidth: Int,
         validateUtf8: Boolean = false,
-    ): Int = KompactCursorByteRanges.skipByteRange(this, prefixWidth, validateUtf8)
+    ): KompactStatus = KompactCursorByteRanges.skipByteRange(this, prefixWidth, validateUtf8)
 
     /**
      * Preflight a borrowed range write and advance this cursor without touching
@@ -382,13 +382,13 @@ public class KompactCursor(
         prefixWidth: Int,
         range: KompactByteRange,
         validateUtf8: Boolean = false,
-    ): Int = KompactCursorByteRanges.preflightByteRangeWrite(this, prefixWidth, range, validateUtf8)
+    ): KompactStatus = KompactCursorByteRanges.preflightByteRangeWrite(this, prefixWidth, range, validateUtf8)
 
     /** Copy a preflight error's primitive diagnostics onto this cursor. */
-    public fun copyErrorFrom(source: KompactCursor): Int = KompactCursorByteRanges.copyErrorFrom(this, source)
+    public fun copyErrorFrom(source: KompactCursor): KompactStatus = KompactCursorByteRanges.copyErrorFrom(this, source)
 
     /** Reject using one mutable cursor for two simultaneously active regions. */
-    public fun ensureDistinct(other: KompactCursor): Int = KompactCursorByteRanges.ensureDistinct(this, other)
+    public fun ensureDistinct(other: KompactCursor): KompactStatus = KompactCursorByteRanges.ensureDistinct(this, other)
 
     /**
      * Write a length-prefixed borrowed range without allocating an intermediate
@@ -397,35 +397,35 @@ public class KompactCursor(
     public fun writeByteRange(
         prefixWidth: Int,
         range: KompactByteRange,
-    ): Int = KompactCursorByteRanges.writeByteRange(this, prefixWidth, range)
+    ): KompactStatus = KompactCursorByteRanges.writeByteRange(this, prefixWidth, range)
 
     /**
      * Validate a count-prefixed variable-width repeat and build its sparse
      * index in caller-owned [workspace] storage.
      *
      * The workspace needs one checkpoint slot per 64-element block, rounded
-     * up. Insufficient capacity returns [STATUS_WORKSPACE_TOO_SMALL] without
+     * up. Insufficient capacity returns [KompactStatus.WORKSPACE_TOO_SMALL] without
      * advancing this cursor or changing the workspace binding.
      */
     public fun readVariableRepeat(
         countPrefixWidth: Int,
         elementPrefixWidth: Int,
         workspace: KompactRepeatWorkspace,
-    ): Int = KompactCursorRepeats.readVariableRepeat(this, countPrefixWidth, elementPrefixWidth, workspace)
+    ): KompactStatus = KompactCursorRepeats.readVariableRepeat(this, countPrefixWidth, elementPrefixWidth, workspace)
 
     /**
      * Validate and index a count-prefixed fixed-width repeat in caller-owned
      * [workspace] storage.
      *
      * The workspace needs one checkpoint slot per 64-element block, rounded
-     * up. Insufficient capacity returns [STATUS_WORKSPACE_TOO_SMALL] without
+     * up. Insufficient capacity returns [KompactStatus.WORKSPACE_TOO_SMALL] without
      * advancing this cursor or changing the workspace binding.
      */
     public fun readFixedRepeat(
         countPrefixWidth: Int,
         elementBitWidth: Int,
         workspace: KompactRepeatWorkspace,
-    ): Int = KompactCursorRepeats.readFixedRepeat(this, countPrefixWidth, elementBitWidth, workspace)
+    ): KompactStatus = KompactCursorRepeats.readFixedRepeat(this, countPrefixWidth, elementBitWidth, workspace)
 
     /**
      * Reset [elementCursor] to one previously indexed repeat element.
@@ -437,13 +437,13 @@ public class KompactCursor(
         index: Int,
         workspace: KompactRepeatWorkspace,
         elementCursor: KompactCursor,
-    ): Int = KompactCursorRepeats.readRepeatedElement(this, index, workspace, elementCursor)
+    ): KompactStatus = KompactCursorRepeats.readRepeatedElement(this, index, workspace, elementCursor)
 
     internal fun fail(
-        code: Int,
+        code: KompactStatus,
         bitOffset: Int,
         detail: Int,
-    ): Int {
+    ): KompactStatus {
         status = code
         errorBitOffset = bitOffset
         errorDetail = detail
@@ -451,33 +451,8 @@ public class KompactCursor(
     }
 
     internal fun clearError() {
-        status = STATUS_OK
+        status = KompactStatus.OK
         errorBitOffset = 0
         errorDetail = 0
-    }
-
-    public companion object {
-        /** Operation completed successfully. */
-        public const val STATUS_OK: Int = 0
-        /** A reset region was outside the representable buffer bit bounds. */
-        public const val STATUS_INVALID_BOUNDS: Int = 1
-        /** A bit width or prefix width is unsupported. */
-        public const val STATUS_INVALID_WIDTH: Int = 2
-        /** An operation exceeded the cursor's bounded region. */
-        public const val STATUS_BOUNDS_ERROR: Int = 3
-        /** A value cannot be represented by the requested wire width. */
-        public const val STATUS_INVALID_VALUE: Int = 4
-        /** A length prefix is malformed or cannot be represented by cursor offsets. */
-        public const val STATUS_BAD_LENGTH_PREFIX: Int = 5
-        /** A byte-oriented operation began at a non-byte-aligned position. */
-        public const val STATUS_UNALIGNED_REGION: Int = 6
-        /** Mutable cursors or source and destination buffers alias incompatibly. */
-        public const val STATUS_INVALID_ARGUMENT: Int = 7
-        /** A string payload contains malformed UTF-8. */
-        public const val STATUS_INVALID_UTF8: Int = 8
-        /** The caller-owned repeat workspace has too few checkpoint slots. */
-        public const val STATUS_WORKSPACE_TOO_SMALL: Int = 9
-        /** A repeated element is truncated or its payload crosses its region. */
-        public const val STATUS_TRUNCATED_INPUT: Int = 10
     }
 }

@@ -3,6 +3,7 @@
 package example
 
 import ch.trancee.kompact.runtime.KompactCursor
+import ch.trancee.kompact.runtime.KompactStatus
 import ch.trancee.kompact.runtime.KompactByteRange
 import ch.trancee.kompact.runtime.KompactRepeatWorkspace
 import kotlin.test.Test
@@ -29,14 +30,14 @@ class GeneratedCodeTest {
         val source = ScalarSchemaViewHolder(value = 42)
         val writer = KompactCursor(raw)
 
-        assertEquals(KompactCursor.STATUS_OK, source.encodeFrom(writer))
+        assertEquals(KompactStatus.OK, source.encodeFrom(writer))
         assertContentEquals(byteArrayOf(42), raw)
         assertEquals(8, writer.position)
 
         val decoded = ScalarSchemaViewHolder()
         val reader = KompactCursor(raw)
 
-        assertEquals(KompactCursor.STATUS_OK, decoded.decodeInto(reader))
+        assertEquals(KompactStatus.OK, decoded.decodeInto(reader))
         assertEquals(42, decoded.value)
         assertEquals(8, reader.position)
     }
@@ -47,7 +48,7 @@ class GeneratedCodeTest {
         val holder = ScalarSchemaViewHolder(value = 256)
         val cursor = KompactCursor(raw)
 
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, holder.encodeFrom(cursor))
+        assertEquals(KompactStatus.INVALID_VALUE, holder.encodeFrom(cursor))
 
         assertContentEquals(byteArrayOf(0x55), raw)
         assertEquals(0, cursor.position)
@@ -60,7 +61,7 @@ class GeneratedCodeTest {
         val cursor = KompactCursor(raw)
         cursor.reset(raw, endBit = 7)
 
-        assertEquals(KompactCursor.STATUS_BOUNDS_ERROR, holder.decodeInto(cursor))
+        assertEquals(KompactStatus.BOUNDS_ERROR, holder.decodeInto(cursor))
 
         assertEquals(9, holder.value)
         assertEquals(0, cursor.position)
@@ -72,14 +73,14 @@ class GeneratedCodeTest {
         val source = PacketSchemaViewHolder(marker = 7)
         val writer = KompactCursor(raw)
 
-        assertEquals(KompactCursor.STATUS_OK, source.encodeFrom(writer))
+        assertEquals(KompactStatus.OK, source.encodeFrom(writer))
         assertContentEquals(byteArrayOf(7), raw)
         assertEquals(8, writer.position)
 
         val decoded = PacketSchemaViewHolder()
         val reader = KompactCursor(raw)
 
-        assertEquals(KompactCursor.STATUS_OK, decoded.decodeInto(reader))
+        assertEquals(KompactStatus.OK, decoded.decodeInto(reader))
         assertEquals(7, decoded.marker)
         assertEquals(8, reader.position)
     }
@@ -90,7 +91,7 @@ class GeneratedCodeTest {
         val holder = PacketSchemaViewHolder(marker = 256)
         val cursor = KompactCursor(raw)
 
-        assertEquals(KompactCursor.STATUS_INVALID_VALUE, holder.encodeFrom(cursor))
+        assertEquals(KompactStatus.INVALID_VALUE, holder.encodeFrom(cursor))
 
         assertContentEquals(byteArrayOf(0x55), raw)
         assertEquals(0, cursor.position)
@@ -103,7 +104,7 @@ class GeneratedCodeTest {
         val cursor = KompactCursor(raw)
         cursor.reset(raw, endBit = 7)
 
-        assertEquals(KompactCursor.STATUS_BOUNDS_ERROR, holder.decodeInto(cursor))
+        assertEquals(KompactStatus.BOUNDS_ERROR, holder.decodeInto(cursor))
 
         assertEquals(9, holder.marker)
         assertEquals(0, cursor.position)
@@ -124,7 +125,7 @@ class GeneratedCodeTest {
         val holder = newBytePayloadHolder(workspaceCapacity = 1)
         val reader = KompactCursor(raw)
 
-        assertEquals(KompactCursor.STATUS_OK, holder.decodeInto(reader, KompactCursor(raw)))
+        assertEquals(KompactStatus.OK, holder.decodeInto(reader, KompactCursor(raw)))
 
         assertEquals(2, holder.label.size)
         assertEquals(0xC3.toByte(), holder.label.buffer[holder.label.start])
@@ -139,21 +140,21 @@ class GeneratedCodeTest {
         val childHolder = ChildSchemaViewHolder()
         val childCursor = KompactCursor(raw)
         assertEquals(
-            KompactCursor.STATUS_OK,
+            KompactStatus.OK,
             holder.decodeChildInto(childHolder, childCursor, KompactCursor(raw)),
         )
         assertEquals(0x77, childHolder.value)
 
         val elementCursor = KompactCursor(raw)
-        assertEquals(KompactCursor.STATUS_OK, holder.decodeCodesElement(1, reader, elementCursor))
+        assertEquals(KompactStatus.OK, holder.decodeCodesElement(1, reader, elementCursor))
         assertEquals(0x20, holder.codesElement)
-        assertEquals(KompactCursor.STATUS_OK, holder.decodeNamesElement(1, reader, elementCursor))
+        assertEquals(KompactStatus.OK, holder.decodeNamesElement(1, reader, elementCursor))
         assertEquals(2, holder.namesElement.size)
         assertEquals('O'.code.toByte(), holder.namesElement.buffer[holder.namesElement.start])
         assertEquals('K'.code.toByte(), holder.namesElement.buffer[holder.namesElement.start + 1])
         val childElementHolder = ChildSchemaViewHolder()
         assertEquals(
-            KompactCursor.STATUS_OK,
+            KompactStatus.OK,
             holder.decodeChildrenElementInto(
                 0,
                 reader,
@@ -169,7 +170,7 @@ class GeneratedCodeTest {
         val writer = KompactCursor(output)
         val probe = KompactCursor(output)
 
-        assertEquals(KompactCursor.STATUS_OK, holder.encodeFrom(writer, probe))
+        assertEquals(KompactStatus.OK, holder.encodeFrom(writer, probe))
 
         assertContentEquals(raw, output)
         assertEquals(raw.size * 8, writer.position)
@@ -185,7 +186,7 @@ class GeneratedCodeTest {
         val reader = KompactCursor(malformed)
         val probe = KompactCursor(malformed)
 
-        assertEquals(KompactCursor.STATUS_INVALID_UTF8, holder.decodeInto(reader, probe))
+        assertEquals(KompactStatus.INVALID_UTF8, holder.decodeInto(reader, probe))
 
         assertSame(original, holder.label.buffer)
         assertEquals(1, holder.label.size)
@@ -202,7 +203,7 @@ class GeneratedCodeTest {
         val writer = KompactCursor(output)
         val probe = KompactCursor(output)
 
-        assertEquals(KompactCursor.STATUS_INVALID_UTF8, holder.encodeFrom(writer, probe))
+        assertEquals(KompactStatus.INVALID_UTF8, holder.encodeFrom(writer, probe))
 
         assertContentEquals(byteArrayOf(0x55, 0x66, 0x77, 0x22), output)
         assertEquals(0, writer.position)
@@ -217,7 +218,7 @@ class GeneratedCodeTest {
         val cursor = KompactCursor(raw)
 
         assertEquals(
-            KompactCursor.STATUS_WORKSPACE_TOO_SMALL,
+            KompactStatus.WORKSPACE_TOO_SMALL,
             holder.decodeInto(cursor, KompactCursor(raw)),
         )
 
@@ -233,7 +234,7 @@ class GeneratedCodeTest {
         val holder = newBytePayloadHolder()
         val cursor = KompactCursor(raw)
 
-        assertEquals(KompactCursor.STATUS_INVALID_ARGUMENT, holder.decodeInto(cursor, cursor))
+        assertEquals(KompactStatus.INVALID_ARGUMENT, holder.decodeInto(cursor, cursor))
 
         assertEquals(0, cursor.position)
     }
@@ -244,7 +245,7 @@ class GeneratedCodeTest {
         val holder = newBytePayloadHolder()
         val cursor = KompactCursor(output)
 
-        assertEquals(KompactCursor.STATUS_INVALID_ARGUMENT, holder.encodeFrom(cursor, cursor))
+        assertEquals(KompactStatus.INVALID_ARGUMENT, holder.encodeFrom(cursor, cursor))
 
         assertContentEquals(ByteArray(6), output)
         assertEquals(0, cursor.position)

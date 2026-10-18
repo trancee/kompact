@@ -14,7 +14,7 @@ import com.squareup.kotlinpoet.TypeSpec
 
 private val BYTE_RANGE = ClassName("ch.trancee.kompact.runtime", "KompactByteRange")
 private val CURSOR = ClassName("ch.trancee.kompact.runtime", "KompactCursor")
-private val INT = ClassName("kotlin", "Int")
+private val STATUS = ClassName("ch.trancee.kompact.runtime", "KompactStatus")
 private val REPEAT_WORKSPACE = ClassName("ch.trancee.kompact.runtime", "KompactRepeatWorkspace")
 private val KOMPAT_PREVIEW = ClassName("ch.trancee.kompact.annotations", "KompactPreview")
 
@@ -170,24 +170,24 @@ internal object FramedHolderGenerator {
         val plans = fields.map(::borrowedDecodePlan)
         val code = CodeBlock.builder()
         code.addStatement("val distinct = cursor.ensureDistinct(probeCursor)")
-        code.beginControlFlow("if (distinct != %T.STATUS_OK)", CURSOR)
+        code.beginControlFlow("if (distinct != %T.OK)", STATUS)
         code.addStatement("return distinct")
         code.endControlFlow()
         code.addStatement("val reset = probeCursor.reset(cursor.buffer, cursor.position, cursor.position, cursor.endBit)")
-        code.beginControlFlow("if (reset != %T.STATUS_OK)", CURSOR)
+        code.beginControlFlow("if (reset != %T.OK)", STATUS)
         code.addStatement("return cursor.copyErrorFrom(probeCursor)")
         code.endControlFlow()
         plans.forEach { plan -> addProbeCheck(code, plan.preflight) }
         plans.forEach { plan -> code.add("%L", plan.decode) }
         plans.forEach { plan -> code.add("%L", plan.commit) }
-        code.addStatement("return %T.STATUS_OK", CURSOR)
+        code.addStatement("return %T.OK", STATUS)
         return FunSpec.builder("decodeInto")
             .receiver(holderName)
             .addModifiers(KModifier.PUBLIC)
             .addAnnotation(KOMPAT_PREVIEW)
             .addParameter("cursor", CURSOR)
             .addParameter("probeCursor", CURSOR)
-            .returns(INT)
+            .returns(STATUS)
             .addKdoc("Decode into this holder after preflighting the complete framed input.\n")
             .addCode(code.build())
             .build()
@@ -215,7 +215,7 @@ internal object FramedHolderGenerator {
                             field.lengthPrefixWidth,
                             field.name,
                         )
-                        .beginControlFlow("if (%N != %T.STATUS_OK)", statusName, CURSOR)
+                        .beginControlFlow("if (%N != %T.OK)", statusName, STATUS)
                         .addStatement("return %N", statusName)
                         .endControlFlow()
                         .build()
@@ -272,7 +272,7 @@ internal object FramedHolderGenerator {
                                 )
                             }
                         }
-                        .beginControlFlow("if (%N != %T.STATUS_OK)", statusName, CURSOR)
+                        .beginControlFlow("if (%N != %T.OK)", statusName, STATUS)
                         .addStatement("return %N", statusName)
                         .endControlFlow()
                         .addStatement(
@@ -300,7 +300,7 @@ internal object FramedHolderGenerator {
             field.name,
             field.name,
         )
-        code.beginControlFlow("if (reset != %T.STATUS_OK)", CURSOR)
+        code.beginControlFlow("if (reset != %T.OK)", STATUS)
         code.addStatement("return reset")
         code.endControlFlow()
         code.addStatement("return childHolder.decodeInto(childCursor, childProbeCursor)")
@@ -311,7 +311,7 @@ internal object FramedHolderGenerator {
             .addParameter("childHolder", nestedHolder)
             .addParameter("childCursor", CURSOR)
             .addParameter("childProbeCursor", CURSOR)
-            .returns(INT)
+            .returns(STATUS)
             .addKdoc("Decode the borrowed %L region into caller-owned nested holder state.\n", field.name)
             .addCode(code.build())
             .build()
@@ -322,32 +322,32 @@ internal object FramedHolderGenerator {
         val holderName = ClassName(spec.packageName, "${spec.generatedName()}Holder")
         val code = CodeBlock.builder()
         code.addStatement("val distinct = cursor.ensureDistinct(probeCursor)")
-        code.beginControlFlow("if (distinct != %T.STATUS_OK)", CURSOR)
+        code.beginControlFlow("if (distinct != %T.OK)", STATUS)
         code.addStatement("return distinct")
         code.endControlFlow()
         code.addStatement("val reset = probeCursor.reset(cursor.buffer, cursor.position, cursor.position, cursor.endBit)")
-        code.beginControlFlow("if (reset != %T.STATUS_OK)", CURSOR)
+        code.beginControlFlow("if (reset != %T.OK)", STATUS)
         code.addStatement("return cursor.copyErrorFrom(probeCursor)")
         code.endControlFlow()
         plans.forEachIndexed { index, plan ->
             plan.validation?.let { validation ->
                 val validationName = "${fields[index].name}Validation"
                 code.addStatement("val %N = %L", validationName, validation)
-                code.beginControlFlow("if (%N != %T.STATUS_OK)", validationName, CURSOR)
+                code.beginControlFlow("if (%N != %T.OK)", validationName, STATUS)
                 code.addStatement("return %N", validationName)
                 code.endControlFlow()
             }
             addProbeCheck(code, plan.preflight)
         }
         plans.forEach { plan -> code.add("%L", plan.encode) }
-        code.addStatement("return %T.STATUS_OK", CURSOR)
+        code.addStatement("return %T.OK", STATUS)
         return FunSpec.builder("encodeFrom")
             .receiver(holderName)
             .addModifiers(KModifier.PUBLIC)
             .addAnnotation(KOMPAT_PREVIEW)
             .addParameter("cursor", CURSOR)
             .addParameter("probeCursor", CURSOR)
-            .returns(INT)
+            .returns(STATUS)
             .addKdoc("Encode this holder after preflighting all fields and destination capacity.\n")
             .addCode(code.build())
             .build()
@@ -399,7 +399,7 @@ internal object FramedHolderGenerator {
         code: CodeBlock.Builder,
         expression: CodeBlock,
     ) {
-        code.beginControlFlow("if (%L != %T.STATUS_OK)", expression, CURSOR)
+        code.beginControlFlow("if (%L != %T.OK)", expression, STATUS)
         code.addStatement("return cursor.copyErrorFrom(probeCursor)")
         code.endControlFlow()
     }

@@ -3,6 +3,6 @@
 # validateSigned
 
 [common]\
-fun [validateSigned](validate-signed.md)(bitWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), value: [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+fun [validateSigned](validate-signed.md)(bitWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), value: [Long](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html)): [KompactStatus](../-kompact-status/index.md)
 
 Validate a signed value without changing the buffer or cursor position.

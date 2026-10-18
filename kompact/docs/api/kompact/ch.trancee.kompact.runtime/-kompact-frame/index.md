@@ -7,6 +7,8 @@ class [KompactFrame](index.md)
 
 Bounded forward-only reader over a borrowed array. Reads advance the cursor; direct read methods throw [KompactDecodeException](../-kompact-decode-exception/index.md) on malformed input. The block overload of [decode](-companion/decode.md) translates those failures into [KompactFrameResult](../-kompact-frame-result/index.md).
 
+Invalid caller-supplied widths or repeat shapes are programming errors, not malformed input: they throw [IllegalArgumentException](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-illegal-argument-exception/index.html), which [decode](-companion/decode.md) does not translate.
+
 ## Types
 
 | Name | Summary |
@@ -29,5 +31,5 @@ Bounded forward-only reader over a borrowed array. Reads advance the cursor; dir
 | [readBlob](read-blob.md) | [common]<br>fun [readBlob](read-blob.md)(prefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)): [KompactByteSlice](../-kompact-byte-slice/index.md)<br>Read a borrowed length-prefixed byte region without copying. |
 | [readNested](read-nested.md) | [common]<br>fun [readNested](read-nested.md)(prefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)): [KompactByteSlice](../-kompact-byte-slice/index.md)<br>Read a bounded nested payload sharing the original backing array. |
 | [readRepeated](read-repeated.md) | [common]<br>fun &lt;[T](read-repeated.md)&gt; [readRepeated](read-repeated.md)(countWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), elementWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), elementPrefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), decodeElement: ([KompactFrame](index.md)) -&gt; [T](read-repeated.md)): [KompactRepeatedView](../-kompact-repeated-view/index.md)&lt;[T](read-repeated.md)&gt;<br>Validate a count-prefixed sequence; retain sparse boundaries for variable elements and defer each element's value decoding until it is accessed. |
-| [readString](read-string.md) | [common]<br>fun [readString](read-string.md)(prefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)): [String](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html)<br>Read a length-prefixed UTF-8 string; throws [KompactDecodeException](../-kompact-decode-exception/index.md) for malformed input. |
-| [requireComplete](require-complete.md) | [common]<br>fun [requireComplete](require-complete.md)()<br>Reject extra bytes/bits after the declared fields. |
+| [readString](read-string.md) | [common]<br>fun [readString](read-string.md)(prefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)): [String](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html)<br>Read a length-prefixed UTF-8 string. |
+| [requireComplete](require-complete.md) | [common]<br>fun [requireComplete](require-complete.md)()<br>Reject extra bytes or non-zero padding bits after the declared fields. |

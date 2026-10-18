@@ -44,12 +44,15 @@ from the runtime source; do not edit the generated pages by hand.
   out-of-range values and unknown enum codes without partially changing the
   destination.
 - `KompactCursor` stores its buffer and bit bounds, and reports checked
-  operation status and error details through primitive properties. A
+  operation status as a `KompactStatus` enum entry (no allocation) with
+  primitive error-detail properties. `KompactStatus.decodeError` maps
+  malformed-input statuses to the shared `KompactDecodeError` cases and is
+  `null` for success and caller-contract statuses. A
   `KompactByteRange` borrows its buffer; `copyTo` is an explicit copy into
   caller-provided storage. `KompactRepeatWorkspace` borrows caller-provided
   checkpoint storage.
-- `KompactCursor.writeNested` reports `STATUS_UNALIGNED_REGION` for a
-  non-byte-aligned position and `STATUS_BOUNDS_ERROR` when the length prefix
+- `KompactCursor.writeNested` reports `KompactStatus.UNALIGNED_REGION` for a
+  non-byte-aligned position and `KompactStatus.BOUNDS_ERROR` when the length prefix
   or payload exceeds the destination region. Either failure leaves the
   destination bytes and child cursor binding unchanged.
 - Generated `*Holder` codec operations take caller-owned cursors, ranges, and
@@ -59,7 +62,7 @@ from the runtime source; do not edit the generated pages by hand.
   buffers unchanged while a holder or workspace refers to them.
 - A repeat workspace needs `ceil(count / 64)` checkpoint slots; an empty repeat
   needs none. `readVariableRepeat` and `readFixedRepeat` return
-  `STATUS_WORKSPACE_TOO_SMALL` without committing the cursor or workspace
+  `KompactStatus.WORKSPACE_TOO_SMALL` without committing the cursor or workspace
   binding when capacity is insufficient. Fixed-repeat indexing computes each
   checkpoint offset directly, retaining the same storage requirement and
   validation/diagnostic behavior.

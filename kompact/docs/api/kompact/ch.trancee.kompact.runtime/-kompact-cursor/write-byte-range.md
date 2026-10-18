@@ -3,6 +3,6 @@
 # writeByteRange
 
 [common]\
-fun [writeByteRange](write-byte-range.md)(prefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), range: [KompactByteRange](../-kompact-byte-range/index.md)): [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html)
+fun [writeByteRange](write-byte-range.md)(prefixWidth: [Int](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html), range: [KompactByteRange](../-kompact-byte-range/index.md)): [KompactStatus](../-kompact-status/index.md)
 
 Write a length-prefixed borrowed range without allocating an intermediate payload array. Overlapping in-place copies are rejected before mutation.

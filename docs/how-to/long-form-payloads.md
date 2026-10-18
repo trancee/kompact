@@ -117,12 +117,13 @@ independent ownership.
 ```kotlin
 import ch.trancee.kompact.runtime.KompactByteRange
 import ch.trancee.kompact.runtime.KompactCursor
+import ch.trancee.kompact.runtime.KompactStatus
 
 val encoded = byteArrayOf(2, 0xC3.toByte(), 0xA9.toByte())
 val cursor = KompactCursor(encoded)
 val textBytes = KompactByteRange(ByteArray(0))
 
-check(cursor.readUtf8Range(prefixWidth = 8, range = textBytes) == KompactCursor.STATUS_OK)
+check(cursor.readUtf8Range(prefixWidth = 8, range = textBytes) == KompactStatus.OK)
 check(textBytes.size == 2)
 
 val ownedCopy = ByteArray(textBytes.size)

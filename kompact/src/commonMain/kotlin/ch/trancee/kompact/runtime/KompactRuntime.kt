@@ -171,6 +171,9 @@ public object KompactRuntime {
      * Sign extension uses Long-arithmetic shifts, bit-identical to the legacy
      * accessors. Callers pass a [ScalarType]; see [readScalarOrThrow] for the
      * exceptions variant.
+     *
+     * @throws IllegalArgumentException if [type] is wider than 32 bits; use
+     *   [readScalarAsLong] for wider scalars.
      */
     public fun readScalar(
         raw: ByteArray,
@@ -179,7 +182,8 @@ public object KompactRuntime {
     ): IntResult {
         val bitWidth = type.bitWidth
         val signed = type.signed
-        if (!fits(raw, bitOffset, bitWidth) || bitWidth > 32) {
+        require(bitWidth <= 32) { "readScalar supports widths up to 32 bits, was $bitWidth" }
+        if (!fits(raw, bitOffset, bitWidth)) {
             return IntResult.failure(KompactDecodeError.BoundsError)
         }
         val magnitude =
@@ -255,7 +259,11 @@ public object KompactRuntime {
         bitOffset: Int,
     ): Boolean = readBool(raw, bitOffset).getOrThrow()
 
-    /** Throws [KompactDecodeException] on a bounds error; otherwise decodes [type] bits as an [Int] (Ticket 04). */
+    /**
+     * Throws [KompactDecodeException] on a bounds error; otherwise decodes [type] bits as an [Int] (Ticket 04).
+     *
+     * @throws IllegalArgumentException if [type] is wider than 32 bits.
+     */
     public fun readScalarOrThrow(
         raw: ByteArray,
         bitOffset: Int,

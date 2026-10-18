@@ -199,10 +199,8 @@ class KompactRuntimeCheckedApiTest {
         assertEquals(8, ok.startBit)
         assertEquals(8, ok.bitLength)
 
-        // Bad prefix width (7 ∉ 8/16/32) -> BadLengthPrefix.
-        val badWidth = KompactFraming.readNested(valid, 0, 7)
-        assertTrue(badWidth.isFailure)
-        assertEquals(KompactDecodeError.BadLengthPrefix, badWidth.error)
+        // Bad prefix width (7 ∉ 8/16/32) is a caller-contract violation.
+        assertFailsWith<IllegalArgumentException> { KompactFraming.readNested(valid, 0, 7) }
 
         // Prefix claims 2 payload bytes but only 1 present -> length-prefix
         // exceeds remaining bytes -> BadLengthPrefix (Ticket 06/09).
@@ -217,12 +215,10 @@ class KompactRuntimeCheckedApiTest {
         val valid = byteArrayOf(0x01, 0xAB.toByte())
         assertEquals(1, KompactFraming.readLengthPrefixOrThrow(valid, 0, 8))
 
-        // Bad prefix width throws BadLengthPrefix.
-        val ex1 =
-            assertFailsWith<KompactDecodeException> {
-                KompactFraming.readLengthPrefixOrThrow(valid, 0, 7)
-            }
-        assertEquals(KompactDecodeError.BadLengthPrefix, ex1.error)
+        // Bad prefix width is a caller-contract violation.
+        assertFailsWith<IllegalArgumentException> {
+            KompactFraming.readLengthPrefixOrThrow(valid, 0, 7)
+        }
 
         // Prefix exceeds remaining bytes throws BadLengthPrefix (Ticket 06/09).
         val ex2 =

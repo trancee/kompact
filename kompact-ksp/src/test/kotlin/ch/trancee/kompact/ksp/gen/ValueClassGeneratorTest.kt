@@ -143,8 +143,8 @@ class ValueClassGeneratorTest {
         val output = ValueClassGenerator.generate(vehicleTelemetrySpec())
 
         assertTrue(output.contains("public class VehicleTelemetryViewHolder("))
-        assertTrue(output.contains("fun VehicleTelemetryViewHolder.decodeInto(cursor: KompactCursor): Int"))
-        assertTrue(output.contains("fun VehicleTelemetryViewHolder.encodeFrom(cursor: KompactCursor): Int"))
+        assertTrue(output.contains("fun VehicleTelemetryViewHolder.decodeInto(cursor: KompactCursor): KompactStatus"))
+        assertTrue(output.contains("fun VehicleTelemetryViewHolder.encodeFrom(cursor: KompactCursor): KompactStatus"))
         assertTrue(output.contains("cursor.ensureAvailable(16)"))
         assertTrue(output.contains("cursor.validateUnsigned(10, speedInput.toLong())"))
     }
