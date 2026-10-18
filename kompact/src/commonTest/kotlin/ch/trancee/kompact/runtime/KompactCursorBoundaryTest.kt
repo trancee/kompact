@@ -17,6 +17,8 @@ class KompactCursorBoundaryTest {
                 Triple(4, 3, 8) to 3,
                 Triple(0, 8, 7) to 7,
                 Triple(0, 0, 17) to 17,
+                Triple(4, 4, 17) to 17,
+                Triple(4, 6, 5) to 5,
             )
 
         invalidBounds.forEach { (bounds, expectedErrorDetail) ->
@@ -84,6 +86,17 @@ class KompactCursorBoundaryTest {
         assertEquals(15, cursor.endBit)
         assertEquals(3, cursor.errorBitOffset)
         assertEquals(endByte, cursor.errorDetail)
+    }
+
+    @Test
+    fun resetByteRangeAtTheLargestEncodableEndChecksTheBufferInstead() {
+        val cursor = KompactCursor(byteArrayOf(0x55))
+        val endByte = Int.MAX_VALUE / 8
+
+        val status = cursor.resetByteRange(byteArrayOf(0x55), 0, endByte)
+
+        assertEquals(KompactStatus.INVALID_BOUNDS, status)
+        assertEquals(endByte * 8, cursor.errorDetail)
     }
 
     @Test
@@ -349,5 +362,29 @@ class KompactCursorBoundaryTest {
 
         assertContentEquals(before, bytes)
         assertEquals(129, cursor.position)
+    }
+
+    @Test
+    fun emptyZeroWriteRecordsAZeroValue() {
+        val cursor = KompactCursor(byteArrayOf(0x5A))
+        assertEquals(KompactStatus.OK, cursor.readBits(8))
+
+        assertEquals(KompactStatus.OK, cursor.writeZeros(0))
+
+        assertEquals(0L, cursor.valueBits)
+        assertEquals(8, cursor.position)
+    }
+
+    @Test
+    fun fullDomainUnsignedWriteRejectsTheSignBitBelowSixtyFourBits() {
+        val bytes = ByteArray(8)
+        val cursor = KompactCursor(bytes)
+
+        val status = cursor.writeUnsigned(63, 1uL shl 63)
+
+        assertEquals(KompactStatus.INVALID_VALUE, status)
+        assertEquals(63, cursor.errorDetail)
+        assertEquals(0, cursor.position)
+        assertContentEquals(ByteArray(8), bytes)
     }
 }

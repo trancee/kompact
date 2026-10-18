@@ -9,6 +9,9 @@ package ch.trancee.kompact.runtime
  * with `and 0xFF` before `ushr`/`shl`/`or`, so assembly is identical on the
  * JVM and Kotlin/Native regardless of platform endianness.
  *
+ * Each chunk loop runs once per byte the field touches ([byteSpan]), so its
+ * trip count never depends on a comparison inside the loop.
+ *
  * These primitives read/write the caller-owned buffer without constructing a
  * result wrapper. Generated raw getters delegate to them directly; checked
  * accessors add a typed result. `LongResult` is a regular class so it can
@@ -25,7 +28,7 @@ public object KompactRuntime {
         var srcBit = bitOffset
         var destBit = 0
         var remaining = bitWidth
-        while (remaining > 0) {
+        repeat(byteSpan(bitOffset, bitWidth)) {
             val byteIndex = srcBit ushr 3
             val bitInByte = srcBit and 7
             val bitsAvailable = 8 - bitInByte
@@ -50,7 +53,7 @@ public object KompactRuntime {
         var srcBit = bitOffset
         var srcValBit = 0
         var remaining = bitWidth
-        while (remaining > 0) {
+        repeat(byteSpan(bitOffset, bitWidth)) {
             val byteIndex = srcBit ushr 3
             val bitInByte = srcBit and 7
             val bitsAvailable = 8 - bitInByte
@@ -102,7 +105,7 @@ public object KompactRuntime {
         var srcBit = bitOffset
         var destBit = 0
         var remaining = bitWidth
-        while (remaining > 0) {
+        repeat(byteSpan(bitOffset, bitWidth)) {
             val byteIndex = srcBit ushr 3
             val bitInByte = srcBit and 7
             val bitsAvailable = 8 - bitInByte
@@ -127,7 +130,7 @@ public object KompactRuntime {
         var srcBit = bitOffset
         var srcValBit = 0
         var remaining = bitWidth
-        while (remaining > 0) {
+        repeat(byteSpan(bitOffset, bitWidth)) {
             val byteIndex = srcBit ushr 3
             val bitInByte = srcBit and 7
             val bitsAvailable = 8 - bitInByte
@@ -145,6 +148,11 @@ public object KompactRuntime {
     }
 
     // --- Bounded (checked) read accessors ---
+
+    private fun byteSpan(
+        bitOffset: Int,
+        bitWidth: Int,
+    ): Int = ((bitOffset and 7) + bitWidth + 7) shr 3
 
     /** Bounds-check: true iff [bitOffset]+[bitWidth] fits in [raw]. */
     public fun fits(
@@ -186,12 +194,7 @@ public object KompactRuntime {
         if (!fits(raw, bitOffset, bitWidth)) {
             return IntResult.failure(KompactDecodeError.BoundsError)
         }
-        val magnitude =
-            if (bitWidth <= 31) {
-                readBits(raw, bitOffset, bitWidth).toLong()
-            } else {
-                readBitsLong(raw, bitOffset, bitWidth)
-            }
+        val magnitude = readBitsLong(raw, bitOffset, bitWidth)
         val value =
             if (signed) {
                 val shift = Long.SIZE_BITS - bitWidth
@@ -221,7 +224,7 @@ public object KompactRuntime {
             return LongResult.failure(KompactDecodeError.BoundsError)
         }
         val magnitude = readBitsLong(raw, bitOffset, bitWidth)
-        return if (signed && bitWidth < 64) {
+        return if (signed) {
             val shift = Long.SIZE_BITS - bitWidth
             LongResult.success((magnitude shl shift) shr shift)
         } else {

@@ -53,10 +53,9 @@ public class KompactCursor(
      * The default [position] is [startBit]; the default [endBit] is the
      * complete buffer. Invalid bounds leave the previous buffer and region
      * intact and set [status] to [KompactStatus.INVALID_BOUNDS]. Diagnostics use the
-     * first violated bound in this order: negative [startBit], [position]
-     * before [startBit], then [endBit] before [position]. If no specific
-     * detail is selected, or the selected detail is zero, [errorDetail] is
-     * [endBit]. [errorBitOffset] is the non-negative requested [position].
+     * first violated bound in this order: negative [startBit], then [position]
+     * before [startBit]. Otherwise, or if that detail is zero, [errorDetail]
+     * is [endBit]. [errorBitOffset] is the non-negative requested [position].
      */
     public fun reset(
         buffer: ByteArray,
@@ -74,7 +73,6 @@ public class KompactCursor(
                 when {
                     startBit < 0 -> startBit
                     position < startBit -> position
-                    endBit < position -> endBit
                     else -> 0
                 }
             status = KompactStatus.INVALID_BOUNDS
@@ -100,7 +98,7 @@ public class KompactCursor(
         startByte: Int,
         endByte: Int,
     ): KompactStatus {
-        if (startByte < 0 || endByte < startByte || endByte.toLong() * 8L > Int.MAX_VALUE.toLong()) {
+        if (startByte < 0 || endByte < startByte || endByte > Int.MAX_VALUE / 8) {
             return fail(KompactStatus.INVALID_BOUNDS, position, endByte)
         }
         return reset(buffer, startByte * 8, startByte * 8, endByte * 8)
@@ -245,13 +243,9 @@ public class KompactCursor(
         if (bitWidth !in 1..64) {
             return fail(KompactStatus.INVALID_WIDTH, position, bitWidth)
         }
-        if (bitWidth < 64) {
-            val shift = Long.SIZE_BITS - bitWidth
-            val minimum = Long.MIN_VALUE shr shift
-            val maximum = Long.MAX_VALUE shr shift
-            if (value < minimum || value > maximum) {
-                return fail(KompactStatus.INVALID_VALUE, position, bitWidth)
-            }
+        val shift = Long.SIZE_BITS - bitWidth
+        if (value < Long.MIN_VALUE shr shift || value > Long.MAX_VALUE shr shift) {
+            return fail(KompactStatus.INVALID_VALUE, position, bitWidth)
         }
         clearError()
         return status
@@ -275,7 +269,8 @@ public class KompactCursor(
         if (bitWidth !in 1..64) {
             return fail(KompactStatus.INVALID_WIDTH, position, bitWidth)
         }
-        if (value < 0L || (bitWidth < 63 && value ushr bitWidth != 0L)) {
+        // Shifting in two steps keeps the 64-bit width in range; a non-negative value always fits 63 or 64 bits.
+        if (value < 0L || (value ushr 1) ushr (bitWidth - 1) != 0L) {
             return fail(KompactStatus.INVALID_VALUE, position, bitWidth)
         }
         clearError()
@@ -316,14 +311,14 @@ public class KompactCursor(
     public fun writeZeros(bitCount: Int): KompactStatus {
         val checked = ensureAvailable(bitCount)
         if (checked != KompactStatus.OK) return checked
-        var remaining = bitCount
-        while (remaining > 0) {
-            val chunk = minOf(remaining, Long.SIZE_BITS)
-            KompactRuntime.writeBitsLong(buffer, position, chunk, 0L)
-            position += chunk
-            valueBits = 0L
-            remaining -= chunk
+        repeat(bitCount / Long.SIZE_BITS) {
+            KompactRuntime.writeBitsLong(buffer, position, Long.SIZE_BITS, 0L)
+            position += Long.SIZE_BITS
         }
+        val tailBits = bitCount % Long.SIZE_BITS
+        KompactRuntime.writeBitsLong(buffer, position, tailBits, 0L)
+        position += tailBits
+        valueBits = 0L
         clearError()
         return status
     }

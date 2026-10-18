@@ -271,13 +271,6 @@ internal object KompactCursorRepeats {
             }
             val length =
                 KompactRuntime.readBitsLong(cursor.buffer, elementStart.toInt(), workspace.elementPrefixWidth)
-            if (length > Int.MAX_VALUE.toLong()) {
-                return cursor.fail(
-                    KompactStatus.BAD_LENGTH_PREFIX,
-                    elementStart.toInt(),
-                    workspace.elementPrefixWidth,
-                )
-            }
             val elementEnd = prefixEnd + length * 8L
             if (elementEnd > workspace.endBit.toLong()) {
                 return cursor.fail(
@@ -299,13 +292,6 @@ internal object KompactCursorRepeats {
             )
         }
         val length = KompactRuntime.readBitsLong(cursor.buffer, elementStart.toInt(), workspace.elementPrefixWidth)
-        if (length > Int.MAX_VALUE.toLong()) {
-            return cursor.fail(
-                KompactStatus.BAD_LENGTH_PREFIX,
-                elementStart.toInt(),
-                workspace.elementPrefixWidth,
-            )
-        }
         val payloadEnd = payloadStart + length * 8L
         if (payloadEnd > workspace.endBit.toLong()) {
             return cursor.fail(

@@ -9,6 +9,8 @@ Bit-stream primitives for Kompact.
 
 Bit order is **LSB-first** (little-endian bit packing): byte 0 holds the field's bits 0-7, byte 1 holds bits 8-15, and bit 0 of each byte is the least-significant bit of the field value. Every `Byte` is masked with `and 0xFF` before `ushr`/`shl`/`or`, so assembly is identical on the JVM and Kotlin/Native regardless of platform endianness.
 
+Each chunk loop runs once per byte the field touches (byteSpan), so its trip count never depends on a comparison inside the loop.
+
 These primitives read/write the caller-owned buffer without constructing a result wrapper. Generated raw getters delegate to them directly; checked accessors add a typed result. `LongResult` is a regular class so it can represent the full `Long` domain without reserving sentinel values.
 
 ## Functions

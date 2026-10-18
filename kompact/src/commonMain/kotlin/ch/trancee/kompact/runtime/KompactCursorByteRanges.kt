@@ -73,7 +73,7 @@ internal object KompactCursorByteRanges {
         val length = KompactRuntime.readBitsLong(cursor.buffer, cursor.position, prefixWidth)
         val payloadStart = prefixEnd
         val payloadEnd = payloadStart + length * 8L
-        if (length > Int.MAX_VALUE.toLong() || payloadEnd > cursor.endBit.toLong()) {
+        if (payloadEnd > cursor.endBit.toLong()) {
             return cursor.fail(KompactStatus.BAD_LENGTH_PREFIX, cursor.position, prefixWidth)
         }
 
@@ -150,7 +150,7 @@ internal object KompactCursorByteRanges {
         }
         val length = KompactRuntime.readBitsLong(cursor.buffer, cursor.position, prefixWidth)
         val payloadEnd = payloadStart + length * 8L
-        if (length > Int.MAX_VALUE.toLong() || payloadEnd > cursor.endBit.toLong()) {
+        if (payloadEnd > cursor.endBit.toLong()) {
             return cursor.fail(KompactStatus.BAD_LENGTH_PREFIX, cursor.position, prefixWidth)
         }
         val byteStart = (payloadStart / 8L).toInt()
@@ -236,7 +236,7 @@ internal object KompactCursorByteRanges {
         }
         val length = KompactRuntime.readBitsLong(cursor.buffer, cursor.position, prefixWidth)
         val payloadEnd = payloadStart + length * 8L
-        if (length > Int.MAX_VALUE.toLong() || payloadEnd > cursor.endBit.toLong()) {
+        if (payloadEnd > cursor.endBit.toLong()) {
             return cursor.fail(KompactStatus.BAD_LENGTH_PREFIX, cursor.position, prefixWidth)
         }
 
