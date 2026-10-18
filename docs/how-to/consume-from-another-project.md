@@ -1,9 +1,10 @@
 # How to add Kompact to a project
 
-Add the runtime dependency to a Kotlin/JVM, Android, or Kotlin Multiplatform
-module. The latest Maven Central release is `0.9.0`.
+Add the Kompact runtime to a Kotlin/JVM, Android, or Kotlin Multiplatform
+module. To generate views from schemas, also apply the code-generation plugin.
+The latest Maven Central release is `0.9.0`.
 
-## Use the published runtime
+## Add the published runtime
 
 For a JVM or Android module, add Maven Central and the runtime dependency:
 
@@ -35,153 +36,168 @@ kotlin {
 }
 ```
 
-Add only the targets your application uses. The root KMP coordinate lets
-Gradle select a published platform variant from module metadata; do not guess
-target-specific artifact names. A target must be published for the version
-you consume.
+Add only the targets that your application uses. Use the root coordinate
+`ch.trancee.kompact:kompact` for every target. Gradle reads the module metadata
+and selects the matching platform variant, so do not write target-specific
+artifact names. The runtime publishes variants for JVM, Android, iOS Arm64,
+iOS Simulator Arm64, and Android Native Arm64.
 
-## Use the published code-generation plugin
+## Add the published code-generation plugin
 
-The code-generation plugin marker, runtime, and KSP processor are published at
-`0.9.0`. Add Maven Central to plugin and dependency resolution:
+The plugin `ch.trancee.kompact.codegen`, the runtime, and the KSP processor
+are published at `0.9.0`. The `0.9.0` plugin requires Kotlin `2.4.21`
+exactly. It accepts only the JVM, Android JVM, iOS Arm64, iOS Simulator Arm64,
+and Android Native Arm64 targets.
 
-```kotlin
-// settings.gradle.kts
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        mavenCentral()
-    }
-}
+The schema examples in these guides use the `0.10.0-SNAPSHOT` declaration
+form. To use them, follow
+[Try the development snapshot](#try-the-development-snapshot) instead.
 
-dependencyResolutionManagement {
-    repositories {
-        mavenCentral()
-    }
-}
-```
+1. Add Maven Central to plugin and dependency resolution in
+   `settings.gradle.kts`:
 
-Apply the plugin after Kotlin Multiplatform and add the runtime to `commonMain`:
+   ```kotlin
+   pluginManagement {
+       repositories {
+           gradlePluginPortal()
+           mavenCentral()
+       }
+   }
 
-```kotlin
-plugins {
-    kotlin("multiplatform") version "2.4.20"
-    id("ch.trancee.kompact.codegen") version "0.9.0"
-}
+   dependencyResolutionManagement {
+       repositories {
+           mavenCentral()
+       }
+   }
+   ```
 
-kotlin {
-    jvm()
-    iosArm64()
-    iosSimulatorArm64()
-    androidNativeArm64()
+2. Apply the plugin after Kotlin Multiplatform, and add the runtime to
+   `commonMain`:
 
-    sourceSets {
-        commonMain {
-            dependencies {
-                implementation("ch.trancee.kompact:kompact:0.9.0")
-            }
-        }
-    }
-}
-```
+   ```kotlin
+   plugins {
+       kotlin("multiplatform") version "2.4.21"
+       id("ch.trancee.kompact.codegen") version "0.9.0"
+   }
 
-Add only the targets your application uses. The plugin supports JVM, Android
-JVM, iOS Arm64, iOS Simulator Arm64, and Android Native Arm64. Do not also
-apply standard target-specific KSP processing to the same Kompact schemas.
+   kotlin {
+       jvm()
+       iosArm64()
+       iosSimulatorArm64()
+       androidNativeArm64()
+
+       sourceSets {
+           commonMain {
+               dependencies {
+                   implementation("ch.trancee.kompact:kompact:0.9.0")
+               }
+           }
+       }
+   }
+   ```
+
+Do not also apply the standard KSP plugin to the same Kompact schemas.
 
 ## Try the development snapshot
 
-The current checkout's `0.10.0-SNAPSHOT` runtime, schema processor, and
-code-generation plugin are not available from Maven Central. To try unreleased
-runtime changes, publish the runtime from the repository root:
+The current checkout's `0.10.0-SNAPSHOT` runtime, KSP processor, and
+code-generation plugin are not on Maven Central. Publish them to Maven Local
+from a clone of this repository.
 
-```bash
-./gradlew :kompact:publishToMavenLocal
-```
+### Use the snapshot runtime
 
-Then add Maven Local to your dependency repositories before Maven Central and
-use the snapshot coordinate:
+1. Publish the runtime from the repository root:
 
-```kotlin
-repositories {
-    mavenLocal()
-    mavenCentral()
-}
+   ```bash
+   ./gradlew :kompact:publishToMavenLocal
+   ```
 
-dependencies {
-    implementation("ch.trancee.kompact:kompact:0.10.0-SNAPSHOT")
-}
-```
+2. In the consuming build, put Maven Local before Maven Central and use the
+   snapshot coordinate:
+
+   ```kotlin
+   repositories {
+       mavenLocal()
+       mavenCentral()
+   }
+
+   dependencies {
+       implementation("ch.trancee.kompact:kompact:0.10.0-SNAPSHOT")
+   }
+   ```
 
 ### Enable schema generation
 
-For generated schemas, publish all three snapshot components to Maven Local:
+1. Publish all three snapshot components from the repository root:
 
-```bash
-./gradlew \
-  :kompact:publishToMavenLocal \
-  :kompact-ksp:publishToMavenLocal \
-  :kompact-gradle-plugin:publishToMavenLocal
-```
+   ```bash
+   ./gradlew \
+     :kompact:publishToMavenLocal \
+     :kompact-ksp:publishToMavenLocal \
+     :kompact-gradle-plugin:publishToMavenLocal
+   ```
 
-Make the plugin marker available through `pluginManagement` in the consuming
-build's `settings.gradle.kts`:
+2. In the consuming build's `settings.gradle.kts`, add Maven Local to
+   `pluginManagement` so that Gradle finds the plugin marker:
 
-```kotlin
-pluginManagement {
-    repositories {
-        mavenLocal()
-        google()
-        gradlePluginPortal()
-        mavenCentral()
-    }
-}
-```
+   ```kotlin
+   pluginManagement {
+       repositories {
+           mavenLocal()
+           google()
+           gradlePluginPortal()
+           mavenCentral()
+       }
+   }
+   ```
 
-Then apply the plugin after Kotlin Multiplatform and add the runtime to
-`commonMain`:
+3. Apply the plugin after Kotlin Multiplatform, and add the runtime to
+   `commonMain`:
 
-```kotlin
-plugins {
-    kotlin("multiplatform") version "2.4.21"
-    id("ch.trancee.kompact.codegen") version "0.10.0-SNAPSHOT"
-}
+   ```kotlin
+   plugins {
+       kotlin("multiplatform") version "2.4.21"
+       id("ch.trancee.kompact.codegen") version "0.10.0-SNAPSHOT"
+   }
 
-repositories {
-    mavenLocal()
-    mavenCentral()
-}
+   repositories {
+       mavenLocal()
+       mavenCentral()
+   }
 
-kotlin {
-    jvm()
+   kotlin {
+       jvm()
 
-    sourceSets {
-        commonMain {
-            dependencies {
-                implementation("ch.trancee.kompact:kompact:0.10.0-SNAPSHOT")
-            }
-        }
-    }
-}
-```
+       sourceSets {
+           commonMain {
+               dependencies {
+                   implementation("ch.trancee.kompact:kompact:0.10.0-SNAPSHOT")
+               }
+           }
+       }
+   }
+   ```
 
-Add any other targets required by your application. The snapshot plugin
-registers one generated common source per schema in `commonMain` and does not
-restrict Kotlin targets; the runtime must still publish a variant for each
-target you add. Do not also apply standard target-specific KSP processing to
-the same Kompact schemas.
+Add the other targets that your application uses. The snapshot plugin adds one
+generated common source per schema to `commonMain` and does not restrict
+Kotlin targets. The runtime must still publish a variant for each target that
+you add. Do not also apply the standard KSP plugin to the same Kompact
+schemas.
 
-Use Kotlin from the same minor line as the plugin's tested version (for example
-`2.4.x` for `2.4.21`). Other patch releases log a warning; a different minor
-line fails the build before generation. See
+If the plugin is applied before Kotlin Multiplatform, the build fails with
+`Apply the Kotlin Multiplatform plugin before ch.trancee.kompact.codegen.`
+
+Use Kotlin from the same minor line as the plugin's tested version. For the
+snapshot, that is `2.4.x`, tested with `2.4.21`. Another patch release logs a
+warning. A different minor line fails the build before generation. See
 [ADR-0012](../adr/0012-kotlin-minor-line-compatibility.md).
 
-See [How to define a framed schema](define-framed-schema.md) for a complete
-schema example.
+For a complete schema, see
+[How to define a framed model](define-framed-schema.md).
 
 ## Verify the dependency
 
-This small JVM program writes a frame, checks its bytes, and reads one field
+Run this JVM program. It writes a frame, checks its bytes, and reads one field
 back:
 
 ```kotlin
@@ -201,14 +217,14 @@ fun main() {
 }
 ```
 
-If the snapshot does not resolve, check that `mavenLocal()` is configured for
-both plugin resolution and dependencies. For Maven Central, remove
-`mavenLocal()` and use the published `0.9.0` runtime and code-generation
+If the snapshot does not resolve, check that `mavenLocal()` is in both the
+`pluginManagement` repositories and the dependency repositories. To go back to
+Maven Central, remove `mavenLocal()` and use the published `0.9.0` runtime and
 plugin.
 
 ## Next steps
 
 - [Build your first frame](../getting-started.md)
 - [Define a fixed-layout model](define-message.md)
-- [Define a sequential framed schema](define-framed-schema.md)
+- [Define a framed model](define-framed-schema.md)
 - [Find a public signature](../api-reference.md)

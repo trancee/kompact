@@ -1,16 +1,18 @@
-# Measure host runtime performance
+# How to measure runtime performance on a host
 
-Use the unpublished `:benchmarks` module to compare caller-owned scalar and
-repeat operations on the host JVM and Apple Silicon macOS. It compiles the
-maintained common runtime and its JVM/Native platform sources directly; it does
-not add a macOS variant or benchmark dependencies to the published runtime.
-These diagnostics do not prove Android ART, Android Native, or iOS timing.
+Use the unpublished `:benchmarks` module to time scalar and repeat operations
+on the host JVM and on Apple Silicon macOS. The results do not show Android
+ART, Android Native, or iOS timing. For what the module measures and why, see
+[Design and trade-offs](../architecture.md) and the
+[repeat index comparison](../research/repeat-index-benchmark.md).
 
-The pinned tooling is `kotlinx-benchmark` `0.5.0` and JMH `1.37`.
-`kotlinx-benchmark` remains Alpha tooling, isolated from production artifacts.
-JMH annotations are kept open for generated benchmark subclasses.
+The module uses `kotlinx-benchmark` `0.5.0`, which is Alpha, and JMH `1.37`.
+Neither is a dependency of the published runtime.
 
-## Check the harness
+## Check that the benchmarks run
+
+Run the Python tests, the JVM fixture tests, and the JVM smoke run. Then check
+the smoke report:
 
 ```bash
 python3 -m unittest discover -s benchmarks -p 'test_*.py'
@@ -18,68 +20,73 @@ python3 -m unittest discover -s benchmarks -p 'test_*.py'
 python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/jvm.json
 ```
 
-On an Apple Silicon macOS host, also run:
+On an Apple Silicon Mac, also run the Native tests and smoke run:
 
 ```bash
 ./gradlew :benchmarks:macosArm64Test :benchmarks:macosArm64SmokeBenchmark --no-daemon
 python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/macosArm64.json
 ```
 
-Both CI jobs run their host's fixture tests and finite-result smoke checks.
-The benchmark module and its internal Python tools are explicitly excluded
-from production coverage, not from correctness checks. Smoke is not a timing
-budget: one warmup and one 100 ms sample merely check execution. Native needs
-at least one warmup to calibrate a nonzero measured cycle count.
+The smoke profile runs one warmup and one 100 ms sample. It only checks that
+each benchmark runs and reports finite numbers. Do not compare smoke timings.
 
 ## Record a comparison
 
-Keep the host, power state, toolchain, build configuration, profile, workloads,
-and JVM flags unchanged. Avoid concurrent builds or measurements.
-The main profile records average nanoseconds per operation with five warmups
-and five 300 ms measurement iterations. JVM measurements use three independent
-JMH forks; Native uses one release-optimized executable.
+1. Keep the host, power state, toolchain, build configuration, workloads, and
+   JVM flags the same for both runs. Do not run other builds or measurements
+   at the same time.
 
-```bash
-./gradlew :benchmarks:jvmBenchmark :benchmarks:macosArm64Benchmark \
-  :benchmarks:jvmAllocationBenchmark --no-daemon --console=plain
-```
+2. Run the main profile and the JVM allocation profile:
 
-Timing reports are under
-`benchmarks/build/reports/benchmarks/main/<run>/`; the separate JMH GC-profiler
-report is `benchmarks/build/reports/benchmarks/allocations.json`.
-Validate the exact run and retain its samples before changing the runtime:
+   ```bash
+   ./gradlew :benchmarks:jvmBenchmark :benchmarks:macosArm64Benchmark \
+     :benchmarks:jvmAllocationBenchmark --no-daemon --console=plain
+   ```
 
-```bash
-run=<run-directory>
-python3 benchmarks/check_results.py --profile main \
-  --retain-dir benchmarks/results/baseline \
-  "benchmarks/build/reports/benchmarks/main/$run/jvm.json" \
-  "benchmarks/build/reports/benchmarks/main/$run/macosArm64.json" \
-  benchmarks/build/reports/benchmarks/allocations.json
-```
+   The main profile runs five warmups and five 300 ms measurements, and
+   reports average nanoseconds per operation. The JVM uses three JMH forks.
+   Native uses one release build. Timing reports go to
+   `benchmarks/build/reports/benchmarks/main/<run>/`. The allocation report
+   goes to `benchmarks/build/reports/benchmarks/allocations.json`.
 
-Use a new retention directory for the candidate. The command refuses to
-overwrite retained reports. It preserves measurement metadata, primary and
-secondary metrics, and raw samples, but excludes local executable paths and
-JVM system properties. Record meaningful JVM options separately without
-machine-specific or sensitive values. Gradle success alone is insufficient:
-the validator rejects missing/duplicate cases, wrong units, missing warmup,
-empty samples, nonpositive scores, and non-finite scores or samples.
+3. Check the run and keep its samples before you change the runtime:
 
-For a second comparison of only the optimized operation, run
-`:benchmarks:jvmFixedBenchmark :benchmarks:macosArm64FixedBenchmark` and
-validate with `--profile fixed`. Repeat baseline and candidate in the reverse
-order when distinguishing a change from host drift.
+   ```bash
+   run=<run-directory>
+   python3 benchmarks/check_results.py --profile main \
+     --retain-dir benchmarks/results/baseline \
+     "benchmarks/build/reports/benchmarks/main/$run/jvm.json" \
+     "benchmarks/build/reports/benchmarks/main/$run/macosArm64.json" \
+     benchmarks/build/reports/benchmarks/allocations.json
+   ```
 
-`WriterBenchmark` measures nested-region encoding and is excluded from the
-maintained `main` and `smoke` profiles. Run it on demand with
-`:benchmarks:jvmWriterBenchmark`; see the
+   The checker fails on missing or duplicate cases, wrong units, missing
+   warmups, empty samples, and scores that are not positive and finite. A
+   successful Gradle run alone does not prove that the report is complete.
+
+4. Change the runtime, repeat steps 2 and 3, and pass a new directory, such as
+   `benchmarks/results/candidate`, to `--retain-dir`. The checker refuses to
+   overwrite a directory.
+
+The retained reports keep the metadata, metrics, and raw samples. They drop
+local executable paths and JVM system properties. Write down any JVM options
+that matter, leaving out machine-specific or sensitive values.
+
+To separate a real change from host drift, run the baseline and candidate a
+second time in reverse order.
+
+To time only the fixed-width repeat index, run
+`:benchmarks:jvmFixedBenchmark :benchmarks:macosArm64FixedBenchmark` and check
+the reports with `--profile fixed`.
+
+To time nested-region writes, run `:benchmarks:jvmWriterBenchmark`. The `main`
+and `smoke` profiles leave out `WriterBenchmark`. See the
 [writer nesting note](../research/writer-nested-benchmark.md).
 
 ### Automate the timing comparison
 
-After retaining comparable full reports, use `--baseline` to reject a mean
-timing regression greater than 10%, including unchanged controls:
+Pass the retained baseline with `--baseline`. The command exits non-zero if
+any case's mean time grows by more than 10%. Exactly 10% passes.
 
 ```bash
 python3 benchmarks/check_results.py --profile main \
@@ -87,114 +94,97 @@ python3 benchmarks/check_results.py --profile main \
   benchmarks/results/candidate/jvm.json
 ```
 
-Use `holders-main` for generated-holder reports, or `main` for the complete
-release Native reports. Compare each JVM, Native, and GC-profiler pair
-separately. The command requires matching runtime/profile metadata,
-parameters, and profiler metric sets, five warmups and measurements, and
-three five-sample JVM forks or one five-sample release Native run.
-It rejects smoke reports, incomplete reports, and incompatible environments
-with a nonzero exit status. Exactly 10% is permitted.
+- Compare the JVM, Native, and allocation reports as separate pairs.
+- Use `--profile main` for the `:benchmarks` reports and
+  `--profile holders-main` for generated-holder reports.
+- Both reports need matching metadata, parameters, and metric sets, five
+  warmups, and five measurements. JVM reports need three five-sample forks.
+  Native reports need one five-sample release run.
+- The command rejects smoke reports and incomplete reports.
 
-This check compares timing means, not confidence intervals or allocation
-budgets. Inspect allocation metrics against the bounds below separately.
-Retained reports omit JVM arguments and machine paths: you must still verify
-identical host/power conditions, source workloads, build toolchains, and
-meaningful VM flags. Do not use a passing comparison to excuse host drift or
-a changed workload. Investigate a failure and repeat in reverse order rather
-than raising the budget. Without `--baseline`, validation remains an
-execution/shape check; shared CI does not enforce cross-machine timing.
+The command compares means only. It does not compare confidence intervals or
+allocations, and it cannot see JVM arguments or the host's power state. Check
+those yourself. If the comparison fails, investigate and repeat the runs in
+reverse order. Do not raise the 10% budget.
 
 ## Measure generated holders
 
-The standalone `benchmarks/holders` build consumes the runtime and real code
-generator through a composite build. It does not copy generated decoders or
-compile duplicate runtime classes. Its second target, `iosSimulatorArm64`,
-provides the shared metadata compilation required by code generation and runs
-the same correctness fixtures on macOS. Only JVM timing is registered.
+The separate `benchmarks/holders` build times the generated `decodeInto`
+functions on the JVM. It builds the runtime and the code generator from this
+repository.
 
-```bash
-./gradlew -p benchmarks/holders jvmTest jvmSmokeBenchmark --no-daemon
-python3 benchmarks/check_results.py --profile holders-smoke \
-  benchmarks/holders/build/reports/benchmarks/smoke/*/jvm.json
-```
+1. Run the fixture tests and the smoke run, then check the smoke report:
 
-There are four smoke cases: scalar decoding, fixed-repeat decoding,
-variable-repeat decoding, and an allocating control. The full profile has eight
-cases: the two repeats use counts `65`, `4096`, and `65536`; scalar decoding and
-the control have no count parameter.
+   ```bash
+   ./gradlew -p benchmarks/holders jvmTest jvmSmokeBenchmark --no-daemon
+   python3 benchmarks/check_results.py --profile holders-smoke \
+     benchmarks/holders/build/reports/benchmarks/smoke/*/jvm.json
+   ```
 
-Setup prepares two alternating messages, holders, cursors, ranges, and sparse
-checkpoint storage. Each decoding invocation resets the cursor, calls the
-generated `decodeInto`, checks success, and returns a primitive checksum.
-The repeated schemas contain a scalar header, a 128-byte borrowed blob, and
-either 16-bit scalar elements or blobs with 8-bit length prefixes and payload
-lengths cycling from zero to eight. Complete frame validation and index binding
-are timed; materializing every repeated element or copying the blob is not.
-The separate control returns a new eight-byte array.
+   The smoke run has four cases: scalar decode, fixed-repeat decode,
+   variable-repeat decode, and an allocating control.
 
-```bash
-./gradlew -p benchmarks/holders jvmBenchmarkJar --no-daemon
-./gradlew -p benchmarks/holders jvmAllocationBenchmark --no-daemon --console=plain
-python3 benchmarks/check_results.py --profile holders-main \
-  --retain-dir benchmarks/results/<comparison-run> \
-  benchmarks/holders/build/reports/benchmarks/allocations.json
-```
+2. Run the allocation profile and keep the report:
 
-The GC-profiler command uses the main profile's five warmups, five 300 ms
-measurements, and three forks. Its report validator requires all eight cases
-and five raw samples from each fork. For unprofiled timing, use
-`./gradlew -p benchmarks/holders jvmBenchmark --no-daemon` and validate that
-run's `build/reports/benchmarks/main/<run>/jvm.json` with `holders-main`.
+   ```bash
+   ./gradlew -p benchmarks/holders jvmAllocationBenchmark --no-daemon --console=plain
+   python3 benchmarks/check_results.py --profile holders-main \
+     --retain-dir benchmarks/results/<comparison-run> \
+     benchmarks/holders/build/reports/benchmarks/allocations.json
+   ```
 
-On macOS, run the shared fixtures separately:
+   This run uses the main profile settings and has eight cases. The two repeat
+   benchmarks run with counts `65`, `4096`, and `65536`.
 
-```bash
-./gradlew -p benchmarks/holders iosSimulatorArm64Test --no-daemon
-```
+3. For timing without the allocation profiler, run
+   `./gradlew -p benchmarks/holders jvmBenchmark --no-daemon`. Check
+   `benchmarks/holders/build/reports/benchmarks/main/<run>/jvm.json` with
+   `--profile holders-main`.
 
-CI runs the JVM fixtures/smoke and iOS Simulator fixtures, not a timing budget.
-The [holder comparison](../research/generated-holder-benchmark.md) records
-the initial baseline, candidate, allocation bounds, environment, and limitations.
-The [aligned-prefix follow-up](../research/aligned-count-prefix-benchmark.md)
-records the small-holder fix and its JVM/Native tradeoffs.
+4. On a Mac, also run the fixture tests on the iOS Simulator:
 
-## Interpret allocation evidence
+   ```bash
+   ./gradlew -p benchmarks/holders iosSimulatorArm64Test --no-daemon
+   ```
 
-Fixtures construct and retain the arrays, cursors, and checkpoint workspaces
-outside the timed operation. Each repeat operation resets its cursor, indexes
-the complete repeat, checks success, and returns an observable checksum.
-Counts are `65`, `4096`, and `65536`; fixed elements use 13 bits. Variable
-elements have an 8-bit byte-length prefix and cycle through payload lengths
-zero to eight. Scalar controls measure a checked 64-bit read, an unchecked
-64-bit write, and an intentional eight-byte array copy.
+For the workloads, baseline, and limitations, see the
+[holder comparison](../research/generated-holder-benchmark.md) and the
+[aligned-prefix follow-up](../research/aligned-count-prefix-benchmark.md).
 
-JMH's `gc.alloc.rate.norm` reports bytes per operation, not an object count or
-Android ART behavior. Its background allocation rate can become visible as a
-small normalized value for slow variable-repeat operations; retain the rate
-and positive control rather than rounding every small value to zero.
+## Check the allocation results
 
-The Native test compares three samples of 1024 fixed/variable indexing calls
-against a primitive loop and a known-object positive control. It requires no
-swept-object increase over that run's primitive baseline and at least 1024
-additional swept objects from each positive-control sample. This is a
-debug-test GC sweep signal, not a release per-operation allocation count,
-an Instruments trace, or a universal allocation guarantee.
+JMH reports `gc.alloc.rate.norm` in bytes per operation. That number is not an
+object count and says nothing about Android ART. Slow variable-repeat cases can
+show a small non-zero value from background allocation. Keep that value and
+the control result instead of rounding it to zero.
+
+For the `:benchmarks` JVM allocation profile on the same host, check these
+limits:
+
+| Case | Limit |
+| --- | --- |
+| Fixed-width repeat indexing | below `1 B/op` |
+| Variable-width repeat indexing | below `20 B/op` |
+| Scalar read and write | below `0.01 B/op` |
+| Allocating copy control | at least `24 B/op` |
+
+`:benchmarks:macosArm64Test` also runs a Native allocation probe. It takes
+three samples of 1024 repeat-index calls and compares them with a primitive
+loop and an allocating control. The test fails if the indexing calls sweep
+more objects than the primitive loop, or if a control sample sweeps fewer than
+1024 extra objects. This is a debug-test signal, not a per-operation count.
 
 ## Apply the comparison budget
 
-The [retained host comparison](../research/repeat-index-benchmark.md) records
-environment, revisions, samples, and results. For the same host/profile:
+For the same host and profile:
 
-- Block a timing regression greater than 10% against the committed baseline,
-  including unchanged scalar and variable-repeat controls; rerun or investigate
-  noise rather than silently approving it.
-- For this JVM workload and GC-profiler profile, require fixed indexing below
-  `1 B/op`, variable indexing below `20 B/op`, scalar read/write below
-  `0.01 B/op`, and the copy control at least `24 B/op`.
-- Native allocation probes must meet their primitive-baseline and
-  positive-control thresholds above.
+- Investigate any timing regression greater than 10% against the committed
+  baseline, including the unchanged scalar and variable-repeat cases. Do not
+  approve it without a rerun.
+- Keep the JVM allocation results within the limits in the table above.
+- Keep the Native allocation probe passing.
 
-These are bounded diagnostic budgets, not portable public latency guarantees.
-Shared heterogeneous CI gates fixture correctness and finite reports, not
-cross-machine timing thresholds. Physical-device acceptance remains separate;
-see [allocation methodology](../research/allocation-boxing-measurement.md).
+These limits are host diagnostics, not public latency guarantees. CI checks
+fixture correctness and smoke reports only. It does not enforce timing across
+machines. For device measurements, see the
+[allocation methodology](../research/allocation-boxing-measurement.md).

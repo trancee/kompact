@@ -1,19 +1,18 @@
-# How to define a sequential framed schema
+# How to define a framed model
 
-Use a framed schema when a message contains strings, byte arrays, nested
-messages, or repeated values. Fields are read in order, so a variable-length
-field does not require guessed offsets for the fields that follow it.
+Use a framed model when a message contains strings, byte arrays, nested
+models, or repeats. Kompact reads framed fields in order, so a
+variable-length field does not need fixed offsets for the fields after it. For
+fields at fixed bit positions, follow
+[How to define a fixed-layout model](define-message.md) instead.
 
-The framed runtime and code-generation plugin are available from Maven Central
-at `0.7.0`. Follow [Consume Kompact](consume-from-another-project.md) to
-configure the published dependencies.
+This guide needs the `0.10.0-SNAPSHOT` code-generation plugin and runtime.
+The published `0.9.0` plugin expects a different nested-field declaration.
 
 ## 1. Declare the schema
 
-Put the schema in `commonMain`. Each field has a unique `order` starting at
-zero. Scalar fields declare `bitWidth`; variable-length fields declare a
-length-prefix width in bits. Repeated fields declare a count-prefix width and,
-for variable-length elements, a length-prefix width as well.
+Put the schema in `commonMain`. Give each field a unique `order`, counting
+from zero. The fields in this example cover every supported shape:
 
 ```kotlin
 @file:OptIn(KompactPreview::class)
@@ -58,26 +57,32 @@ public class PacketSchema {
 }
 ```
 
-`lengthPrefixWidth` and `repeatCountWidth` are bit widths; valid values are
-`8`, `16`, and `32`. A repeated scalar uses `bitWidth` and
-`repeatCountWidth`. A repeated string, blob, or nested model also uses
-`lengthPrefixWidth`. Nesting is inferred from the property type: a field
-whose type is a `@KompactModel(framed = true)` class (or a `List` of one) is a
-nested, length-delimited region. Using a fixed-layout `@KompactModel` as a
-field type is a processor error.
+Set the annotation arguments by field type:
 
-## 2. Enable common-source generation
+- For a scalar, set `bitWidth`.
+- For a `String`, a `ByteArray`, or a nested model, set `lengthPrefixWidth`.
+- For a repeat of scalars, declare a `List` and set `bitWidth` and
+  `repeatCountWidth`.
+- For a repeat of strings, blobs, or nested models, declare a `List` and set
+  `lengthPrefixWidth` and `repeatCountWidth`.
 
-Apply the Kompact Gradle plugin after Kotlin Multiplatform and add the runtime
-to `commonMain`. The plugin processes common schemas once and registers one
-generated common source per schema in `commonMain`; it generates no
-platform-specific sources. Do not also run the standard KSP plugin for the
-same schemas.
+`lengthPrefixWidth` and `repeatCountWidth` are widths in bits. Use `8`, `16`,
+or `32`. Both default to `8`.
+
+Kompact infers a nested region from the property type. A property whose type is
+a `@KompactModel(framed = true)` class, or a `List` of one, is a
+length-prefixed nested region. If the type is a fixed-layout `@KompactModel`,
+the processor reports an error.
+
+## 2. Apply the code-generation plugin
+
+Apply `ch.trancee.kompact.codegen` after Kotlin Multiplatform, and add the
+runtime to `commonMain`:
 
 ```kotlin
 plugins {
-    kotlin("multiplatform") version "2.4.20"
-    id("ch.trancee.kompact.codegen") version "0.9.0"
+    kotlin("multiplatform") version "2.4.21"
+    id("ch.trancee.kompact.codegen") version "0.10.0-SNAPSHOT"
 }
 
 kotlin {
@@ -89,34 +94,40 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.9.0")
+                implementation("ch.trancee.kompact:kompact:0.10.0-SNAPSHOT")
             }
         }
     }
 }
 ```
 
-To try unreleased changes from the current `0.10.0-SNAPSHOT` checkout, publish
-the runtime, KSP processor, and Gradle plugin to Maven Local. The
-[consumer setup guide](consume-from-another-project.md) has the exact commands
-and repository blocks.
+The snapshot is not on Maven Central. To publish it to Maven Local and set up
+the repositories, follow
+[How to add Kompact to a project](consume-from-another-project.md#enable-schema-generation).
 
-Starting with `0.10.0`, the generated sources are ordinary common Kotlin, so
-the plugin does not restrict Kotlin targets; the published `0.9.0` plugin
-supports only JVM, Android JVM, iOS Arm64, iOS Simulator Arm64, and Android
-Native Arm64. The runtime currently publishes variants for those same targets.
-Add only the targets your application uses.
+The plugin processes the `commonMain` schemas once and adds one generated
+common source per schema to `commonMain`. It does not restrict Kotlin targets.
+Add only the targets that your application uses, and check that the runtime
+publishes a variant for each one. Do not also apply the standard KSP plugin to
+the same schemas.
 
 ## 3. Use the generated view
 
-The schema above generates `PacketSchemaView` and `PayloadSchemaView`, each in
-its own common `<Schema>View.kt` file. The view exposes a factory, a
-typed-result `decode`, a `copy` whose arguments default to the current values,
-and properties in schema order. Repeated properties are lazy `KompactRepeatedView` instances.
+The schema above generates `PacketSchemaView.kt` and `PayloadSchemaView.kt`.
+Each file holds a view class and a holder class for caller-owned cursor
+decoding. A view has these members:
+
+- `create` builds a new frame from field values.
+- `decode` reads a frame and returns a `KompactFrameResult`.
+- `copy` returns a new frame. Fields that you do not pass keep their current
+  values.
+- One property per field. A repeat property is a lazy `KompactRepeatedView`.
+
+Generated views carry `@KompactPreview`. Add
+`@file:OptIn(KompactPreview::class)` to each file that uses them, or the
+compiler warns.
 
 ```kotlin
-package example
-
 val child = PayloadSchemaView.create(value = 42)
 val originalPayload = byteArrayOf(4, 5)
 val packet = PacketSchemaView.create(
@@ -141,59 +152,75 @@ check(decoded.blobs[1].contentEquals(byteArrayOf(2, 3)))
 check(decoded.children[0].value == 42)
 ```
 
-Use `decode` for untrusted bytes and inspect its `error` before choosing a
-recovery action. `getOrThrow()` is convenient when the caller intentionally
-uses exceptions.
+For untrusted bytes, call `decode` and check its `error` before you choose
+what to do. Call `getOrThrow()` only where you want an exception. See
+[How to handle malformed input](handle-decode-errors.md).
 
-## Ownership and validation
+`create` and `copy` store only the low `bitWidth` bits of each scalar. Check
+application values against the field range before you pass them in.
 
-- `payload` returns a copy. `payloadSlice` exposes a bounded view over the
-  original array; call `toByteArray()` when the data needs independent
-  ownership.
-- Nested views and repeated views borrow the frame's array. Keep that array
-  unchanged while using a decoded view. Changing a variable-length prefix
-  invalidates the repeated view's validated index.
-- Framed fields are required, `order` values must be contiguous from zero, and
-  decoding rejects trailing non-zero data. Appending an optional field is not
-  a compatible schema change.
-- Variable-length fields must begin at a byte-aligned position.
-- Parameterized nested schemas and mutable framed fields are not supported by
-  code generation.
-- Every `@KompactModel` needs at least one recognized `@KompactField`.
-  Unannotated properties are excluded from the wire schema; an empty schema or
-  a resolved invalid field is a compile-time error and generates no model.
-  KSP defers a field only while its type is genuinely unresolved.
-- Generated fixed-layout value-class views compare their backing byte arrays
-  by identity. Regular framed view instances also use identity equality; they
-  do not compare decoded fields or frame contents.
+## Follow the ownership and schema rules
 
-For the wire-format tradeoffs and schema-evolution limits, see
-[Architecture](../architecture.md) and
+Keep these ownership rules in mind when you use a decoded view:
+
+- `payload` returns a copy. `payloadSlice` returns a `KompactByteSlice` that
+  borrows the original array. Call `toByteArray()` on the slice when you need
+  an independent copy.
+- Nested views and repeat views borrow the frame's array. Keep that array
+  unchanged while you use a decoded view. If a length prefix inside a repeat
+  changes, the repeat view's validated index no longer matches the bytes.
+- Views do not compare content. A fixed-layout view compares its backing
+  `ByteArray` by identity, and a framed view uses instance identity. Compare
+  decoded fields when you need content equality.
+
+The processor enforces these schema rules at compile time:
+
+- Every framed field is required. `order` values must be unique and
+  contiguous from zero.
+- Each string, blob, nested model, and repeat of those types must start on a
+  byte boundary.
+- Framed models cannot be mutable, and nested models cannot have type
+  parameters.
+- Every `@KompactModel` needs at least one `@KompactField`. The processor
+  ignores properties without `@KompactField`.
+- An empty schema or an invalid field is a compile-time error, and the
+  processor generates no view for that schema. KSP defers a field only while
+  its type is still unresolved.
+
+At run time, `decode` rejects unread bytes and non-zero padding bits after the
+last field with `KompactDecodeError.TrailingData`. Appending an optional field
+is therefore not a compatible schema change. For the wire format and schema
+evolution limits, see [Design and trade-offs](../architecture.md) and
 [ADR-0008](../adr/0008-framed-generated-views.md).
 
-## Add an application-owned version envelope
+## Add a version envelope
 
-Kompact frames do not carry a schema version. If an application must distinguish
-wire versions, it owns the outer envelope, version identifiers, decoder
-selection, and migration policy. The executable
+Kompact frames do not carry a schema version. If your application must tell
+wire versions apart, it owns the outer envelope, the version identifiers, the
+choice of decoder, and the migration policy.
+
+The
 [application-owned envelope example](../../kompact/src/commonTest/kotlin/ch/trancee/kompact/runtime/ApplicationEnvelopeExampleTest.kt)
-prefixes an encoded frame in caller-provided storage and borrows the payload
-when reading. The common test runs the example and checks successful round-trip
-behavior, unsupported-version rejection, and insufficient-destination
-failure-atomicity on the JVM and iOS Simulator.
+writes a one-byte identifier before an encoded frame in caller-provided
+storage. When it reads, it borrows the payload instead of copying it. Its
+tests cover a round trip, a rejected unsupported version, and a destination
+that is too small, which leaves the envelope unchanged.
 
-The one-byte identifier is application-specific; it is not a Kompact header or
-a Kompact compatibility guarantee. A failed identifier check is for the
-application to reject or route to another decoder.
+The one-byte identifier belongs to the application. It is not a Kompact header
+and Kompact makes no compatibility promise about it. When the identifier check
+fails, the application rejects the frame or routes it to another decoder.
 
-## Verify the integration
+## Check the repository integration
 
-The repository's KMP TestKit consumer compiles generated common declarations
-for each of its targets. From the repository root, run:
+To run the repository's own generated-code checks, run this command from the
+repository root:
 
 ```bash
 ./gradlew :kompact-gradle-plugin:test :kompact-ksp-integration:test
 ```
 
-For a fixed-offset model, use the
-[fixed-layout guide](define-message.md).
+`:kompact-gradle-plugin:test` builds a Kotlin Multiplatform consumer with
+Gradle TestKit. It runs `jvmTest` and compiles the Android, iOS Arm64, iOS
+Simulator Arm64, and Android Native Arm64 targets. `:kompact-ksp-integration:test`
+runs this guide's `PacketSchema` through standard KSP on the JVM and tests the
+generated views.

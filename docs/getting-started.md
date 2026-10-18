@@ -1,10 +1,12 @@
 # Getting started
 
-Build a two-byte frame, inspect the bytes, and read its fields back. This
-tutorial uses the runtime directly so you can see the wire layout without
-setting up generated schemas.
+In this tutorial, we build a two-byte telemetry frame, check its bytes, read
+its fields back, and watch a truncated frame fail. We call the runtime
+directly, so you see the wire layout without setting up generated schemas.
 
-## What you will build
+## What we will build
+
+The frame holds three fields in 16 bits:
 
 | Bits | Width | Field | Meaning |
 | --- | ---: | --- | --- |
@@ -13,20 +15,21 @@ setting up generated schemas.
 | 14 | 1 | `isMalfunctioning` | Boolean flag |
 | 15 | 1 | Reserved | Left at zero |
 
-Kompact numbers bits from the least-significant bit of the first byte.
-For these values, the frame is `[0xA5, 0x40]`.
+Kompact numbers bits from the least-significant bit of the first byte. With
+`batteryStatus = 5`, `speed = 10`, and `isMalfunctioning = true`, the frame is
+`[0xA5, 0x40]`.
 
 ## Before you start
 
-The runtime is available from Maven Central as
-`ch.trancee.kompact:kompact:0.9.0`. Add it to your project and follow the
-[consumer setup guide](how-to/consume-from-another-project.md) if you need
-Gradle configuration. No KSP processor or code-generation plugin is needed
-for this tutorial.
+Add the runtime to your project. The latest published release on Maven
+Central is `ch.trancee.kompact:kompact:0.9.0`. If you need the Gradle setup,
+follow the [consumer setup guide](how-to/consume-from-another-project.md).
+This tutorial does not need the KSP processor or the code-generation plugin.
 
-## 1. Write the frame
+## Step 1: Write the frame
 
-Append fields in wire order. `build()` returns the bytes written so far.
+First, create a `KompactWriter` and append the fields in wire order. Then call
+`build()` to get the bytes written so far:
 
 ```kotlin
 import ch.trancee.kompact.runtime.KompactWriter
@@ -42,16 +45,18 @@ check(bytes.size == 2)
 check(bytes.contentEquals(byteArrayOf(0xA5.toByte(), 0x40.toByte())))
 ```
 
-The first four bits contain `5`; the next ten contain `10`; bit 14 is set.
-The unused final bit remains zero. The executable
+Both checks pass. The first four bits hold `5`, the next ten bits hold `10`,
+and bit 14 is set. We did not write bit 15, so it stays zero.
+
+The test
 [`GettingStartedTest`](../kompact/src/commonTest/kotlin/ch/trancee/kompact/runtime/GettingStartedTest.kt)
-pins these bytes so a wire-format change cannot silently make the example
-stale.
+asserts these exact bytes. If a change to the wire format moves a bit, that
+test fails before this page goes out of date.
 
-## 2. Read the fields
+## Step 2: Read the fields
 
-Checked read methods return typed results. `getOrThrow()` gives you the value
-when the input is valid and throws a `KompactDecodeException` otherwise.
+Now read each field from its bit offset. Each checked read returns a typed
+result. `getOrThrow()` returns the value when the read succeeds:
 
 ```kotlin
 import ch.trancee.kompact.runtime.KompactRuntime
@@ -68,12 +73,38 @@ check(speed == 10)
 check(isMalfunctioning)
 ```
 
-The buffer and offsets above are valid, so each call returns its decoded value.
-When reading data from outside your process, preserve and handle the typed
-failure instead of assuming the buffer is complete. See
+All three checks pass. `readScalar` returns an `IntResult`, and `readBool`
+returns a `BooleanResult`.
+
+## Step 3: Read a truncated frame
+
+Finally, read `speed` from a frame that lost its second byte. The read needs
+bits 4 to 13, but the buffer holds only 8 bits:
+
+```kotlin
+import ch.trancee.kompact.runtime.KompactDecodeError
+import ch.trancee.kompact.runtime.KompactRuntime
+import ch.trancee.kompact.runtime.ScalarType
+
+val truncated = byteArrayOf(0xA5.toByte())
+val result = KompactRuntime.readScalar(truncated, 4, ScalarType.of(10, signed = false))
+
+check(result.isFailure)
+check(result.error == KompactDecodeError.BoundsError)
+```
+
+Both checks pass. The read does not throw. It returns a failure that carries
+`KompactDecodeError.BoundsError`. If you call `result.getOrThrow()`, it throws
+a `KompactDecodeException` that holds the same error.
+
+Data from outside your process can be truncated like this. To decide what your
+code does with a failed read, see
 [How to handle malformed input](how-to/handle-decode-errors.md).
 
 ## Where to go next
+
+You wrote a frame, read it back, and saw how a short buffer fails. Continue
+with one of these pages:
 
 - [Add Kompact to a project](how-to/consume-from-another-project.md)
 - [Define a fixed-layout model](how-to/define-message.md)

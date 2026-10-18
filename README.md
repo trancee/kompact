@@ -1,11 +1,16 @@
 # Kompact
 
-Kompact is a Kotlin Multiplatform library for reading and writing compact,
-LSB-first bit-packed messages. Use the runtime directly for small fixed layouts,
-or generate typed views from schemas. The framed API adds strings, byte arrays,
-nested messages, and repeated fields with explicit length boundaries.
+Kompact is a Kotlin Multiplatform library that reads and writes compact,
+LSB-first bit-packed messages. For a small fixed layout, call the runtime
+directly. For a larger message, annotate a schema class and let the KSP
+processor generate a typed view. Framed schemas add strings, byte arrays,
+nested messages, and repeated fields, each with an explicit length or count
+prefix.
 
 ## Quick start
+
+This example packs a 4-bit battery status, a 10-bit speed, and a 1-bit flag
+into two bytes, then reads them back:
 
 ```kotlin
 import ch.trancee.kompact.runtime.KompactRuntime
@@ -23,8 +28,8 @@ val speed = KompactRuntime.readScalar(bytes, 4, ScalarType.of(10, signed = false
 val malfunction = KompactRuntime.readBool(bytes, 14).getOrThrow()
 ```
 
-The [getting-started tutorial](docs/getting-started.md) walks through this
-frame and shows the expected bytes and decoded values.
+The [getting-started tutorial](docs/getting-started.md) builds this frame step
+by step and shows the expected bytes and decoded values.
 
 ## Install
 
@@ -40,28 +45,33 @@ dependencies {
 }
 ```
 
-The current development version in this checkout is `0.10.0-SNAPSHOT`; it is
-not published to Maven Central. To try unreleased changes, publish the snapshot
+The development version in this checkout is `0.10.0-SNAPSHOT`. It is not on
+Maven Central, and its public API differs from `0.9.0`. To try it, publish the
 modules to Maven Local and follow the
-[consumer setup guide](docs/how-to/consume-from-another-project.md).
+[consumer setup guide](docs/how-to/consume-from-another-project.md). The same
+guide shows how to apply the `ch.trancee.kompact.codegen` Gradle plugin that
+generates views.
 
 ## Choose a schema
 
-- **Fixed layout:** use `bitOffset` and `bitWidth` when every field has a
-  stable position. A regular schema class `Name` generates a `NameView`
-  value class, described in
-  [How to define a fixed-layout schema](docs/how-to/define-message.md).
-- **Sequential framed layout:** use `order` and length/count prefixes when a
-  message contains strings, byte arrays, nested messages, or repeated values.
-  See [How to define a framed schema](docs/how-to/define-framed-schema.md).
+Kompact has two schema layouts:
 
-Both forms use the same runtime writer and checked decode APIs. The
-[architecture guide](docs/architecture.md) explains the wire format, borrowed
-data, and the tradeoffs between the two layouts.
+- A fixed-layout model gives every field a `bitOffset` and `bitWidth`. Use it
+  when every field has a stable position. A schema class `Name` generates a
+  `NameView` value class. See
+  [How to define a fixed-layout model](docs/how-to/define-message.md).
+- A framed model gives every field an `order` and reads fields in sequence.
+  Use it when a message contains strings, byte arrays, nested messages, or
+  repeated values. See
+  [How to define a sequential framed schema](docs/how-to/define-framed-schema.md).
+
+Both layouts use the same `KompactWriter` and the same checked decode results.
+The [architecture guide](docs/architecture.md) explains the wire format,
+borrowed data, and the trade-offs between the two layouts.
 
 ## Documentation
 
-| If you want to… | Start here |
+| Goal | Start here |
 | --- | --- |
 | Build and decode your first frame | [Getting started](docs/getting-started.md) |
 | Add Kompact to a Kotlin or KMP project | [Consume Kompact](docs/how-to/consume-from-another-project.md) |
@@ -70,20 +80,26 @@ data, and the tradeoffs between the two layouts.
 | Read or write strings, blobs, nested data, and repeats | [Long-form payloads](docs/how-to/long-form-payloads.md) |
 | Handle malformed input | [Decode errors](docs/how-to/handle-decode-errors.md) |
 | Pass frames across a BLE boundary | [BLE integration](docs/how-to/integrate-ble.md) |
+| Measure runtime performance on a host | [Benchmark the runtime](docs/how-to/benchmark-runtime.md) |
 | Look up public signatures and behavior | [API reference](docs/api-reference.md) |
 | Understand design decisions | [Architecture](docs/architecture.md) |
 | Contribute or run project checks | [Contributing](CONTRIBUTING.md) |
 
-The generated, per-symbol API reference is also available in
+The [documentation map](docs/README.md) lists every guide, ADR, and research
+note. Dokka generates a per-symbol API reference into
 [`kompact/docs/api/`](kompact/docs/api/index.md).
 
 ## Project modules
 
-| Module | Purpose |
-| --- | --- |
-| `:kompact` | KMP runtime, annotations, and generated API documentation |
-| `:kompact-ksp` | KSP processor for fixed-layout and framed schemas |
-| `:kompact-gradle-plugin` | Common-only source generation for KMP consumers |
+The repository contains three published modules and two internal ones:
+
+| Module | Published | Purpose |
+| --- | --- | --- |
+| `:kompact` | Yes | KMP runtime and schema annotations |
+| `:kompact-ksp` | Yes | KSP processor that generates views and holders for fixed-layout and framed schemas |
+| `:kompact-gradle-plugin` | Yes | Gradle plugin `ch.trancee.kompact.codegen`, which runs the processor once over `commonMain` |
+| `:kompact-ksp-integration` | No | Tests that compile and run real generated code |
+| `:benchmarks` | No | Host benchmarks for the runtime |
 
 ## License
 
