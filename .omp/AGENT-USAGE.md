@@ -29,12 +29,15 @@ Android, or JS execution adapters.
 This Kompact installation predates manifest-managed updates and has no
 `.mutation-testing/manifest.json`. The current `bootstrap.sh update` command
 stops before writing. Update the copied OMP and Copilot assets manually from a
-reviewed toolkit checkout. Unlike the generic install, the results script and the
-typed `ch.trancee.mutation` module live in `build-logic/` (precompiled
-`mutation-results` plugin, tested by `./gradlew :build-logic:test`), not in
-`.omp/` or `buildSrc/`. Preserve this module's guarded
-`mutationTest.jvmOnly` model and selected test-class filters. The generic
-installer does not model this project's conditional Gradle wiring.
+reviewed toolkit checkout. Unlike the generic install, the results script, the
+adapter generator, and the typed `ch.trancee.mutation` module live in
+`build-logic/` (precompiled `mutation-results` plugin, tested by
+`./gradlew :build-logic:test`), not in `buildSrc/`. No build includes the older
+copy in `.omp/mutation-results-src/`; do not edit it to change the build.
+Preserve the guarded `mutationTest.jvmOnly` property of `:kompact`, the guarded
+`mutationTest.enabled` property of `:kompact-ksp`, and each module's
+`mutationTesting` adapter settings. The generic installer does not model this
+project's conditional Gradle wiring.
 
 ## Execute
 
@@ -46,16 +49,24 @@ Additive/assertion-level changes require applicable approval; deletion or
 consolidation always requires explicit approval.
 
 This repository's checked-in `gradlew` parses JVM options with `eval`; do not
-execute it for this run. Use installed Gradle 9.8.0. For a multi-module setup,
-keep the configured module path explicit:
+execute it for this run. Use an installed Gradle 9.8 release instead; the
+wrapper pins 9.8.0 in `gradle/wrapper/gradle-wrapper.properties`. CI runs the
+same tasks through `./gradlew` (see `docs/ci.md`). For a multi-module setup,
+keep the configured module path explicit.
 
-For this Kompact evaluation, pass `-PmutationTest.jvmOnly=true` with
-`:kompact:mutationResults`. MutFlow is applied only for that guarded invocation
-because MutFlow `1.7.0` injects dependencies into common source sets and does
-not publish variants for Kompact's iOS or Android Native targets. The opt-in
-omits `iosArm64`, `iosSimulatorArm64`, and `androidNativeArm64`; ordinary builds
-keep the full target set, do not apply the MutFlow plugin, and do not add its
-common-source-set dependencies.
+For the runtime, pass `-PmutationTest.jvmOnly=true` with
+`:kompact:mutationResults`. The build applies MutFlow only for that guarded
+invocation, because MutFlow `1.7.0` injects dependencies into common source sets
+and does not publish variants for Kompact's iOS or Android Native targets. The
+property omits `iosArm64`, `iosSimulatorArm64`, and `androidNativeArm64`.
+Ordinary builds keep the full target set, do not apply the MutFlow plugin, and
+do not add its common-source-set dependencies.
+
+For the KSP processor, pass `-PmutationTest.enabled=true` with
+`:kompact-ksp:mutationResults`. The build applies MutFlow only for that
+invocation. Each property fails the build unless its `mutationResults` task is
+the only requested task. Without the property, each `mutationResults` task
+fails and names the property to pass.
 
 Ordinary JVM tests in both `:kompact:jvmTest` and `:kompact-ksp:test` use
 JUnit 6. Each module lists its production mutation targets in
@@ -64,13 +75,19 @@ JUnit 6. Each module lists its production mutation targets in
 wraps every `@Test` of the configured `mutationTesting.adapterSources` in its
 own `MutFlow.underTest` scope:
 
-- runtime: `commonTest`, compiled only into MutFlow's JVM `mutatedTest`
-  compilation, so ordinary common tests stay framework-neutral;
-- KSP: `src/test`.
+- runtime: `src/commonTest/kotlin`. The adapter compiles only into MutFlow's
+  JVM `mutatedTest` compilation, so ordinary common tests stay
+  framework-neutral.
+- KSP: `src/test/kotlin`. The adapter compiles into the `test` source set only
+  when `mutationTest.enabled=true`.
 
-The generated adapter is the default filter, and both tasks run every
-discovered mutation (see
-[ADR-0015](../docs/adr/0015-generated-mutation-adapters.md)).
+The generated adapter is the default test filter. Mutation targets are the
+whole `ch.trancee.kompact.runtime.**` and `ch.trancee.kompact.ksp.**` packages,
+and both tasks run every discovered mutation (`maxMutationRuns =
+Int.MAX_VALUE`). See
+[ADR-0015](../docs/adr/0015-generated-mutation-adapters.md) and the current
+results in
+[mutation-testing-disposition.md](../docs/mutation-testing-disposition.md).
 
 Run these aggregate invocations sequentially. They provide JVM-target evidence
 only; the runtime run provides no Android or Native evidence.
