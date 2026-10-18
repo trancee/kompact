@@ -113,6 +113,8 @@ public class KompactWriter {
         ensureCapacityBits(lengthPrefixWidth.toLong())
         bitCursor += lengthPrefixWidth
         val payloadBit = bitCursor
+        // Roll back on any failure, then rethrow it unchanged.
+        @Suppress("TooGenericExceptionCaught")
         try {
             block()
             val payloadBits = bitCursor - payloadBit

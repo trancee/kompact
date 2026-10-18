@@ -391,7 +391,7 @@ framed views, and lazy repeated fields. See
 ./gradlew :kompact-ksp:test
 ./gradlew :kompact-ksp-integration:test
 ./gradlew :kompact-gradle-plugin:test
-./gradlew spotlessCheck
+./gradlew spotlessCheck detekt
 ```
 
 CI splits required checks across Linux and macOS. The

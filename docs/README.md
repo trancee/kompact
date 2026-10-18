@@ -43,6 +43,7 @@ releases:
 | Inferred nested fields and checked fixed-layout decode | [ADR-0011](adr/0011-inferred-nested-fields-and-checked-fixed-decode.md) |
 | Kotlin minor-line compatibility | [ADR-0012](adr/0012-kotlin-minor-line-compatibility.md) |
 | Typed cursor status and caller-contract errors | [ADR-0013](adr/0013-typed-status-and-caller-contract-errors.md) |
+| detekt static analysis | [ADR-0014](adr/0014-detekt-static-analysis.md) |
 
 ### Technical research
 

@@ -56,6 +56,8 @@ internal class KompactSymbolProcessor(
                 return@forEach
             }
 
+            // Any failure is reported against its model so independent models still generate.
+            @Suppress("TooGenericExceptionCaught")
             try {
                 processModel(declaration)
                 processedSymbols.add(key)
@@ -129,13 +131,8 @@ internal class KompactSymbolProcessor(
             // hand-authored (not emitted here). For the (synthetic, no-source)
             // edge we fall back to aggregating to stay conservative and never
             // skip a needed regeneration.
-            val inputs = listOfNotNull(declaration.containingFile)
             val dependencies =
-                if (inputs.isEmpty()) {
-                    Dependencies(true)
-                } else {
-                    Dependencies(false, *inputs.toTypedArray())
-                }
+                declaration.containingFile?.let { Dependencies(false, it) } ?: Dependencies(true)
             codeGenerator
                 .createNewFile(
                     dependencies = dependencies,

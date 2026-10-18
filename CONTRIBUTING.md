@@ -26,11 +26,17 @@ Start with the checks for the module you changed:
 ./gradlew :kompact-gradle-plugin:test
 ```
 
-Run the formatter check before opening a pull request:
+Run the formatter and static-analysis checks before opening a pull request:
 
 ```bash
-./gradlew spotlessCheck
+./gradlew spotlessCheck detekt
 ```
+
+Detekt analyzes the published production sources with the project overrides in
+`config/detekt/detekt.yml`. Fix new findings in code first; use a narrow,
+commented `@Suppress` only for intentional patterns. `config/detekt/baseline.xml`
+holds pre-existing complexity findings only, so do not regenerate it to hide new
+ones.
 
 The CI workflow also checks public ABI baselines, coverage, Android compilation,
 generated-code integration, and publication bundles. The full task list differs

@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.agp) apply false
     alias(libs.plugins.dokka) apply false
     alias(libs.plugins.spotless)
+    alias(libs.plugins.detekt)
     alias(libs.plugins.kotlinPowerAssert) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.benchmark) apply false
@@ -45,4 +46,17 @@ spotless {
         )
         ktlint()
     }
+}
+
+// Detekt: static analysis of published production sources (tests and build tooling excluded).
+// Type resolution is not used; findings come from the plain `detekt` task.
+detekt {
+    source.setFrom(
+        "kompact/src/commonMain/kotlin",
+        "kompact-ksp/src/main/kotlin",
+        "kompact-gradle-plugin/src/main/kotlin",
+    )
+    config.setFrom("config/detekt/detekt.yml")
+    baseline = file("config/detekt/baseline.xml")
+    buildUponDefaultConfig = true
 }

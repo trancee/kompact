@@ -130,6 +130,7 @@ jobs:
       - run: |
           ./gradlew \
             spotlessCheck \
+            detekt \
             :kompact:checkKotlinAbi \
             :kompact:jvmTest \
             :kompact:testAndroidHostTest \

@@ -30,6 +30,7 @@ npm exec --yes --package=markdownlint-cli2@0.23.2 -- markdownlint-cli2 --config 
 
 ./gradlew \
   spotlessCheck \
+  detekt \
   :kompact:checkKotlinAbi \
   :kompact:jvmTest \
   :kompact:testAndroidHostTest \
@@ -289,7 +290,7 @@ Start with the task for the module you changed:
 ./gradlew :kompact-ksp:test
 ./gradlew :kompact-ksp-integration:test
 ./gradlew :kompact-gradle-plugin:test
-./gradlew spotlessCheck
+./gradlew spotlessCheck detekt
 ```
 
 These focused runs shorten the feedback loop, but they do not replace the
