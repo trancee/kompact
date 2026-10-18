@@ -282,10 +282,7 @@ class FramedClassGeneratorTest {
         bitWidth = bitWidth,
         signed = signed,
         lengthPrefixWidth = 8,
-        isNested = type is KompactFieldType.Nested,
         repeatCountWidth = 8,
-        enumWidth = 0,
-        defaultValue = "",
     )
 
     private fun field(type: KompactFieldType) =
@@ -297,9 +294,6 @@ class FramedClassGeneratorTest {
             bitWidth = 1,
             signed = false,
             lengthPrefixWidth = 8,
-            isNested = false,
             repeatCountWidth = 8,
-            enumWidth = 0,
-            defaultValue = "",
         )
 }

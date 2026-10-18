@@ -23,10 +23,7 @@ class ValueClassGeneratorTest {
         bitWidth = bitWidth,
         signed = signed,
         lengthPrefixWidth = 8,
-        isNested = false,
         repeatCountWidth = 8,
-        enumWidth = 0,
-        defaultValue = "",
     )
 
     private fun vehicleTelemetrySpec(): ModelSpec =
@@ -83,6 +80,34 @@ class ValueClassGeneratorTest {
             output.contains("): VehicleTelemetryView = VehicleTelemetryView(encodeVehicleTelemetryView("),
             "create() must wrap the encoded buffer, got:\n$output",
         )
+    }
+
+    @Test
+    fun `view companion decode returns a checked bounds failure for undersized input`() {
+        val output = ValueClassGenerator.generate(vehicleTelemetrySpec())
+
+        val decode =
+            output
+                .substringAfter("public fun decode(raw: ByteArray): KompactFrameResult<VehicleTelemetryView>")
+                .substringBefore("public fun create(")
+        assertTrue(output.contains("import ch.trancee.kompact.runtime.KompactFrameResult"), output)
+        assertTrue(output.contains("import ch.trancee.kompact.runtime.KompactDecodeError"), output)
+        assertTrue(decode.contains("if (raw.size < 2)"), decode)
+        assertTrue(decode.contains("return KompactFrameResult.Failure(KompactDecodeError.BoundsError)"), decode)
+        assertTrue(decode.contains("return KompactFrameResult.Success(VehicleTelemetryView(raw))"), decode)
+    }
+
+    @Test
+    fun `mutable sibling companion decode wraps the mutable view`() {
+        val output = ValueClassGenerator.generate(allTypesSpec(mutable = true))
+
+        val mutable = output.substringAfter("public value class MutableAllTypesView(")
+        assertTrue(
+            mutable.contains("public fun decode(raw: ByteArray): KompactFrameResult<MutableAllTypesView>"),
+            mutable,
+        )
+        assertTrue(mutable.contains("if (raw.size < 23)"), mutable)
+        assertTrue(mutable.contains("return KompactFrameResult.Success(MutableAllTypesView(raw))"), mutable)
     }
 
     @Test

@@ -1,9 +1,6 @@
 public abstract interface annotation class ch/trancee/kompact/annotations/KompactField : java/lang/annotation/Annotation {
 	public abstract fun bitOffset ()I
 	public abstract fun bitWidth ()I
-	public abstract fun defaultValue ()Ljava/lang/String;
-	public abstract fun enumWidth ()I
-	public abstract fun isNested ()Z
 	public abstract fun lengthPrefixWidth ()I
 	public abstract fun order ()I
 	public abstract fun repeatCountWidth ()I

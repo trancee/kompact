@@ -25,7 +25,7 @@ public class BytePayloadSchema {
     @KompactField(order = 1, lengthPrefixWidth = 8)
     public val payload: ByteArray = byteArrayOf()
 
-    @KompactField(order = 2, lengthPrefixWidth = 8, isNested = true)
+    @KompactField(order = 2, lengthPrefixWidth = 8)
     public val child: ChildSchema = ChildSchema()
 
     @KompactField(order = 3, bitWidth = 8, repeatCountWidth = 8)
@@ -34,7 +34,7 @@ public class BytePayloadSchema {
     @KompactField(order = 4, lengthPrefixWidth = 8, repeatCountWidth = 8)
     public val names: List<String> = emptyList()
 
-    @KompactField(order = 5, lengthPrefixWidth = 8, repeatCountWidth = 8, isNested = true)
+    @KompactField(order = 5, lengthPrefixWidth = 8, repeatCountWidth = 8)
     public val children: List<ChildSchema> = emptyList()
 }
 

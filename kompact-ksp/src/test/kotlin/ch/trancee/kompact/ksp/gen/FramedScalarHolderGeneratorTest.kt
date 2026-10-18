@@ -115,10 +115,7 @@ class FramedScalarHolderGeneratorTest {
         bitWidth = bitWidth,
         signed = signed,
         lengthPrefixWidth = 8,
-        isNested = false,
         repeatCountWidth = 8,
-        enumWidth = 0,
-        defaultValue = "",
     )
 
     private fun assertScalarDecode(

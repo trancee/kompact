@@ -7,9 +7,9 @@
 
 annotation class [KompactModel](index.md)(val mutable: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) = false, val framed: [Boolean](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html) = false)
 
-Marks a Kompact binary schema. The default fixed layout generates platform value classes; framed generates bounded regular classes for sequential fields.
+Marks a regular class as a Kompact binary schema.
 
-The processor treats the annotated declaration as source schema metadata. Fixed-layout schemas generate platform value classes over a `ByteArray`; framed schemas generate bounded view classes. This annotation is retained only at source level and is not a runtime dependency. mutable applies to fixed-layout models; mutable framed models are rejected.
+The processor treats the annotated declaration as source schema metadata and generates one common `<Name>View` per schema. The default fixed layout generates a `@JvmInline` value class over a `ByteArray`; framed generates a bounded regular view class for sequential fields. This annotation is retained only at source level and is not a runtime dependency. mutable adds a `Mutable<Name>View` sibling for fixed-layout models; mutable framed models are rejected.
 
 ## Properties
 

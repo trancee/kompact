@@ -72,9 +72,6 @@ class FramedClassGeneratorViewTest {
         bitWidth = bitWidth,
         signed = false,
         lengthPrefixWidth = 8,
-        isNested = type is KompactFieldType.Nested,
         repeatCountWidth = 8,
-        enumWidth = 0,
-        defaultValue = "",
     )
 }

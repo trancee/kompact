@@ -8,6 +8,8 @@
   [ADR-0008](0008-framed-generated-views.md) (routing generated platform
   sources into per-target source sets)
 - **Amends:** [ADR-0006](0006-immutable-default-models.md) (generated type names)
+- **Amended by:** [ADR-0011](0011-inferred-nested-fields-and-checked-fixed-decode.md)
+  (fixed-layout views gain a checked `decode` factory)
 
 ## Context
 

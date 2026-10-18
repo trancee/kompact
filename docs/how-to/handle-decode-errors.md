@@ -70,6 +70,21 @@ discard the whole frame and wait for the next message, or report a
 domain-specific error. Do not continue reading later fields after the parse has
 lost its boundary.
 
+## Handle a fixed-layout message
+
+A generated fixed-layout view such as `SensorFrameView` from the
+[fixed-layout guide](define-message.md) also has a checked `decode(raw)`
+factory. It returns `KompactFrameResult.Failure(KompactDecodeError.BoundsError)`
+when `raw` is shorter than the layout, instead of the constructor's
+`IllegalArgumentException`. A successful result wraps `raw` without copying.
+
+```kotlin
+when (val result = SensorFrameView.decode(receivedBytes)) {
+    is KompactFrameResult.Success -> handle(result.value)
+    is KompactFrameResult.Failure -> reject(result.error)
+}
+```
+
 ## Choose between results and exceptions
 
 - Use typed results when malformed input is expected and the caller should

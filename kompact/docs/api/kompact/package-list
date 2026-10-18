@@ -4,9 +4,6 @@ $dokka.location:ch.trancee.kompact.annotations////PointingToDeclaration/kompact
 $dokka.location:ch.trancee.kompact.annotations/KompactField///PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/index.md
 $dokka.location:ch.trancee.kompact.annotations/KompactField/bitOffset/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/bit-offset.md
 $dokka.location:ch.trancee.kompact.annotations/KompactField/bitWidth/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/bit-width.md
-$dokka.location:ch.trancee.kompact.annotations/KompactField/defaultValue/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/default-value.md
-$dokka.location:ch.trancee.kompact.annotations/KompactField/enumWidth/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/enum-width.md
-$dokka.location:ch.trancee.kompact.annotations/KompactField/isNested/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/is-nested.md
 $dokka.location:ch.trancee.kompact.annotations/KompactField/lengthPrefixWidth/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/length-prefix-width.md
 $dokka.location:ch.trancee.kompact.annotations/KompactField/order/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/order.md
 $dokka.location:ch.trancee.kompact.annotations/KompactField/repeatCountWidth/#/PointingToDeclaration/kompact/ch.trancee.kompact.annotations/-kompact-field/repeat-count-width.md

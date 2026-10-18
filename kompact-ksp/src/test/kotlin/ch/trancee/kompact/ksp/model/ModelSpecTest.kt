@@ -16,10 +16,7 @@ class ModelSpecTest {
         bitWidth = bitWidth,
         signed = false,
         lengthPrefixWidth = 8,
-        isNested = false,
         repeatCountWidth = 8,
-        enumWidth = 0,
-        defaultValue = "",
     )
 
     @Test

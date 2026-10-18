@@ -285,6 +285,8 @@ public value class SensorFrameView(public val raw: ByteArray) {
     public fun copy(status: Int = this.status, battery: Int = this.battery,
         temperature: Int = this.temperature): SensorFrameView = SensorFrameView(encodeSensorFrameView(status, battery, temperature))
     public companion object {
+        // Checked entry for untrusted input: Failure(BoundsError) if raw.size < 3
+        public fun decode(raw: ByteArray): KompactFrameResult<SensorFrameView>
         public fun create(status: Int, battery: Int, temperature: Int): SensorFrameView =
             SensorFrameView(encodeSensorFrameView(status, battery, temperature))
     }
@@ -293,8 +295,10 @@ public value class SensorFrameView(public val raw: ByteArray) {
 // internal fun encodeSensorFrameView(...): ByteArray
 ```
 
-Usage: `SensorFrameView.create(status = 1, battery = 9, temperature = -40)` or
-`SensorFrameView(receivedBytes)`. Framed schemas
+Usage: `SensorFrameView.create(status = 1, battery = 9, temperature = -40)`,
+`SensorFrameView.decode(receivedBytes)` for untrusted input (typed
+`BoundsError` failure), or `SensorFrameView(trustedBytes)` (throws on a short
+buffer). Framed schemas
 (`@KompactModel(framed = true)`) follow the same naming and generate a regular
 `<Name>View` class. Marking a schema `expect` is a processor error.
 
@@ -320,10 +324,7 @@ framed views, and lazy repeated fields. See
     bitWidth: Int = 0,        // scalar width; 1..64
     signed: Boolean = false,  // true → two's-complement sign extension
     lengthPrefixWidth: Int = 8,   // String/blob/nested/variable repeat element
-    isNested: Boolean = false,   // nested framed schema
     repeatCountWidth: Int = 8,   // repeat count prefix: 8, 16, or 32
-    enumWidth: Int = 0,          // for enum-typed fields
-    defaultValue: String = "",   // reserved; not supported by generation
     order: Int = -1,             // framed field order, contiguous from zero
 )
 ```

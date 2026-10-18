@@ -31,13 +31,11 @@ class FramedLayoutValidatorTest {
                     "nestedItems",
                     KompactFieldType.Repeated(KompactFieldType.Nested("test.Child", listOf(scalarType("Int")))),
                     order = 1,
-                    isNested = true,
                 ),
                 field(
                     "nested",
                     KompactFieldType.Nested("test.Child", listOf(scalarType("Int"))),
                     order = 2,
-                    isNested = true,
                 ),
             )
 
@@ -97,9 +95,6 @@ class FramedLayoutValidatorTest {
                     bitOffset = 1,
                     lengthPrefixWidth = 7,
                     repeatCountWidth = 16,
-                    isNested = true,
-                    enumWidth = 1,
-                    defaultValue = "1",
                     mutable = true,
                 ),
                 field(
@@ -107,7 +102,6 @@ class FramedLayoutValidatorTest {
                     KompactFieldType.StringType,
                     order = 1,
                     bitWidth = 1,
-                    isNested = true,
                     lengthPrefixWidth = 0,
                 ),
                 field("blob", KompactFieldType.Blob, order = 2, bitWidth = 1, lengthPrefixWidth = 7),
@@ -124,14 +118,12 @@ class FramedLayoutValidatorTest {
                     order = 4,
                     bitWidth = 0,
                     repeatCountWidth = 7,
-                    isNested = true,
                 ),
                 field(
                     "repeatedString",
                     KompactFieldType.Repeated(KompactFieldType.StringType),
                     order = 5,
                     bitWidth = 1,
-                    isNested = true,
                     lengthPrefixWidth = 7,
                 ),
                 field(
@@ -139,7 +131,6 @@ class FramedLayoutValidatorTest {
                     KompactFieldType.Repeated(KompactFieldType.Nested("test.Payload")),
                     order = 6,
                     bitWidth = 1,
-                    isNested = false,
                     lengthPrefixWidth = 7,
                 ),
                 field(
@@ -171,10 +162,7 @@ class FramedLayoutValidatorTest {
 
         assertTrue(errors.any { it.contains("immutable") }, errors.toString())
         assertTrue(errors.any { it.contains("bitOffset") }, errors.toString())
-        assertTrue(errors.any { it.contains("enumWidth") }, errors.toString())
-        assertTrue(errors.any { it.contains("defaultValue") }, errors.toString())
         assertTrue(errors.any { it.contains("repeatCountWidth") }, errors.toString())
-        assertTrue(errors.any { it.contains("Nested field") }, errors.toString())
         assertTrue(errors.any { it.contains("cannot contain another repeated field") }, errors.toString())
         assertTrue(errors.any { it.contains("unsupported element type") }, errors.toString())
         assertTrue(errors.any { it.contains("unsupported type") }, errors.toString())
@@ -202,9 +190,6 @@ class FramedLayoutValidatorTest {
         bitWidth: Int = 0,
         lengthPrefixWidth: Int = 8,
         repeatCountWidth: Int = 8,
-        isNested: Boolean = false,
-        enumWidth: Int = 0,
-        defaultValue: String = "",
         mutable: Boolean = false,
     ) = KompactFieldInfo(
         name = name,
@@ -214,10 +199,7 @@ class FramedLayoutValidatorTest {
         bitWidth = bitWidth,
         signed = false,
         lengthPrefixWidth = lengthPrefixWidth,
-        isNested = isNested,
         repeatCountWidth = repeatCountWidth,
-        enumWidth = enumWidth,
-        defaultValue = defaultValue,
         isMutable = mutable,
     )
 }

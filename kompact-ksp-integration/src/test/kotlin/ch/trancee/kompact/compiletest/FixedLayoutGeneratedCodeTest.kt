@@ -3,10 +3,14 @@
 package ch.trancee.kompact.compiletest
 
 import ch.trancee.kompact.runtime.KompactCursor
+import ch.trancee.kompact.runtime.KompactDecodeError
+import ch.trancee.kompact.runtime.KompactFrameResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class FixedLayoutGeneratedCodeTest {
@@ -26,6 +30,28 @@ class FixedLayoutGeneratedCodeTest {
     @Test
     fun generatedViewRejectsUndersizedBuffers() {
         assertFailsWith<IllegalArgumentException> { SensorFrameView(ByteArray(2)) }
+    }
+
+    @Test
+    fun checkedDecodeReturnsBoundsFailureForUndersizedInput() {
+        val result = SensorFrameView.decode(ByteArray(2))
+
+        val failure = assertIs<KompactFrameResult.Failure>(result)
+        assertEquals(KompactDecodeError.BoundsError, failure.error)
+        assertIs<KompactFrameResult.Failure>(MutableSensorFrameView.decode(ByteArray(2)))
+    }
+
+    @Test
+    fun checkedDecodeWrapsTheCallerBufferWithoutCopying() {
+        val raw = SensorFrameView.create(status = 7, temperature = -1, alarm = true).raw
+
+        val view = assertIs<KompactFrameResult.Success<SensorFrameView>>(SensorFrameView.decode(raw)).value
+        assertSame(raw, view.raw)
+        assertEquals(7, view.status)
+        assertEquals(-1, view.temperature)
+        val mutable = assertIs<KompactFrameResult.Success<MutableSensorFrameView>>(MutableSensorFrameView.decode(raw)).value
+        mutable.status = 2
+        assertEquals(2, view.status)
     }
 
     @Test

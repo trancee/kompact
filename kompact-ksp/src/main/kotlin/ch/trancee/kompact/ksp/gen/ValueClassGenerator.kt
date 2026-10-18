@@ -11,6 +11,7 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeSpec
 
 // --- Type references for symbols in :kompact (resolved by the consumer,
@@ -19,6 +20,8 @@ private val KOMPAT_FIELD = ClassName("ch.trancee.kompact.annotations", "KompactF
 private val KOMPAT_PREVIEW = ClassName("ch.trancee.kompact.annotations", "KompactPreview")
 private val JVM_INLINE = ClassName("kotlin.jvm", "JvmInline")
 private val BYTE_ARRAY_TYPE = ClassName("kotlin", "ByteArray")
+private val FRAME_RESULT = ClassName("ch.trancee.kompact.runtime", "KompactFrameResult")
+private val DECODE_ERROR = ClassName("ch.trancee.kompact.runtime", "KompactDecodeError")
 
 /**
  * Generates one common Kotlin source per schema and delegates framed schemas to [FramedClassGenerator].
@@ -177,7 +180,28 @@ internal object ValueClassGenerator {
                 }.returns(className)
                 .addStatement("return %T(%L)", className, buildEncodeCall(spec))
                 .build()
-        return TypeSpec.companionObjectBuilder().addFunction(create).build()
+        val decode =
+            FunSpec
+                .builder("decode")
+                .addKdoc(
+                    "Checked entry for untrusted input: returns [%T.Failure] with [%T.BoundsError] when [raw] is " +
+                        "shorter than %L bytes, otherwise wraps [raw] without copying.",
+                    FRAME_RESULT,
+                    DECODE_ERROR,
+                    spec.minBufferSize,
+                ).addModifiers(KModifier.PUBLIC)
+                .addParameter("raw", BYTE_ARRAY_TYPE)
+                .returns(FRAME_RESULT.parameterizedBy(className))
+                .beginControlFlow("if (raw.size < %L)", spec.minBufferSize)
+                .addStatement("return %T.Failure(%T.BoundsError)", FRAME_RESULT, DECODE_ERROR)
+                .endControlFlow()
+                .addStatement("return %T.Success(%T(raw))", FRAME_RESULT, className)
+                .build()
+        return TypeSpec
+            .companionObjectBuilder()
+            .addFunction(decode)
+            .addFunction(create)
+            .build()
     }
 
     private fun buildFieldAnnotation(f: KompactFieldInfo): AnnotationSpec {

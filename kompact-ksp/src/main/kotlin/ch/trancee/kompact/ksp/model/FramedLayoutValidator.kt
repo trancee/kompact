@@ -28,12 +28,6 @@ internal object FramedLayoutValidator {
                 }
                 prefixError(field, field.lengthPrefixWidth, "lengthPrefixWidth")?.let(::add)
                 prefixError(field, field.repeatCountWidth, "repeatCountWidth")?.let(::add)
-                if (field.enumWidth != 0) {
-                    add("Framed field '${field.name}' cannot declare enumWidth")
-                }
-                if (field.defaultValue.isNotEmpty()) {
-                    add("Framed field '${field.name}' cannot declare defaultValue")
-                }
                 if (field.type !is KompactFieldType.Repeated && field.repeatCountWidth != 8) {
                     add("Non-repeated field '${field.name}' cannot override repeatCountWidth")
                 }
@@ -49,16 +43,11 @@ internal object FramedLayoutValidator {
                     add("Scalar field '${field.name}' cannot override lengthPrefixWidth")
                 }
                 when (val type = field.type) {
-                    is KompactFieldType.Scalar -> {
-                        if (field.isNested) add("Scalar field '${field.name}' cannot be marked nested")
-                    }
-
-                    KompactFieldType.StringType, KompactFieldType.Blob -> {
-                        if (field.isNested) add("Field '${field.name}' cannot be marked nested")
+                    is KompactFieldType.Scalar, KompactFieldType.StringType, KompactFieldType.Blob -> {
+                        Unit
                     }
 
                     is KompactFieldType.Nested -> {
-                        if (!field.isNested) add("Nested field '${field.name}' must set isNested=true")
                         if (type.typeArguments.isNotEmpty()) {
                             add("Nested field '${field.name}' cannot use a parameterized model")
                         }
@@ -112,23 +101,13 @@ internal object FramedLayoutValidator {
         elementType: KompactFieldType,
     ): String? =
         when (elementType) {
-            is KompactFieldType.Scalar -> {
-                if (field.isNested) "Repeated scalar field '${field.name}' cannot be marked nested" else null
-            }
-
-            KompactFieldType.StringType, KompactFieldType.Blob -> {
-                if (field.isNested) {
-                    "Repeated field '${field.name}' cannot be marked nested"
-                } else {
-                    null
-                }
+            is KompactFieldType.Scalar, KompactFieldType.StringType, KompactFieldType.Blob -> {
+                null
             }
 
             is KompactFieldType.Nested -> {
                 if (elementType.typeArguments.isNotEmpty()) {
                     "Repeated nested field '${field.name}' cannot use a parameterized model"
-                } else if (!field.isNested) {
-                    "Repeated nested field '${field.name}' must set isNested=true"
                 } else {
                     null
                 }

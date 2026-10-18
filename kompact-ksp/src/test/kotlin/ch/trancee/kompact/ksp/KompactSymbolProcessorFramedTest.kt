@@ -49,7 +49,7 @@ class KompactSymbolProcessorFramedTest {
                             "ch.trancee.test.Payload",
                             order = 3,
                             lengthPrefixWidth = 16,
-                            isNested = true,
+                            nestedModel = true,
                         ),
                         field(
                             "children",
@@ -57,7 +57,7 @@ class KompactSymbolProcessorFramedTest {
                             order = 4,
                             repeatCountWidth = 16,
                             lengthPrefixWidth = 16,
-                            isNested = true,
+                            nestedModel = true,
                             typeArguments = listOf("ch.trancee.test.Payload"),
                         ),
                         field(
@@ -130,7 +130,7 @@ class KompactSymbolProcessorFramedTest {
                             "ch.trancee.test.Payload",
                             9,
                             lengthPrefixWidth = 8,
-                            isNested = true,
+                            nestedModel = true,
                         ),
                         field(
                             "samples",
@@ -151,7 +151,7 @@ class KompactSymbolProcessorFramedTest {
                             "kotlin.collections.List",
                             12,
                             lengthPrefixWidth = 8,
-                            isNested = false,
+                            nestedModel = false,
                             typeArguments = listOf("kotlin.ByteArray"),
                         ),
                         field(
@@ -160,7 +160,7 @@ class KompactSymbolProcessorFramedTest {
                             13,
                             lengthPrefixWidth = 16,
                             repeatCountWidth = 16,
-                            isNested = true,
+                            nestedModel = true,
                             typeArguments = listOf("ch.trancee.test.Payload"),
                         ),
                         field(

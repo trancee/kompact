@@ -3,14 +3,15 @@
 package ch.trancee.kompact.annotations
 
 /**
- * Marks a Kompact binary schema. The default fixed layout generates platform
- * value classes; [framed] generates bounded regular classes for sequential fields.
+ * Marks a regular class as a Kompact binary schema.
  *
- * The processor treats the annotated declaration as source schema metadata.
- * Fixed-layout schemas generate platform value classes over a `ByteArray`;
- * framed schemas generate bounded view classes. This annotation is retained
- * only at source level and is not a runtime dependency. [mutable] applies to
- * fixed-layout models; mutable framed models are rejected.
+ * The processor treats the annotated declaration as source schema metadata and
+ * generates one common `<Name>View` per schema. The default fixed layout
+ * generates a `@JvmInline` value class over a `ByteArray`; [framed] generates a
+ * bounded regular view class for sequential fields. This annotation is retained
+ * only at source level and is not a runtime dependency. [mutable] adds a
+ * `Mutable<Name>View` sibling for fixed-layout models; mutable framed models are
+ * rejected.
  */
 @KompactPreview
 @Target(AnnotationTarget.CLASS)
@@ -29,21 +30,19 @@ public annotation class KompactModel(
  *
  * Framed fields use [order] (contiguous from zero), not [bitOffset]. Scalar
  * fields specify [bitWidth]; strings, blobs and nested fields use a prefix width.
- * Repeats are `List<T>` with [repeatCountWidth], plus [bitWidth] for scalar
- * elements or [lengthPrefixWidth] for variable-length elements.
+ * A field whose type is a `@KompactModel(framed = true)` class is a nested,
+ * length-delimited region; nesting is inferred from the type. Repeats are
+ * `List<T>` with [repeatCountWidth], plus [bitWidth] for scalar elements or
+ * [lengthPrefixWidth] for variable-length elements.
  * Fixed-layout annotations retain their original bit-offset meaning.
  *
  * @param bitOffset zero-based LSB-first start bit of the field
  * @param bitWidth  number of bits occupied by the field (1..64; for 32-bit use 32)
- * @param signed   true for two's-complement, false for unsigned magnitude (v1-spec-04: type set)
+ * @param signed   true for two's-complement, false for unsigned magnitude
  * @param lengthPrefixWidth fixed-width LE byte-count prefix width in {8,16,32}
- *        used when the field is a string/blob/nested/repeat (Ticket 05)
- * @param isNested   true when the field is a length-delimited composite region
+ *        used when the field is a string, blob, nested model or variable-length repeat
  * @param repeatCountWidth fixed-width LE count prefix width in {8,16,32}
  *        for repeated fields
- * @param enumWidth    bit width of an enum/ordinal (0 = not an enum)
- * @param defaultValue string-encoded default metadata; it is not currently
- *        supported by code generation
  * @param order zero-based sequential position in a framed schema; unused in fixed layouts
  */
 @KompactPreview
@@ -54,9 +53,6 @@ public annotation class KompactField(
     public val bitWidth: Int = 0,
     public val signed: Boolean = false,
     public val lengthPrefixWidth: Int = 8,
-    public val isNested: Boolean = false,
     public val repeatCountWidth: Int = 8,
-    public val enumWidth: Int = 0,
-    public val defaultValue: String = "",
     public val order: Int = -1,
 )

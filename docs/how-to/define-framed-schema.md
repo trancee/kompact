@@ -41,7 +41,7 @@ public class PacketSchema {
     @KompactField(order = 2, lengthPrefixWidth = 8)
     public val payload: ByteArray = byteArrayOf()
 
-    @KompactField(order = 3, lengthPrefixWidth = 8, isNested = true)
+    @KompactField(order = 3, lengthPrefixWidth = 8)
     public val child: PayloadSchema = PayloadSchema()
 
     @KompactField(order = 4, bitWidth = 16, repeatCountWidth = 8)
@@ -53,7 +53,7 @@ public class PacketSchema {
     @KompactField(order = 6, lengthPrefixWidth = 8, repeatCountWidth = 8)
     public val blobs: List<ByteArray> = emptyList()
 
-    @KompactField(order = 7, lengthPrefixWidth = 8, repeatCountWidth = 8, isNested = true)
+    @KompactField(order = 7, lengthPrefixWidth = 8, repeatCountWidth = 8)
     public val children: List<PayloadSchema> = emptyList()
 }
 ```
@@ -61,7 +61,10 @@ public class PacketSchema {
 `lengthPrefixWidth` and `repeatCountWidth` are bit widths; valid values are
 `8`, `16`, and `32`. A repeated scalar uses `bitWidth` and
 `repeatCountWidth`. A repeated string, blob, or nested model also uses
-`lengthPrefixWidth`; nested models set `isNested = true`.
+`lengthPrefixWidth`. Nesting is inferred from the property type: a field
+whose type is a `@KompactModel(framed = true)` class (or a `List` of one) is a
+nested, length-delimited region. Using a fixed-layout `@KompactModel` as a
+field type is a processor error.
 
 ## 2. Enable common-source generation
 
@@ -154,8 +157,8 @@ uses exceptions.
   decoding rejects trailing non-zero data. Appending an optional field is not
   a compatible schema change.
 - Variable-length fields must begin at a byte-aligned position.
-- `defaultValue`, parameterized nested schemas, and mutable framed fields are
-  not supported by code generation.
+- Parameterized nested schemas and mutable framed fields are not supported by
+  code generation.
 - Every `@KompactModel` needs at least one recognized `@KompactField`.
   Unannotated properties are excluded from the wire schema; an empty schema or
   a resolved invalid field is a compile-time error and generates no model.

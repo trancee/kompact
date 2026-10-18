@@ -11,4 +11,4 @@ common
 
 | | |
 |---|---|
-| signed | true for two's-complement, false for unsigned magnitude (v1-spec-04: type set) |
+| signed | true for two's-complement, false for unsigned magnitude |

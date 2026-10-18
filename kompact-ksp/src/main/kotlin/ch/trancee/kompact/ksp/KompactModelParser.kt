@@ -56,24 +56,18 @@ internal object KompactModelParser {
                 .filter { it.name != null }
                 .associate { it.name!!.asString() to it.value }
         if (framed) {
-            listOf("order", "bitOffset", "bitWidth", "lengthPrefixWidth", "repeatCountWidth", "enumWidth")
+            listOf("order", "bitOffset", "bitWidth", "lengthPrefixWidth", "repeatCountWidth")
                 .forEach { name ->
                     require(args[name] == null || args[name] is Int) {
                         "Field '${prop.simpleName.asString()}' has non-integer $name"
                     }
                 }
-            listOf("isNested", "signed").forEach { name ->
-                require(args[name] == null || args[name] is Boolean) {
-                    "Field '${prop.simpleName.asString()}' has non-boolean $name"
-                }
-            }
-            require(args["defaultValue"] == null || args["defaultValue"] is String) {
-                "Field '${prop.simpleName.asString()}' has non-string defaultValue"
+            require(args["signed"] == null || args["signed"] is Boolean) {
+                "Field '${prop.simpleName.asString()}' has non-boolean signed"
             }
         }
 
-        val nested = (args["isNested"] as? Boolean) ?: false
-        val type = resolveFieldType(prop.type.resolve(), nested)
+        val type = resolveFieldType(prop.type.resolve())
         return KompactFieldInfo(
             name = prop.simpleName.asString(),
             type = type,
@@ -82,10 +76,7 @@ internal object KompactModelParser {
             bitWidth = (args["bitWidth"] as? Int) ?: 0,
             signed = (args["signed"] as? Boolean) ?: false,
             lengthPrefixWidth = (args["lengthPrefixWidth"] as? Int) ?: 8,
-            isNested = (args["isNested"] as? Boolean) ?: false,
             repeatCountWidth = (args["repeatCountWidth"] as? Int) ?: 8,
-            enumWidth = (args["enumWidth"] as? Int) ?: 0,
-            defaultValue = (args["defaultValue"] as? String) ?: "",
             isMutable = prop.isMutable,
         )
     }
@@ -112,10 +103,26 @@ internal object KompactModelParser {
         return args
     }
 
-    private fun resolveFieldType(
-        resolved: KSType,
-        isNested: Boolean,
-    ): KompactFieldType {
+    /** Returns the named `@KompactModel` arguments of [declaration], or null when it is not a Kompact schema. */
+    private fun kompactModelArguments(declaration: KSClassDeclaration): Map<String, Any?>? {
+        val annotation =
+            declaration.annotations.firstOrNull { candidate ->
+                candidate.annotationType
+                    .resolve()
+                    .declaration.qualifiedName
+                    ?.asString() == KOMPAT_MODEL_FQN
+            } ?: return null
+        return annotation.arguments
+            .filter { it.name != null }
+            .associate { it.name!!.asString() to it.value }
+    }
+
+    /**
+     * Resolves a property type. Nesting is inferred: a non-scalar, non-`List` type whose declaration is a
+     * `@KompactModel(framed = true)` class becomes [KompactFieldType.Nested]; any other Kompact schema is
+     * rejected and unknown types stay [KompactFieldType.Unsupported] for the validators to report.
+     */
+    private fun resolveFieldType(resolved: KSType): KompactFieldType {
         if (resolved.isError) {
             throw UnresolvedKompactSymbolException("Field type could not be resolved")
         }
@@ -125,51 +132,31 @@ internal object KompactModelParser {
         val scalar = scalarType(typeName)
         if (scalar !is KompactFieldType.Unsupported) return scalar
 
-        return when (typeName) {
-            "List", "kotlin.collections.List" -> {
-                require(resolved.arguments.size == 1) {
-                    "Repeated field $typeName must declare exactly one element type"
-                }
-                val argumentType =
-                    requireNotNull(resolved.arguments.single().type) {
-                        "Repeated field $typeName cannot use a star-projected element type"
-                    }.resolve()
-                KompactFieldType.Repeated(resolveFieldType(argumentType, isNested))
+        if (typeName == "List" || typeName == "kotlin.collections.List") {
+            require(resolved.arguments.size == 1) {
+                "Repeated field $typeName must declare exactly one element type"
             }
-
-            else -> {
-                if (!isNested) {
-                    KompactFieldType.Unsupported(typeName)
-                } else {
-                    val nestedDeclaration = resolved.declaration as? KSClassDeclaration
-                    require(nestedDeclaration != null && isFramedModel(nestedDeclaration)) {
-                        "Nested field type $typeName must be a @KompactModel(framed = true) class"
-                    }
-                    val typeArguments =
-                        resolved.arguments.map { argument ->
-                            resolveFieldType(
-                                requireNotNull(argument.type) {
-                                    "Nested field $typeName cannot use a star-projected type argument"
-                                }.resolve(),
-                                isNested = true,
-                            )
-                        }
-                    KompactFieldType.Nested(typeName, typeArguments)
-                }
-            }
+            val argumentType =
+                requireNotNull(resolved.arguments.single().type) {
+                    "Repeated field $typeName cannot use a star-projected element type"
+                }.resolve()
+            return KompactFieldType.Repeated(resolveFieldType(argumentType))
         }
-    }
 
-    private fun isFramedModel(declaration: KSClassDeclaration): Boolean {
-        val annotation =
-            declaration.annotations.firstOrNull { candidate ->
-                candidate.annotationType
-                    .resolve()
-                    .declaration.qualifiedName
-                    ?.asString() == KOMPAT_MODEL_FQN
-            } ?: return false
-        return annotation.arguments
-            .filter { it.name != null }
-            .associate { it.name!!.asString() to it.value }["framed"] == true
+        val modelArgs =
+            (declaration as? KSClassDeclaration)?.let(::kompactModelArguments)
+                ?: return KompactFieldType.Unsupported(typeName)
+        require(modelArgs["framed"] == true) {
+            "Nested field type $typeName must be a @KompactModel(framed = true) class"
+        }
+        val typeArguments =
+            resolved.arguments.map { argument ->
+                resolveFieldType(
+                    requireNotNull(argument.type) {
+                        "Nested field $typeName cannot use a star-projected type argument"
+                    }.resolve(),
+                )
+            }
+        return KompactFieldType.Nested(typeName, typeArguments)
     }
 }

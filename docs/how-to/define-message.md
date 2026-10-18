@@ -81,6 +81,19 @@ check(updated.status == 2)
 check(updated.temperature == -12)
 ```
 
+For bytes from a peer, file, or other untrusted source, use the checked
+`decode` factory instead of the constructor. It returns
+`KompactFrameResult.Failure(KompactDecodeError.BoundsError)` when the array is
+shorter than the layout's byte length, and otherwise wraps the array without
+copying:
+
+```kotlin
+when (val result = SensorFrameView.decode(receivedBytes)) {
+    is KompactFrameResult.Success -> handle(result.value)
+    is KompactFrameResult.Failure -> reject(result.error)
+}
+```
+
 Add a `commonTest` round-trip test for each wire schema you publish. Test
 representative boundary values as well as the values used by your application.
 
@@ -92,7 +105,9 @@ schema `@KompactModel(mutable = true)` to generate a separate
 store the low bits of the assigned value; validate application input before
 writing if truncation would be unsafe. Both views retain the supplied `ByteArray`, so code holding another
 reference to that array can still change the frame. The `SensorFrameView`
-constructor requires at least the layout's byte length.
+constructor requires at least the layout's byte length and throws
+`IllegalArgumentException` otherwise; `SensorFrameView.decode` and
+`MutableSensorFrameView.decode` report the same condition as a typed failure.
 
 ## Next steps
 

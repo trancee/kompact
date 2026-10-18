@@ -54,9 +54,6 @@ class ValueClassGeneratorBoundaryTest {
             bitWidth = bitWidth,
             signed = true,
             lengthPrefixWidth = 8,
-            isNested = false,
             repeatCountWidth = 8,
-            enumWidth = 0,
-            defaultValue = "",
         )
 }

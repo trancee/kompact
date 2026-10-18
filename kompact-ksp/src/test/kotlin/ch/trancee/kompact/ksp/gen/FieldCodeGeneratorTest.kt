@@ -62,9 +62,6 @@ class FieldCodeGeneratorTest {
             bitWidth = 8,
             signed = false,
             lengthPrefixWidth = 8,
-            isNested = false,
             repeatCountWidth = 8,
-            enumWidth = 0,
-            defaultValue = "",
         )
 }
