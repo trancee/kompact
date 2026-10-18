@@ -18,15 +18,15 @@ jobs run in parallel, and each Gradle job uses Temurin JDK 21.
 | `jvm-benchmarks` | `ubuntu-latest` | `JVM benchmark fixtures + smoke results (Linux)` |
 | `mutation-test` | `ubuntu-latest` | `Mutation testing (kompact)` and `Mutation testing (kompact-ksp)` |
 | `api-check` | `macos-latest` | `ABI + iOS Simulator tests + Markdown + spotless (macOS)` |
-| `native-benchmarks` | `macos-latest` | `Native benchmark fixtures + iOS holder fixtures (macOS)` |
+| `native-benchmarks` | `macos-latest` | `Native benchmark fixtures + smoke results (macOS)` |
+| `ios-holders` | `macos-latest` | `Generated-holder fixtures on iOS Simulator (macOS)` |
 
 Branch protection on `main` requires the `jvm-test` and `api-check` checks.
 
 Every job starts from a clean checkout and runs its Gradle steps on one
 daemon. A later step reuses the task outputs of an earlier step in the same
 job. Every Gradle command passes `--no-build-cache`, so no task output comes
-from an earlier run. The jobs that compile Kotlin/Native cache `~/.konan`.
-The cache key is the job name plus the hash of `gradle/libs.versions.toml`.
+from an earlier run.
 
 ## Linux checks
 
@@ -192,12 +192,13 @@ fails if the generated tree changed:
 git diff --exit-code -- kompact/docs/api/
 ```
 
-The `native-benchmarks` job runs the benchmark fixtures on macOS Arm64 and
-the generated-holder fixtures on iOS Simulator:
+The `native-benchmarks` job runs the benchmark fixtures on macOS Arm64, and
+the `ios-holders` job runs the generated-holder fixtures on iOS Simulator:
 
 ```bash
 ./gradlew :benchmarks:macosArm64Test :benchmarks:macosArm64SmokeBenchmark --no-build-cache --console=plain
 python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/macosArm64.json
+
 ./gradlew -p benchmarks/holders iosSimulatorArm64Test --no-build-cache --console=plain
 ```
 
