@@ -25,7 +25,7 @@ public class KompactGradlePlugin : Plugin<Project> {
         val detectedKotlinVersion = detectedKotlinVersion(kotlinPlugin)
         val compatibility = compatibilityDetails(versions, detectedKotlinVersion)
         val kotlin = requireKotlinExtension(target.extensions.findByName("kotlin"), compatibility)
-        requireSupportedKotlinVersion(detectedKotlinVersion, versions.kotlin, compatibility)
+        requireSupportedKotlinVersion(detectedKotlinVersion, versions.kotlin, compatibility, target.logger::warn)
         val sourceSets = namedObjects(kotlin, "sourceSets", compatibility)
         val commonMain = requireCommonMain(sourceSets, compatibility)
         val commonMainKotlin = kotlinSources(commonMain, compatibility)
@@ -133,11 +133,18 @@ public class KompactGradlePlugin : Plugin<Project> {
         detectedKotlinVersion: String,
         supportedKotlinVersion: String,
         compatibility: String,
+        warn: (String) -> Unit,
     ) {
-        if (detectedKotlinVersion != supportedKotlinVersion) {
+        if (detectedKotlinVersion == supportedKotlinVersion) return
+        if (minorLine(detectedKotlinVersion) != minorLine(supportedKotlinVersion)) {
             throw GradleException("Kompact code generation is incompatible. $compatibility")
         }
+        warn("Kompact code generation is untested with this Kotlin patch release. $compatibility")
     }
+
+    // Kotlin keeps metadata compatible within a minor line, so only major.minor must match.
+    private fun minorLine(version: String): String? =
+        Regex("""^(\d+)\.(\d+)\.""").find(version)?.let { "${it.groupValues[1]}.${it.groupValues[2]}" }
 
     internal fun kotlinSources(
         sourceSet: Any,
@@ -180,7 +187,8 @@ public class KompactGradlePlugin : Plugin<Project> {
         detectedKotlinVersion: String,
     ): String =
         "Detected Kotlin Gradle Plugin $detectedKotlinVersion with KSP ${versions.ksp}; " +
-            "only tested pair is Kotlin Gradle Plugin ${versions.kotlin} and KSP ${versions.ksp}."
+            "tested with Kotlin Gradle Plugin ${versions.kotlin} and KSP ${versions.ksp}; " +
+            "other patch releases of the same Kotlin minor line are accepted with a warning."
 
     // KGP's plugin classes are isolated, so keep their types out of this plugin's classloader.
     internal fun readKotlinProperty(

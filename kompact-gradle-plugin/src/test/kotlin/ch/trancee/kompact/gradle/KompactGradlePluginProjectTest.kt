@@ -35,7 +35,7 @@ class KompactGradlePluginProjectTest {
     @Test
     fun reportsCompatibilityWhenKotlinPropertyGetterIsMissing() {
         val plugin = KompactGradlePlugin()
-        val compatibility = "Detected Kotlin Gradle Plugin 2.4.20 with KSP 2.3.12; only tested pair is compatible."
+        val compatibility = "Detected Kotlin Gradle Plugin 2.4.20 with KSP 2.3.12; tested with this pair."
 
         val failure =
             assertFailsWith<GradleException> {

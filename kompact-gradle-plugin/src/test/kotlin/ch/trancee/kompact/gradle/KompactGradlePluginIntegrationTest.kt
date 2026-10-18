@@ -144,7 +144,7 @@ class KompactGradlePluginIntegrationTest {
     }
 
     @Test
-    fun rejectsUntestedKotlinGradlePluginVersionBeforeGeneration() {
+    fun rejectsDifferentKotlinMinorLineBeforeGeneration() {
         val projectDir = Files.createTempDirectory("kompact-unsupported-kotlin-consumer")
         try {
             copyFixture(projectDir)
@@ -153,15 +153,15 @@ class KompactGradlePluginIntegrationTest {
                 buildFile,
                 Files.readString(buildFile).replace(
                     "kotlin(\"multiplatform\") version \"${versions.kotlin}\"",
-                    "kotlin(\"multiplatform\") version \"2.4.10\"",
+                    "kotlin(\"multiplatform\") version \"2.3.20\"",
                 ),
             )
 
             val result = gradle(projectDir, ":generateKompactSources").buildAndFail()
 
-            assertTrue(result.output.contains("Kotlin Gradle Plugin 2.4.10"))
+            assertTrue(result.output.contains("Kotlin Gradle Plugin 2.3.20"))
             assertTrue(result.output.contains("KSP ${versions.ksp}"))
-            assertTrue(result.output.contains("only tested pair"))
+            assertTrue(result.output.contains("incompatible"))
         } finally {
             projectDir.toFile().deleteRecursively()
         }

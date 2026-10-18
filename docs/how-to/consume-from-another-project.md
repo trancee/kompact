@@ -169,8 +169,15 @@ Add any other targets required by your application. The snapshot plugin
 registers one generated common source per schema in `commonMain` and does not
 restrict Kotlin targets; the runtime must still publish a variant for each
 target you add. Do not also apply standard target-specific KSP processing to
-the same Kompact schemas. See [How to define a framed schema](define-framed-schema.md)
-for a complete schema example.
+the same Kompact schemas.
+
+Use Kotlin from the same minor line as the plugin's tested version (for example
+`2.4.x` for `2.4.21`). Other patch releases log a warning; a different minor
+line fails the build before generation. See
+[ADR-0012](../adr/0012-kotlin-minor-line-compatibility.md).
+
+See [How to define a framed schema](define-framed-schema.md) for a complete
+schema example.
 
 ## Verify the dependency
 
