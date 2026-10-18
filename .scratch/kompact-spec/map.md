@@ -76,7 +76,7 @@ No code is gated on them until accepted:
 - **ADR-0005** — relax zero-allocation on the *failure* path (collapse the seven
   `*Result` types into a tiered result); **revisits decided**
   [ticket 08](issues/08-runtime-error-model.md) (zero-alloc on both success and
-  failure). See [`docs/adr/0005`](../../docs/adr/0005-relax-fail-path-zero-alloc.md).
+  failure). See [`docs/adr/0005`](../../docs/adr/0005-full-domain-long-result.md).
 - **ADR-0006** — immutable value-class views by default (opt-in mutable scratch);
   **supersedes** [`ADR-0001`](../../docs/adr/0001-mutable-view-classes-with-write-through-setters.md)
   and revisits [ticket 07](issues/07-write-builder-interface.md). See

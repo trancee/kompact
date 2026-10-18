@@ -5,14 +5,14 @@ import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 
 /**
- * ServiceLoader entry point for the Kompact KSP processor (Ticket 02).
+ * ServiceLoader entry point for the Kompact KSP processor.
  *
  * KSP 2.x discovers this class via `META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider`
  * when the KSP Gradle plugin is applied to a consumer module.
  *
  * Consumers apply the processor via `kspCommonMainMetadata(c.trancee.kompact:kompact-ksp)`
  * (not `kspJvm` or bare `ksp`) so generated sources land in the common
- * source set shared by all KMP targets (Ticket 13).
+ * source set shared by all KMP targets.
  */
 public class KompactSymbolProcessorProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor = KompactSymbolProcessor(environment)

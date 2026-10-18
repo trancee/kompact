@@ -1,4 +1,4 @@
-# ADR-0004: Human-Reviewed Release PR Automation
+# ADR-0004 — Human-Reviewed Release PR Automation
 
 - **Status:** accepted
 - **Date:** 2026-09-13

@@ -34,7 +34,7 @@ releases:
 | Defer schema versioning | [ADR-0002](adr/0002-defer-versioning-surface-to-v2.md) |
 | KMP consumer and publication support | [ADR-0003](adr/0003-kmp-consumer-enablement.md) |
 | Release pull-request automation | [ADR-0004](adr/0004-release-pr-automation.md) |
-| Full-domain `LongResult` | [ADR-0005](adr/0005-relax-fail-path-zero-alloc.md) |
+| Full-domain `LongResult` | [ADR-0005](adr/0005-full-domain-long-result.md) |
 | Immutable model views by default | [ADR-0006](adr/0006-immutable-default-models.md) |
 | Pre-1.0 versioning | [ADR-0007](adr/0007-pre-1-release-versioning.md) |
 | Sequential framed views | [ADR-0008](adr/0008-framed-generated-views.md) |

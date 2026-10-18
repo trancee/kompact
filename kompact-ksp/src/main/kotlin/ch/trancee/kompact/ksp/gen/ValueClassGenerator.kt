@@ -102,7 +102,7 @@ internal object ValueClassGenerator {
                 .build(),
         )
 
-        // F-001: constructor guard
+        // Constructor guard
         builder.addInitializerBlock(
             CodeBlock.of(
                 "require(raw.size >= %L) { " +

@@ -1,4 +1,4 @@
-# ADR-0003: KMP Consumer Enablement — Android Target, KSP Publication, Java 17, GFM Markdown
+# ADR-0003 — KMP Consumer Enablement — Android Target, KSP Publication, Java 17, GFM Markdown
 
 - **Status:** accepted; partially superseded by [ADR-0009](0009-common-only-code-generation.md) (2026-10-18)
 - **Date:** 2026-09-12
@@ -9,6 +9,9 @@
 > and the `-Xexpect-actual-classes` flag recorded below are superseded by
 > [ADR-0009](0009-common-only-code-generation.md): the runtime and generated
 > code no longer use `expect`/`actual`. The remaining decisions stand.
+>
+> Kotlin, KSP, and AGP versions below are the pins at decision time; current
+> pins live in [`gradle/libs.versions.toml`](../../gradle/libs.versions.toml).
 
 ## Context
 

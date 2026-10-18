@@ -5,9 +5,9 @@ package ch.trancee.kompact.runtime
  *
  * Bit order is **LSB-first** (little-endian bit packing): byte 0 holds the
  * field's bits 0-7, byte 1 holds bits 8-15, and bit 0 of each byte is the
- * least-significant bit of the field value (Ticket 01). Every `Byte` is masked
+ * least-significant bit of the field value. Every `Byte` is masked
  * with `and 0xFF` before `ushr`/`shl`/`or`, so assembly is identical on the
- * JVM and Kotlin/Native regardless of platform endianness (PROMPT §1).
+ * JVM and Kotlin/Native regardless of platform endianness.
  *
  * These primitives read/write the caller-owned buffer without constructing a
  * result wrapper. Generated raw getters delegate to them directly; checked
@@ -144,7 +144,7 @@ public object KompactRuntime {
         }
     }
 
-    // --- Ticket 06/07 — bounded (checked) read accessors ---
+    // --- Bounded (checked) read accessors ---
 
     /** Bounds-check: true iff [bitOffset]+[bitWidth] fits in [raw]. */
     public fun fits(
@@ -167,7 +167,7 @@ public object KompactRuntime {
     /**
      * Reads up to [ScalarType.bitWidth] bits of [type] as a checked [IntResult]. The width
      * (1..32) and signedness come from [type], so a single accessor replaces the
-     * 8 per-width readInt8/16/32 and readUInt8/16/32 overloads (ergonomics-01: ScalarType consolidation).
+     * 8 per-width readInt8/16/32 and readUInt8/16/32 overloads.
      * Sign extension uses Long-arithmetic shifts, bit-identical to the legacy
      * accessors. Callers pass a [ScalarType]; see [readScalarOrThrow] for the
      * exceptions variant.
@@ -229,7 +229,7 @@ public object KompactRuntime {
         }
     }
 
-    /** Reads 32 bits at [bitOffset] as a checked [FloatResult]. NaN is canonicalized (Ticket 04). */
+    /** Reads 32 bits at [bitOffset] as a checked [FloatResult]. NaN is canonicalized. */
     public fun readFloat(
         raw: ByteArray,
         bitOffset: Int,
@@ -241,7 +241,7 @@ public object KompactRuntime {
         return FloatResult.success(Float.fromBits(bits))
     }
 
-    /** Reads 64 bits at [bitOffset] as a checked [DoubleResult]. NaN is canonicalized (Ticket 04). */
+    /** Reads 64 bits at [bitOffset] as a checked [DoubleResult]. NaN is canonicalized. */
     public fun readDouble(
         raw: ByteArray,
         bitOffset: Int,
@@ -253,14 +253,14 @@ public object KompactRuntime {
         return DoubleResult.success(Double.fromBits(bits))
     }
 
-    /** Throws [KompactDecodeException] on a bounds error; otherwise reads 1 bit as a [Boolean] (Ticket 04). */
+    /** Throws [KompactDecodeException] on a bounds error; otherwise reads 1 bit as a [Boolean]. */
     public fun readBoolOrThrow(
         raw: ByteArray,
         bitOffset: Int,
     ): Boolean = readBool(raw, bitOffset).getOrThrow()
 
     /**
-     * Throws [KompactDecodeException] on a bounds error; otherwise decodes [type] bits as an [Int] (Ticket 04).
+     * Throws [KompactDecodeException] on a bounds error; otherwise decodes [type] bits as an [Int].
      *
      * @throws IllegalArgumentException if [type] is wider than 32 bits.
      */
@@ -270,20 +270,20 @@ public object KompactRuntime {
         type: ScalarType,
     ): Int = readScalar(raw, bitOffset, type).getOrThrow()
 
-    /** Throws [KompactDecodeException] on a bounds error; otherwise decodes [type] bits as a [Long] (Ticket 04). */
+    /** Throws [KompactDecodeException] on a bounds error; otherwise decodes [type] bits as a [Long]. */
     public fun readScalarAsLongOrThrow(
         raw: ByteArray,
         bitOffset: Int,
         type: ScalarType,
     ): Long = readScalarAsLong(raw, bitOffset, type).getOrThrow()
 
-    /** Throws [KompactDecodeException] on a bounds error; otherwise reads 32 bits as a [Float] (Ticket 04). */
+    /** Throws [KompactDecodeException] on a bounds error; otherwise reads 32 bits as a [Float]. */
     public fun readFloatOrThrow(
         raw: ByteArray,
         bitOffset: Int,
     ): Float = readFloat(raw, bitOffset).getOrThrow()
 
-    /** Throws [KompactDecodeException] on a bounds error; otherwise reads 64 bits as a [Double] (Ticket 04). */
+    /** Throws [KompactDecodeException] on a bounds error; otherwise reads 64 bits as a [Double]. */
     public fun readDoubleOrThrow(
         raw: ByteArray,
         bitOffset: Int,

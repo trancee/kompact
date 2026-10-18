@@ -1,7 +1,7 @@
 package ch.trancee.kompact.runtime
 
 /**
- * Sequential, length-delimited framing (Ticket 05) and repeat/count handling.
+ * Sequential, length-delimited framing and repeat/count handling.
  *
  * Wire shape, read forward (no random access):
  * - **Length prefix** — a fixed-width (8/16/32-bit) little-endian byte count
@@ -19,7 +19,7 @@ package ch.trancee.kompact.runtime
  * and throws [IllegalArgumentException].
  */
 public object KompactFraming {
-    /** Valid length-prefix bit widths (Ticket 06 invariant matrix). */
+    /** Valid length-prefix bit widths (layout invariants #3/#4). */
     public val VALID_PREFIX_WIDTHS: Set<Int> = setOf(8, 16, 32)
 
     /**
@@ -59,7 +59,7 @@ public object KompactFraming {
 
     /**
      * Writes [length] as a fixed-width little-endian byte count at [bitOffset].
-     * Mirrors [readLengthPrefix] (Ticket 07: the writer selects the per-field
+     * Mirrors [readLengthPrefix] (the generator selects the per-field
      * prefix width at codegen time; it must be one of [VALID_PREFIX_WIDTHS]).
      * [length] must be non-negative and fit the selected width; invalid values
      * throw before the buffer is modified.

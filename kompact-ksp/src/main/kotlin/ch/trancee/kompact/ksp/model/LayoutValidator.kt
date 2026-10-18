@@ -1,7 +1,7 @@
 package ch.trancee.kompact.ksp.model
 
 /**
- * Compile-time layout validation (Ticket 06).
+ * Compile-time layout validation.
  *
  * The processor proves these invariants at compile time so the generated
  * getters can skip the runtime `fits()` bounds check — the bit offsets
@@ -10,7 +10,7 @@ package ch.trancee.kompact.ksp.model
  * All `validate*` functions return a list of human-readable error messages.
  * An empty list means the layout is valid.
  *
- * Invariant matrix (Ticket 06):
+ * Invariant matrix:
  * 1. Bit-offset overlaps within a struct — [validateNoOverlaps]
  * 2. Per-struct bit-width sum ≤ declared width — [validateBitWidthSum]
  * 3. Length-prefix field width ∈ {8,16,32} — [validateLengthPrefixWidth]
@@ -21,11 +21,11 @@ package ch.trancee.kompact.ksp.model
  * model types outside framed schemas.
  */
 internal object LayoutValidator {
-    /** Valid fixed-width length-prefix / count-prefix bit widths (Ticket 06 invariant #3/#5). */
+    /** Valid fixed-width length-prefix / count-prefix bit widths (invariants #3/#5). */
     internal val VALID_PREFIX_WIDTHS: Set<Int> = setOf(8, 16, 32)
 
     /**
-     * Invariant #1: no two fields overlap within a struct (Ticket 06).
+     * Invariant #1: no two fields overlap within a struct.
      *
      * @return list of error messages (empty if valid)
      */
@@ -48,7 +48,7 @@ internal object LayoutValidator {
     }
 
     /**
-     * Invariant #2: per-struct bit-width sum ≤ declared width (Ticket 06).
+     * Invariant #2: per-struct bit-width sum ≤ declared width.
      *
      * Every field must start at a non-negative bit offset and its end-bit
      * must not exceed the total layout width (the maximum end-bit of all
@@ -72,7 +72,7 @@ internal object LayoutValidator {
     }
 
     /**
-     * Invariant #3: length-prefix field width ∈ {8, 16, 32} (Ticket 06).
+     * Invariant #3: length-prefix field width ∈ {8, 16, 32}.
      *
      * A lengthPrefixWidth of 0 means the field is not length-prefixed (fixed-width).
      * Any non-zero value must be one of the valid prefix widths.
@@ -85,7 +85,7 @@ internal object LayoutValidator {
             if (f.lengthPrefixWidth != 0 && f.lengthPrefixWidth !in VALID_PREFIX_WIDTHS) {
                 errors.add(
                     "Field '${f.name}' has lengthPrefixWidth=${f.lengthPrefixWidth} " +
-                        "not in {8, 16, 32} (Ticket 06, invariant #3)",
+                        "not in {8, 16, 32} (invariant #3)",
                 )
             }
         }
@@ -93,7 +93,7 @@ internal object LayoutValidator {
     }
 
     /**
-     * Invariant #4: repeated field count width ∈ {8, 16, 32} (Ticket 06).
+     * Invariant #4: repeated field count width ∈ {8, 16, 32}.
      *
      * A repeatCountWidth of 0 means the field is not repeated.
      * Any non-zero value must be one of the valid prefix widths so the
@@ -107,7 +107,7 @@ internal object LayoutValidator {
             if (f.repeatCountWidth != 0 && f.repeatCountWidth !in VALID_PREFIX_WIDTHS) {
                 errors.add(
                     "Field '${f.name}' has repeatCountWidth=${f.repeatCountWidth} " +
-                        "not in {8, 16, 32} (Ticket 06, invariant #4)",
+                        "not in {8, 16, 32} (invariant #4)",
                 )
             }
         }
@@ -115,7 +115,7 @@ internal object LayoutValidator {
     }
 
     /**
-     * Per-type bit-width constraints (supporting check, Ticket 04).
+     * Per-type bit-width constraints (supporting check).
      *
      * - `Boolean`: exactly 1 bit
      * - `Int`: 1..31 bits for packed models; framed models also permit 32
