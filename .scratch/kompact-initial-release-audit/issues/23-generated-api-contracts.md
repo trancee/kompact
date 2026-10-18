@@ -1,7 +1,12 @@
 ---
 Type: task
+Status: resolved
 Blocked by: 22
 ---
+
+> Amended by [ADR-0010](../../../docs/adr/0010-minimal-checked-result-surface.md):
+> the `NestedRegion` alias and its extensions were removed, but
+> `NestedRegionResult` stays as a non-allocating packed-`Long` value class.
 
 ## Objective
 

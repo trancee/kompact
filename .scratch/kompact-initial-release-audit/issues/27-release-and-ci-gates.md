@@ -1,7 +1,10 @@
 ---
 Type: task
+Status: resolved
 Blocked by: 24, 25, 26
 ---
+
+> `0.8.0` was released on 2026-10-07 through the reviewed release PR.
 
 ## Objective
 

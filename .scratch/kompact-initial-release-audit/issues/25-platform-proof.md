@@ -1,5 +1,6 @@
 ---
 Type: task
+Status: resolved
 Blocked by: 22, 23
 ---
 

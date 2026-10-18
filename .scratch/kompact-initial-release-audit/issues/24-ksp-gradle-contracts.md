@@ -1,6 +1,11 @@
 ---
 Type: task
+Status: resolved
 ---
+
+> Amended by [ADR-0012](../../../docs/adr/0012-kotlin-minor-line-compatibility.md):
+> the plugin accepts any Kotlin patch on the tested minor line (with a
+> warning) instead of only the exact tested pair.
 
 ## Objective
 
