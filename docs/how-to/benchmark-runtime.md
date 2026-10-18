@@ -71,6 +71,34 @@ For a second comparison of only the optimized operation, run
 validate with `--profile fixed`. Repeat baseline and candidate in the reverse
 order when distinguishing a change from host drift.
 
+### Automate the timing comparison
+
+After retaining comparable full reports, use `--baseline` to reject a mean
+timing regression greater than 10%, including unchanged controls:
+
+```bash
+python3 benchmarks/check_results.py --profile main \
+  --baseline benchmarks/results/baseline/jvm.json \
+  benchmarks/results/candidate/jvm.json
+```
+
+Use `holders-main` for generated-holder reports, or `main` for the complete
+release Native reports. Compare each JVM, Native, and GC-profiler pair
+separately. The command requires matching runtime/profile metadata,
+parameters, and profiler metric sets, five warmups and measurements, and
+three five-sample JVM forks or one five-sample release Native run.
+It rejects smoke reports, incomplete reports, and incompatible environments
+with a nonzero exit status. Exactly 10% is permitted.
+
+This check compares timing means, not confidence intervals or allocation
+budgets. Inspect allocation metrics against the bounds below separately.
+Retained reports omit JVM arguments and machine paths: you must still verify
+identical host/power conditions, source workloads, build toolchains, and
+meaningful VM flags. Do not use a passing comparison to excuse host drift or
+a changed workload. Investigate a failure and repeat in reverse order rather
+than raising the budget. Without `--baseline`, validation remains an
+execution/shape check; shared CI does not enforce cross-machine timing.
+
 ## Measure generated holders
 
 The standalone `benchmarks/holders` build consumes the runtime and real code
@@ -121,7 +149,9 @@ On macOS, run the shared fixtures separately:
 
 CI runs the JVM fixtures/smoke and iOS Simulator fixtures, not a timing budget.
 The [holder comparison](../research/generated-holder-benchmark.md) records
-the baseline, candidate, allocation bounds, environment, and limitations.
+the initial baseline, candidate, allocation bounds, environment, and limitations.
+The [aligned-prefix follow-up](../research/aligned-count-prefix-benchmark.md)
+records the small-holder fix and its JVM/Native tradeoffs.
 
 ## Interpret allocation evidence
 

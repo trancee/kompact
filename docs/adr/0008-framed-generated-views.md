@@ -121,3 +121,24 @@ slots; focused common tests cover widths, counts, nonzero starts, exact bounds,
 and truncated input. No signatures, status precedence, wire bytes, workspace
 capacity, or bindings change, and callers need no migration. Host speedups are
 not device timing or a universal allocation guarantee.
+
+## 2026-10-17 clarification: checked aligned count-prefix reading
+
+The fixed-repeat cursor already checks the count-prefix width (8, 16, or
+32 bits), byte alignment, and prefix bounds before reading the count.
+Read those bytes directly as unsigned little-endian values into a `Long`
+instead of repeating generic bit-reader work. Preserve the existing
+`Int.MAX_VALUE`, workspace-capacity, and payload-bounds checks in their
+original order, before any checkpoint or binding mutation.
+
+The generic reader remains correct but adds measured work inside complete
+generated-holder decoding. Compiler flags and checkpoint-loop restructuring
+were rejected as the fix: they either change deployment requirements or
+regress other measured sizes. The
+[follow-up measurements](../research/aligned-count-prefix-benchmark.md)
+record the evidence and the near-budget large Native result.
+
+Unsigned-byte masking and byte order are the principal risks; shared tests
+cover every prefix byte, count boundaries, nonzero starts, exact capacity
+diagnostics, truncation, and unchanged workspace storage. There is no API,
+wire, status-precedence, capacity, or migration change.

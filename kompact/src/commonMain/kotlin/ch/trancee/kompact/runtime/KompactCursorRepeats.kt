@@ -192,7 +192,7 @@ internal object KompactCursorRepeats {
         if (countEnd > cursor.endBit.toLong()) {
             return cursor.fail(KompactCursor.STATUS_BAD_LENGTH_PREFIX, cursor.position, countPrefixWidth)
         }
-        val encodedCount = KompactRuntime.readBitsLong(cursor.buffer, cursor.position, countPrefixWidth)
+        val encodedCount = readAlignedCountPrefix(cursor.buffer, cursor.position, countPrefixWidth)
         if (encodedCount > Int.MAX_VALUE.toLong()) {
             return cursor.fail(KompactCursor.STATUS_BAD_LENGTH_PREFIX, cursor.position, countPrefixWidth)
         }
@@ -320,6 +320,23 @@ internal object KompactCursorRepeats {
         cursor.valueBits = index.toLong()
         cursor.clearError()
         return cursor.status
+    }
+
+    // The caller has already checked prefix width, byte alignment, and prefix bounds.
+    private fun readAlignedCountPrefix(
+        buffer: ByteArray,
+        startBit: Int,
+        prefixWidth: Int,
+    ): Long {
+        var byteIndex = startBit ushr 3
+        var bitShift = 0
+        var value = 0L
+        while (bitShift < prefixWidth) {
+            value = value or ((buffer[byteIndex].toLong() and 0xFFL) shl bitShift)
+            byteIndex++
+            bitShift += 8
+        }
+        return value
     }
 
     private fun checkpointCount(count: Int): Int =

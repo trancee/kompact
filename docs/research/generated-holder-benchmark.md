@@ -33,7 +33,10 @@ The allocating control returns a new eight-byte array.
 The practical comparison threshold is the repository's 10% regression budget.
 The hypothesis is a greater-than-10% improvement for large fixed repeats
 without a greater-than-10% regression in the other maintained cases. The
-small fixed-repeat result below does **not** meet that condition.
+small fixed-repeat result below does **not** meet that condition. This is the
+historical measurement; the
+[aligned-prefix follow-up](aligned-count-prefix-benchmark.md) addresses that
+finding without changing the budget.
 
 ## Toolchain and environment
 
@@ -102,10 +105,10 @@ between the two profiled sessions.
 
 The 65-element fixed holder was **11.63% and 21.09% slower** in the profiled
 pairs, and **10.57% slower** without profiling. That consistent direction is
-an unresolved small-case performance finding, not a passed regression gate.
-This report does not waive or raise the 10% budget. A controlled small-frame
-investigation is needed before asserting that the optimization benefits all
-generated-holder workloads.
+a small-case performance finding, not a passed regression gate for that
+revision. This report does not waive or raise the 10% budget. The subsequent
+[controlled investigation](aligned-count-prefix-benchmark.md) retains this
+failure and measures the compatible prefix-reader correction.
 
 ### Allocation observations
 
@@ -124,7 +127,7 @@ The baseline's slowest variable case was also approximately 23 B/op.
 The normalized profiler floor grows with operation duration; these small
 fractional values are not literal fractional objects or a zero-allocation
 proof. The control's approximately 24 B/op demonstrates observable
-allocation. Keep these results separate from the existing one-pass
+allocation. Keep these results separate from the existing standalone
 repeat-index allocation budget: generated variable-holder decoding performs
 both preflight and index construction. No existing allocation budget changed.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate maintained runtime or generated-holder reports, not timing thresholds."""
+"""Validate benchmark reports and optionally compare full-profile timing budgets."""
 
 import argparse
 import json
@@ -84,6 +84,62 @@ def validate_results(results, profile):
         raise ValueError("benchmark report is missing maintained cases")
 
 
+def validate_comparison(baseline, candidate, profile):
+    """Check comparable full profiles against the 10% mean timing budget."""
+    if profile in ("smoke", "holders-smoke"):
+        raise ValueError("smoke reports do not establish a timing budget")
+    validate_results(baseline, profile)
+    validate_results(candidate, profile)
+    references = {
+        (record["benchmark"], record.get("params", {}).get("count")): record
+        for record in baseline
+    }
+    regressions = []
+    for record in candidate:
+        identity = (record["benchmark"], record.get("params", {}).get("count"))
+        reference = references[identity]
+        native = "compilationMode" in reference or "compilationMode" in record
+        if native:
+            if reference.get("compilationMode") != "Release" or record.get("compilationMode") != "Release":
+                raise ValueError("expected comparable Release Native measurements")
+            environment = ("compilationMode", "configurationName")
+        else:
+            environment = (
+                "jdkVersion", "vmVersion", "vmName", "jmhVersion", "threads", "forks",
+                "warmupBatchSize", "measurementBatchSize",
+            )
+        fields = environment + (
+            "warmupIterations", "warmupTime", "measurementIterations", "measurementTime",
+        )
+        if any(
+            field not in reference or field not in record
+            or not reference[field] or reference[field] != record[field]
+            for field in fields
+        ):
+            raise ValueError(f"incomparable measurement metadata for {identity}")
+        if (
+            reference.get("params", {}) != record.get("params", {})
+            or reference.get("advanced") != record.get("advanced")
+            or reference.get("configurationName") != record.get("configurationName")
+            or set(reference.get("secondaryMetrics", {})) != set(record.get("secondaryMetrics", {}))
+        ):
+            raise ValueError(f"incomparable parameter or profiling metadata for {identity}")
+        for measurement in (reference, record):
+            samples = [len(fork) for fork in measurement["primaryMetric"]["rawData"]]
+            if (
+                measurement["warmupIterations"] != 5
+                or measurement["measurementIterations"] != 5
+                or samples != ([5] if native else [5, 5, 5])
+                or (not native and measurement["forks"] != 3)
+            ):
+                raise ValueError("expected full five-iteration profiles and three JVM forks")
+        ratio = record["primaryMetric"]["score"] / reference["primaryMetric"]["score"]
+        if ratio > 1.1:
+            regressions.append(f"{identity}: +{(ratio - 1) * 100:.2f}%")
+    if regressions:
+        raise ValueError("timing regression exceeds 10%: " + "; ".join(regressions))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -91,12 +147,21 @@ def main():
         required=True,
     )
     parser.add_argument("--retain-dir", type=Path)
+    parser.add_argument("--baseline", type=Path, help="enforce the 10-percent budget against a comparable full report")
     parser.add_argument("reports", nargs="+", type=Path)
     arguments = parser.parse_args()
+    baseline = None
+    if arguments.baseline is not None:
+        try:
+            baseline = json.loads(arguments.baseline.read_text())
+        except (OSError, ValueError) as error:
+            parser.exit(1, f"{arguments.baseline}: invalid baseline ({error})\n")
     for path in arguments.reports:
         try:
             results = json.loads(path.read_text())
             validate_results(results, arguments.profile)
+            if arguments.baseline is not None:
+                validate_comparison(baseline, results, arguments.profile)
             if arguments.retain_dir is not None:
                 arguments.retain_dir.mkdir(parents=True, exist_ok=True)
                 with (arguments.retain_dir / path.name).open("x") as destination:
@@ -104,7 +169,8 @@ def main():
                     destination.write("\n")
         except (OSError, ValueError, KeyError, TypeError) as error:
             parser.exit(1, f"{path}: invalid benchmark report ({error})\n")
-        print(f"{path}: valid {arguments.profile} measurements")
+        comparison = "; within 10% timing budget" if arguments.baseline is not None else ""
+        print(f"{path}: valid {arguments.profile} measurements{comparison}")
 
 
 if __name__ == "__main__":

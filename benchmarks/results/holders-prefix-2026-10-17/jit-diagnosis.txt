@@ -1,0 +1,6 @@
+Original runtime 0d242ca:
+@ 13   ch.trancee.kompact.runtime.KompactCursorRepeats::readFixedRepeat (326 bytes)   failed to inline: hot method too big
+Merged sparse runtime 6115b87:
+@ 13   ch.trancee.kompact.runtime.KompactCursorRepeats::readFixedRepeat (315 bytes)   inline (hot)
+Same-host JDK 25 default:
+intx FreqInlineSize                           = 325                                 {C2 pd product} {default}

@@ -75,6 +75,8 @@ from production coverage. It uses the real plugin/runtime to test generated
 holder decoding and smoke-check JVM timing, rather than copying decoders.
 Shared CI does not enforce timing thresholds across heterogeneous machines.
 See [host measurements and comparison budgets](how-to/benchmark-runtime.md).
+For controlled same-host full reports, the optional `--baseline` comparison
+enforces the 10% timing budget; it is not enabled for shared-CI smoke runs.
 
 The Linux gate checks relative Markdown links with Lychee in offline mode and
 common spelling errors with Codespell. CI pins the Lychee action and binary
@@ -136,7 +138,9 @@ physical-device evidence.
 
 The [post-PR-99 validation record](research/physical-runtime-validation.md)
 retains six passing Android debug/release executions at merged `ed7218c`
-and identifies the current physical-iOS signing blocker. Do not interpret
+and six fresh local-build executions of the aligned-prefix follow-up on base
+`6115b87`, with 404 tests per execution. It identifies the explicitly deferred
+physical-iOS signing prerequisite. Do not interpret
 the older device results below as validation of the current revision.
 
 Android-KMP host-side tests exercise runtime behavior on the Android JVM
@@ -215,9 +219,10 @@ On 2026-10-07, the script ran three times on an iPhone SE (2020) with iOS
 `18.7.8`. Each run of the `iosArm64` debug test binary passed all 396 tests.
 A deliberately failing test made the script exit with status 1.
 
-The local Android Native link still fails because Kotlin/Native invokes an
-x86_64 `clang` toolchain (`Bad CPU type in executable`); Linux CI builds the
-Android device binary instead.
+On 2026-10-17, fresh local Android Native debug/release linking succeeded
+with JDK `21.0.12.1` and Kotlin `2.4.21`, followed by the six physical runs
+recorded above. The earlier local `Bad CPU type in executable` failure is
+not a current blocker; Linux CI remains the authoritative clean build.
 
 JMH allocation profiling and physical-device allocation measurements are not
 CI gates. The macOS benchmark fixture test includes a controlled debug
