@@ -118,7 +118,7 @@ the commands in the
 
 For the current checkout, run
 `./gradlew :kompact:publishToMavenLocal :kompact-ksp:publishToMavenLocal :kompact-gradle-plugin:publishToMavenLocal`
-from the Kompact checkout, then use `0.9.0` and `mavenLocal()`.
+from the Kompact checkout, then use `0.10.0-SNAPSHOT` and `mavenLocal()`.
 
 ## Core API cheat sheet
 

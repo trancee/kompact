@@ -89,7 +89,7 @@ from the runtime source; do not edit the generated pages by hand.
 - Schema annotations are preview API and require opting in to
   `KompactPreview`. Runtime reader and writer APIs do not require that opt-in.
 
-This reference tracks the current checkout (`0.9.0`); the latest
+This reference tracks the current checkout (`0.10.0-SNAPSHOT`); the latest
 published release is `0.9.0`. See the
 [consumer setup guide](how-to/consume-from-another-project.md) for the
 published coordinates or instructions for trying this checkout.

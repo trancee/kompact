@@ -91,7 +91,7 @@ apply standard target-specific KSP processing to the same Kompact schemas.
 
 ## Try the development snapshot
 
-The current checkout's `0.9.0` runtime, schema processor, and
+The current checkout's `0.10.0-SNAPSHOT` runtime, schema processor, and
 code-generation plugin are not available from Maven Central. To try unreleased
 runtime changes, publish the runtime from the repository root:
 
@@ -109,7 +109,7 @@ repositories {
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.9.0")
+    implementation("ch.trancee.kompact:kompact:0.10.0-SNAPSHOT")
 }
 ```
 
@@ -144,7 +144,7 @@ Then apply the plugin after Kotlin Multiplatform and add the runtime to
 ```kotlin
 plugins {
     kotlin("multiplatform") version "2.4.21"
-    id("ch.trancee.kompact.codegen") version "0.9.0"
+    id("ch.trancee.kompact.codegen") version "0.10.0-SNAPSHOT"
 }
 
 repositories {
@@ -158,7 +158,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.9.0")
+                implementation("ch.trancee.kompact:kompact:0.10.0-SNAPSHOT")
             }
         }
     }
