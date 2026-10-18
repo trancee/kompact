@@ -124,6 +124,23 @@ class ValueHolderGeneratorTest {
         assertTrue(encoded.contains("cursor.writeBitsUnchecked(1, if (flagInput) 1L else 0L)"))
     }
 
+    @Test
+    fun generatedHolderEmitsNoPaddingWhenFieldsFillTheFrame() {
+        val spec =
+            ModelSpec(
+                packageName = "test",
+                className = "DenseHolder",
+                fields = listOf(field("low", 0, 4, "Int"), field("high", 4, 4, "Int")),
+            )
+
+        val output = ValueClassGenerator.generate(spec)
+        val holder = output.substringAfter("fun DenseHolderViewHolder.decodeInto")
+
+        assertTrue(holder.contains("cursor.ensureAvailable(8)"))
+        assertFalse(holder.contains("cursor.skipBits("))
+        assertFalse(holder.contains("cursor.writeZeros("))
+    }
+
     private fun field(
         name: String,
         bitOffset: Int,

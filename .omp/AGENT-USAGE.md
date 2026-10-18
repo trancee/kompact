@@ -58,31 +58,34 @@ keep the full target set, do not apply the MutFlow plugin, and do not add its
 common-source-set dependencies.
 
 Ordinary JVM tests in both `:kompact:jvmTest` and `:kompact-ksp:test` use
-JUnit 6. The runtime mutation target set is `KompactRuntime`, `KompactCursor`,
-`KompactCursorByteRanges`, `KompactCursorRepeats`, and `KompactByteRange`. The
-adapters call existing common cursor and byte-range tests inside
-`MutFlow.underTest`; they are added only to MutFlow generated JVM test
-compilation, while ordinary common tests remain framework-neutral. The KSP
-module uses plain-JVM MutFlow JUnit 6 adapters around existing generator tests.
-Both mutation tasks run with an unlimited mutation budget. Pass explicit
-module-specific adapter filters because the shared report script also serves
-the pre-existing runtime adapters.
+JUnit 6. Each module lists its production mutation targets in
+`mutflow { targets }`. Neither module has hand-written adapters. The
+`generateMutationAdapter` task writes one `GeneratedMutationTest` class. It
+wraps every `@Test` of the configured `mutationTesting.adapterSources` in its
+own `MutFlow.underTest` scope:
+
+- runtime: `commonTest`, compiled only into MutFlow's JVM `mutatedTest`
+  compilation, so ordinary common tests stay framework-neutral;
+- KSP: `src/test`.
+
+The generated adapter is the default filter, and both tasks run every
+discovered mutation (see
+[ADR-0015](../docs/adr/0015-generated-mutation-adapters.md)).
 
 Run these aggregate invocations sequentially. They provide JVM-target evidence
 only; the runtime run provides no Android or Native evidence.
 
 ```bash
 gradle -PmutationTest.jvmOnly=true :kompact:mutationResults \
-  "-PmutationTest.includes=ch.trancee.kompact.runtime.KompactCursorMutationTest,ch.trancee.kompact.runtime.KompactCursorBoundaryMutationTest,ch.trancee.kompact.runtime.KompactCursorByteRangeMutationTest" \
   --no-configuration-cache --console=plain
 
 gradle -PmutationTest.enabled=true :kompact-ksp:mutationResults \
-  "-PmutationTest.includes=ch.trancee.kompact.ksp.gen.FramedScalarHolderGeneratorMutationTest,ch.trancee.kompact.ksp.gen.FramedClassGeneratorMutationTest,ch.trancee.kompact.ksp.gen.ValueClassGeneratorMutationTest,ch.trancee.kompact.ksp.gen.ValueHolderGeneratorMutationTest" \
   --no-configuration-cache --console=plain
 ```
 
-`mutationTest.includes` selects whole test classes; production mutation targets
-are a separate setting. Plain JVM uses `test` with the module's configured
+`-PmutationTest.includes=<patterns>` replaces the default adapter filter with
+comma-separated Gradle test patterns. Production mutation targets are a
+separate setting. Plain JVM uses `test` with the module's configured
 JUnit 4 or 6 engine; JUnit 4 test classes use `@RunWith(MutFlowRunner::class)`.
 KMP uses dedicated `mutflow<Target>Test` JVM tasks, generated JUnit 6
 integration, and plain `kotlin.test` common tests.

@@ -61,7 +61,11 @@ if (mutationEnabled) {
             ),
         )
     }
-    sourceSets.getByName("test").kotlin.srcDir("src/mutflowTest/kotlin")
+    extensions.configure<ch.trancee.mutation.MutationResultsExtension>("mutationTesting") {
+        adapterSources.from("src/test/kotlin")
+        adapterPackage.set("ch.trancee.kompact.ksp")
+    }
+    sourceSets.getByName("test").kotlin.srcDir(tasks.named("generateMutationAdapter"))
 } else {
     tasks.register("mutationResults") {
         group = "verification"

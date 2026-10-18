@@ -1,16 +1,24 @@
+import ch.trancee.mutation.GenerateMutationAdapterTask
+import ch.trancee.mutation.MutationResultsExtension
 import ch.trancee.mutation.MutationResultsTask
 
 // Applied conditionally by modules that run MutFlow (see .omp/AGENT-USAGE.md).
 
-val includesProperty = providers.gradleProperty("mutationTest.includes").orNull
-val mutationTestIncludes =
-    includesProperty?.split(',')?.map(String::trim) ?: listOf(
-        "ch.trancee.kompact.runtime.KompactRuntimeMutationTest",
-        "ch.trancee.kompact.runtime.KompactRuntimeLongBitsMutationTest",
-    )
-require(includesProperty == null || mutationTestIncludes.all { it.isNotEmpty() }) {
-    "mutationTest.includes must contain nonempty comma-separated Gradle test patterns"
+val mutationTesting =
+    extensions.create<MutationResultsExtension>("mutationTesting").apply {
+        adapterClassName.convention("GeneratedMutationTest")
+        includes.convention(adapterPackage.zip(adapterClassName) { pkg, cls -> listOf("$pkg.$cls") })
+    }
+// Modules add this task's output to the compilation that MutFlow runs against mutated code.
+tasks.register<GenerateMutationAdapterTask>("generateMutationAdapter") {
+    description = "Generates one MutFlow adapter that wraps every behavior test of this module"
+    testSources.from(mutationTesting.adapterSources)
+    adapterPackage.set(mutationTesting.adapterPackage)
+    adapterClassName.set(mutationTesting.adapterClassName)
+    outputDirectory.set(layout.buildDirectory.dir("generated/mutationAdapter/kotlin"))
 }
+val includesOverride =
+    providers.gradleProperty("mutationTest.includes").map { patterns -> patterns.split(',').map(String::trim) }
 
 val mutationResults =
     tasks.register<MutationResultsTask>("mutationResults") {
@@ -66,6 +74,10 @@ afterEvaluate {
     }
     gradle.taskGraph.whenReady {
         if (hasTask(mutationResults.get())) {
+            val mutationTestIncludes = includesOverride.orElse(mutationTesting.includes).get()
+            require(mutationTestIncludes.isNotEmpty() && mutationTestIncludes.all { it.isNotEmpty() }) {
+                "Set mutationTesting.includes or pass -PmutationTest.includes as nonempty comma-separated test patterns"
+            }
             // Allow XML collection, then restore the failure exit status after writing JSON.
             selectedTests.forEach { testTask ->
                 testTask.ignoreFailures = true

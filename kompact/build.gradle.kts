@@ -3,6 +3,7 @@
     org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class,
 )
 
+import ch.trancee.mutation.MutationResultsExtension
 import io.github.anschnapp.mutflow.gradle.MutflowExtension
 import org.gradle.api.GradleException
 import org.gradle.api.publish.maven.MavenPublication
@@ -40,6 +41,10 @@ if (mutationJvmOnly) {
     // when the reduced model contains JVM, the target for which it publishes variants.
     pluginManager.apply("io.github.anschnapp.mutflow")
     apply(plugin = "mutation-results")
+    extensions.configure<MutationResultsExtension>("mutationTesting") {
+        adapterSources.from("src/commonTest/kotlin")
+        adapterPackage.set("ch.trancee.kompact.runtime")
+    }
     extensions.configure<MutflowExtension>("mutflow") {
         targets.addAll(
             listOf(
@@ -51,6 +56,8 @@ if (mutationJvmOnly) {
             ),
         )
         maxMutationRuns.set(Int.MAX_VALUE)
+        // Bounds a mutant that escapes MutFlow's per-test budget; the whole suite runs in seconds.
+        timeoutMs.set(10_000L)
     }
 } else {
     tasks.register("mutationResults") {
@@ -132,7 +139,7 @@ kotlin {
 if (mutationJvmOnly) {
     val mutatedTest = kotlin.targets.getByName<KotlinJvmTarget>("jvm")
         .compilations.getByName("mutatedTest")
-    mutatedTest.defaultSourceSet.kotlin.srcDir(layout.projectDirectory.dir("src/mutflowTest/kotlin"))
+    mutatedTest.defaultSourceSet.kotlin.srcDir(tasks.named("generateMutationAdapter"))
     // MutFlow's generated test compilation omits the regular JVM Java output.
     mutatedTest.defaultSourceSet.dependencies {
         implementation(files(tasks.named<JavaCompile>("compileJvmMainJava").map { it.destinationDirectory }))

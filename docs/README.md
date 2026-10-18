@@ -44,6 +44,7 @@ releases:
 | Kotlin minor-line compatibility | [ADR-0012](adr/0012-kotlin-minor-line-compatibility.md) |
 | Typed cursor status and caller-contract errors | [ADR-0013](adr/0013-typed-status-and-caller-contract-errors.md) |
 | detekt static analysis | [ADR-0014](adr/0014-detekt-static-analysis.md) |
+| Generated MutFlow adapters | [ADR-0015](adr/0015-generated-mutation-adapters.md) |
 
 ### Technical research
 
