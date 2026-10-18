@@ -1,17 +1,26 @@
 # Run the CI checks locally
 
 Use these commands to reproduce the checks that protect a pull request. The
-workflow definitions in [`.github/workflows/`](../.github/workflows/) are the
-source of truth; this page summarizes their current task lists.
+workflow files in [`.github/workflows/`](../.github/workflows/) are the source
+of truth. This page lists the tasks they run today.
 
-CI runs on pushes to `main`, `master`, and `feat/**`, and on pull requests
-targeting `main` or `master`. It uses JDK 21.
+The `CI` workflow ([`ci.yml`](../.github/workflows/ci.yml)) runs on pushes to
+`main`, `master`, and `feat/**`, and on pull requests that target `main` or
+`master`. It has three jobs, and each job uses Temurin JDK 21.
+
+| Job | Runner | Check name |
+|---|---|---|
+| `jvm-test` | `ubuntu-latest` | `JVM tests + Android assemble + Portal dry-run (Linux)` |
+| `api-check` | `macos-latest` | `ABI + iOS Simulator tests + Markdown + spotless (macOS)` |
+| `mutation-test` | `ubuntu-latest` | `Mutation testing (Linux)` |
 
 ## Linux checks
 
-The Linux job tests release-version calculation, runs the JVM/KSP/plugin
-checks, links an Android Native arm64 device-test binary, and assembles
-Central Portal bundles without publishing them:
+The `jvm-test` job runs these commands in order. It tests the release
+scripts, the device-runner tools, and the benchmark fixtures, checks the
+Markdown, runs the JVM, KSP, and Gradle plugin checks, links an Android
+Native arm64 test binary, and builds Central Portal bundles without
+publishing them:
 
 ```bash
 bash .github/scripts/release/version-bump-test.sh
@@ -20,13 +29,13 @@ bash .github/scripts/docs/version-docs-check-test.sh
 bash .github/scripts/docs/check-version-references.sh .
 python3 -m unittest discover -s scripts -p 'test_*.py'
 python3 -m unittest discover -s benchmarks -p 'test_*.py'
-./gradlew :benchmarks:jvmTest :benchmarks:jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache
+./gradlew :benchmarks:jvmTest :benchmarks:jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
 python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/jvm.json
-./gradlew -p benchmarks/holders jvmTest jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache
+./gradlew -p benchmarks/holders jvmTest jvmSmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
 python3 benchmarks/check_results.py --profile holders-smoke benchmarks/holders/build/reports/benchmarks/smoke/*/jvm.json
-lychee --offline --no-progress README.md SECURITY.md CHANGELOG.md docs
-codespell --count --ignore-words-list=OptIn README.md SECURITY.md CHANGELOG.md docs
-npm exec --yes --package=markdownlint-cli2@0.23.2 -- markdownlint-cli2 --config .markdownlint-cli2.jsonc README.md SECURITY.md docs/getting-started.md docs/api-reference.md docs/ci.md 'docs/how-to/*.md' docs/agents/agent-quick-start.md
+lychee --offline --no-progress --include-fragments README.md SECURITY.md CONTRIBUTING.md CHANGELOG.md docs
+codespell --count --ignore-words-list=OptIn README.md SECURITY.md CONTRIBUTING.md CHANGELOG.md docs
+npm exec --yes --package=markdownlint-cli2@0.23.2 -- markdownlint-cli2 --config .markdownlint-cli2.jsonc README.md SECURITY.md CONTRIBUTING.md 'docs/**/*.md'
 
 ./gradlew \
   spotlessCheck \
@@ -43,8 +52,11 @@ npm exec --yes --package=markdownlint-cli2@0.23.2 -- markdownlint-cli2 --config 
   :kompact-gradle-plugin:validatePlugins \
   :kompact-gradle-plugin:checkKotlinAbi \
   :kompact-gradle-plugin:koverVerify \
-  :kompact-gradle-plugin:test \
   :build-logic:test \
+  --no-daemon --rerun-tasks --no-build-cache --warning-mode all
+
+./gradlew \
+  :kompact-gradle-plugin:test \
   --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
 ./gradlew \
@@ -58,62 +70,93 @@ npm exec --yes --package=markdownlint-cli2@0.23.2 -- markdownlint-cli2 --config 
   --no-daemon --console=plain
 ```
 
-`jvmTest` runs the runtime's common tests on the JVM, and
-`testAndroidHostTest` runs them on the Android-KMP host test target without
-requiring a connected device. The KSP integration and Gradle TestKit tests
-compile generated consumers and exercise the code generation plugin. Kover
-enforces line and branch thresholds for the runtime,
-KSP processor, and Gradle plugin; the plugin's required threshold is 100% with
-no production exclusions. The Portal tasks use an ephemeral signing key in CI
-and only build bundles; they do not upload or publish artifacts. The release
-fixture also verifies that the managed release PR contains the stable version,
-changelog, and synchronized consumer documentation.
+CI runs Lychee, Codespell, and Markdownlint through pinned GitHub Actions.
+The `lychee`, `codespell`, and `npm exec` lines above run the same checks
+when you have the tools installed.
 
-The internal device-runner Python tools are outside production Kover.
-Their hardware-free fixtures run in Linux CI and exercise watchdog-safe
-launch, exact process selection, and asynchronous debugger continuation;
-they do not require Apple tools, signing assets, or connected devices.
+### What the Gradle tasks check
 
-The unpublished benchmark module compiles the maintained runtime sources for
-host measurements without changing the published target set. Benchmark
-fixtures and internal report tools are explicitly outside production coverage;
-CI runs their tests and rejects incomplete or non-finite smoke reports.
-The standalone `benchmarks/holders` consumer is also unpublished and excluded
-from production coverage. It uses the real plugin/runtime to test generated
-holder decoding and smoke-check JVM timing, rather than copying decoders.
-Shared CI does not enforce timing thresholds across heterogeneous machines.
-See [host measurements and comparison budgets](how-to/benchmark-runtime.md).
-For controlled same-host full reports, the optional `--baseline` comparison
-enforces the 10% timing budget; it is not enabled for shared-CI smoke runs.
+`:kompact:jvmTest` runs the runtime's common tests on the JVM.
+`:kompact:testAndroidHostTest` runs them on the Android-KMP host test target,
+which needs no connected device. `:kompact-ksp-integration:test` compiles
+generated consumers. `:kompact-gradle-plugin:test` is a Gradle TestKit suite
+that compiles a consumer for JVM, Android, iOS, and Android Native. CI runs
+it in its own Gradle invocation so that its nested builds do not overlap the
+compiler daemons of the root build.
 
-The Linux gate checks relative Markdown links with Lychee in offline mode and
-common spelling errors with Codespell. CI pins the Lychee action and binary
-versions and the Codespell action revision; the local commands above
-reproduce those checks when the tools are installed. Markdownlint checks
-markup in maintained consumer guides; its configuration retains the default
-rules with a 160-character prose limit and disables only table-column
-alignment. `OptIn` is allowlisted because it is Kotlin annotation syntax in
-documentation examples.
+`koverVerify` enforces line and branch thresholds for the runtime, the KSP
+processor, and the Gradle plugin. The Gradle plugin requires 100% coverage
+with no production exclusions.
 
-The version checker and release synchronizer share one Python implementation.
-It distinguishes published references from development references even when
-both use stable-looking versions or share a wrapped paragraph. Product
-coordinates under a development/snapshot heading follow the checkout version;
-other product coordinates follow the latest changelog release. Run
-`python3 .github/scripts/docs/sync-version-references.py .` to repair drift;
-`bash .github/scripts/docs/check-version-references.sh .` reports it without
-changing files. The fixture tests cover release-to-snapshot transitions,
-idempotency, and preservation of unrelated tool versions.
+The Portal tasks sign with a throwaway PGP key that the job generates. They
+build the bundles `kompact/build/kompact-portal-bundle.zip`,
+`kompact-ksp/build/kompact-ksp-portal-bundle.zip`, and
+`kompact-gradle-plugin/build/kompact-gradle-plugin-portal-bundle.zip`, and
+the job fails if one is missing. They do not upload or publish anything.
 
-On Linux, ABI validation checks the JVM and Android targets. The iOS klib
-golden is inferred rather than compiled; use the macOS job for the authoritative
-iOS check.
+### Release scripts and version references
+
+The release fixtures also check that the managed release PR contains the
+stable version, the changelog, and the synchronized consumer documentation.
+
+The version checker and the release synchronizer share one Python
+implementation. It tells published references apart from development
+references, even when both use stable-looking versions or share a wrapped
+paragraph. Product coordinates under a development or snapshot heading
+follow the checkout version. Other product coordinates follow the latest
+release in `CHANGELOG.md`. To repair drift, run
+`python3 .github/scripts/docs/sync-version-references.py .`. To report drift
+without changing files, run
+`bash .github/scripts/docs/check-version-references.sh .`. The fixture tests
+cover release-to-snapshot transitions, idempotency, and preservation of
+unrelated tool versions.
+
+### Device-runner tools and benchmarks
+
+The internal device-runner Python tools are outside production Kover. Their
+fixtures need no hardware. They test watchdog-safe launch, exact process
+selection, and asynchronous debugger continuation, and they need no Apple
+tools, signing assets, or connected devices.
+
+The unpublished `benchmarks` module compiles the maintained runtime sources
+for host measurements. It does not change the published target set. The
+benchmark fixtures and report tools are outside production coverage. CI runs
+their tests, and `benchmarks/check_results.py` rejects incomplete smoke
+reports and reports with non-finite values.
+
+The standalone `benchmarks/holders` consumer is also unpublished and outside
+production coverage. It applies the real Gradle plugin and runtime, so it
+tests the generated holder decoders instead of copies. It also runs a JVM
+timing smoke check.
+
+Shared CI does not enforce timing thresholds, because its machines differ
+from run to run. For full reports on one controlled host, the optional
+`--baseline` comparison enforces the 10% timing budget. See
+[host measurements and comparison budgets](how-to/benchmark-runtime.md).
+
+### Markdown checks
+
+Lychee checks relative Markdown links and their heading anchors in offline
+mode, and Codespell checks common spelling errors. CI pins the Lychee action
+and binary versions and the Codespell action revision. Markdownlint checks
+`README.md`, `SECURITY.md`, `CONTRIBUTING.md`, and every Markdown file under
+`docs/`, but not `CHANGELOG.md`. The Markdownlint configuration keeps the default
+rules, sets a 160-character limit for prose lines, and disables only
+table-column alignment. Codespell allows `OptIn` because it is Kotlin
+annotation syntax in the documentation examples.
+
+### ABI checks on Linux
+
+On Linux, `checkKotlinAbi` compiles and checks the JVM and Android targets.
+It infers the iOS klib golden instead of compiling it. The macOS job runs the
+authoritative iOS check.
 
 ## macOS checks
 
-The macOS job checks formatting and ABI baselines, runs the shared runtime
-behavioral tests on iOS Simulator Arm64, then regenerates the committed API
-Markdown and fails if the generated tree changes:
+The `api-check` job installs the Android SDK `platform-tools` package. It
+checks formatting and the ABI goldens, runs the shared runtime tests on iOS
+Simulator Arm64, and runs the benchmark fixtures. Then it regenerates the
+committed API Markdown and fails if the generated tree changed:
 
 ```bash
 ./gradlew \
@@ -123,22 +166,24 @@ Markdown and fails if the generated tree changes:
   :kompact-ksp:checkKotlinAbi \
   --no-daemon --rerun-tasks --no-build-cache --warning-mode all
 
+./gradlew :benchmarks:macosArm64Test :benchmarks:macosArm64SmokeBenchmark --no-daemon --rerun-tasks --no-build-cache --console=plain
+python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/macosArm64.json
+./gradlew -p benchmarks/holders iosSimulatorArm64Test --no-daemon --rerun-tasks --no-build-cache --console=plain
+
 ./gradlew :kompact:dokkaGeneratePublicationMarkdown --no-daemon --console=plain
 git diff --exit-code -- kompact/docs/api/
-./gradlew :benchmarks:macosArm64Test :benchmarks:macosArm64SmokeBenchmark --no-daemon --rerun-tasks --no-build-cache
-python3 benchmarks/check_results.py --profile smoke benchmarks/build/reports/benchmarks/smoke/*/macosArm64.json
-./gradlew -p benchmarks/holders iosSimulatorArm64Test --no-daemon --rerun-tasks --no-build-cache
 ```
 
-The iOS Simulator task executes the common runtime test suite against the
-Kotlin/Native implementation. The iOS klib ABI check and Dokka generation run
-on macOS because they analyze Apple target outputs. When KDoc changes,
-regenerate the API pages with the Dokka task above; do not edit files under
-`kompact/docs/api/` directly.
+`:kompact:iosSimulatorArm64Test` runs the common runtime test suite against
+the Kotlin/Native implementation. The `benchmarks/holders` simulator test
+checks the generated iOS code, not device timing. The iOS klib ABI check and
+the Dokka generation run on macOS because they analyze Apple target outputs.
+When KDoc changes, regenerate the API pages with the Dokka task above. Do not
+edit files under `kompact/docs/api/` by hand.
 
 ## Mutation testing
 
-The Linux mutation job runs MutFlow against the whole runtime and KSP
+The `mutation-test` job runs MutFlow against the whole runtime and KSP
 processor packages. It fails if any mutant survives or the run has execution
 gaps. Each command must be the only task in its Gradle invocation:
 
@@ -147,53 +192,67 @@ gaps. Each command must be the only task in its Gradle invocation:
 ./gradlew -PmutationTest.enabled=true :kompact-ksp:mutationResults --no-daemon --no-configuration-cache --console=plain
 ```
 
-The runtime's guarded `mutationTest.jvmOnly` model removes the iOS and
-Android Native variants only for its mutation task, because MutFlow 1.7.0
-publishes no Native variants. The KSP property likewise applies MutFlow only
-to its mutation task; ordinary `:kompact-ksp:test` remains a JUnit 6 unit-test
-run. The evidence is JVM only.
+The `mutationTest.jvmOnly` property removes the runtime's iOS and Android
+Native targets, but only for the mutation task, because MutFlow 1.7.0
+publishes no Native variants. The `mutationTest.enabled` property applies
+MutFlow to the KSP processor, also only for the mutation task. An ordinary
+`:kompact-ksp:test` run stays a plain JUnit 6 run. The evidence covers the
+JVM only. MutFlow does not support the configuration cache, so both commands
+pass `--no-configuration-cache`.
 
-Both commands write `build/reports/mutation-results.md` and `.json` in their
-module. CI adds the summary to the job page and uploads both files as the
-`mutation-results` artifact. See the
-[mutation testing disposition](mutation-testing-disposition.md) for current
-results and [`.omp/AGENT-USAGE.md`](../.omp/AGENT-USAGE.md) for the workflow.
+CI runs the KSP command even when the runtime command fails, unless the run
+was cancelled. Each command writes `build/reports/mutation-results.md` and
+`build/reports/mutation-results.json` in its module. The `mutationResults`
+task adds the Markdown summary to the job page through
+`GITHUB_STEP_SUMMARY`. CI uploads the report files of both modules as the
+`mutation-results` artifact and keeps it for 14 days. See the
+[mutation testing disposition](mutation-testing-disposition.md) for the
+current results and [`.omp/AGENT-USAGE.md`](../.omp/AGENT-USAGE.md) for the
+workflow.
 
 ## Platform behavior and allocation evidence
 
-The Linux and macOS CI checks compile or validate target artifacts where the
-host toolchain permits, but they do not substitute for runtime behavior tests
-on physical iOS Arm64 or Android Native Arm64 devices. The shared runtime suite
-executes on both the JVM and iOS Simulator in CI; simulator execution is not
-physical-device evidence.
+The Linux and macOS jobs compile or check target artifacts where the host
+toolchain allows it. They do not replace runtime tests on physical iOS Arm64
+or Android Native Arm64 devices. CI runs the shared runtime suite on the JVM
+and on iOS Simulator. A simulator run is not physical-device evidence.
 
 The [post-PR-99 validation record](research/physical-runtime-validation.md)
-retains six passing Android debug/release executions at merged `ed7218c`
-and six fresh local-build executions of the aligned-prefix follow-up on base
-`6115b87`, with 404 tests per execution. The
+keeps six passing Android debug and release runs at merged `ed7218c`. It also
+keeps six runs of fresh local builds of the aligned-prefix follow-up on base
+`6115b87`. Each run executed 404 tests. The
 [physical iOS follow-up](research/physical-runtime-validation.md#physical-ios-follow-up)
-adds three debug and three release executions at merged `465cb86`,
-also with 404 tests per execution. Do not interpret
-the older device results below as validation of the current revision.
+adds three debug and three release runs at merged `465cb86`, also with 404
+tests per run. The older device results below do not validate the current
+revision.
 
-Android-KMP host-side tests exercise runtime behavior on the Android JVM
-target in CI. The separate `:kompact:androidConnectedCheck` task currently has
-no configured device-test work; its success is not physical-device runtime
-evidence.
+The Android-KMP host tests run runtime behavior on the Android JVM target in
+CI. The separate `:kompact:androidConnectedCheck` task has no device-test work
+configured, because the `kompact` Android target enables only host tests. A
+passing `androidConnectedCheck` is not physical-device evidence.
 
-The Kotlin/Native binary-link tasks are:
+### Link the Kotlin/Native test binaries
+
+These tasks link the device test binaries:
 
 ```bash
 ./gradlew :kompact:iosArm64TestBinaries
 ./gradlew :kompact:androidNativeArm64TestBinaries
 ```
 
-CI links and uploads the Android Native debug `test.kexe` as the
+Each task links a debug binary at `debugTest/test.kexe` and a
+release-optimized binary at `releaseTest/test.kexe` under
+`kompact/build/bin/<target>/`. The release binaries carry the allocation
+probes into optimized code for device evidence.
+
+### Run the Android Native tests on a device
+
+CI uploads the Android Native debug `test.kexe` as the
 `kompact-android-native-arm64-test` artifact. It uploads the
 release-optimized `releaseTest/test.kexe` as
-`kompact-android-native-arm64-release-test`. After downloading either artifact
-from a successful Linux CI run, execute the test on a host with exactly one
-authorized USB Android arm64 device:
+`kompact-android-native-arm64-release-test`. Both artifacts expire after 7
+days. Download either artifact from a successful Linux CI run. Then run the
+test on a host that has exactly one authorized USB Android arm64 device:
 
 ```bash
 run_id=<successful-linux-run-id>
@@ -204,28 +263,38 @@ gh run download "$run_id" \
 scripts/test-android-native-device.sh "$artifact_dir/test.kexe"
 ```
 
-The script validates the ELF architecture and device ABI, requires exactly one
-ready USB device, verifies the copied binary's SHA-256, runs it with a
-10-minute timeout, and removes its unique temporary directory under
-`/data/local/tmp`.
+The script checks the ELF architecture and the device ABI, and it requires
+exactly one ready USB device. It verifies the SHA-256 of the copied binary,
+runs it with a 10-minute timeout, and removes its own temporary directory
+under `/data/local/tmp`.
 
 On 2026-10-06, the Linux CI artifact from commit `f3bb4ae` (run
 `37508992609`) ran on an Android 15 arm64 device (API 35, build
-`AQ3A.240929.001`): all 387 tests in 35 test cases passed using Kotlin
+`AQ3A.240929.001`). All 387 tests in 35 test cases passed with Kotlin
 `2.4.20`. The device runner ran on macOS `27.0.0` arm64 with ADB
-`37.0.1-15733141`, verified artifact integrity, and confirmed cleanup. The
-artifact SHA-256 was
+`37.0.1-15733141`. It verified the artifact integrity and confirmed the
+cleanup. The artifact SHA-256 was
 `d32408f65a719d58ca5fd20cf3bdff2b0f6a71dec144c1d173fb957d02e9d31e`.
+
+On 2026-10-17, fresh local Android Native debug and release linking
+succeeded with JDK `21.0.12.1` and Kotlin `2.4.21`. The six physical runs
+recorded above followed. The earlier local `Bad CPU type in executable`
+failure no longer blocks local linking. Linux CI stays the authoritative
+clean build.
+
+### Run the iOS tests on a device
 
 On the iOS Arm64 target, `test.kexe` is an unsigned standalone executable.
 `scripts/test-ios-device.sh` wraps it in a minimal app bundle and signs it
 with a local Apple Development identity. It installs the app on a connected
-iPhone and uses `scripts/ios_device_tests.py` to start it suspended with
-`devicectl --console`, attach LLDB to the exact new PID, and resume its
-initial debugger stop. This avoids the iOS app-launch watchdog for a
-standalone test executable. Successful debugger and console exits and a
-passing test summary are all required. Pass `releaseTest/test.kexe` instead to run the
-release-optimized binary:
+iPhone. Then `scripts/ios_device_tests.py` starts the app suspended with
+`devicectl --console`, attaches LLDB to the exact new PID, and resumes the
+initial debugger stop. Because the debugger holds the process, the iOS
+app-launch watchdog does not stop the standalone test executable. The run
+passes only if the debugger exits successfully, the console exits
+successfully, and the test summary passes.
+
+To run the debug binary, link it and pass it with a provisioning profile:
 
 ```bash
 ./gradlew :kompact:iosArm64TestBinaries
@@ -234,61 +303,67 @@ scripts/test-ios-device.sh \
   path/to/development.mobileprovision
 ```
 
-Prerequisites:
+To run the release-optimized binary, pass `releaseTest/test.kexe` instead.
 
-- Use an explicit-App-ID development profile that lists the device. Create it
-  once with Xcode automatic signing for any app using the same bundle ID.
-- The keychain must contain exactly one matching signing identity.
-- Use full Xcode with `devicectl`, LLDB device commands and Python scripting,
-  plus host Python 3. The current physical runs used Xcode `27.1`.
-- The device must be connected, paired, and in Developer Mode.
-- If several connected devices appear in the profile, set
-  `KOMPACT_IOS_DEVICE_UDID`.
+The script needs the following setup:
 
-The first launch requires trusting the developer on the device in
+- A development profile with an explicit App ID that lists the device. Create
+  it once with Xcode automatic signing for any app that uses the same bundle
+  ID.
+- Exactly one matching signing identity in the keychain.
+- Full Xcode with `devicectl`, LLDB device commands, and Python scripting,
+  plus Python 3 on the host. The current physical runs used Xcode `27.1`.
+- A device that is connected, paired, and in Developer Mode.
+- If the profile lists several connected devices, the
+  `KOMPACT_IOS_DEVICE_UDID` environment variable set to the target device.
+
+On the first launch, trust the developer on the device in
 **Settings → General → VPN & Device Management**. The script leaves the host
-installed because removing a developer's last app revokes that trust. Signing
-needs an unlocked login keychain. In a plain SSH session, `codesign` can fail
-with `errSecInternalComponent`; run the script in the logged-in GUI session or
-use a dedicated unlocked CI keychain. Personal Team profiles expire after
-seven days.
+app installed, because removing the last app of a developer revokes that
+trust. Signing needs an unlocked login keychain. In a plain SSH session,
+`codesign` can fail with `errSecInternalComponent`. Run the script in the
+logged-in GUI session, or use a dedicated unlocked CI keychain. Personal Team
+profiles expire after seven days.
 
-The helper waits for the initial asynchronous `SIGSTOP`; it does not resume
-unexpected later stops. Ambiguous or missing processes, unsuccessful exits,
-and timeouts fail the run. It cleans up its local console/debugger processes
-and the shell wrapper removes the temporary app bundle. Raw CoreDevice and
-debugger diagnostics are not printed because they contain private identifiers.
-Do not treat a generic launch-security error as proof that developer trust
-is the cause; check signing, entitlements, and device readiness as well.
+The helper waits for the initial asynchronous `SIGSTOP`. It does not resume
+later, unexpected stops. The run fails on an ambiguous or missing process, an
+unsuccessful exit, or a timeout. The helper stops its local console and
+debugger processes, and the shell wrapper removes the temporary app bundle.
+The script does not print raw CoreDevice and debugger diagnostics, because
+they contain private identifiers. A generic launch-security error does not
+prove that developer trust is the cause. Check signing, entitlements, and
+device readiness as well.
 
 On 2026-10-07, the script ran three times on an iPhone SE (2020) with iOS
 `18.7.8`. Each run of the `iosArm64` debug test binary passed all 396 tests.
 A deliberately failing test made the script exit with status 1.
 
-On 2026-10-17, fresh local Android Native debug/release linking succeeded
-with JDK `21.0.12.1` and Kotlin `2.4.21`, followed by the six physical runs
-recorded above. The earlier local `Bad CPU type in executable` failure is
-not a current blocker; Linux CI remains the authoritative clean build.
+### Allocation evidence
 
 JMH allocation profiling and physical-device allocation measurements are not
-CI gates. The macOS benchmark fixture test includes a controlled debug
-Native repeat GC sweep probe. AndroidX Microbenchmark
-measures ART rather than the Native executable, while Perfetto heapprofd
-observes sampled system-allocator calls rather than per-object allocations
-served from Kotlin/Native pages. A test-only Android Native GC sweep-statistics
-probe passed physical-device positive controls and measured generated speed
-reads/writes against a primitive baseline in the debug and release-optimized
-test executables; these results do not establish universal zero-allocation
-behavior. Do not infer a zero-allocation guarantee from compilation, unit
-tests, or coverage. The GC probes in `nativeTest` also run on iOS Simulator
-in the macOS CI job and on physical iOS through the device script. The
-allocation methodology and current proof status are
-tracked in [allocation and boxing measurement](research/allocation-boxing-measurement.md).
+CI gates. The macOS benchmark fixture test includes a controlled debug Native
+probe that counts GC sweeps during repeat reads. AndroidX Microbenchmark
+measures ART, not the Native executable. Perfetto heapprofd samples
+system-allocator calls, not the per-object allocations that Kotlin/Native
+serves from its own pages.
+
+A test-only Android Native probe reads GC sweep statistics. It passed its
+positive controls on a physical device. It measured generated speed reads and
+writes against a baseline that uses raw `Int` values, in both the debug and
+the release-optimized test executables. These results do not establish
+zero-allocation behavior in general. Compilation, unit tests, and coverage do
+not prove a zero-allocation guarantee either. The GC probes in `nativeTest`
+also run on iOS Simulator in the macOS job and on physical iOS through the
+device script. The
+[allocation and boxing measurement](research/allocation-boxing-measurement.md)
+note tracks the method and the current proof status.
+
+### JUnit version
 
 Ordinary JVM test runs in `:kompact:jvmTest`, `:kompact-ksp:test`,
 `:kompact-ksp-integration:test`, and `:kompact-gradle-plugin:test` use JUnit 6.
-The Kotlin test adapter retains its historical `kotlin-test-junit5` artifact
-name, but its JUnit 5 transitive dependencies are excluded and JUnit 6 is used
+The Kotlin test adapter keeps its historical `kotlin-test-junit5` artifact
+name. The build excludes its JUnit 5 transitive dependencies and uses JUnit 6
 at runtime.
 
 ## Run a smaller check while developing
@@ -303,35 +378,65 @@ Start with the task for the module you changed:
 ./gradlew spotlessCheck detekt
 ```
 
-These focused runs shorten the feedback loop, but they do not replace the
-host-specific CI checks before merging. For the complete gate set, use the
-Linux commands above and, when available, the macOS commands.
+These focused runs give faster feedback, but they do not replace the
+host-specific CI checks before you merge. For the complete set of checks, run
+the Linux commands above and, if you have a Mac, the macOS commands.
+
+## Regenerate the ABI goldens
+
+The `Regen Goldens` workflow
+([`regen-goldens.yml`](../.github/workflows/regen-goldens.yml)) runs only when
+you start it by hand (`workflow_dispatch`). Only a macOS host can produce
+`kompact/api/kompact.klib.api`, so contributors without a Mac use this
+workflow. It runs `./gradlew <args> --no-daemon` on `macos-latest`, where
+`<args>` defaults to `:kompact:updateKotlinAbi`. It uploads `kompact/api/` as
+the `api-goldens` artifact for 3 days. Download the artifact and commit the
+changed goldens yourself. The workflow does not commit anything.
 
 ## Release checks
 
-The release workflow is separate from pull-request CI. When `main` contains a
-development `-SNAPSHOT`, a push creates or updates a human-reviewed
-`release/ongoing` PR. That PR changes the canonical Gradle candidate to its
-stable release version and includes the generated changelog and synchronized
-consumer-document versions. Conventional Commits group changelog entries; they
-do not calculate a competing release version.
+The release workflows are separate from pull-request CI.
 
-After merge, the workflow validates the reviewed merge commit, reruns Linux
-quality and artifact gates, and tags that commit. Publishing to Maven Central
-requires approval through the `release` environment. Only after publication
-does automation open a separate PR for the next `-SNAPSHOT` and its updated
-development-version references. No release workflow pushes commits directly
-to protected `main`; release-version, changelog, and next-snapshot changes are
-all reviewed through PRs. See [ADR-0004](adr/0004-release-pr-automation.md).
+The `Release PR` workflow
+([`release-pr.yml`](../.github/workflows/release-pr.yml)) runs on every push
+to `main`. When `main` holds a development `-SNAPSHOT` version, it creates or
+updates a human-reviewed PR from `release/ongoing`. That PR changes the
+Gradle version to the stable release version. It also contains the generated
+changelog and the synchronized consumer-document versions. Conventional
+Commits group the changelog entries. They do not calculate a competing
+release version.
 
-As of 2026-10-06, `main` has strict required status checks for both
+The `Release Publish` workflow
+([`release-publish.yml`](../.github/workflows/release-publish.yml)) runs when
+a PR with the `release` label merges into `main`. It has three jobs:
+
+1. `prepare` checks that the workflow runs on the merge commit and that the
+   merged version is stable. It reruns the release script tests and the
+   version-reference check. It reruns the Linux Gradle checks except
+   `detekt` and `:build-logic:test`, runs `:kompact-gradle-plugin:test`
+   separately, and builds the Portal bundles with a throwaway key. Then it
+   tags the merge commit as `v<version>`.
+2. `deploy` runs in the `release` environment, which needs approval. It
+   builds and signs the bundles from the tag with the real signing key,
+   uploads them to the Central Portal, waits for validation, and publishes
+   them to Maven Central.
+3. `advance-snapshot` runs only after a successful publication. It opens or
+   updates a PR on `release/next-snapshot-<version>` that sets the next
+   `-SNAPSHOT` version and updates the development-version references.
+
+No release workflow pushes commits to protected `main`. The release version,
+the changelog, and the next snapshot all go through reviewed PRs. See
+[ADR-0004](adr/0004-release-pr-automation.md).
+
+On 2026-10-06, branch protection on `main` required strict status checks for
 `JVM tests + Android assemble + Portal dry-run (Linux)` and
-`ABI + iOS Simulator tests + Markdown + spotless (macOS)`. Branch protection is
-configured outside this repository; verify both contexts remain required
-before release.
+`ABI + iOS Simulator tests + Markdown + spotless (macOS)`. That record
+predates the `Mutation testing (Linux)` job. Branch protection lives outside
+this repository. Before a release, check which contexts are still required.
 
 Before `1.0.0`, a breaking change increments the minor version. From `1.0.0`,
-it increments the major version. Features increment minor, compatible fixes
-increment patch, and breaking changes take precedence over features. See
+it increments the major version. Features increment the minor version, and
+compatible fixes increment the patch version. A breaking change takes
+precedence over a feature. See
 [ADR-0004](adr/0004-release-pr-automation.md) for the release design and
-[ADR-0007](adr/0007-pre-1-release-versioning.md) for the pre-`1.0` rule.
+[ADR-0007](adr/0007-pre-1-release-versioning.md) for the rule before `1.0`.
