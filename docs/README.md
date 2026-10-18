@@ -68,6 +68,7 @@ who investigate the build or performance. They are not setup guides.
 - [Generated-holder decoding: initial host comparison](research/generated-holder-benchmark.md)
 - [Aligned count prefixes and small generated holders](research/aligned-count-prefix-benchmark.md)
 - [In-place nested writes in `KompactWriter`](research/writer-nested-benchmark.md)
+- [Faster bit reads in `KompactRuntime`](research/bit-primitive-fast-paths.md)
 
 ## For coding agents
 

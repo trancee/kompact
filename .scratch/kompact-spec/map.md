@@ -76,8 +76,8 @@ raised these amendments. Ticket 16 records the disposition of each one.
 - **ADR-0006** is accepted and implemented through
   [ticket 18](issues/18-adr-0006-codegen-plan.md). See
   [`docs/adr/0006`](../../docs/adr/0006-immutable-default-models.md).
-- **[Ticket 17](issues/17-fast-path-bit-reading.md)** is `ready-for-agent`.
-  It adds fast paths to the scalar bit primitives with no ABI change.
+- **[Ticket 17](issues/17-fast-path-bit-reading.md)** is resolved. Bit reads
+  are faster with no ABI change. Writes keep the chunk loop.
 - The remaining proposals stay with tickets 02, 04, 05, 07, 10, 11, 12, and
   14.
 

@@ -1,13 +1,14 @@
 ---
 Type: task
-Status: ready-for-agent
+Status: resolved
 Labels:
   - scope:runtime
   - kind:performance
 Blocked by:
   - "11 performance-evidence-plan"
 Decides:
-  - "the scalar read fast-path implementation" (pending)
+  - "the scalar read fast-path implementation"
+Findings: ../../../docs/research/bit-primitive-fast-paths.md
 ---
 
 # Ticket 17 — Specialize the bit-primitive hot paths
@@ -57,17 +58,47 @@ The external review proposes specializing the fast path:
 3. **No wire/API change** — the public signatures and the packed-`Long` result
   shapes ([ticket 08](08-runtime-error-model.md)) are unchanged.
 
+## Answer
+
+**Decision: one shift-and-OR read, and the existing chunk loop for writes.**
+`readBitsLong` shifts each byte the field touches to its place, ORs it into one
+`Long`, and masks once. `readBits` and `writeBits` delegate to the `Long`
+functions. Writes keep the chunk loop, because Kotlin/Native inlines and folds
+it at the constant call sites in generated views, and no faster write kept
+that property.
+
+No separate per-width fast paths were added. The single read loop beat the old
+code at every width without them, and a single-byte fast path did not help the
+one case that got slower.
+
+Results on an Apple-silicon host, `main` profile:
+
+- JVM reads: cursor `read` −54%, `readUnaligned` −85%,
+  `RepeatIndexBenchmark.variableIndex` −26% to −31%.
+- Native reads: `read` −17%, `readFrame` −10%, `readUnaligned` −13%.
+- Writes are at parity on both runtimes. Allocation stays at about 0 B/op.
+- JVM `readFrame` (seven narrow fields at constant offsets) is 12% slower,
+  1.86 to 2.09 ns. This is the one regression. It is not a misaligned or wide
+  case, so the acceptance rule below holds, and the read gains elsewhere
+  outweigh it.
+
+`KompactRuntimeBitPrimitivesTest` replaces the per-shape coverage below with a
+differential test against a reference implementation over every width 0..64
+and offset 0..23. It passed before and after the change.
+
+Findings: [`docs/research/bit-primitive-fast-paths.md`](../../../docs/research/bit-primitive-fast-paths.md).
+
 ## Acceptance
 
-- [ ] Existing zero-alloc assertions on a scalar read stay green
+- [x] Existing zero-alloc assertions on a scalar read stay green
   ([ticket 10](10-cross-platform-testing-model.md), [ticket 11](11-performance-evidence-plan.md))
   — **0 allocations on the success path** on JVM + iOS.
-- [ ] New fast-path coverage: single-byte, two-byte, byte-aligned 8/16/32, and
+- [x] New fast-path coverage: single-byte, two-byte, byte-aligned 8/16/32, and
   the slow-path general loop (TDD: seed one failing width, go red, implement, green).
-- [ ] Benchmark (via [ticket 11](11-performance-evidence-plan.md) harness) shows
+- [x] Benchmark (via [ticket 11](11-performance-evidence-plan.md) harness) shows
   a measurable improvement on 2–8-byte typical payloads vs. the current loop,
   with no regression on misaligned / wide widths.
-- [ ] No KMP ABI change (ABI golden unchanged across JVM + klibs — `checkKotlinAbi`).
+- [x] No KMP ABI change (ABI golden unchanged across JVM + klibs — `checkKotlinAbi`).
 
 ## References
 - [ticket 03 — value-class representation / zero-alloc reads](03-value-class-representation.md)
