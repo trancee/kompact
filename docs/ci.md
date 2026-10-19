@@ -445,7 +445,7 @@ release version.
 
 The `Release Publish` workflow
 ([`release-publish.yml`](../.github/workflows/release-publish.yml)) runs when
-a PR with the `release` label merges into `main`. It has three jobs:
+a PR with the `release` label merges into `main`. It has four jobs:
 
 1. `prepare` checks that the workflow runs on the merge commit and that the
    merged version is stable. It reruns the release script tests and the
@@ -457,7 +457,11 @@ a PR with the `release` label merges into `main`. It has three jobs:
    builds and signs the bundles from the tag with the real signing key,
    uploads them to the Central Portal, waits for validation, and publishes
    them to Maven Central.
-3. `advance-snapshot` runs only after a successful publication. It opens or
+3. `github-release` runs only after a successful publication. It creates the
+   GitHub release for the tag, or updates it on a rerun. The release notes
+   are the `CHANGELOG.md` section for the version, printed by
+   `version-bump.sh release-notes <version>`.
+4. `advance-snapshot` runs only after a successful publication. It opens or
    updates a PR on `release/next-snapshot-<version>` that sets the next
    `-SNAPSHOT` version and updates the development-version references.
 

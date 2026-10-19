@@ -13,6 +13,7 @@
 #   version-bump.sh bump-release      # -SNAPSHOT -> root candidate release in build.gradle.kts
 #   version-bump.sh bump-next-snap    # release -> next -SNAPSHOT in build.gradle.kts
 #   version-bump.sh changelog         # generate/update CHANGELOG.md for release
+#   version-bump.sh release-notes VER # print the CHANGELOG.md section body for VER
 set -euo pipefail
 
 BUILD_FILE="build.gradle.kts"
@@ -136,6 +137,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   echo "Generated CHANGELOG.md for version ${version}"
 }
 
+# Print one CHANGELOG.md section without its heading or surrounding blank lines.
+release_notes() {
+  local version="${1:?release-notes needs a version}"
+  local notes
+  notes="$(awk -v target="## [${version}]" '
+    index($0, target) == 1 { found = 1; next }
+    found && /^## / { exit }
+    found { print }
+  ' CHANGELOG.md | sed -e '/./,$!d' | sed -e ':a' -e '/^\n*$/{$d;N;ba' -e '}')"
+  if [ -z "$notes" ]; then
+    echo "CHANGELOG.md has no section for ${version}." >&2
+    return 1
+  fi
+  printf '%s\n' "$notes"
+}
+
 bump_release() {
   local release
   release="$(extract_release)"
@@ -159,8 +176,9 @@ case "${1:-}" in
   bump-release)       bump_release ;;
   bump-next-snap)     bump_next_snap ;;
   changelog)          generate_changelog ;;
+  release-notes)      release_notes "${2:-}" ;;
   *)
-    echo "Usage: $0 {extract-version|extract-release|extract-next-snap|bump-release|bump-next-snap|changelog}" >&2
+    echo "Usage: $0 {extract-version|extract-release|extract-next-snap|bump-release|bump-next-snap|changelog|release-notes VERSION}" >&2
     exit 1
     ;;
 esac
