@@ -62,7 +62,9 @@ managed topic branches and release tags. It never pushes a commit to protected
 - The workflow builds, signs, and deploys all published artifacts to Central
   Portal. Publication stays behind the `release` GitHub Environment, which a
   maintainer approves by hand.
-- After a successful publication, the workflow creates or updates a separate
+- After a successful publication, the workflow creates or updates the GitHub
+  release for the tag. Its notes are the version's `CHANGELOG.md` section.
+- After a successful publication, the workflow also creates or updates a separate
   PR from a managed branch. That PR moves the root version and the development
   documentation to the next `-SNAPSHOT`. The workflow does not push this commit
   directly to `main`.
@@ -72,7 +74,8 @@ managed topic branches and release tags. It never pushes a commit to protected
 - `version-bump.sh` reads the canonical root version. It removes `-SNAPSHOT`
   for the release candidate, advances the minor version for the next
   development cycle, and generates changelog sections from the commits since
-  the latest tag.
+  the latest tag. Its `release-notes` command prints one version's section for
+  the GitHub release.
 - `sync-version-references.py` updates the maintained consumer docs for either
   a stable release candidate or a development snapshot.
 - The docs-version checker compares development references with the root
@@ -114,8 +117,8 @@ managed topic branches and release tags. It never pushes a commit to protected
   the tag and the Central Portal state before you retry. Reusing the tag is
   safe only when its commit matches the reviewed merge.
 - If the release fails after publication but before the next-SNAPSHOT PR
-  opens, the published release stays valid. Rerunning the follow-up job must
-  create or update the PR without publishing again.
+  opens, the published release stays valid. Rerunning the follow-up jobs must
+  create or update the GitHub release and the PR without publishing again.
 - Behavior tests and allocation evidence on physical iOS Arm64 and Android
   Native Arm64 devices stay independent release gates, documented in
   [`docs/ci.md`](../ci.md). Simulator results do not count as proof on a

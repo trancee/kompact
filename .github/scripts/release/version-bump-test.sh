@@ -118,3 +118,42 @@ if [ "$actual_next_snapshot" != "0.9.0-SNAPSHOT" ]; then
   exit 1
 fi
 printf 'PASS next snapshot: %s\n' "$actual_next_snapshot"
+
+NOTES_FIXTURE="$TEST_ROOT/release-notes"
+mkdir -p "$NOTES_FIXTURE"
+cat > "$NOTES_FIXTURE/CHANGELOG.md" <<'CHANGELOG'
+# Changelog
+
+Preamble.
+
+## [0.10.0] - 2026-10-19
+
+### 📦 Other
+- docs: keep version text true (#109) (cb71d83)
+
+## [0.9.0] - 2026-10-18
+
+### 🐛 Fixes
+- fix: older entry (529dedd)
+CHANGELOG
+expected_notes="### 📦 Other
+- docs: keep version text true (#109) (cb71d83)"
+for version in 0.10.0 0.9.0; do
+  actual_notes="$(
+    cd "$NOTES_FIXTURE"
+    "$REPOSITORY_ROOT/.github/scripts/release/version-bump.sh" release-notes "$version"
+  )"
+  if [ "$version" = "0.9.0" ]; then
+    expected_notes="### 🐛 Fixes
+- fix: older entry (529dedd)"
+  fi
+  if [ "$actual_notes" != "$expected_notes" ]; then
+    printf 'FAIL release notes %s: got\n%s\n' "$version" "$actual_notes" >&2
+    exit 1
+  fi
+done
+if (cd "$NOTES_FIXTURE" && "$REPOSITORY_ROOT/.github/scripts/release/version-bump.sh" release-notes 0.1.0 >/dev/null 2>&1); then
+  printf 'FAIL release notes: missing version must fail\n' >&2
+  exit 1
+fi
+printf 'PASS release notes\n'

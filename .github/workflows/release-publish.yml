@@ -245,6 +245,31 @@ jobs:
             :kompact-gradle-plugin:centralPortalPublish \
             --no-daemon --console=plain
 
+  github-release:
+    needs: [prepare, deploy]
+    if: needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: "v${{ needs.prepare.outputs.release_version }}"
+          persist-credentials: false
+
+      - name: Create or update GitHub release from the changelog
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.release_version }}
+        run: |
+          TAG="v${RELEASE_VERSION}"
+          .github/scripts/release/version-bump.sh release-notes "$RELEASE_VERSION" > "$RUNNER_TEMP/notes.md"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
+            echo "Updated GitHub release ${TAG}"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
+            echo "Created GitHub release ${TAG}"
+          fi
+
   advance-snapshot:
     needs: [prepare, deploy]
     if: needs.deploy.result == 'success'
