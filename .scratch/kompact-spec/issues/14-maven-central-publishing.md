@@ -3,7 +3,7 @@
 ## Metadata
 
 - **ID**: kompact-spec/14
-- **Status**: ready-for-agent
+- **Status**: resolved
 - **Priority**: P1
 - **Owner**: trancee (Philipp Grosswiler — github.com/trancee/kompact)
 - **Created**: 2026-09-06
@@ -92,3 +92,14 @@ python3 ~/.agents/skills/maven-central-publishing/scripts/inspect-project.py --r
 # Validate locally (no credentials needed)
 gradle :kompact:publishAllPublicationsToBundleDirRepository generateChecksums assembleCentralBundle --no-daemon
 ```
+
+## Answer
+
+Resolved on 2026-10-19. Phase 2 and Phase 3 are done. Every release from
+`0.1.0` through `0.10.0` is on Maven Central under `ch.trancee.kompact`.
+The `Release Publish` workflow
+([`release-publish.yml`](../../../.github/workflows/release-publish.yml))
+now runs the whole flow: it tags the reviewed merge, publishes through the
+Portal Publisher API behind the `release` environment, and creates the GitHub
+release. [`docs/ci.md`](../../../docs/ci.md) and
+[ADR-0004](../../../docs/adr/0004-release-pr-automation.md) describe it.

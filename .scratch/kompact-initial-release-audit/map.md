@@ -1,6 +1,6 @@
 ---
 Type: wayfinder:map
-Status: active
+Status: resolved
 Labels:
   - wayfinder:map
 ---
@@ -126,7 +126,7 @@ changes but does not implement them.
 ## Not yet specified
 
 All identified audit and decision tickets (01–11, 13–21) are resolved. The
-implementation work is now decomposed into the ordered task tickets below.
+implementation tickets 22–27 below are resolved too, so this map is resolved.
 Reopen Wayfinding if implementation evidence exposes a material unanswered
 decision; do not silently weaken the resolved contracts.
 

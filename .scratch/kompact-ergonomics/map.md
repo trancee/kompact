@@ -1,4 +1,4 @@
-Status: wayfinder:map
+Status: resolved
 Type: wayfinder:map
 
 # Map: kompact ergonomics
@@ -81,9 +81,9 @@ klib golden regenerated via the `regen-goldens.yml` workflow.
 > `regen-goldens.yml`); the closeout of issues 04 + 09 is committed
 > (`445397d`: issue `## Comments` + pushes). CI on `feat/laguna @ cf7dde5`
 > is green (run `34022123785`: `jvmTest (Linux)` + `apiCheck (macOS)`).
-> The klib golden regen was the final macOS-gated step. Remaining
-> **follow-ups** (decided but not yet in the tree): **10** (add the
-> `dokka` Gradle plugin to `:kompact`).
+> The klib golden regen was the final macOS-gated step. The last
+> follow-up, **10** (add the `dokka` Gradle plugin to `:kompact`), is
+> resolved: `kompact/build.gradle.kts` applies Dokka. This map is resolved.
 
 ## Implementation
 

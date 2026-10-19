@@ -38,7 +38,7 @@ ticket is one child file.
 - Map: `.scratch/<effort>/map.md`. Existing maps use the headings
   `## Destination`, `## Notes`, `## Decisions so far`, and
   `## Not yet specified` (the fog). New maps carry `Type: wayfinder:map` and `Status: wayfinder:map`.
-  Older maps carry `Type: map`.
+  Older maps carry `Type: map`. A finished map sets `Status: resolved`.
 - Child ticket: `.scratch/<effort>/issues/<NN>-<slug>.md`, numbered from `01`,
   with the question in the body. The `Type:` line is one of `research`,
   `prototype`, `grilling`, or `task`. The `Status:` line is `claimed` or
