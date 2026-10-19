@@ -80,6 +80,8 @@ raised these amendments. Ticket 16 records the disposition of each one.
   are faster with no ABI change. Writes keep the chunk loop.
 - The remaining proposals stay with tickets 02, 04, 05, 07, 10, 11, 12, and
   14.
+- **[Ticket 14](issues/14-maven-central-publishing.md)** is resolved. Releases
+  publish to Maven Central through the `Release Publish` workflow.
 
 > Source-of-truth note: `docs/research/*` are reference material, not binding
 > decisions and must not be inherited (per `map.md` Notes). The review quotes

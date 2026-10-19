@@ -16,7 +16,7 @@ GitHub label. See [`issue-tracker.md`](issue-tracker.md).
 When a skill names a role, for example "apply the AFK-ready triage label",
 use the matching string from the table.
 
-Existing files also use `Status:` values that are not triage roles:
-`resolved`, `active`, `deferred`, `proposed`, and `wayfinder:map`. The
-wayfinder operations also set `claimed`. To change the triage vocabulary,
+Existing files also use two `Status:` values that are not triage roles:
+`resolved` and `deferred`. A new wayfinder map starts with `wayfinder:map`,
+and the wayfinder operations set `claimed`. To change the triage vocabulary,
 edit the second column.

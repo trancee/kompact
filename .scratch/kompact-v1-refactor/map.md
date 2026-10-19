@@ -1,6 +1,6 @@
 ---
 Type: map
-Status: active
+Status: resolved
 Labels:
   - wayfinder:map
 Destination: Kompact v1.0 — refactor `main` baseline (ticket-08 packed-Long *Result
@@ -78,12 +78,11 @@ Refactor `main`'s v1 baseline to the ratified v1.0 shape and re-lock ABI + gates
 - **Original `$code-review` directive** — delivered: two-axis (Standards + Spec)
   review over `5a78cc4..HEAD` (0 functional bugs; 4 HARD doc gaps closed; Judgement
   smells deferred). Re-runnable over the `main` baseline on request.
-- **Merge PR #60** (`feat/v1-refactor-ratified-shape`) — blocked on explicit approval
-  (AGATES: no merge without approval). Branch is green at `b1b6cc8`.
+- **Merge PR #60** (`feat/v1-refactor-ratified-shape`) — done. #60 merged on
+  2026-09-24. This map is resolved.
 
 ## Out of scope (this wayfinder)
 
-- Merge of `feat/v1-refactor-ratified-shape` onto `main` (awaiting explicit approval).
 - Changing the wire format (ticket 05 framing — ratified, keep).
 - C emission / extra Native targets / watchOS (v1 scope — see
   `.scratch/kompact-v1/map.md`).
