@@ -22,7 +22,7 @@ Kompact numbers bits from the least-significant bit of the first byte. With
 ## Before you start
 
 Add the runtime to your project. The latest published release on Maven
-Central is `ch.trancee.kompact:kompact:0.9.0`. If you need the Gradle setup,
+Central is `ch.trancee.kompact:kompact:0.10.0`. If you need the Gradle setup,
 follow the [consumer setup guide](how-to/consume-from-another-project.md).
 This tutorial does not need the KSP processor or the code-generation plugin.
 

@@ -5,7 +5,7 @@ nested records, or repeats by hand. To get generated properties for the same
 fields, follow [How to define a framed model](define-framed-schema.md)
 instead.
 
-The writer and frame calls in this guide work with the published `0.9.0`
+The writer and frame calls in this guide work with the published `0.10.0`
 runtime. The cursor section at the end needs `0.10.0` or later. To add the
 runtime, follow
 [How to add Kompact to a project](consume-from-another-project.md).

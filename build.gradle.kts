@@ -12,7 +12,7 @@ plugins {
 
 allprojects {
     group = "ch.trancee.kompact"
-    version = "0.10.0-SNAPSHOT"
+    version = "0.10.0"
 }
 
 // Keep the unpublished root from competing with :kompact in composite dependency substitution.

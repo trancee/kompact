@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.10.0] - 2026-10-19
+
+### 📦 Other
+- docs: keep version text true across releases (#109) (cb71d83)
+- perf(runtime): faster bit reads; triage stale tickets (#108) (0690124)
+- chore(deps): bump gradle-wrapper from 9.8.0 to 9.8.1 (#107) (36e5dd8)
+- refactor: apply review optimizations and gate on 100% mutation testing (#106) (5294956)
+
 ## [0.9.0] - 2026-10-18
 
 ### 🐛 Fixes
