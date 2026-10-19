@@ -5,10 +5,9 @@ depend on earlier field values. If the message contains strings, blobs, nested
 models, or repeats, follow
 [How to define a framed model](define-framed-schema.md) instead.
 
-This guide needs the `0.10.0-SNAPSHOT` code-generation plugin and runtime.
-The published `0.9.0` plugin expects a different schema declaration. To set up
-the snapshot, follow
-[How to add Kompact to a project](consume-from-another-project.md#enable-schema-generation).
+This guide needs version `0.10.0` or later of the code-generation plugin and
+runtime. To set them up, follow
+[How to add Kompact to a project](consume-from-another-project.md#add-the-published-code-generation-plugin).
 
 ## 1. Choose the field positions
 

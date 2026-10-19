@@ -129,9 +129,15 @@ follow the checkout version. Other product coordinates follow the latest
 release in `CHANGELOG.md`. To repair drift, run
 `python3 .github/scripts/docs/sync-version-references.py .`. To report drift
 without changing files, run
-`bash .github/scripts/docs/check-version-references.sh .`. The fixture tests
-cover release-to-snapshot transitions, idempotency, and preservation of
-unrelated tool versions.
+`bash .github/scripts/docs/check-version-references.sh .`.
+
+The check also fails on a paragraph that names a Kompact version and says
+"not published", "not on Maven Central", "unreleased", or "differs". A release
+rewrites that version, so the sentence turns false in the tagged docs. Write
+"needs version `0.10.0` or later" or "Earlier releases lack ..." instead.
+
+The fixture tests cover release-to-snapshot transitions, idempotency,
+preservation of unrelated tool versions, and the release-state claims.
 
 ### Device-runner tools and benchmarks
 

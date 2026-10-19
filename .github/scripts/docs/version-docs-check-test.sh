@@ -24,7 +24,7 @@ done
 cat > "$FIXTURE/README.md" <<'EOF'
 Latest published release: `0.7.0`.
 Development version: `0.8.0-SNAPSHOT`.
-The development version, `0.8.0-SNAPSHOT`, is not published yet.
+The development version is `0.8.0-SNAPSHOT`.
 implementation("ch.trancee.kompact:kompact:0.7.0")
 EOF
 cat > "$FIXTURE/docs/how-to/consume-from-another-project.md" <<'EOF'
@@ -61,7 +61,7 @@ rm -f "$FIXTURE/CHANGELOG.md.bak"
 cat > "$FIXTURE/README.md" <<'EOF'
 Latest published release: `0.6.1`.
 Development version: `0.7.0-SNAPSHOT`.
-The development version, `0.7.0-SNAPSHOT`, is not published yet.
+The development version is `0.7.0-SNAPSHOT`.
 implementation("ch.trancee.kompact:kompact:0.6.1")
 EOF
 cat > "$FIXTURE/docs/how-to/consume-from-another-project.md" <<'EOF'
@@ -87,7 +87,7 @@ fi
 printf 'allprojects {\n    version = "0.9.0-SNAPSHOT"\n}\n' > "$FIXTURE/build.gradle.kts"
 cat > "$FIXTURE/README.md" <<'EOF'
 Latest published release: `0.8.0`; the current checkout is `0.8.0`.
-The development version, `0.8.0`, is not published yet.
+The development version is `0.8.0`.
 Kotlin `2.4.21` is the compiler.
 EOF
 cp "$FIXTURE/README.md" "$TEST_ROOT/readme-before.md"
@@ -126,7 +126,7 @@ EOF
 python3 "$REPOSITORY_ROOT/.github/scripts/docs/sync-version-references.py" "$FIXTURE"
 cat > "$TEST_ROOT/expected-readme.md" <<'EOF'
 Latest published release: `0.8.0`; the current checkout is `0.9.0-SNAPSHOT`.
-The development version, `0.9.0-SNAPSHOT`, is not published yet.
+The development version is `0.9.0-SNAPSHOT`.
 Kotlin `2.4.21` is the compiler.
 EOF
 cmp "$TEST_ROOT/expected-readme.md" "$FIXTURE/README.md"
@@ -155,5 +155,21 @@ bash "$CHECK_SCRIPT" "$FIXTURE"
 grep -q 'Latest published release: `0.9.0`; the current checkout is `0.10.0-SNAPSHOT`' "$FIXTURE/README.md"
 grep -q 'kompact:0.10.0-SNAPSHOT' "$FIXTURE/docs/how-to/consume-from-another-project.md"
 grep -q 'kompact:0.9.0' "$FIXTURE/docs/how-to/consume-from-another-project.md"
+
+for claim in \
+  'The development version is `0.10.0-SNAPSHOT`. It is not on Maven Central.' \
+  'The published `0.9.0` plugin expects a different schema declaration.' \
+  'This guide needs the unreleased `0.10.0-SNAPSHOT` runtime.' \
+  'The latest release is `0.9.0`, and its API differs.'; do
+  printf '%s\n' "$claim" > "$FIXTURE/docs/how-to/release-claim.md"
+  if output="$(bash "$CHECK_SCRIPT" "$FIXTURE" 2>&1)"; then
+    printf 'FAIL release-state claim was accepted: %s\n' "$claim" >&2
+    exit 1
+  fi
+  grep -q 'release-state claim' <<< "$output"
+done
+printf 'Kotlin `2.4.21` differs from Kotlin `2.3.0`.\n' > "$FIXTURE/docs/how-to/release-claim.md"
+bash "$CHECK_SCRIPT" "$FIXTURE"
+rm "$FIXTURE/docs/how-to/release-claim.md"
 
 printf 'PASS documentation version drift checks\n'

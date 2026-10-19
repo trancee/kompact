@@ -2,8 +2,8 @@
 
 This page lists every public declaration of the `ch.trancee.kompact:kompact`
 runtime and the code that the KSP processor generates from it. It describes
-the current checkout, version `0.10.0-SNAPSHOT`. The latest published release
-is `0.9.0`, and its API differs. See [Changes since 0.9.0](#changes-since-090).
+the current checkout, version `0.10.0-SNAPSHOT`. To upgrade from `0.9.0`, see
+[API changes in 0.10.0](#api-changes-in-0100).
 
 The committed ABI dumps are the source of truth for this list:
 [`kompact/api/jvm/kompact.api`](../kompact/api/jvm/kompact.api) for the JVM
@@ -405,9 +405,9 @@ These rules hold across the API:
   [diagnostic budgets](how-to/benchmark-runtime.md) cover only their
   documented JVM and macOS Native workloads.
 
-## Changes since 0.9.0
+## API changes in 0.10.0
 
-The published `0.9.0` artifact has these differences from this checkout:
+Version `0.10.0` changed these parts of the `0.9.0` API:
 
 - `KompactCursor` operations returned `Int` status codes from the
   `KompactCursor.STATUS_*` constants. They now return `KompactStatus`.

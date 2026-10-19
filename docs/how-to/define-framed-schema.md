@@ -6,8 +6,8 @@ variable-length field does not need fixed offsets for the fields after it. For
 fields at fixed bit positions, follow
 [How to define a fixed-layout model](define-message.md) instead.
 
-This guide needs the `0.10.0-SNAPSHOT` code-generation plugin and runtime.
-The published `0.9.0` plugin expects a different nested-field declaration.
+This guide needs version `0.10.0` or later of the code-generation plugin and
+runtime.
 
 ## 1. Declare the schema
 

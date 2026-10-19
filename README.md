@@ -45,9 +45,8 @@ dependencies {
 }
 ```
 
-The development version in this checkout is `0.10.0-SNAPSHOT`. It is not on
-Maven Central, and its public API differs from `0.9.0`. To try it, publish the
-modules to Maven Local and follow the
+To try the latest changes on the default branch, publish the modules to
+Maven Local and follow the
 [consumer setup guide](docs/how-to/consume-from-another-project.md). The same
 guide shows how to apply the `ch.trancee.kompact.codegen` Gradle plugin that
 generates views.

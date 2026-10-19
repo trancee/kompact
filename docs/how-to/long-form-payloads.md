@@ -6,7 +6,7 @@ fields, follow [How to define a framed model](define-framed-schema.md)
 instead.
 
 The writer and frame calls in this guide work with the published `0.9.0`
-runtime. The cursor section at the end needs `0.10.0-SNAPSHOT`. To add the
+runtime. The cursor section at the end needs `0.10.0` or later. To add the
 runtime, follow
 [How to add Kompact to a project](consume-from-another-project.md).
 
@@ -112,8 +112,8 @@ borrows it.
 
 ## Read a UTF-8 range into caller-owned storage
 
-This section needs `0.10.0-SNAPSHOT`. In `0.9.0`, `readUtf8Range` returns an
-`Int` code instead of a `KompactStatus`.
+This section needs `0.10.0` or later. Earlier releases return an `Int` code
+from `readUtf8Range` instead of a `KompactStatus`.
 
 Use `KompactCursor` when you want to reuse your own objects instead of
 receiving a new result. `readUtf8Range` checks the whole length-prefixed
