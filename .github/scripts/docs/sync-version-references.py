@@ -104,7 +104,9 @@ def rewrite(
             level = len(heading.group(1))
             if development_heading is not None and level <= development_heading:
                 development_heading = None
-            if re.search(r"\b(?:development|snapshot)\b", heading.group(2), re.IGNORECASE):
+            if development_heading is None and re.search(
+                r"\b(?:development|snapshot)\b", heading.group(2), re.IGNORECASE
+            ):
                 development_heading = level
             end_paragraph()
             paragraph = ""
