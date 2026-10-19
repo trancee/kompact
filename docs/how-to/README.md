@@ -1,7 +1,7 @@
 # How-to guides
 
 These guides assume that you know Kotlin. They describe the current checkout
-(`0.10.0`). Pick the guide for your task:
+(`0.11.0-SNAPSHOT`). Pick the guide for your task:
 
 | Task | Guide |
 | --- | --- |

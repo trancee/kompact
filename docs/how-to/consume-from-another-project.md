@@ -98,7 +98,7 @@ Do not also apply the standard KSP plugin to the same Kompact schemas.
 ## Try the development snapshot
 
 To try the latest changes on the default branch, publish the current
-checkout's `0.10.0` runtime, KSP processor, and code-generation plugin
+checkout's `0.11.0-SNAPSHOT` runtime, KSP processor, and code-generation plugin
 to Maven Local from a clone of this repository.
 
 ### Use the snapshot runtime
@@ -119,7 +119,7 @@ to Maven Local from a clone of this repository.
    }
 
    dependencies {
-       implementation("ch.trancee.kompact:kompact:0.10.0")
+       implementation("ch.trancee.kompact:kompact:0.11.0-SNAPSHOT")
    }
    ```
 
