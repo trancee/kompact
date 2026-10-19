@@ -172,4 +172,28 @@ printf 'Kotlin `2.4.21` differs from Kotlin `2.3.0`.\n' > "$FIXTURE/docs/how-to/
 bash "$CHECK_SCRIPT" "$FIXTURE"
 rm "$FIXTURE/docs/how-to/release-claim.md"
 
+cat > "$FIXTURE/docs/how-to/nested-heading.md" <<'EOF'
+## Try the development snapshot
+
+### Use the snapshot runtime
+
+implementation("ch.trancee.kompact:kompact:0.9.0")
+
+### Enable schema generation
+
+id("ch.trancee.kompact.codegen") version "0.9.0"
+
+## Published setup
+
+implementation("ch.trancee.kompact:kompact:0.9.0")
+EOF
+python3 "$REPOSITORY_ROOT/.github/scripts/docs/sync-version-references.py" "$FIXTURE"
+[[ "$(grep -c '0.10.0-SNAPSHOT' "$FIXTURE/docs/how-to/nested-heading.md")" -eq 2 ]] || {
+  printf 'FAIL a subsection of a development section lost its development role\n' >&2
+  cat "$FIXTURE/docs/how-to/nested-heading.md" >&2
+  exit 1
+}
+grep -q '^implementation("ch.trancee.kompact:kompact:0.9.0")$' "$FIXTURE/docs/how-to/nested-heading.md"
+rm "$FIXTURE/docs/how-to/nested-heading.md"
+
 printf 'PASS documentation version drift checks\n'
