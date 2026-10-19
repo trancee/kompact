@@ -17,6 +17,13 @@ DEVELOPMENT_CONTEXT = re.compile(
     re.IGNORECASE,
 )
 HEADING = re.compile(r"^(#{1,6})\s+(.+)")
+# A release rewrites every Kompact version, so a paragraph that ties one to a
+# publication status or an API difference stops being true at the next release.
+RELEASE_STATE_CLAIM = re.compile(
+    r"\bnot\s+(?:yet\s+)?(?:published|released|on\s+Maven\s+Central)\b"
+    r"|\bun(?:published|released)\b|\bdiffer(?:s|ent|ences?)?\b",
+    re.IGNORECASE,
+)
 
 DOCUMENTS = (
     "README.md",
@@ -58,19 +65,39 @@ def rewrite(
     development_version: str,
     published_version: str,
     check: bool,
-) -> str:
+) -> tuple[str, int]:
     paragraph = ""
+    paragraph_start = 1
+    paragraph_has_version = False
+    claims = 0
     development_heading: int | None = None
     fence: str | None = None
     output: list[str] = []
+
+    def end_paragraph() -> None:
+        nonlocal claims, paragraph_has_version
+        claim = RELEASE_STATE_CLAIM.search(paragraph) if paragraph_has_version else None
+        if check and claim:
+            phrase = " ".join(claim.group().split())
+            print(
+                f"{path}:{paragraph_start}: release-state claim \"{phrase}\" "
+                "next to a Kompact version becomes false after a release",
+                file=sys.stderr,
+            )
+            claims += 1
+        paragraph_has_version = False
+
     for line_number, line in enumerate(text.splitlines(keepends=True), start=1):
         stripped = line.lstrip()
+        if not paragraph.strip():
+            paragraph_start = line_number
         if stripped.startswith(("```", "~~~")):
             marker = stripped[:3]
             if fence == marker:
                 fence = None
             elif fence is None:
                 fence = marker
+            end_paragraph()
             paragraph = ""
         heading = HEADING.match(line) if fence is None else None
         if heading:
@@ -79,13 +106,16 @@ def rewrite(
                 development_heading = None
             if re.search(r"\b(?:development|snapshot)\b", heading.group(2), re.IGNORECASE):
                 development_heading = level
+            end_paragraph()
             paragraph = ""
         if not line.strip():
+            end_paragraph()
             paragraph = ""
         context = paragraph + line
         offset = len(paragraph)
 
         def replace(match: re.Match[str]) -> str:
+            nonlocal paragraph_has_version
             version = match.group()
             role = None
             if version.endswith("-SNAPSHOT"):
@@ -115,6 +145,8 @@ def rewrite(
                     role = "published"
             if role is None:
                 return version
+            if fence is None:
+                paragraph_has_version = True
             expected = development_version if role == "development" else published_version
             if check and version != expected:
                 source = "build.gradle.kts" if role == "development" else "latest CHANGELOG.md release"
@@ -127,7 +159,8 @@ def rewrite(
 
         output.append(VERSION_PATTERN.sub(replace, line))
         paragraph = context if fence is None else ""
-    return "".join(output)
+    end_paragraph()
+    return "".join(output), claims
 
 
 def synchronize(root: Path, check: bool = False) -> int:
@@ -137,12 +170,16 @@ def synchronize(root: Path, check: bool = False) -> int:
     paths.extend(sorted((root / "docs/how-to").glob("*.md")))
 
     changed = 0
+    claims = 0
     for path in dict.fromkeys(paths):
         if not path.is_file():
             continue
         relative_path = path.relative_to(root).as_posix()
         original = path.read_text()
-        updated = rewrite(original, relative_path, development_version, published_version, check)
+        updated, path_claims = rewrite(
+            original, relative_path, development_version, published_version, check
+        )
+        claims += path_claims
         if updated != original:
             if not check:
                 path.write_text(updated)
@@ -152,12 +189,12 @@ def synchronize(root: Path, check: bool = False) -> int:
             f"Synchronized {changed} documentation files to development "
             f"{development_version} and published {published_version}."
         )
-    elif changed == 0:
+    elif changed == 0 and claims == 0:
         print(
             f"Documentation versions match build.gradle.kts ({development_version}) "
             f"and CHANGELOG.md ({published_version})."
         )
-    return changed
+    return changed + claims
 
 
 def main() -> int:

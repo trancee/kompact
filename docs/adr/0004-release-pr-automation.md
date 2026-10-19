@@ -82,6 +82,10 @@ managed topic branches and release tags. It never pushes a commit to protected
   after a stable release. Wrapped prose and product coordinates under
   development or snapshot headings return to the next snapshot, while
   published references stay on the release.
+- The check mode also rejects a paragraph that ties a Kompact version to a
+  publication status or an API difference, such as "not on Maven Central" or
+  "differs from". The release rewrites the version, so that claim would ship
+  false in the tagged docs, as it did in the first `0.10.0` release PR.
 - Central Portal tokens and the signing key stay secrets scoped to the
   environment. Automation uses `RELEASE_PAT` only where it must push a topic
   branch or a tag, and create a PR whose checks run normally.

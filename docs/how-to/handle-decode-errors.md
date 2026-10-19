@@ -4,9 +4,9 @@ Use checked reads for bytes from a peer, a file, or any other untrusted
 source. Return each decode failure to the caller so that malformed bytes never
 turn into a plausible field value.
 
-This guide describes `0.10.0-SNAPSHOT`. The fixed-layout `decode` function,
-`KompactDecodeError.TrailingData`, and the `KompactStatus` return type are not
-in `0.9.0`.
+This guide needs version `0.10.0` or later. Earlier releases lack the
+fixed-layout `decode` function, `KompactDecodeError.TrailingData`, and the
+`KompactStatus` return type.
 
 ## Return a checked scalar read
 

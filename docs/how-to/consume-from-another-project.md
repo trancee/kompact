@@ -45,13 +45,10 @@ iOS Simulator Arm64, and Android Native Arm64.
 ## Add the published code-generation plugin
 
 The plugin `ch.trancee.kompact.codegen`, the runtime, and the KSP processor
-are published at `0.9.0`. The `0.9.0` plugin requires Kotlin `2.4.21`
-exactly. It accepts only the JVM, Android JVM, iOS Arm64, iOS Simulator Arm64,
-and Android Native Arm64 targets.
+are published at `0.9.0`. The plugin accepts only the JVM, Android JVM,
+iOS Arm64, iOS Simulator Arm64, and Android Native Arm64 targets.
 
-The schema examples in these guides use the `0.10.0-SNAPSHOT` declaration
-form. To use them, follow
-[Try the development snapshot](#try-the-development-snapshot) instead.
+The schema examples in these guides need version `0.10.0` or later.
 
 1. Add Maven Central to plugin and dependency resolution in
    `settings.gradle.kts`:
@@ -100,9 +97,9 @@ Do not also apply the standard KSP plugin to the same Kompact schemas.
 
 ## Try the development snapshot
 
-The current checkout's `0.10.0-SNAPSHOT` runtime, KSP processor, and
-code-generation plugin are not on Maven Central. Publish them to Maven Local
-from a clone of this repository.
+To try the latest changes on the default branch, publish the current
+checkout's `0.10.0-SNAPSHOT` runtime, KSP processor, and code-generation plugin
+to Maven Local from a clone of this repository.
 
 ### Use the snapshot runtime
 

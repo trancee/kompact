@@ -33,3 +33,6 @@ local.properties
 # site in docs/api/ is committed (so the in-repo api-reference.md pointer is
 # always live); regenerate with `:kompact:dokkaGeneratePublicationMarkdown`.
 # KDoc in commonMain is the source of truth for the API surface.
+
+# Python bytecode
+__pycache__/
