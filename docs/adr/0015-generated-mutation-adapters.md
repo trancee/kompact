@@ -56,6 +56,6 @@ the bit-copy loops either timed out or stopped the test JVM.
 > `ch.trancee.kompact.runtime.**` in `kompact/build.gradle.kts` and
 > `ch.trancee.kompact.ksp.**` in `kompact-ksp/build.gradle.kts`. The
 > `mutation-test` job in `.github/workflows/ci.yml` runs both modules. For the
-> current results (753 of 753 runtime mutants and 391 of 391 KSP mutants
+> current results (748 of 748 runtime mutants and 391 of 391 KSP mutants
 > killed), see [the mutation-testing
 > disposition](../mutation-testing-disposition.md).

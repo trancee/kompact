@@ -145,8 +145,8 @@ has the full snapshot setup.
 
 ```kotlin
 // Raw reads: no bounds or width check. Use them only when you have proved the bounds.
-val bits: Int = KompactRuntime.readBits(raw, bitOffset, bitWidth) // 1..31 bits
-val bitsL: Long = KompactRuntime.readBitsLong(raw, bitOffset, bitWidth) // 1..64 bits
+val bits: Int = KompactRuntime.readBits(raw, bitOffset, bitWidth) // 0..32 bits
+val bitsL: Long = KompactRuntime.readBitsLong(raw, bitOffset, bitWidth) // 0..64 bits
 val bit: Boolean = KompactRuntime.readBitsBoolean(raw, bitOffset)
 
 // Checked reads: return a typed result instead of throwing on a bounds error.
@@ -169,8 +169,9 @@ val mapped: IntResult = speed.map { it * 2 }
 
 These rules apply to the reads:
 
-- `readBits` and `writeBits` accept a `bitWidth` of `1..31` only.
-- `readBitsLong` and `writeBitsLong` accept `1..64`.
+- `KompactRuntime.readBits` and `KompactRuntime.writeBits` accept a `bitWidth`
+  of `0..32`. `readBitsLong` and `writeBitsLong` accept `0..64`. A width of 0
+  reads 0 and leaves the buffer unchanged.
 - `readScalar` accepts `1..32`. Use `readScalarAsLong` for wider values.
 - The throwing family is `readBoolOrThrow`, `readScalarOrThrow`,
   `readScalarAsLongOrThrow`, `readFloatOrThrow`, and `readDoubleOrThrow` on

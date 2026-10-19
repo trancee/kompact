@@ -38,7 +38,15 @@ def validate_results(results, profile):
         repeated_class = "RepeatIndexBenchmark."
         methods = ("fixedIndex",) if profile == "fixed" else ("fixedIndex", "variableIndex")
         scalar_class = "ScalarBenchmark."
-        scalar_methods = ("read", "write", "allocationControl")
+        scalar_methods = (
+            "read",
+            "write",
+            "readFrame",
+            "writeFrame",
+            "readUnaligned",
+            "writeUnaligned",
+            "allocationControl",
+        )
     expected = {
         (prefix + repeated_class + method, count)
         for method in methods

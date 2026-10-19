@@ -1,6 +1,6 @@
 ---
 Type: feature
-Status: proposed
+Status: resolved
 Labels:
   - scope:codegen
   - scope:api
@@ -79,3 +79,11 @@ go through `readCall` (raw `readBits`); writes through `writeCall` (`writeBits`)
 - `docs/adr/0001-mutable-view-classes-with-write-through-setters.md` (superseded)
 - `.scratch/kompact-spec/issues/07-write-builder-interface.md` (KompactWriter Decision 2)
 - `kompact-ksp/.../gen/ValueClassGenerator.kt` (current generator)
+
+## Answer
+
+Resolved on 2026-10-18. The plan shipped. ADR-0006 is accepted and
+implemented, and ADR-0009 amends the names. Generated views are read-only
+`<Name>View` classes. `@KompactModel(mutable = true)` adds a
+`Mutable<Name>View` for fixed-layout models. See
+`kompact/src/commonMain/kotlin/ch/trancee/kompact/annotations/KompactAnnotations.kt`.

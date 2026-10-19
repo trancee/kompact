@@ -1,6 +1,6 @@
 ---
 Type: task
-Status: needs-triage
+Status: resolved
 Labels:
   - scope:review
   - kind:synthesis
@@ -86,3 +86,24 @@ ratifying ADR (it is binary-incompatible on the wire).
 - [ADR-0005](../../../docs/adr/0005-full-domain-long-result.md)
 - [ADR-0006](../../../docs/adr/0006-immutable-default-models.md)
 - [ticket 17](17-fast-path-bit-reading.md)
+
+## Answer
+
+Triaged on 2026-10-18 against `main` at `5294956`.
+
+- Proposal 2 is accepted for the `LongResult` representation. See
+  [ADR-0005](../../../docs/adr/0005-full-domain-long-result.md).
+- Proposal 3 is accepted and implemented. Generated views are read-only
+  `<Name>View` classes, and `@KompactModel(mutable = true)` adds a
+  `Mutable<Name>View` sibling. See
+  [ADR-0006](../../../docs/adr/0006-immutable-default-models.md) and
+  [ADR-0009](../../../docs/adr/0009-common-only-code-generation.md).
+- Proposal 1 moves to [ticket 17](17-fast-path-bit-reading.md). Its blocker,
+  [ticket 11](11-performance-evidence-plan.md), is resolved, so ticket 17 is
+  `ready-for-agent`.
+- Proposal 6 is partly done. Releases go to Maven Central, and JMH and Native
+  benchmarks run in CI as smoke checks. A C reference spec and fuzzing are
+  still open. Nobody has asked for them.
+- Proposals 4 and 5 and the framing-width claims stay with tickets 02, 04,
+  05, and 07. The framing-width change would break the wire format, so it
+  needs an ADR before any code.

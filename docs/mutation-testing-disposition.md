@@ -16,7 +16,7 @@ Gradle tasks pass, and the evidence covers the JVM only.
 
 | Module | Wrapped tests | Discovered / evaluated | Killed | Survived | Timed out | Gaps | Score |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `:kompact` | 400 | 753 / 753 | 753 | 0 | 0 | 0 | 100% |
+| `:kompact` | 401 | 748 / 748 | 748 | 0 | 0 | 0 | 100% |
 | `:kompact-ksp` | 183 | 391 / 391 | 391 | 0 | 0 | 0 | 100% |
 
 The "Wrapped tests" column is the number of `@Test` methods in the adapter

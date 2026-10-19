@@ -9,8 +9,13 @@ package ch.trancee.kompact.runtime
  * with `and 0xFF` before `ushr`/`shl`/`or`, so assembly is identical on the
  * JVM and Kotlin/Native regardless of platform endianness.
  *
- * Each chunk loop runs once per byte the field touches ([byteSpan]), so its
- * trip count never depends on a comparison inside the loop.
+ * Reads and writes touch exactly the bytes the field covers ([byteSpan]), so a
+ * field that ends at the last byte never reads past the buffer. A read shifts
+ * each byte straight to its place in the result and masks once, so no
+ * iteration waits on the one before it. Writes keep a chunk loop: on
+ * Kotlin/Native, LLVM inlines it at constant call sites and folds it to a
+ * fixed sequence, and the word-based writes that were tried did not inline.
+ * `docs/research/bit-primitive-fast-paths.md` records the measurements.
  *
  * These primitives read/write the caller-owned buffer without constructing a
  * result wrapper. Generated raw getters delegate to them directly; checked
@@ -18,56 +23,21 @@ package ch.trancee.kompact.runtime
  * represent the full `Long` domain without reserving sentinel values.
  */
 public object KompactRuntime {
-    /** Reads [bitWidth] bits (1..31) from [raw] starting at [bitOffset], LSB-first. */
+    /** Reads [bitWidth] bits (0..32) from [raw] starting at [bitOffset], LSB-first. A zero width returns 0. */
     public fun readBits(
         raw: ByteArray,
         bitOffset: Int,
         bitWidth: Int,
-    ): Int {
-        var result = 0
-        var srcBit = bitOffset
-        var destBit = 0
-        var remaining = bitWidth
-        repeat(byteSpan(bitOffset, bitWidth)) {
-            val byteIndex = srcBit ushr 3
-            val bitInByte = srcBit and 7
-            val bitsAvailable = 8 - bitInByte
-            val chunk = minOf(remaining, bitsAvailable)
-            val byteVal = raw[byteIndex].toInt() and 0xFF
-            val chunkBits = (byteVal ushr bitInByte) and ((1 shl chunk) - 1)
-            result = result or (chunkBits shl destBit)
-            srcBit += chunk
-            destBit += chunk
-            remaining -= chunk
-        }
-        return result
-    }
+    ): Int = readBitsLong(raw, bitOffset, bitWidth).toInt()
 
-    /** Writes the low [bitWidth] bits (1..31) of [value] into [raw] at [bitOffset], LSB-first. */
+    /** Writes the low [bitWidth] bits (0..32) of [value] into [raw] at [bitOffset], LSB-first. */
     public fun writeBits(
         raw: ByteArray,
         bitOffset: Int,
         bitWidth: Int,
         value: Int,
     ) {
-        var srcBit = bitOffset
-        var srcValBit = 0
-        var remaining = bitWidth
-        repeat(byteSpan(bitOffset, bitWidth)) {
-            val byteIndex = srcBit ushr 3
-            val bitInByte = srcBit and 7
-            val bitsAvailable = 8 - bitInByte
-            val chunk = minOf(remaining, bitsAvailable)
-            val mask = ((1 shl chunk) - 1) shl bitInByte
-            val byteVal = raw[byteIndex].toInt() and 0xFF
-            val chunkBits = (value ushr srcValBit) and ((1 shl chunk) - 1)
-            val cleared = byteVal and mask.inv()
-            val set = chunkBits shl bitInByte
-            raw[byteIndex] = (cleared or set).toByte()
-            srcBit += chunk
-            srcValBit += chunk
-            remaining -= chunk
-        }
+        writeBitsLong(raw, bitOffset, bitWidth, value.toLong())
     }
 
     /** Reads a single bit at [bitOffset] as a [Boolean]. */
@@ -95,32 +65,24 @@ public object KompactRuntime {
         }
     }
 
-    /** Reads [bitWidth] bits (1..64) from [raw] starting at [bitOffset], LSB-first. */
+    /** Reads [bitWidth] bits (0..64) from [raw] starting at [bitOffset], LSB-first. A zero width returns 0. */
     public fun readBitsLong(
         raw: ByteArray,
         bitOffset: Int,
         bitWidth: Int,
     ): Long {
-        var result = 0L
-        var srcBit = bitOffset
-        var destBit = 0
-        var remaining = bitWidth
-        repeat(byteSpan(bitOffset, bitWidth)) {
-            val byteIndex = srcBit ushr 3
-            val bitInByte = srcBit and 7
-            val bitsAvailable = 8 - bitInByte
-            val chunk = minOf(remaining, bitsAvailable)
-            val byteVal = raw[byteIndex].toInt() and 0xFF
-            val chunkBits = (byteVal ushr bitInByte) and ((1 shl chunk) - 1)
-            result = result or (chunkBits.toLong() shl destBit)
-            srcBit += chunk
-            destBit += chunk
-            remaining -= chunk
+        val span = byteSpan(bitOffset, bitWidth)
+        if (span == 0) return 0L
+        val byteIndex = bitOffset ushr 3
+        val shift = bitOffset and 7
+        var word = (raw[byteIndex].toLong() and 0xFF) ushr shift
+        for (i in 1 until span) {
+            word = word or ((raw[byteIndex + i].toLong() and 0xFF) shl ((i shl 3) - shift))
         }
-        return result
+        return word and widthMask(bitWidth)
     }
 
-    /** Writes the low [bitWidth] bits (1..64) of [value] into [raw] at [bitOffset], LSB-first. */
+    /** Writes the low [bitWidth] bits (0..64) of [value] into [raw] at [bitOffset], LSB-first. */
     public fun writeBitsLong(
         raw: ByteArray,
         bitOffset: Int,
@@ -159,6 +121,8 @@ public object KompactRuntime {
         bitOffset: Int,
         bitWidth: Int,
     ): Int = ((bitOffset and 7) + bitWidth + 7) shr 3
+
+    private fun widthMask(bitWidth: Int): Long = if (bitWidth == Long.SIZE_BITS) -1L else (1L shl bitWidth) - 1L
 
     /** Bounds-check: true iff [bitOffset]+[bitWidth] fits in [raw]. */
     public fun fits(
