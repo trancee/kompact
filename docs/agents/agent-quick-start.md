@@ -5,7 +5,7 @@ binary serialization library. It covers setup, the core concepts, the most
 common API calls, and the mistakes that cause compile errors or runtime
 failures.
 
-The published `0.9.0` release supports sequential string, blob, nested, and
+The published `0.10.0` release supports sequential string, blob, nested, and
 repeated fields. To use them, annotate the schema with
 `@KompactModel(framed = true)` and number its fields with contiguous
 `@KompactField(order = ...)` values. The generated view has a bounded
@@ -96,7 +96,7 @@ dependencyResolutionManagement {
 // build.gradle.kts (consumer module)
 plugins {
     kotlin("multiplatform") version "2.4.21"
-    id("ch.trancee.kompact.codegen") version "0.9.0"
+    id("ch.trancee.kompact.codegen") version "0.10.0"
 }
 
 kotlin {
@@ -108,7 +108,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.9.0")
+                implementation("ch.trancee.kompact:kompact:0.10.0")
             }
         }
     }
@@ -128,7 +128,7 @@ To try unreleased changes, run this command from the Kompact checkout:
 ./gradlew :kompact:publishToMavenLocal :kompact-ksp:publishToMavenLocal :kompact-gradle-plugin:publishToMavenLocal
 ```
 
-Then use version `0.10.0-SNAPSHOT` and add `mavenLocal()` to the
+Then use version `0.10.0` and add `mavenLocal()` to the
 repositories. The [consumer setup guide](../how-to/consume-from-another-project.md)
 has the full snapshot setup.
 

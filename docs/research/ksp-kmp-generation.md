@@ -17,8 +17,8 @@ the build is an open upstream problem and depends on fragile manual task
 relationships.
 
 Kompact solves common Kotlin generation with its own Gradle plugin,
-`:kompact-gradle-plugin`. The latest release is `0.9.0`, and this checkout is
-`0.10.0-SNAPSHOT`. The plugin's cacheable task calls KSP2 once through the
+`:kompact-gradle-plugin`. The latest release is `0.10.0`, and this checkout is
+`0.10.0`. The plugin's cacheable task calls KSP2 once through the
 `KSPCommonConfig` path. Since
 [ADR-0009](../adr/0009-common-only-code-generation.md), the task writes one
 output directory and registers it only with `commonMain` through a task-backed

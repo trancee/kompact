@@ -33,7 +33,7 @@ by step and shows the expected bytes and decoded values.
 
 ## Install
 
-The latest Maven Central release is `0.9.0`:
+The latest Maven Central release is `0.10.0`:
 
 ```kotlin
 repositories {
@@ -41,7 +41,7 @@ repositories {
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.9.0")
+    implementation("ch.trancee.kompact:kompact:0.10.0")
 }
 ```
 
