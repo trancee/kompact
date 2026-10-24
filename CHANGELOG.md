@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.11.0] - 2026-10-24
+
+### 📦 Other
+- chore(deps): bump org.jetbrains.kotlinx:kotlinx-serialization-json (#116) (fe97125)
+- chore(deps): bump gradle-wrapper from 9.8.1 to 9.8.2 (#115) (c9ed101)
+- docs(tracker): resolve ticket 14 and the finished wayfinder maps (#114) (9140012)
+- fix(docs): keep the development role under nested headings (#111) (c6c4464)
+
 ## [0.10.0] - 2026-10-19
 
 ### 📦 Other

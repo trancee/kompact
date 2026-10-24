@@ -2,7 +2,7 @@
 
 This page lists every public declaration of the `ch.trancee.kompact:kompact`
 runtime and the code that the KSP processor generates from it. It describes
-the current checkout, version `0.11.0-SNAPSHOT`. To upgrade from `0.9.0`, see
+the current checkout, version `0.11.0`. To upgrade from `0.9.0`, see
 [API changes in 0.10.0](#api-changes-in-0100).
 
 The committed ABI dumps are the source of truth for this list:
