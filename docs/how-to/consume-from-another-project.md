@@ -2,7 +2,7 @@
 
 Add the Kompact runtime to a Kotlin/JVM, Android, or Kotlin Multiplatform
 module. To generate views from schemas, also apply the code-generation plugin.
-The latest Maven Central release is `0.10.0`.
+The latest Maven Central release is `0.11.0`.
 
 ## Add the published runtime
 
@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    implementation("ch.trancee.kompact:kompact:0.10.0")
+    implementation("ch.trancee.kompact:kompact:0.11.0")
 }
 ```
 
@@ -29,7 +29,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.10.0")
+                implementation("ch.trancee.kompact:kompact:0.11.0")
             }
         }
     }
@@ -45,7 +45,7 @@ iOS Simulator Arm64, and Android Native Arm64.
 ## Add the published code-generation plugin
 
 The plugin `ch.trancee.kompact.codegen`, the runtime, and the KSP processor
-are published at `0.10.0`. The plugin accepts only the JVM, Android JVM,
+are published at `0.11.0`. The plugin accepts only the JVM, Android JVM,
 iOS Arm64, iOS Simulator Arm64, and Android Native Arm64 targets.
 
 The schema examples in these guides need version `0.10.0` or later.
@@ -74,7 +74,7 @@ The schema examples in these guides need version `0.10.0` or later.
    ```kotlin
    plugins {
        kotlin("multiplatform") version "2.4.21"
-       id("ch.trancee.kompact.codegen") version "0.10.0"
+       id("ch.trancee.kompact.codegen") version "0.11.0"
    }
 
    kotlin {
@@ -86,7 +86,7 @@ The schema examples in these guides need version `0.10.0` or later.
        sourceSets {
            commonMain {
                dependencies {
-                   implementation("ch.trancee.kompact:kompact:0.10.0")
+                   implementation("ch.trancee.kompact:kompact:0.11.0")
                }
            }
        }
@@ -98,7 +98,7 @@ Do not also apply the standard KSP plugin to the same Kompact schemas.
 ## Try the development snapshot
 
 To try the latest changes on the default branch, publish the current
-checkout's `0.11.0-SNAPSHOT` runtime, KSP processor, and code-generation plugin
+checkout's `0.11.0` runtime, KSP processor, and code-generation plugin
 to Maven Local from a clone of this repository.
 
 ### Use the snapshot runtime
@@ -119,7 +119,7 @@ to Maven Local from a clone of this repository.
    }
 
    dependencies {
-       implementation("ch.trancee.kompact:kompact:0.11.0-SNAPSHOT")
+       implementation("ch.trancee.kompact:kompact:0.11.0")
    }
    ```
 
@@ -154,7 +154,7 @@ to Maven Local from a clone of this repository.
    ```kotlin
    plugins {
        kotlin("multiplatform") version "2.4.21"
-       id("ch.trancee.kompact.codegen") version "0.11.0-SNAPSHOT"
+       id("ch.trancee.kompact.codegen") version "0.11.0"
    }
 
    repositories {
@@ -168,7 +168,7 @@ to Maven Local from a clone of this repository.
        sourceSets {
            commonMain {
                dependencies {
-                   implementation("ch.trancee.kompact:kompact:0.11.0-SNAPSHOT")
+                   implementation("ch.trancee.kompact:kompact:0.11.0")
                }
            }
        }
@@ -216,7 +216,7 @@ fun main() {
 
 If the snapshot does not resolve, check that `mavenLocal()` is in both the
 `pluginManagement` repositories and the dependency repositories. To go back to
-Maven Central, remove `mavenLocal()` and use the published `0.10.0` runtime and
+Maven Central, remove `mavenLocal()` and use the published `0.11.0` runtime and
 plugin.
 
 ## Next steps
