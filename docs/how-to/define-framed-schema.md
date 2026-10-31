@@ -82,7 +82,7 @@ runtime to `commonMain`:
 ```kotlin
 plugins {
     kotlin("multiplatform") version "2.4.21"
-    id("ch.trancee.kompact.codegen") version "0.10.0"
+    id("ch.trancee.kompact.codegen") version "0.11.0"
 }
 
 kotlin {
@@ -94,7 +94,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("ch.trancee.kompact:kompact:0.10.0")
+                implementation("ch.trancee.kompact:kompact:0.11.0")
             }
         }
     }
